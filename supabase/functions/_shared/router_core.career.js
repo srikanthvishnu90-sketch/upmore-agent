@@ -24539,7 +24539,6 @@ const CareerPortalApply = (() => {
     return null;
   }
   const isEeoDeclineText = (text) => eeoDeclineMatch(text) !== null;
-  const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
   const EMPTY_FORM_RESCAN_MAX_READS = 5;
   const EMPTY_FORM_RESCAN_BUDGET_MS = 10000;
 
@@ -24951,7 +24950,7 @@ const CareerPortalApply = (() => {
     if (r.url) return classifyTarget(r.url).atsFamily || null;
     return null;
   }
-  function capCheck(log, userId, posting, now, board) {
+  function ledgerCounts(log, userId, posting, now, board) {
     const p = posting || {};
     const recs = ((log && log.records) || []).filter((r) => r.userId === userId && r.status === "submitted");
     const day = daySlice(now);
@@ -24972,11 +24971,7 @@ const CareerPortalApply = (() => {
       }
     }
     const counts = { perDay, perVendorPerDay, perCompanyPer30Days };
-    const stops = [];
-    if (perDay >= SPEC_CAPS.perDay) stops.push({ cap: "perDay", count: perDay, limit: SPEC_CAPS.perDay });
-    if (vendor && perVendorPerDay >= SPEC_CAPS.perVendorPerDay) stops.push({ cap: "perVendorPerDay", count: perVendorPerDay, limit: SPEC_CAPS.perVendorPerDay, vendor });
-    if (companyKey && perCompanyPer30Days >= SPEC_CAPS.perCompanyPer30Days) stops.push({ cap: "perCompanyPer30Days", count: perCompanyPer30Days, limit: SPEC_CAPS.perCompanyPer30Days, company });
-    return { ok: stops.length === 0, stops, counts, vendor, company };
+    return { counts, vendor, company };
   }
 
   const APPLIED_STAGES = new Set(["applied", "submitted", "interview", "interviewing", "phone_screen", "onsite", "assessment", "oa", "offer", "rejected", "withdrawn", "closed", "hired"]);
@@ -25019,18 +25014,11 @@ const CareerPortalApply = (() => {
 
   function capReport(log, userId, posting, now, board) {
     const recs = (log && log.records) || [];
-    const chk = capCheck(log, userId, posting, now, board);
+    const chk = ledgerCounts(log, userId, posting, now, board);
     return {
-      decisionPending: false, enforced: true,
-      specDefaults: Object.assign({}, SPEC_CAPS),
+      decisionPending: false, enforced: false, limits: null,
       submittedToday: chk.counts.perDay,
       counts: chk.counts,
-      remaining: {
-        perDay: Math.max(0, SPEC_CAPS.perDay - chk.counts.perDay),
-        perVendorPerDay: Math.max(0, SPEC_CAPS.perVendorPerDay - chk.counts.perVendorPerDay),
-        perCompanyPer30Days: Math.max(0, SPEC_CAPS.perCompanyPer30Days - chk.counts.perCompanyPer30Days),
-      },
-      wouldStop: chk.stops,
       submittedThisPosting: recs.filter((r) => r.userId === userId && r.status === "submitted" && posting && r.canonicalKey === posting.canonicalKey).length,
     };
   }
@@ -25439,13 +25427,7 @@ const CareerPortalApply = (() => {
         reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` });
     }
 
-    const caps = capCheck(log, session.userId, posting, inp.now, board);
-    if (!caps.ok) {
-      const s = caps.stops[0];
-      logStep("cap_reached_stop", { cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops });
-      return blocked("CAP_REACHED", { cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops, counts: caps.counts,
-        reason: `the owner's decided application cap is reached (${s.cap}: ${s.count} of ${s.limit}) — this submission waits for a later day or window` });
-    }
+    const led = ledgerCounts(log, session.userId, posting, inp.now, board);
 
     let review = board.atReview();
     const reviewValidationPending = !!(review && review.code === "FORM_VALIDATION_FAILED");
@@ -25512,7 +25494,7 @@ const CareerPortalApply = (() => {
     }
     payload = bindAttestations(payload, pendingAtt);
     const payloadSha256 = sha256(JSON.stringify(payload));
-    session.doorstep = { payload, payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
+    session.doorstep = { payload, payloadSha256, postingKey: posting.canonicalKey, vendor: led.vendor, company: posting.company || null, atFinalReview: true,
       requiredFieldIds: formDef.fields.filter((f) => f.required).map((f) => f.field_id) };
     if (pendingAtt.length) session.doorstep.attestations = pendingAtt.map((a) => Object.assign({}, a));
     logStep("doorstep_reached", { payloadSha256 });
@@ -25637,14 +25619,8 @@ const CareerPortalApply = (() => {
         return blocked("ALREADY_APPLIED_BY_USER", { company: c0.company, title: c0.title, stage: c0.stage, source: c0.source,
           reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` });
       }
-      const caps = capCheck(log, session.userId, posting, inp.now, board);
-      if (!caps.ok) {
-        const sc = caps.stops[0];
-        logStep("cap_reached_stop", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops });
-        return blocked("CAP_REACHED", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops, counts: caps.counts,
-          reason: `the owner's decided application cap is reached (${sc.cap}: ${sc.count} of ${sc.limit}) — this submission waits for a later day or window` });
-      }
-      session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
+      const led = ledgerCounts(log, session.userId, posting, inp.now, board);
+      session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: led.vendor, company: posting.company || null, atFinalReview: true,
         requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
       if (pendingAtt.length) session.doorstep.attestations = pendingAtt.map((a) => ({ field_id: a.field_id, text: a.text, value: a.value }));
       logStep("session_resumed", { payloadSha256: stored.payloadSha256 });
@@ -25690,17 +25666,12 @@ const CareerPortalApply = (() => {
         reason: "the doorstep payload is missing readback values for required fields — the submit gate refuses to arm or click over a hollow payload" };
     }
     const board = session.board;
-    const caps = capCheck(log, session.userId, {
+    const led = ledgerCounts(log, session.userId, {
       canonicalKey: session.doorstep.postingKey,
       vendor: session.doorstep.vendor || null,
       company: session.doorstep.company || (c.posting && c.posting.company) || null,
       url: (c.posting && c.posting.url) || null,
     }, c.now, board);
-    if (!caps.ok) {
-      const s = caps.stops[0];
-      return { resultStatus: "blocked", code: "CAP_REACHED", cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops, counts: caps.counts,
-        reason: `the owner's decided application cap is reached (${s.cap}: ${s.count} of ${s.limit}) — this submission waits for a later day or window` };
-    }
     const collision = collisionCheck(c.manualApplications || session.manualApplications, {
       canonicalKey: session.doorstep.postingKey,
       company: session.doorstep.company || (c.posting && c.posting.company) || null,
@@ -25744,7 +25715,7 @@ const CareerPortalApply = (() => {
       session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind, approvalRef, payloadSha256: approvedHash,
         confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
       if (attested.length) session.submission.attestations = attested;
-      log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId, vendor: caps.vendor, company: caps.company });
+      log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId, vendor: led.vendor, company: led.company });
       return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
     }
     session.needsReconcile = true;
@@ -25860,7 +25831,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, EEO_DECLINE_SOURCE, eeoDeclineMatch, isEeoDeclineText };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, ledgerCounts, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, EEO_DECLINE_SOURCE, eeoDeclineMatch, isEeoDeclineText };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

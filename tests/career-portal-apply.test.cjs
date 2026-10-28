@@ -241,12 +241,12 @@ test("§6.4 quality gate: a cover note naming the wrong company blocks the run b
   assert.equal(board.calls.submit, 0);
 });
 
-// ---------- caps are the owner's DECIDED numbers, enforced (MI-110; was report-only) ----------
-test("§6.4 caps: the run reports cap state as decided + enforced (MI-110 supersedes the report-only pin)", () => {
+// ---------- no volume caps (owner, 2026-10-27, D-MS-2; the MI-110 caps are removed) ----------
+test("no limits: the run reports ledger counts and that no cap is enforced", () => {
   const { session } = sandboxSession();
   const r = Portal.runApply(session, baseRun());
-  assert.ok(r.capReport, "cap state is surfaced");
+  assert.ok(r.capReport, "ledger counts are surfaced");
   assert.equal(r.capReport.decisionPending, false);
-  assert.equal(r.capReport.enforced, true);
+  assert.equal(r.capReport.enforced, false);
   assert.equal(typeof r.capReport.submittedToday, "number");
 });

@@ -49,11 +49,11 @@
    browser driver (REAL_PORTAL_NOT_WIRED). Account-walled boards
    (Workday/iCIMS/Taleo) and the owner's signed-in session remain future,
    owner-gated work — see docs/career/board-automation-map.md.
-   Caps (§6.4) are the owner's DECIDED numbers (15/day locked 2026-10-12;
-   5/vendor/day; 1/company/30 days) and are ENFORCED here (MI-110): a run
-   or submit that would exceed one stops CAP_REACHED naming the cap and
-   the count, counted from the submissions ledger this module writes;
-   the never-twice-to-the-same-job rule (§8.3) is enforced alongside.
+   No volume caps (owner, 2026-10-27, D-MS-2/D-MS-3): the old §6.4 caps
+   (15/day, 5/vendor/day, 1/company/30 days, MI-110) are removed. This
+   module never refuses a submission for volume; it refuses only an
+   exact duplicate: the never-twice-to-the-same-job rule (§8.3), counted
+   from the submissions ledger this module writes.
    That ledger never contained the user's own hand-filed applications,
    so the never-twice rule also reads what the host knows — tracker
    rows and user statements passed as manualApplications — and a match
@@ -119,8 +119,6 @@ const CareerPortalApply = (() => {
     return null;
   }
   const isEeoDeclineText = (text) => eeoDeclineMatch(text) !== null;
-  // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
-  const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
   // MUSE-F-025: the bounded re-scan of a zero-field form read (see the
   // discover step in prepareRound and docs/apply/ROOT-CAUSE-F025-2026-10-22.md).
   const EMPTY_FORM_RESCAN_MAX_READS = 5;
@@ -621,10 +619,11 @@ const CareerPortalApply = (() => {
     }));
   }
 
-  // ---------- §6.4 caps: decided numbers, enforced (MI-110 / BUG-233) ----------
-  // Counts come from the submissions ledger (log.records, status
-  // "submitted") — the same records submitDoorstep writes, so the ledger
-  // is the per-user record across threads wherever the host persists it.
+  // ---------- ledger counts (reported, never a limit) ----------
+  // The §6.4 volume caps were removed (owner, 2026-10-27, D-MS-2/D-MS-3:
+  // no product volume cap, no one-per-company rule). The counts are still
+  // read from the submissions ledger (log.records, status "submitted")
+  // so a run can report what it did; nothing here refuses a submission.
   function tsMs(ts) {
     if (typeof ts === "number" && Number.isFinite(ts)) return ts;
     const ms = Date.parse(String(ts == null ? "" : ts));
@@ -640,7 +639,7 @@ const CareerPortalApply = (() => {
     if (r.url) return classifyTarget(r.url).atsFamily || null;
     return null;
   }
-  function capCheck(log, userId, posting, now, board) {
+  function ledgerCounts(log, userId, posting, now, board) {
     const p = posting || {};
     const recs = ((log && log.records) || []).filter((r) => r.userId === userId && r.status === "submitted");
     const day = daySlice(now);
@@ -661,15 +660,11 @@ const CareerPortalApply = (() => {
       }
     }
     const counts = { perDay, perVendorPerDay, perCompanyPer30Days };
-    const stops = [];
-    if (perDay >= SPEC_CAPS.perDay) stops.push({ cap: "perDay", count: perDay, limit: SPEC_CAPS.perDay });
-    if (vendor && perVendorPerDay >= SPEC_CAPS.perVendorPerDay) stops.push({ cap: "perVendorPerDay", count: perVendorPerDay, limit: SPEC_CAPS.perVendorPerDay, vendor });
-    if (companyKey && perCompanyPer30Days >= SPEC_CAPS.perCompanyPer30Days) stops.push({ cap: "perCompanyPer30Days", count: perCompanyPer30Days, limit: SPEC_CAPS.perCompanyPer30Days, company });
-    return { ok: stops.length === 0, stops, counts, vendor, company };
+    return { counts, vendor, company };
   }
 
   // ---------- §8.3 collision check: the user's own hand-filed applications (MI-108 / G3) ----------
-  // The caps above count only this module's submissions ledger — records
+  // The ledger above holds only this module's submissions — records
   // the PRODUCT wrote. An application the user filed by hand never enters
   // that ledger, so the never-twice rule was blind to it: the product
   // could apply to a job the user already holds an application at, and
@@ -679,7 +674,7 @@ const CareerPortalApply = (() => {
   // updates) and user statements, normalized to
   // { company, title, stage, source, at, canonicalKey? }. A record is
   // evidence when (a) its origin is not the product itself (a
-  // product-origin record is the caps' domain, not this check's), (b)
+  // product-origin record is the ledger's domain, not this check's), (b)
   // its stage proves an application exists (applied or beyond — a
   // saved/interested row is not an application), and (c) it names the
   // SAME canonical job: a canonical-key match is decisive; otherwise
@@ -706,7 +701,7 @@ const CareerPortalApply = (() => {
     for (const r of manualApplications || []) {
       if (!r) continue;
       const origin = String(r.source || r.origin || "").toLowerCase();
-      if (PRODUCT_ORIGINS.has(origin)) continue; // the caps' domain
+      if (PRODUCT_ORIGINS.has(origin)) continue; // the ledger's domain (DUPLICATE_APPLICATION)
       const stage = String(r.stage || r.status || "").toLowerCase();
       if (r.applied !== true && !APPLIED_STAGES.has(stage)) continue; // no application exists yet
       const rKey = r.canonicalKey || r.jobKey || null;
@@ -728,18 +723,11 @@ const CareerPortalApply = (() => {
 
   function capReport(log, userId, posting, now, board) {
     const recs = (log && log.records) || [];
-    const chk = capCheck(log, userId, posting, now, board);
+    const chk = ledgerCounts(log, userId, posting, now, board);
     return {
-      decisionPending: false, enforced: true, // §6.4 numbers are the owner's decided caps (MI-110)
-      specDefaults: Object.assign({}, SPEC_CAPS),
+      decisionPending: false, enforced: false, limits: null, // no volume cap (owner, 2026-10-27, D-MS-2)
       submittedToday: chk.counts.perDay,
       counts: chk.counts,
-      remaining: {
-        perDay: Math.max(0, SPEC_CAPS.perDay - chk.counts.perDay),
-        perVendorPerDay: Math.max(0, SPEC_CAPS.perVendorPerDay - chk.counts.perVendorPerDay),
-        perCompanyPer30Days: Math.max(0, SPEC_CAPS.perCompanyPer30Days - chk.counts.perCompanyPer30Days),
-      },
-      wouldStop: chk.stops,
       submittedThisPosting: recs.filter((r) => r.userId === userId && r.status === "submitted" && posting && r.canonicalKey === posting.canonicalKey).length,
     };
   }
@@ -1347,7 +1335,7 @@ const CareerPortalApply = (() => {
 
     // §8.3 collision check (MI-108 / G3): a hand-filed application to
     // this same canonical job stops the run before a doorstep is
-    // presented — the caps' ledger never contained it, so without this
+    // presented — the product's ledger never contained it, so without this
     // check the product would duplicate an application the user
     // already holds. submitDoorstep re-checks at click time (the
     // knowledge can arrive between doorstep and click).
@@ -1360,17 +1348,9 @@ const CareerPortalApply = (() => {
         reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` });
     }
 
-    // §6.4 caps (MI-110): the decided caps are enforced, not reported —
-    // a run that would exceed one stops here and never presents a
-    // doorstep that cannot submit. submitDoorstep re-checks at click
-    // time (counts can change between doorstep and click).
-    const caps = capCheck(log, session.userId, posting, inp.now, board);
-    if (!caps.ok) {
-      const s = caps.stops[0];
-      logStep("cap_reached_stop", { cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops });
-      return blocked("CAP_REACHED", { cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops, counts: caps.counts,
-        reason: `the owner's decided application cap is reached (${s.cap}: ${s.count} of ${s.limit}) — this submission waits for a later day or window` });
-    }
+    // No volume cap here (owner, 2026-10-27, D-MS-2): the ledger read only
+    // names the vendor and company the doorstep carries.
+    const led = ledgerCounts(log, session.userId, posting, inp.now, board);
 
     // the doorstep: final review, exact payload snapshot, STOP (§6.1 step 5/6 boundary)
     let review = board.atReview();
@@ -1474,7 +1454,7 @@ const CareerPortalApply = (() => {
     }
     payload = bindAttestations(payload, pendingAtt);
     const payloadSha256 = sha256(JSON.stringify(payload));
-    session.doorstep = { payload, payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
+    session.doorstep = { payload, payloadSha256, postingKey: posting.canonicalKey, vendor: led.vendor, company: posting.company || null, atFinalReview: true,
       requiredFieldIds: formDef.fields.filter((f) => f.required).map((f) => f.field_id) };
     if (pendingAtt.length) session.doorstep.attestations = pendingAtt.map((a) => Object.assign({}, a));
     logStep("doorstep_reached", { payloadSha256 });
@@ -1528,7 +1508,7 @@ const CareerPortalApply = (() => {
   // expired, or not this user's), SESSION_STATE_MISMATCH (the live
   // state differs from the prepared payload), SESSION_BINDING_INVALID
   // (the stored record is internally inconsistent). Any other stop
-  // (captcha, caps, a board code) is the application's result, as a
+  // (captcha, a board code) is the application's result, as a
   // fresh drive would produce it.
   const SESSION_DEATH_CODES = new Set(["SESSION_EXPIRED", "WORKER_SESSION_GONE", "WORKER_SESSION_FORBIDDEN", "BOARD_CLOSED"]);
   function resumeApply(session, input) {
@@ -1654,7 +1634,7 @@ const CareerPortalApply = (() => {
         logStep("session_state_mismatch", { cause: "not_at_final_review" });
         return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board is not at the final review the prepare drive reached", formAnalysis });
       }
-      // §8.3 collision + §6.4 caps, the same re-checks prepare makes
+      // §8.3 collision, the same re-check prepare makes
       if (inp.manualApplications) session.manualApplications = inp.manualApplications;
       const collision = collisionCheck(session.manualApplications, posting);
       if (collision.collision) {
@@ -1663,14 +1643,8 @@ const CareerPortalApply = (() => {
         return blocked("ALREADY_APPLIED_BY_USER", { company: c0.company, title: c0.title, stage: c0.stage, source: c0.source,
           reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` });
       }
-      const caps = capCheck(log, session.userId, posting, inp.now, board);
-      if (!caps.ok) {
-        const sc = caps.stops[0];
-        logStep("cap_reached_stop", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops });
-        return blocked("CAP_REACHED", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops, counts: caps.counts,
-          reason: `the owner's decided application cap is reached (${sc.cap}: ${sc.count} of ${sc.limit}) — this submission waits for a later day or window` });
-      }
-      session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
+      const led = ledgerCounts(log, session.userId, posting, inp.now, board);
+      session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: led.vendor, company: posting.company || null, atFinalReview: true,
         requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
       // the certifications stay PENDING on the resumed doorstep:
       // submitDoorstep ticks them only from the card's yes, bound to
@@ -1721,7 +1695,7 @@ const CareerPortalApply = (() => {
     }
     // D13 (BUG-209 / FR-365) at the gate itself (ported from the
     // submit-path lineage): the stored doorstep payload is re-verified
-    // before caps, binding, or arming — every required field the
+    // before binding or arming — every required field the
     // doorstep was built over must still carry a value in it. A
     // hollowed payload is refused here, unarmed, unclicked.
     const gateMissing = (session.doorstep.requiredFieldIds || [])
@@ -1732,20 +1706,14 @@ const CareerPortalApply = (() => {
         reason: "the doorstep payload is missing readback values for required fields — the submit gate refuses to arm or click over a hollow payload" };
     }
     const board = session.board;
-    // §6.4 caps re-check (MI-110): counts can change between doorstep
-    // and click — the gate that fires is the gate that counts. The cap
-    // stop lands BEFORE the arming wire: a capped submit never arms.
-    const caps = capCheck(log, session.userId, {
+    // No volume cap at click time either (owner, 2026-10-27, D-MS-2); the
+    // ledger read names the vendor and company the record carries.
+    const led = ledgerCounts(log, session.userId, {
       canonicalKey: session.doorstep.postingKey,
       vendor: session.doorstep.vendor || null,
       company: session.doorstep.company || (c.posting && c.posting.company) || null,
       url: (c.posting && c.posting.url) || null,
     }, c.now, board);
-    if (!caps.ok) {
-      const s = caps.stops[0];
-      return { resultStatus: "blocked", code: "CAP_REACHED", cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops, counts: caps.counts,
-        reason: `the owner's decided application cap is reached (${s.cap}: ${s.count} of ${s.limit}) — this submission waits for a later day or window` };
-    }
     // §8.3 collision re-check (MI-108 / G3): the knowledge that the
     // user already holds an application at this job can arrive between
     // doorstep and click — a duplicate must never arm. The doorstep
@@ -1815,7 +1783,7 @@ const CareerPortalApply = (() => {
       session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind, approvalRef, payloadSha256: approvedHash,
         confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
       if (attested.length) session.submission.attestations = attested;
-      log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId, vendor: caps.vendor, company: caps.company });
+      log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId, vendor: led.vendor, company: led.company });
       return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
     }
     // timeout (or any non-accept): the outcome is UNKNOWN — never spoken as sent (§8.3)
@@ -1949,6 +1917,6 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, EEO_DECLINE_SOURCE, eeoDeclineMatch, isEeoDeclineText };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, ledgerCounts, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, EEO_DECLINE_SOURCE, eeoDeclineMatch, isEeoDeclineText };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;

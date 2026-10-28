@@ -223,7 +223,7 @@ test("F-033: a request queued behind a >=5s board call is served, not reset", as
   assert.equal(slowResult.body.ok, true);
 });
 
-test("cap race: two approve drains racing the last per-day slot", async (t) => {
+test("ledger race: two approve drains snapshot the ledger concurrently (no volume cap, D-MS-2)", async (t) => {
   // The drive-layer cap seam, with the REAL modules end to end
   // (executor -> 155 -> 149 -> sandbox boards): caps are counted by
   // 149 from the submissions ledger, and the executor's discipline
@@ -237,9 +237,10 @@ test("cap race: two approve drains racing the last per-day slot", async (t) => {
   //   (b) VERSIONED store (saveLedger refuses a stale snapshot with
   //       LEDGER_VERSION_CONFLICT): exactly one leg proceeds; the
   //       cap holds at 15; the loser's refusal is named.
-  //   (c) FRESH-READ drain after the winner lands: 149 itself stops
-  //       the second leg with CAP_REACHED naming perDay — the
-  //       refusal a re-driven leg meets once the ledger is current.
+  //   (c) FRESH-READ drain after the winner lands: the second leg
+  //       submits too and both records are kept. The old 15/day cap
+  //       (MI-110), which stopped it with CAP_REACHED, is removed
+  //       (owner, 2026-10-27, D-MS-2: no product volume cap).
   // The production ledger RPC (career_batch_save_ledger_v1) takes
   // only the records today — (b)'s version token is the discipline
   // it needs; that is the S-1 lane's draft-migration territory, and
@@ -412,7 +413,7 @@ test("cap race: two approve drains racing the last per-day slot", async (t) => {
   {
     const { store, settled } = await scenario(true);
     const submitted = store.state.records.filter((r) => r.status === "submitted").length;
-    assert.equal(submitted, 15, `versioned discipline: the cap holds (got ${submitted})`);
+    assert.equal(submitted, 15, `versioned discipline: exactly one of the two legs is recorded (got ${submitted})`);
     const results = settled.flatMap((s) => (s.status === "fulfilled" ? s.value : []));
     const blocked = results.filter((r) => r.status === "blocked" || r.status === "uncertain");
     assert.equal(blocked.length, 1, `exactly one drain is refused: ${JSON.stringify(results)}`);
@@ -420,7 +421,7 @@ test("cap race: two approve drains racing the last per-day slot", async (t) => {
     assert.equal(conflictCode, "LEDGER_VERSION_CONFLICT");
   }
 
-  // (c) fresh-read drain after the winner: 149 names CAP_REACHED / perDay
+  // (c) fresh-read drain after the winner: no cap — the second leg submits, both records are kept
   {
     const store = makeStore(true);
     await prepareAndApprove(store, "a", "FreshA");
@@ -431,15 +432,13 @@ test("cap race: two approve drains racing the last per-day slot", async (t) => {
     assert.equal(store.state.records.filter((r) => r.status === "submitted").length, 15);
     const execB = executorView(store, ["appr-b"]);
     const [rb] = await execB.runBatchPending();
-    assert.equal(rb.submitted, 0, "the fresh-read leg submits nothing");
+    assert.equal(rb.submitted, 1, `the fresh-read leg submits: no volume cap stops it: ${JSON.stringify(rb)}`);
     const bRecord = await store.readRun({ userId: USER, runId: rb.runId });
     const bRun = (bRecord && bRecord.run) || {};
-    const apps = Object.values(bRun.apps || {});
-    assert.ok(apps.every((a) => a.stage === "deferred_cap"), `the leg's app is deferred_cap: ${JSON.stringify(apps.map((a) => a.stage))}`);
-    const deferred = (bRun.deferred || []).filter((d) => d.code === "CAP_REACHED");
-    assert.equal(deferred.length, 1, `155 records the refusal as CAP_REACHED in run.deferred: ${JSON.stringify(bRun.deferred)}`);
-    assert.match(deferred[0].reason || "", /cap/i);
-    assert.equal(store.state.records.filter((r) => r.status === "submitted").length, 15, "the cap still holds after the refused leg");
+    assert.equal((bRun.deferred || []).filter((d) => d.code === "CAP_REACHED").length, 0, "nothing deferred for volume");
+    const inLedger = store.state.records.filter((r) => r.status === "submitted");
+    assert.equal(inLedger.length, 16, "14 seeds + both legs, each recorded once");
+    assert.equal(inLedger.filter((r) => r.company === "FreshA" || r.company === "FreshB").length, 2);
   }
 });
 

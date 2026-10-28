@@ -49,10 +49,8 @@ const FAMS = [
   { atsFamily: "lever", urlFor: (co, n) => `https://jobs.lever.co/${co}/${n}` },
   { atsFamily: "ashby", urlFor: (co, n) => `https://jobs.ashbyhq.com/${co}/${n}` },
 ];
-// The market spreads across ATS families on purpose: 149's SPEC_CAPS are
-// perDay 15 AND perVendorPerDay 5 AND perCompanyPer30Days 1 — a fixture
-// that put all 20 postings on one vendor would be testing a market that
-// cannot exist under the product's own caps.
+// The market spreads across ATS families (it predates the removal of 149's
+// volume caps, owner 2026-10-27, D-MS-2; the spread is kept as a realistic mix).
 function posting(n, over = {}) {
   const fam = FAMS[n % 3];
   const co = `testco${n}`;
@@ -183,7 +181,7 @@ test("loop: 15 requested -> 13 submitted-confirmed, every other outcome named", 
   assert.equal(run.summary.confirmations.length, 13);
   for (const c of run.summary.confirmations) assert.match(c.confirmationId, /^SBX-\d{4}$/, "sandbox confirmation id");
   assert.equal(tracked.length, 13, "every submission wrote a tracker record");
-  assert.equal(log.records.filter((r) => r.status === "submitted").length, 13, "the submission log (cap source) holds all 13");
+  assert.equal(log.records.filter((r) => r.status === "submitted").length, 13, "the submission log holds all 13");
   // the report speaks the whole trajectory
   const spoken = Batch.speakSummary(run).join("\n");
   assert.match(spoken, /Found 20/);
@@ -191,8 +189,10 @@ test("loop: 15 requested -> 13 submitted-confirmed, every other outcome named", 
   assert.match(spoken, /captcha/i);
 });
 
-// ---------------- Scenario 2: the cap is truth ----------------
-test("loop: with 13 already submitted today, only 2 more submit — the rest defer by cap, named", () => {
+// ---------------- Scenario 2: no volume cap (owner, 2026-10-27, D-MS-2) ----------------
+// The old 15/day cap (MI-110) deferred 11 of 13 here. With no product volume
+// cap, 13 already submitted today stops none of the 13 doorstep-ready ones.
+test("loop: with 13 already submitted today, all 13 ready applications still submit — no cap defers any", () => {
   const log = { records: [] };
   for (let i = 0; i < 13; i++) log.records.push({ userId: USER, status: "submitted", timestamp: NOW, canonicalKey: `seed:other:${i}`, company: `Seed Co ${i}` });
   const { deps } = makeDeps(log);
@@ -201,11 +201,9 @@ test("loop: with 13 already submitted today, only 2 more submit — the rest def
   assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256 }).ok, true);
   const ex = Batch.executeRun(run, deps);
   assert.equal(ex.ok, true);
-  assert.equal(run.summary.submitted, 2, "15/day cap: 13 already down, exactly 2 more fit today");
-  const capDeferred = run.deferred.filter((x) => x.code === "CAP_REACHED");
-  assert.equal(capDeferred.length, 11, "the other 11 doorstep-ready applications deferred at click time");
-  assert.ok(capDeferred.every((x) => x.resumeOn), "each cap deferral names its resume day");
-  assert.equal(log.records.filter((r) => r.status === "submitted").length, 15, "the day ends exactly at the cap, never above it");
+  assert.equal(run.summary.submitted, 13, "no daily cap: every doorstep-ready application submits");
+  assert.equal(run.deferred.filter((x) => x.code === "CAP_REACHED").length, 0, "nothing is deferred for volume");
+  assert.equal(log.records.filter((r) => r.status === "submitted").length, 26, "13 seeded + 13 new, each exactly once");
 });
 
 // ---------------- Scenario 3: tamper truth (MI-116 across invocations) ----

@@ -1,9 +1,11 @@
-// MI-110 / BUG-233 — the decided application caps (Spec 2 §6.4: 15/day,
-// 5/vendor/day, 1/company/30 days; owner-decided, 15/day locked 2026-10-12)
-// are ENFORCED by module 149 itself, not merely reported. Before this guard,
-// capReport returned decisionPending:true and no code path refused a
-// submission over a cap — only lane discipline did.
-// FAIL-FIRST: every enforcement test red until 149 enforces.
+// NO LIMITS (owner, 2026-10-27, D-MS-2 / D-MS-3) — module 149 never refuses a
+// submission for volume. The old Spec 2 §6.4 caps (15/day, 5/vendor/day,
+// 1/company/30 days; MI-110 / BUG-233) are removed: the 16th, 50th or 100th
+// same-day submission, a 6th on one ATS, and a second role at one company all
+// submit. The only refusal left is an exact duplicate: the same canonical job
+// for the same person (DUPLICATE_APPLICATION at prepare, ALREADY_SUBMITTED at
+// click). FAIL-FIRST: on the base (SPEC_CAPS enforced) the volume tests are
+// red with CAP_REACHED; each duplicate test stays green on both.
 // Check: node --test tests/career-portal-caps.test.cjs
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -50,100 +52,65 @@ const drive = (session, over = {}) => Portal.runApply(session, Object.assign({
   attestations: ATT, approval: { approvedByUser: true, approvalRef: "owner-batch-caps" },
 }, over));
 
-test("MI-110: capReport tells the truth — the caps are decided and enforced, not decision-pending", () => {
+test("no limits: capReport reports counts and says nothing is enforced", () => {
   const { session } = sandboxSession();
-  const r = Portal.runApply(session, { posting: POSTING, profile: PROFILE, log: logOf([]), now: NOW });
+  const r = Portal.runApply(session, { posting: POSTING, profile: PROFILE, log: logOf([submitted()]), now: NOW });
   assert.equal(r.capReport.decisionPending, false);
-  assert.equal(r.capReport.enforced, true);
-  assert.equal(r.capReport.specDefaults.perDay, 15);
-  assert.equal(r.capReport.counts.perVendorPerDay, 0);
+  assert.equal(r.capReport.enforced, false);
+  assert.equal(r.capReport.limits, null);
+  assert.equal(r.capReport.counts.perDay, 1);
+  assert.equal(r.capReport.counts.perVendorPerDay, 1);
+  assert.equal("remaining" in r.capReport, false, "no remaining-room figure: there is no cap to count down to");
+  assert.equal(Portal.SPEC_CAPS, undefined, "the cap table is gone from the module's surface");
+  assert.equal(Portal.capCheck, undefined);
 });
 
-test("MI-110: the 16th same-day submission is refused by 149 itself — CAP_REACHED naming cap and count, zero board submits", () => {
-  const records = Array.from({ length: 15 }, () => submitted());
+for (const n of [15, 50, 200]) {
+  test(`no limits: ${n} same-day submissions on the same ATS do not stop the next one — it submits once`, () => {
+    const records = Array.from({ length: n }, () => submitted());
+    const { board, session } = sandboxSession();
+    const r = drive(session, { log: logOf(records) });
+    assert.equal(r.resultStatus, "completed", JSON.stringify({ code: r.code, reason: r.reason }));
+    assert.notEqual(r.code, "CAP_REACHED");
+    assert.equal(board.calls.submit, 1);
+  });
+}
+
+test("no one-per-company rule: a different role at the same company 1 day ago does not stop a new drive", () => {
+  const recent = [submitted({ company: "TEST Systems", canonicalKey: "greenhouse:testsystems:other-role", timestamp: "2026-10-14T12:00:00Z" })];
   const { board, session } = sandboxSession();
-  const r = drive(session, { log: logOf(records) });
+  const r = drive(session, { log: logOf(recent) });
+  assert.equal(r.resultStatus, "completed");
+  assert.equal(board.calls.submit, 1);
+});
+
+test("exact duplicate still refused: the same canonical job already submitted stops at prepare, zero submits", () => {
+  const prior = [submitted({ canonicalKey: POSTING.canonicalKey, company: POSTING.company })];
+  const { board, session } = sandboxSession();
+  const r = drive(session, { log: logOf(prior) });
   assert.equal(r.resultStatus, "blocked");
-  assert.equal(r.code, "CAP_REACHED");
-  assert.equal(r.cap, "perDay");
-  assert.equal(r.count, 15);
-  assert.equal(r.limit, 15);
-  assert.equal(board.calls.submit, 0, "the gate refused before any click");
+  assert.equal(r.code, "DUPLICATE_APPLICATION");
+  assert.equal(board.calls.submit, 0);
 });
 
-test("MI-110: under the cap the same drive submits — the cap is a gate, not a wall", () => {
-  // 14 submissions today, spread across vendors + companies so ONLY the
-  // per-day count is near its limit (14 of 15) — no other cap is close.
-  const vendors = ["greenhouse", "lever", "ashby", "smartrecruiters"];
-  const records = Array.from({ length: 14 }, (_, i) => submitted({ vendor: vendors[i % 4], company: `Other Co ${i}` }));
-  const { board, session } = sandboxSession();
-  const r = drive(session, { log: logOf(records) });
-  assert.equal(r.resultStatus, "completed");
-  assert.equal(board.calls.submit, 1);
-});
-
-test("MI-110: vendor cap — 5 greenhouse submissions today stop a 6th greenhouse drive; a lever drive the same day proceeds", () => {
-  const records = Array.from({ length: 5 }, () => submitted());
-  const gh = sandboxSession();
-  const rGh = drive(gh.session, { log: logOf(records) });
-  assert.equal(rGh.code, "CAP_REACHED");
-  assert.equal(rGh.cap, "perVendorPerDay");
-  assert.equal(rGh.count, 5);
-  assert.equal(rGh.limit, 5);
-  assert.equal(gh.board.calls.submit, 0);
-
-  const leverBoard = Portal.createSandboxBoard({});
-  leverBoard.atsFamily = "lever";
-  const leverSession = Portal.createPortalSession({ userId: USER, board: leverBoard });
-  const leverPosting = Object.assign({}, POSTING, {
-    canonicalKey: "lever:testsystems:software-engineering-intern",
-    url: "https://jobs.lever.co/testsystems/001", atsFamily: "lever",
-  });
-  const rLv = Portal.runApply(leverSession, {
-    posting: leverPosting, profile: PROFILE, log: logOf(records), now: NOW,
-    attestations: ATT, approval: { approvedByUser: true, approvalRef: "owner-batch-caps" },
-  });
-  assert.equal(rLv.resultStatus, "completed", "a different vendor is not stopped by the greenhouse count");
-  assert.equal(leverBoard.calls.submit, 1);
-});
-
-test("MI-110: company cap — a submission to the same company 10 days ago stops a new drive; 31 days ago does not", () => {
-  const recent = [submitted({ company: "TEST Systems", canonicalKey: "greenhouse:testsystems:other-role", timestamp: "2026-10-05T12:00:00Z" })];
-  const a = sandboxSession();
-  const rA = drive(a.session, { log: logOf(recent) });
-  assert.equal(rA.code, "CAP_REACHED");
-  assert.equal(rA.cap, "perCompanyPer30Days");
-  assert.equal(rA.count, 1);
-  assert.equal(a.board.calls.submit, 0);
-
-  const old = [submitted({ company: "TEST Systems", canonicalKey: "greenhouse:testsystems:other-role", timestamp: "2026-09-14T12:00:00Z" })];
-  const b = sandboxSession();
-  const rB = drive(b.session, { log: logOf(old) });
-  assert.equal(rB.resultStatus, "completed", "outside the 30-day window the drive proceeds");
-  assert.equal(b.board.calls.submit, 1);
-});
-
-test("MI-110: day boundary — 15 submissions yesterday do not stop a drive today", () => {
-  const records = Array.from({ length: 15 }, () => submitted({ timestamp: "2026-10-14T23:30:00Z" }));
-  const { board, session } = sandboxSession();
-  const r = drive(session, { log: logOf(records) });
-  assert.equal(r.resultStatus, "completed");
-  assert.equal(board.calls.submit, 1);
-});
-
-test("MI-110: submitDoorstep re-checks at click time — a ledger filled to the cap after the doorstep refuses before arming", () => {
+test("no limits at click time: a ledger that grows past the old cap after the doorstep still submits once", () => {
   const { board, session } = sandboxSession();
   const log = logOf([]);
   const prepared = Portal.runApply(session, {
     posting: POSTING, profile: PROFILE, log, now: NOW, attestations: ATT,
   });
   assert.equal(prepared.resultStatus, "prepared");
-  for (let i = 0; i < 15; i += 1) log.records.push(submitted());
+  for (let i = 0; i < 60; i += 1) log.records.push(submitted());
   const r = Portal.submitDoorstep(session, {
     approvedByUser: true, approvalRef: "owner-batch-caps",
     payloadSha256: prepared.doorstep.payloadSha256,
   }, { log, now: NOW, posting: POSTING });
-  assert.equal(r.resultStatus, "blocked");
-  assert.equal(r.code, "CAP_REACHED");
-  assert.equal(board.calls.submit, 0, "no click happened after the cap filled");
+  assert.equal(r.resultStatus, "completed", JSON.stringify({ code: r.code, reason: r.reason }));
+  assert.equal(board.calls.submit, 1);
+  const again = Portal.submitDoorstep(session, {
+    approvedByUser: true, approvalRef: "owner-batch-caps",
+    payloadSha256: prepared.doorstep.payloadSha256,
+  }, { log, now: NOW, posting: POSTING });
+  assert.equal(again.resultStatus, "blocked", "a second click on the same doorstep never submits twice");
+  assert.equal(board.calls.submit, 1);
 });

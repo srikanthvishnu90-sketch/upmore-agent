@@ -19985,12 +19985,17 @@ const CareerRouter = (() => {
     if (interest.filters.remote_ok === false) facts.push("Remote postings are left out, as you asked.");
     else if (interest.filters.remote_choice === "stated") facts.push("Remote postings are included, as you asked — those open to where you are.");
     else facts.push("Remote postings for this role are included too, as long as they are open to where you are; say \"no remote\" to leave them out.");
-    if (interest.filters.remote_ok !== false && !homeKnown) facts.push("A remote posting limited to a country is held until I know where you are — tell me your city and country.");
+    if (interest.filters.remote_ok !== false && !homeKnown) facts.push("A remote posting limited to a country is held until I know where you are.");
     if (userWords) facts.push("That title is not a standard category, so the watch keys on your own words exactly as you stated them — postings whose titles carry those words are what it can match.");
     facts.push(alertDeliveryLine(ctx));
     if (wp.opt_out && wp.opt_out.global) facts.push("Your job alerts are currently paused, so this watch is recorded but will not remind until you resume alerts.");
-    if (!profile) facts.push("Send me your resume and I'll rank matches against it.");
-    const reply = compose({ headline: `Watch set: ${role.title}.`, facts, nextStep: "Want another role watched, or the list of what you are watching now?" });
+    const missing = [];
+    if (!resumeOnRecord(ctx)) missing.push("your resume");
+    if (!(interest.filters.locations || []).length && !homeKnown) missing.push("the city you want to work in");
+    const nextStep = missing.length
+      ? `To rank matches for you, send ${missing.join(" and ")} — anything that needs ${missing.length > 1 ? "them" : "it"}, like tailoring or applying, waits until then.`
+      : "Want another role watched, or the list of what you are watching now?";
+    const reply = compose({ headline: `Watch set: ${role.title}.`, facts, nextStep });
     return { intent: "career_watch_create", reply, resultStatus: "prepared", sends: 0, watch_profile: wp, payload: wp, artifact: wp };
   }
   function watchOptOutResult(ctx, wp, mode, note) {

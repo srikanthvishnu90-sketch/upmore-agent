@@ -248,3 +248,19 @@ test("(owner 5) search + tailor + alert in one message: every part is acknowledg
   const wp = Object.values(p.watch()).find((v) => v && v.type === "career_watch_profile");
   assert.ok(wp && wp.interests.length === 1, "the alert is in the persisted watch state");
 });
+
+test("(owner decision) alert first, then one ask for only what is missing; tailoring waits for the resume", async () => {
+  await setup();
+  const p = account("u-gateoff");
+  const { out } = p.say("set a job alert for data analyst roles");
+  const wp = Object.values(p.watch()).find((v) => v && v.type === "career_watch_profile");
+  assert.ok(wp && wp.interests.length === 1, "the watch row is saved before the ask");
+  assert.match(String(out.reply), /send your resume and the city/i, String(out.reply));
+  const q = account("u-gateoff2").say("set a job alert for data analyst roles in Chicago");
+  const r2 = String(q.out.reply);
+  assert.match(r2, /send your resume/i, r2);
+  assert.ok(!/city you want/i.test(r2), `place was given, not asked again: ${r2}`);
+  const t = p.say("tailor my resume for the top one");
+  assert.ok(!t.out.artifact, `no tailored artifact exists without a resume: ${String(t.out.reply)}`);
+  assert.match(String(t.out.reply), /resume/i);
+});

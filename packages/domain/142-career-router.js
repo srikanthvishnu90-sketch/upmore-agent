@@ -717,6 +717,9 @@ const CareerRouter = (() => {
     let cities = Array.isArray(prev.cities) ? prev.cities.slice() : [];
     const named = citiesIn(text, ctx).filter((c) => !cities.includes(c));
     const cityAsk = citiesIn(text, ctx);
+    // A place the board holds no role in is still a place: "what about Denver instead" names it, unless it is an employer.
+    const instM = /\b(?:what|how) about ([a-z][a-z .'-]{2,24}?)\s+instead\b/.exec(t);
+    if (!cityAsk.length && instM && !postingsFromCtx(ctx).some((p) => p.company && lc(p.company).includes(instM[1].trim()))) cityAsk.push(instM[1].trim());
     if (cityAsk.length && /\b(too|also|as well|instead|what about|how about|and)\b/.test(t)) {
       const instead = /\binstead\b/.test(t);
       const base = cities.length ? cities : knownPlacesOf(ctx.profile).filter((x) => poolCities(ctx).has(x));
@@ -11208,6 +11211,21 @@ const CareerRouter = (() => {
     }
     return { intent: "posting_facts", resultStatus: "answered", sends: 0, reply: compose({ headline: `From the ${co} posting itself.`, facts: lines, nextStep: `Want me to tailor your resume for the ${co} role, or look at others?` }) };
   }
+  // WO-111: "apply to everything you find" when the bulk-apply route cannot run (no resume or facts on the record, or no list yet):
+  // the answer says what is missing and that each application waits for the person's approval, instead of re-running a search.
+  function handleApplyAllGate(text, ctx) {
+    const t = lc(text);
+    if (!/\bapply (?:to )?(?:everything|all|every|anything)\b/.test(t)) return null;
+    const hasFacts = ((ctx.profile && ctx.profile.facts) || []).some((f) => f && !f.needs_confirmation && f.status !== "draft");
+    const hasList = !!(ctx.discovery && Array.isArray(ctx.discovery.lastShortlist) && ctx.discovery.lastShortlist.length);
+    const lead = "Nothing is sent without your approval: I prepare each application, show you the exact answers, and it goes only on your yes.";
+    const listed = hasList ? [`The roles I would start with: ${ctx.discovery.lastShortlist.slice(0, 3).map((e) => `${e.title} at ${e.company}`).join("; ")}.`] : [];
+    const reply = !hasFacts
+      ? compose({ headline: lead, facts: [...listed, "I have no resume or confirmed facts for you yet, so I cannot fill any application."], nextStep: "Can you send me your resume, or tell me your work history and license?" })
+      : !hasList ? compose({ headline: lead, facts: ["I have no list of roles in front of me to apply to."], nextStep: "Want me to run a search first?" })
+      : null;
+    return reply ? { intent: "apply_all_gate", resultStatus: "awaiting_user", sends: 0, reply } : null;
+  }
   function handleNamedPostingLink(text, ctx) {
     const t = lc(text);
     if (!/\bgive me the link\b|\bthe link\b|\bapply link\b|\bwhere (can|do|should) i apply\b|\blink to\b/.test(t)) return null;
@@ -11853,6 +11871,9 @@ const CareerRouter = (() => {
     // the apply machinery and the company-intel branch — the apply
     // route reads it as no instruction at all, and intel answered
     // it with the company-file absence and no link.
+    { const dd0 = /\b(instead|too|also|as well|again)\b/.test(lc(text)) ? handleDiscoveryDelta(text, c) : null; if (dd0) return dd0; }
+    const aag = handleApplyAllGate(text, c);
+    if (aag) return aag;
     const cst = handleCarriedStatus(text, c);
     if (cst) return cst;
     const pfacts = handlePostingFacts(text, c);

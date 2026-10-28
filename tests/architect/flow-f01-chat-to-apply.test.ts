@@ -114,7 +114,7 @@ Deno.test({
         const r = await say(chat, `apply to the ${ord[pos[D] - 1]} one`);
         assertEquals([r.intent, r.resultStatus], ["career_apply_queue", "refused"], r.reply);
         assert(r.reply.startsWith("0/1 queued."), r.reply);
-        assert(/Delta Prior[^\n]*already in their applications as the same posting/.test(r.reply) && !/30 days/.test(r.reply), r.reply);
+        assert(/Delta Prior[^\n]*already in your applications as the same posting/.test(r.reply) && !/30 days/.test(r.reply) && !/\btheir\b|\bthey (?:said|set|did|work|named|already)\b|themselves|the person/i.test(r.reply), r.reply);
         assertEquals([await wanted(), kicks.length], [[A], 0]);
       });
 
@@ -123,7 +123,7 @@ Deno.test({
         assertEquals([r.intent, r.resultStatus], ["career_apply_queue", "queued"], r.reply);
         assert(r.reply.startsWith("1/4 queued (1 already in your queue); I'll show you each application's exact answers on a card before anything is sent."), r.reply);
         assert(r.reply.includes("Data Analyst at Charlie Freight"), r.reply);
-        assert(/Bravo Labs: posting closed/.test(r.reply) && /Delta Prior[^\n]*already in their applications as the same posting/.test(r.reply), r.reply);
+        assert(/Bravo Labs: posting closed/.test(r.reply) && /Delta Prior[^\n]*already in your applications as the same posting/.test(r.reply), r.reply);
         assert(/I've started preparing it now/.test(r.reply), r.reply);
         assertEquals(await wanted(), [A, C].sort());
         assertEquals(kicks, [{ auth: "Bearer TEST-token", body: { user_id: PERSON, job_ids: [C] } }]);

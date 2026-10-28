@@ -31,12 +31,12 @@ export async function person(db: RailDb, id: string, o: { connected?: boolean } 
 export const uid = (n: number, tag = "5e") => `00000000-0000-4000-8${tag.padStart(3, "0")}-${n.toString(16).padStart(12, "0")}`;
 
 // Approved outreach drafts, as N2's approval leaves them (status approved, approved_hash = hash of the exact message).
-export async function approvedDrafts(db: RailDb, userId: string, tos: string[], o: { subject?: (i: number) => string } = {}) {
+export async function approvedDrafts(db: RailDb, userId: string, tos: string[], o: { subject?: (i: number) => string; recipient?: Record<string, unknown> } = {}) {
   let batch = crypto.randomUUID();
   const out: { draftId: string; approvalHash: string; to: string }[] = [];
   for (const [i, to] of tos.entries()) {
     if (i && i % 10 === 0) batch = crypto.randomUUID(); // a batch holds 1..10 (career_outreach_drafts.n)
-    const recipient = { name: `Person ${i + 1}`, firm: "Example Co", title: "Analyst", school: "", email: to, source: "test" };
+    const recipient = { name: `Person ${i + 1}`, firm: "Example Co", title: "Analyst", school: "", email: to, source: "test", ...(o.recipient ?? {}) };
     const d = { recipient, subject: o.subject ? o.subject(i) : `A quick question ${i + 1}`, body: `Hi Person ${i + 1},\n\nWould you have 15 minutes this week?`, footer: "Sam Lee\n\nIf you'd rather not hear from me, reply stop and I won't write again." };
     const hash = await payloadHash(messageOf(d));
     const id = crypto.randomUUID();

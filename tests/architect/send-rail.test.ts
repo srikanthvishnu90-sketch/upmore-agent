@@ -170,7 +170,7 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       eq(gmail.to(at("optout")).length, 1);
       await queueApprovedOutreach(outreachDeps, other, [od]); // queued before the answer comes back
       const sent = gmail.to(at("optout"))[0];
-      gmail.reply(sent.threadId, `Person <${at("optout")}>`, "Re: " + sent.subject, "Thanks, but I'm not interested. Please remove me from your list.");
+      gmail.reply(sent.threadId, `Person <${at("optout")}>`, "Re: " + sent.subject, "Thanks, but I'm not interested.");
       const r = await runReplyCheck(railDeps(db, c1, gmail));
       eq(r.stops, 1, JSON.stringify(r));
       eq((await rows(db, `select 1 from public.career_outreach_dnc where email_hash = public.career_send_email_hash('${at("optout")}')`)).length, 1);
@@ -207,14 +207,22 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       eq((await queueApproved(rpc, u, [await fuOf(at("ooo"))]))[0].reason, "follow_up_refused");
     });
 
-    await t.step("a bounce marks the address bad: never retried, never emailed again by anyone", async () => {
+    await t.step("an inferred address is sent after approval, labelled; its bounce marks it bad forever, for anyone, and tells the format learner", async () => {
       const u = uid(9), other = uid(10);
       await person(db, u); await person(db, other);
-      await queueApprovedOutreach(outreachDeps, u, await approvedDrafts(db, u, [at("gone")]));
+      const q = await queueApprovedOutreach(outreachDeps, u, await approvedDrafts(db, u, [at("gone")], { recipient: { address_type: "inferred", address_format: "first.last" } }));
+      eq(q[0].status, "queued");
+      eq((await rows(db, `select address_type, address_format from public.career_send_queue where user_id = '${u}'`))[0], { address_type: "inferred", address_format: "first.last" }, "the card's label rides with the email");
+      const bad = await queueApproved(rpc, u, [{ kind: "general", sourceId: crypto.randomUUID(), approvalHash: await payloadHash({ to: at("x"), subject: "Hi", text: "B" }), to: at("x"), subject: "Hi", text: "B", addressType: "guessed" as any }]);
+      eq(bad[0].reason, "invalid", "only published, known or inferred");
       const gmail = new FakeGmail();
       await runSendWorker(railDeps(db, c1, gmail), { worker: "w-b" });
+      eq(gmail.to(at("gone")).length, 1, "inferred, approved: sent");
       gmail.reply(gmail.to(at("gone"))[0].threadId, "Mail Delivery Subsystem <mailer-daemon@googlemail.com>", "Delivery Status Notification (Failure)", `Address not found: Your message wasn't delivered to ${at("gone")}`);
-      eq((await runReplyCheck(railDeps(db, c1, gmail))).bounces, 1);
+      const learned: unknown[] = [];
+      const withLearner = { ...railDeps(db, c1, gmail), recordBounce: async (domain: string, fmt: string | null, o: { addressType: string | null }) => { learned.push([domain, fmt, o.addressType]); } };
+      eq((await runReplyCheck(withLearner)).bounces, 1);
+      eq(learned, [["example.test", "first.last", "inferred"]], "the domain format learner hears of the bounce");
       eq((await rows(db, `select state from public.career_send_queue where user_id = '${u}'`))[0].state, "bounced");
       eq((await rows(db, `select status from public.career_outreach_drafts where user_id = '${u}'`))[0].status, "bounced");
       eq((await rows(db, `select 1 from public.career_send_bad_addresses where email_hash = public.career_send_email_hash('${at("gone")}')`)).length, 1);

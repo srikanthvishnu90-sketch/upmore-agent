@@ -53,6 +53,13 @@ create table if not exists public.career_send_queue (
   updated_at timestamptz not null default now(),
   constraint career_send_sent_has_id check (state not in ('sent', 'replied', 'bounced') or gmail_id is not null)
 );
+-- D-MN-3 replaced (owner, 21:32 CDT): where the address came from, so the card can show it: published (on a public page),
+-- known (the person's own mail) or inferred (the company's email format; address_format names it, e.g. first.last).
+-- A bounce of an inferred address is reported to the domain-format learner (career_send_rail.ts recordBounce).
+alter table public.career_send_queue add column if not exists address_type text
+  check (address_type is null or address_type in ('published', 'known', 'inferred'));
+alter table public.career_send_queue add column if not exists address_format text
+  check (address_format is null or address_format ~ '^[a-z0-9._{}-]{1,40}$');
 create index if not exists career_send_queue_account_due on public.career_send_queue (user_id, provider, next_at, created_at) where state = 'queued';
 create index if not exists career_send_queue_leased on public.career_send_queue (lease_until) where state = 'sending';
 create index if not exists career_send_queue_sent_check on public.career_send_queue (checked_at nulls first, sent_at) where state = 'sent';
@@ -168,8 +175,8 @@ begin
         and q.kind = 'outreach' and q.state in ('queued', 'sending', 'sent', 'replied', 'bounced')) then why := 'already_emailed'; end if;
     if why is null then
       begin
-        insert into public.career_send_queue(user_id, kind, source_id, approval_hash, idem_key, provider, recipient_email, subject, body, follow_up_of)
-        values (u, k, src, h, k || ':' || src || ':' || h, prov, to_, coalesce(it->>'subject', ''), coalesce(it->>'body', ''), fu)
+        insert into public.career_send_queue(user_id, kind, source_id, approval_hash, idem_key, provider, recipient_email, subject, body, follow_up_of, address_type, address_format)
+        values (u, k, src, h, k || ':' || src || ':' || h, prov, to_, coalesce(it->>'subject', ''), coalesce(it->>'body', ''), fu, nullif(it->>'address_type', ''), nullif(it->>'address_format', ''))
         on conflict (idem_key) do nothing
         returning id into new_id;
       exception when check_violation then why := 'invalid';
@@ -269,7 +276,7 @@ begin
       where id = q.id returning * into q;
       items := items || jsonb_build_object('id', q.id, 'user_id', q.user_id, 'kind', q.kind, 'source_id', q.source_id,
         'approval_hash', q.approval_hash, 'provider', q.provider, 'to', q.recipient_email, 'subject', q.subject, 'body', q.body,
-        'attempts', q.attempts, 'first_claimed_at', q.first_claimed_at, 'follow_up_of', q.follow_up_of,
+        'attempts', q.attempts, 'first_claimed_at', q.first_claimed_at, 'follow_up_of', q.follow_up_of, 'address_type', q.address_type,
         -- The outreach draft as it is stored now, read under its row lock: the worker re-hashes it before sending.
         'draft', case when q.kind = 'outreach' then jsonb_build_object('recipient', d.recipient, 'subject', d.subject, 'body', d.body, 'footer', d.footer) end);
     end loop;
@@ -419,7 +426,7 @@ begin
     for update skip locked
   ), stamped as (
     update public.career_send_queue s set checked_at = now() from due where s.id = due.id
-    returning s.id, s.user_id, s.kind, s.source_id, s.recipient_email, s.gmail_id, s.gmail_thread
+    returning s.id, s.user_id, s.kind, s.source_id, s.recipient_email, s.gmail_id, s.gmail_thread, s.address_type, s.address_format
   )
   select coalesce(jsonb_agg(to_jsonb(stamped)), '[]'::jsonb) into out from stamped;
   return out;

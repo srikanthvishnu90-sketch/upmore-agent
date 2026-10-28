@@ -36,6 +36,12 @@ select t.ok((select count(*) = 2 from career_send_queue where user_id = '0000000
 select t.must_fail($$insert into career_send_queue(user_id,kind,source_id,approval_hash,idem_key,recipient_email,subject,body) values('00000000-0000-4000-8000-0000000052a1','general',gen_random_uuid(),repeat('a',64),'k1','a@example.test','x'||chr(10)||'Bcc: b@example.test','b')$$,'career_send_queue_subject_check','a subject with a line break is refused by the table itself');
 select t.must_fail($$insert into career_send_queue(user_id,kind,source_id,approval_hash,idem_key,recipient_email,subject,body) values('00000000-0000-4000-8000-0000000052a1','general',gen_random_uuid(),repeat('a',64),'k2','Jane <a@example.test>','x','b')$$,'career_send_queue_recipient_email_check','one plain address, never a display name or a list');
 select t.must_fail($$update career_send_queue set state = 'sent' where user_id = '00000000-0000-4000-8000-0000000052a1'$$,'career_send_sent_has_id','sent only with Gmail''s message id');
+-- Where the address came from rides with the email (the card shows it): published, known or inferred, nothing else.
+select t.ok((select jsonb_agg(e->>'status') from jsonb_array_elements(public.career_send_enqueue(jsonb_build_object('user','00000000-0000-4000-8000-0000000052a1','items',jsonb_build_array(
+  jsonb_build_object('kind','general','source_id',gen_random_uuid(),'approval_hash',repeat('a',64),'to','inferred@example.test','subject','Hi','body','B','address_type','inferred','address_format','first.last'),
+  jsonb_build_object('kind','general','source_id',gen_random_uuid(),'approval_hash',repeat('a',64),'to','guess@example.test','subject','Hi','body','B','address_type','guessed'))))) e) = '["queued","refused"]'::jsonb, 'an inferred address is queued with its label; an unknown label is refused');
+select t.ok((select address_type = 'inferred' and address_format = 'first.last' from career_send_queue where recipient_email = 'inferred@example.test'), 'the label and the format are kept');
+delete from career_send_queue where recipient_email = 'inferred@example.test';
 -- Not connected: refused at the door.
 select t.ok((select public.career_send_enqueue(jsonb_build_object('user','00000000-0000-4000-8000-0000000052a3','items',jsonb_build_array(jsonb_build_object('kind','general','source_id',gen_random_uuid(),'approval_hash',repeat('a',64),'to','x@example.test','subject','Hi','body','B'))))->0->>'reason') = 'not_connected', 'no Gmail connected: nothing queued');
 
@@ -53,6 +59,9 @@ select t.ok((select sum(jsonb_array_length(a->'items')) from (select jsonb_array
 select t.ok((select count(*) = 52 from career_send_queue where state = 'sending'), 'all leased');
 select t.ok((select status from career_outreach_drafts where id = '00000000-0000-4000-8000-00000000d001') = 'sending', 'the outreach draft is held while it is sent');
 select t.ok(jsonb_array_length(public.career_send_claim('{"worker":"w3","accounts":5,"per_account":100,"lease_seconds":60}'::jsonb)->'accounts') = 0, 'a third worker finds nothing to take');
+-- New email for an account while a worker holds it: no other worker takes that account until the lease ends.
+select public.career_send_enqueue(jsonb_build_object('user','00000000-0000-4000-8000-0000000052a2','items',jsonb_build_array(jsonb_build_object('kind','general','source_id','00000000-0000-4000-8000-00000000c0de','approval_hash',repeat('c',64),'to','late-b@example.test','subject','Hi','body','B'))));
+select t.ok(jsonb_array_length(public.career_send_claim('{"worker":"w3","accounts":5,"per_account":100,"lease_seconds":60}'::jsonb)->'accounts') = 0, 'an account another worker holds is skipped, even with new email (one sender per account)');
 
 -- Completion is fenced to the lease (one outcome returns its word as a JSON string).
 reset role;
@@ -71,10 +80,10 @@ create temp table b_ids as select id from career_send_queue where user_id = '000
 select public.career_send_complete(jsonb_build_object('worker',(select case when (j->'accounts'->0->>'user_id') = '00000000-0000-4000-8000-0000000052a2' then 'w1' else 'w2' end from c1),'id',id,'outcome','quota','untried',true,'detail','HTTP 429','resume_at',(now() + interval '1 hour')::text)) from b_ids;
 select t.ok((select state = 'backoff' and resume_at > now() + interval '59 minutes' from career_send_accounts where user_id = '00000000-0000-4000-8000-0000000052a2'), 'the account waits for Gmail''s own time');
 select t.ok((select count(*) = 1 from career_outbox where user_id = '00000000-0000-4000-8000-0000000052a2' and key like 'status:send-paused:%' and kind = 'status'), 'told once, however many emails the refusal touched');
-select t.ok((select count(*) = 50 from career_send_queue where user_id = '00000000-0000-4000-8000-0000000052a2' and state = 'queued' and attempts = 0), 'all waiting, none counted as tried (Gmail refused them)');
+select t.ok((select count(*) = 51 from career_send_queue where user_id = '00000000-0000-4000-8000-0000000052a2' and state = 'queued' and attempts = 0), 'all waiting, none counted as tried (Gmail refused them)');
 select public.career_send_release('{"worker":"w1","user":"00000000-0000-4000-8000-0000000052a2"}'::jsonb), public.career_send_release('{"worker":"w2","user":"00000000-0000-4000-8000-0000000052a2"}'::jsonb);
-select t.ok(jsonb_array_length(public.career_send_claim('{"worker":"w4","accounts":5,"per_account":100,"lease_seconds":60}'::jsonb)->'accounts') = 0, 'not before Gmail allows');
-select t.ok(jsonb_array_length(public.career_send_claim(jsonb_build_object('worker','w5','accounts',5,'per_account',100,'lease_seconds',60,'now',(now() + interval '61 minutes')::text))->'accounts'->0->'items') = 50, 'after Gmail''s time: all of them, at once');
+select t.ok(jsonb_array_length(public.career_send_claim('{"worker":"w4","accounts":5,"per_account":100,"lease_seconds":60}'::jsonb)->'accounts') = 0, 'not before Gmail allows, not even the email approved during the pause');
+select t.ok(jsonb_array_length(public.career_send_claim(jsonb_build_object('worker','w5','accounts',5,'per_account',100,'lease_seconds',60,'now',(now() + interval '61 minutes')::text))->'accounts'->0->'items') = 51, 'after Gmail''s time: all of them, at once');
 
 -- A lease that lapsed (the worker died): reclaimed, with its attempt count, for a Sent check first.
 select t.ok((select (j->'accounts'->0->'items'->0->>'attempts')::int = 2 from (select public.career_send_claim(jsonb_build_object('worker','w6','accounts',5,'per_account',100,'lease_seconds',60,'now',(now() + interval '3 hours')::text)) j) x), 'a lapsed lease comes back marked as tried once already');

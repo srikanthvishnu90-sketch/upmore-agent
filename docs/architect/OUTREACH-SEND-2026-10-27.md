@@ -34,6 +34,12 @@ One queue (`career_send_queue`, migration `20261027200000_career_send_queue.sql`
   anything still queued to it is cancelled. "stop", "unsubscribe", "not interested", "remove me" and similar from the
   recipient put them on `career_outreach_dnc` forever (kept through an erase) and cancel anything queued to them. Any
   other reply cancels the follow-up to that email. An out-of-office is not a reply.
+- **Where the address came from** (D-MN-3 replaced, 21:32 CDT): each email carries `address_type` = `published`,
+  `known` or `inferred` (and, for inferred, `address_format`, e.g. `first.last`), so the card can label it; nothing else
+  is accepted. Inferred addresses are sent after approval like any other. Each bounce and each human reply is reported
+  to the shared domain-format learner through the `recordBounce(domain, localPartFormat, { addressType })` and
+  `recordReply(...)` hooks on the worker's dependencies (lane M2 implements them; until then they are not called).
+  The bounce itself is recorded first, so a learner failure never un-marks a bad address.
 - **Never twice for outreach**, except one approved follow-up (`follow_up_of`) to a sent email that got no reply.
 - **Disconnect** (the `google_career` connection row deleted, by any path): everything still queued is cancelled and the
   account is `disconnected`. **Erase**: `career_erase_person` deletes the queue and the account row (found from the
@@ -47,7 +53,15 @@ for the lease that holds the row. Lapsed leases are reclaimed by the next claim.
 a time; many workers run side by side. `accounts` and `per_account` size one call; the worker claims again until nothing
 is due, so neither limits volume.
 
-Load test (`tests/load/send-rail-load.test.ts`, CI job `load (send rail)`): see the PR for the measured numbers.
+Load test (`tests/load/send-rail-load.test.ts`, CI job `load (send rail)`), measured 2026-10-27 on a 2-vCPU sandbox
+with a slow disk (336 fsyncs/s), Postgres 16, Gmail faked, 20 concurrent sender sessions: 10,001 people, 505,050 approved
+outreach emails (10,000 x 50 plus one heavy sender with 5,050). 502,000 sent, each exactly once (the heavy account's
+other 3,050 wait for Gmail's own 24-hour Retry-After after its 2,000th, one refusal, told once). 729 sends/s sustained
+(688 s); hand-off of 25,000 approvals through `queueApprovedOutreach` at 2,627/s. Fairness: when the last person got
+their first email the heavy sender had sent 25 (one turn). Claim p50 6.1 s / p99 9.6 s and completion p50 2.1 s are
+queueing behind the 20 accounts each session serves at once on that box, not lock waits; on this hardware the database,
+not Gmail, is the ceiling. In production each person's account sends one message at a time, so throughput scales with the
+number of people sending and the number of `career-send` instances (`CAREER_SEND_WORKERS`).
 
 ## Interface for the chat lane (M3)
 
@@ -57,7 +71,12 @@ queueApprovedOutreach(d: { rpc, drafts(userId, ids) }, userId, items: { draftId:
   : Promise<{ sourceId: string; status: "queued" | "already_queued" | "refused"; reason?: string; id?: string }[]>
 // Any kind (applications by email, general emails): the exact payload the person saw, hashed with mailHash.
 queueApproved(d: { rpc }, userId, items: { kind: "outreach" | "application" | "general"; sourceId: string;
-  approvalHash: string; to: string; subject: string; text: string; followUpOf?: string | null }[]): Promise<QueueResult[]>
+  approvalHash: string; to: string; subject: string; text: string; followUpOf?: string | null;
+  addressType?: "published" | "known" | "inferred"; addressFormat?: string }[]): Promise<QueueResult[]>
+// For outreach the address type rides on the draft's recipient row: recipient.address_type / recipient.address_format.
+// The domain-format learner (M2) plugs into the sender's dependencies:
+type RecordBounce = (domain: string, localPartFormat: string | null, o: { addressType: AddressType | null }) => Promise<void>;
+// WorkerDeps.recordBounce / WorkerDeps.recordReply
 // "where are my emails": counts, Gmail's own pause if any, and a plain sentence (`line`) to say.
 outreachSendStatus(d: { rpc }, userId): Promise<{ counts, waiting, sent, nextAt, account, line: string }>
 // "stop sending" / "cancel those emails": takes back what is still queued (all, or those drafts). Returns how many.

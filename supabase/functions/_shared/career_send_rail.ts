@@ -73,9 +73,15 @@ export const rawOf = (m: Mail) => b64(utf8(buildMime(m))).replace(/\+/g, "-").re
 export const mailHash = (m: Mail) => payloadHash({ to: m.to, subject: m.subject, text: m.text });
 
 // ------------------------------------------------------------------------------------------------ queueing
+// Where an address came from (D-MN-3 replaced, 2026-10-27 21:32 CDT), carried so the card can show it: published (on a
+// public page), known (the person's own mail) or inferred (the company's email format, named by addressFormat, e.g.
+// "first.last"). Inferred addresses may be sent after approval; a bounce reports the format to the learner.
+export type AddressType = "published" | "known" | "inferred";
+export const ADDRESS_TYPES: readonly AddressType[] = ["published", "known", "inferred"];
 export interface SendItem {
   kind: Kind; sourceId: string; approvalHash: string; to: string; subject: string; text: string;
   followUpOf?: string | null; provider?: "gmail" | "outlook";
+  addressType?: AddressType | null; addressFormat?: string | null;
   // Never accepted: present at all, the item is refused (D-MN-2: nothing the person was not shown).
   cc?: unknown; bcc?: unknown;
 }
@@ -95,7 +101,9 @@ export async function queueApproved(d: Rpc, userId: string, items: SendItem[]): 
     const m: Mail = { to: String(it.to ?? ""), subject: String(it.subject ?? ""), text: String(it.text ?? "") };
     if (unsafe(m)) { refuse("unsafe_header"); continue; }
     if ((await mailHash(m)) !== it.approvalHash) { refuse("changed"); continue; }
-    ok.push({ i, p: { kind: it.kind, source_id: it.sourceId, approval_hash: it.approvalHash, to: m.to, subject: m.subject, body: m.text, provider: it.provider ?? "gmail", ...(it.followUpOf ? { follow_up_of: it.followUpOf } : {}) } });
+    if (it.addressType != null && !ADDRESS_TYPES.includes(it.addressType)) { refuse("invalid"); continue; }
+    ok.push({ i, p: { kind: it.kind, source_id: it.sourceId, approval_hash: it.approvalHash, to: m.to, subject: m.subject, body: m.text, provider: it.provider ?? "gmail",
+      ...(it.followUpOf ? { follow_up_of: it.followUpOf } : {}), ...(it.addressType ? { address_type: it.addressType } : {}), ...(it.addressFormat ? { address_format: String(it.addressFormat).toLowerCase() } : {}) } });
   }
   if (ok.length) {
     const res: any[] = await call(d, "career_send_enqueue", { user: userId, items: ok.map((x) => x.p) });
@@ -110,7 +118,9 @@ export async function queueApproved(d: Rpc, userId: string, items: SendItem[]): 
 // N2's hand-off (career_outreach.ts outreachTurn onApproved): each approved draft read back by id and re-hashed from its
 // stored text; a draft that is gone, not approved, or whose text no longer hashes to its approval is refused.
 export interface OutreachDeps extends Rpc { drafts(userId: string, ids: string[]): Promise<OutreachDraft[]> }
-export async function queueApprovedOutreach(d: OutreachDeps, userId: string, items: { draftId: string; approvalHash: string }[]): Promise<QueueResult[]> {
+// The address type rides on the draft's recipient row (recipient.address_type / address_format, written by the people
+// lanes) or on the item; the draft's own wins.
+export async function queueApprovedOutreach(d: OutreachDeps, userId: string, items: { draftId: string; approvalHash: string; addressType?: AddressType | null; addressFormat?: string | null }[]): Promise<QueueResult[]> {
   const rows = new Map((await d.drafts(userId, items.map((x) => x.draftId))).map((r) => [r.id, r]));
   const send: SendItem[] = [], at: number[] = [], out: QueueResult[] = [];
   for (const [i, x] of items.entries()) {
@@ -118,7 +128,10 @@ export async function queueApprovedOutreach(d: OutreachDeps, userId: string, ite
     if (!r) { out[i] = { sourceId: x.draftId, status: "refused", reason: "not_found" }; continue; }
     if (r.status !== "approved" || r.approved_hash !== x.approvalHash || r.hash !== x.approvalHash) { out[i] = { sourceId: x.draftId, status: "refused", reason: r.status === "approved" ? "changed" : "not_approved" }; continue; }
     const m = messageOf(r);
-    send.push({ kind: "outreach", sourceId: r.id, approvalHash: x.approvalHash, to: m.to, subject: m.subject, text: m.text });
+    const rec = r.recipient as unknown as Record<string, unknown>;
+    const addressType = (rec.address_type ?? x.addressType ?? null) as AddressType | null;
+    const addressFormat = (rec.address_format ?? x.addressFormat ?? null) as string | null;
+    send.push({ kind: "outreach", sourceId: r.id, approvalHash: x.approvalHash, to: m.to, subject: m.subject, text: m.text, addressType, addressFormat });
     at.push(i);
   }
   const got = send.length ? await queueApproved(d, userId, send) : [];
@@ -201,6 +214,7 @@ export async function classifyGmail(r: Response, attempt: number, now: number): 
 export interface Claimed {
   id: string; user_id: string; kind: Kind; source_id: string; approval_hash: string; provider: string;
   to: string; subject: string; body: string; attempts: number; first_claimed_at: string; follow_up_of: string | null;
+  address_type?: AddressType | null;
   // Outreach only: the draft as stored when it was claimed (its row locked), re-hashed before the send.
   draft?: Pick<OutreachDraft, "recipient" | "subject" | "body" | "footer"> | null;
 }
@@ -209,7 +223,12 @@ export interface WorkerDeps extends Rpc {
   token: (userId: string, scope: string) => Promise<string | null>;
   drafts?: (userId: string, ids: string[]) => Promise<OutreachDraft[]>;
   now?: () => number;
+  // The shared domain-format learner (lane M2, Request): told of every bounce and every human reply, with the domain and
+  // the local-part format the address was inferred from (null when it was published or known). Absent: not told.
+  recordBounce?: RecordBounce;
+  recordReply?: RecordBounce;
 }
+export type RecordBounce = (domain: string, localPartFormat: string | null, o: { addressType: AddressType | null }) => Promise<void>;
 export interface WorkerOpts { worker: string; accounts?: number; perAccount?: number; leaseSeconds?: number; deadlineMs?: number; idleStop?: boolean }
 export interface WorkerStats { claims: number; sent: number; already_sent: number; retry: number; quota: number; reconnect: number; refused: number; failed: number; stale: number; errors: number; error: string | null }
 
@@ -341,7 +360,7 @@ export function classifyIncoming(m: ThreadMail, recipient: string): "bounce" | "
 }
 export async function runReplyCheck(d: WorkerDeps, o: { limit?: number; recheckSeconds?: number } = {}) {
   const stats = { checked: 0, bounces: 0, stops: 0, replies: 0, not_wired: 0, errors: 0, error: null as string | null };
-  const due: { id: string; user_id: string; recipient_email: string; gmail_id: string; gmail_thread: string }[] =
+  const due: { id: string; user_id: string; recipient_email: string; gmail_id: string; gmail_thread: string; address_type: AddressType | null; address_format: string | null }[] =
     await call(d, "career_send_replies_due", { limit: o.limit ?? 200, recheck_seconds: o.recheckSeconds ?? 900 });
   for (const row of due) {
     try {
@@ -358,6 +377,12 @@ export async function runReplyCheck(d: WorkerDeps, o: { limit?: number; recheckS
       if (!k) continue;
       await call(d, "career_send_record", { id: row.id, kind: k });
       if (k === "bounce") stats.bounces++; else if (k === "stop") stats.stops++; else stats.replies++;
+      // The learner hears about it after the address is already marked: a learner failure never un-marks a bounce.
+      const hook = k === "bounce" ? d.recordBounce : d.recordReply;
+      if (hook) {
+        const domain = row.recipient_email.split("@")[1] ?? "";
+        await hook(domain, row.address_format ?? null, { addressType: row.address_type ?? null }).catch((e) => { stats.errors++; stats.error ??= `format learner: ${e instanceof Error ? e.message : String(e)}`.slice(0, 300); });
+      }
     } catch (e) {
       stats.errors++;
       stats.error ??= (e instanceof Error ? e.message : String(e)).slice(0, 300);

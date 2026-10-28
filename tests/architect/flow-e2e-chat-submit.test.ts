@@ -241,10 +241,17 @@ Deno.test({
         assertEquals(await pg.sql(`select items->0->>'payload_hash' from public.career_apply_cards where id = '${cardMeta.card_id}'`), preparedHash);
       });
 
-      await t.step("a text yes with no reply to the card approves nothing (the tap or a reply to the card does)", async () => {
+      // D-MS-1 (owner, 2026-10-27; replaces the reply-only rule): a text yes while the card is the thread's last word
+      // approves it. Here the person first asks something else, so the card is no longer the last word and a bare "maybe"
+      // and a bare "yes" do nothing to it; the tap below is what approves.
+      await t.step("an unclear reply approves nothing; after another turn a bare yes is not the card's (D-MS-1)", async () => {
+        const unclear = await say("maybe");
+        assert(/nothing was approved/i.test(unclear.reply), unclear.reply);
+        await say("what do you need from me");
         const r = await say("yes");
-        assert(/Nothing was approved/.test(r.reply), r.reply);
+        assert(r.resultStatus !== "answered", `a yes after another turn is not the card's: ${r.reply}`);
         assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}'`), "0");
+        assertEquals(await pg.sql(`select state from public.career_apply_cards where id = '${cardMeta.card_id}'`), "open");
       });
 
       await t.step("their tap on the web chat's card (src/career-apply-card.js, their own session): queued, bound to the card's hash", async () => {

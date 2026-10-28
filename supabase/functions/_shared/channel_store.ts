@@ -8,6 +8,7 @@
 import type { ChannelStore, DeliveryMark, OutboxRow } from "./channel.ts";
 import type { Channel } from "./channel_adapters.ts";
 import { alertStillWanted } from "./career_watch_alerts.ts";
+import { buttonsForRows } from "./channel_card_tap.ts"; // FEATURE 16
 
 export const SENDING_TIMEOUT_MS = 10 * 60000; // longer than any run can last (a function's wall clock is shorter)
 export const UNKNOWN_OUTCOME = "delivery outcome unknown: the run stopped before recording it; not resent";
@@ -42,6 +43,16 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
         const by = new Map(seen.map((s) => [s.contact, s]));
         for (const r of out) if (by.has(r.contact)) { const s = by.get(r.contact); r.lastInboundAt = ms(s.last_inbound_at); r.nudgedAt = ms(s.nudged_at); }
         for (const r of out) if (String(r.contact).startsWith("wa:") && r.lastInboundAt === undefined) { r.lastInboundAt = null; r.nudgedAt = null; }
+      }
+      // FEATURE 16: a Telegram row that carries an open card goes out with the card's Approve and Decline buttons, bound
+      // to that card and its items' hashes (channel_card_tap.ts). A read that fails sends the text without them: the
+      // card can still be answered by a reply to it, or in the app.
+      const tg = out.filter((r) => String(r.contact).startsWith("tg:")).map((r) => r.id);
+      if (tg.length) {
+        try {
+          const buttons = await buttonsForRows(admin, tg);
+          for (const r of out) if (buttons.has(r.id)) r.buttons = buttons.get(r.id)!;
+        } catch (e) { console.error("deliver: the card's buttons could not be read:", e instanceof Error ? e.message : String(e)); }
       }
       return out.sort((a, b) => a.deliver_at - b.deliver_at || Number(a.id) - Number(b.id));
     },

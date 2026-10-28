@@ -264,11 +264,11 @@ Deno.test({ name: "live verify: every check passes its pass-shaped seed and fail
     await t.step("F3/E2E prepared, hash-bound and carded", async () => {
       const urls = { urls: ["https://boards.greenhouse.io/acme/jobs/1"] };
       is(await C.preparedBound(db(), "E2E", "E2E.p", run, urls), "FAIL", "nothing prepared");
-      const id = (await seed(`insert into career_apply_prepared (user_id, job_id, company, url, payload, payload_hash, card_lines)
+      const id = (await seed(`set session_replication_role = replica; insert into career_apply_prepared (user_id, job_id, company, url, payload, payload_hash, card_lines)
         select '${U}', 'greenhouse:acme:1', 'Acme', 'https://boards.greenhouse.io/acme/jobs/1', p, encode(sha256(convert_to(public.career_apply_canonical(p), 'UTF8')), 'hex'), '{"1. Acme"}'
         from (select '{"answers":{"first_name":"Alex"}}'::jsonb as p) s returning id`)).split("\n")[0];
       is(await C.preparedBound(db(), "E2E", "E2E.p", run, urls), "FAIL", "no card");
-      await seed(`insert into career_apply_cards (user_id, items, shown_at) select '${U}', jsonb_build_array(jsonb_build_object('n', 1, 'prepared_id', id, 'payload_hash', payload_hash)), now() from career_apply_prepared where id = '${id}'`);
+      await seed(`set session_replication_role = replica; insert into career_apply_cards (user_id, items, shown_at) select '${U}', jsonb_build_array(jsonb_build_object('n', 1, 'prepared_id', id, 'payload_hash', payload_hash)), now() from career_apply_prepared where id = '${id}'`);
       is(await C.preparedBound(db(), "E2E", "E2E.p", run, urls), "PASS");
       await seed(`update career_apply_cards set items = jsonb_build_array(jsonb_build_object('n', 1, 'prepared_id', '${id}', 'payload_hash', '${H("e")}')) where user_id = '${U}'`);
       is(await C.preparedBound(db(), "E2E", "E2E.p", run, urls), "FAIL", "card names another hash");
@@ -280,7 +280,7 @@ Deno.test({ name: "live verify: every check passes its pass-shaped seed and fail
 
     await t.step("SAFETY never approved", async () => {
       is(await C.neverApproved(db(), run), "PASS");
-      await seed(`insert into career_apply_cards (user_id, items, state, shown_at, answered_at) values ('${U}', '[{"n":1}]', 'answered', now(), now())`);
+      await seed(`set session_replication_role = replica; insert into career_apply_cards (user_id, items, state, shown_at, answered_at) values ('${U}', '[{"n":1}]', 'answered', now(), now())`);
       is(await C.neverApproved(db(), run), "FAIL", "an answered card");
       await seed(`delete from career_apply_cards where user_id = '${U}'; set session_replication_role = replica;
         insert into career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state) values ('${U}', 'j', 'Acme', 'https://x.test/1', '{}', '${H("a")}', '${H("a")}', 'queued')`);
@@ -482,7 +482,7 @@ Deno.test({ name: "live verify: every check passes its pass-shaped seed and fail
         ["career_apply_batch_approvals", "", "a batch approval"],
         ["extension_submission_reports", "", "an extension submission record"],
         ["career_apply_jobs", `set session_replication_role = replica; insert into career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state) values ('${U}', 'j', 'Acme', 'https://x.test/1', '{}', '${H("a")}', '${H("a")}', 'queued'); set session_replication_role = origin;`, "an application job"],
-        ["career_apply_cards", `insert into career_apply_cards (user_id, items, state, shown_at, answered_at) values ('${U}', '[{"n":1}]', 'answered', now(), now())`, "an answered card"],
+        ["career_apply_cards", `set session_replication_role = replica; insert into career_apply_cards (user_id, items, state, shown_at, answered_at) values ('${U}', '[{"n":1}]', 'answered', now(), now())`, "an answered card"],
         ["career_cloud_settings", `insert into career_cloud_settings (key, value) values ('gate_user_ids', '${U}') on conflict (key) do update set value = excluded.value`, "career_cloud_settings"],
       ];
       for (const [table, insert, what] of kinds) {

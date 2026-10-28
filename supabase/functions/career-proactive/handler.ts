@@ -19,6 +19,7 @@ import type { MailModelWiring } from "../_shared/career_mail_model.ts";
 import type { EventStore } from "../_shared/agent/timeline.ts";
 import type { DigestStore, InterviewStore } from "../_shared/career_brief_store.ts";
 import { type IntroDueRow, runIntroReminders } from "../_shared/career_people_reminders.ts";
+import { runPeopleSweeps } from "../_shared/career_people_sweep.ts";
 
 export interface ProactiveDeps {
   env: { get(k: string): string | undefined };
@@ -51,6 +52,9 @@ export interface ProactiveDeps {
   // D-033 (people finding): introduction reminders whose date has come, queued to the outbox (the reminder only,
   // never the note). Wired only with CAREER_INTRO_REMINDERS=on. Absent: reminders stay in-chat only.
   introReminders?: { due: (nowIso: string) => Promise<IntroDueRow[]>; markReminded: (userId: string, n: number) => Promise<void>; canText?: (userId: string) => Promise<boolean> };
+  // People finding: unfinished Gmail reads carried on in leased batches (career_people_sweep.ts runPeopleSweeps). Wired only
+  // with CAREER_PEOPLE_SWEEP=on. Absent: a read goes on at the person's next ask.
+  peopleSweeps?: Omit<Parameters<typeof runPeopleSweeps>[0], "awake">;
   // WO-091c: who among these people is paused, opted out or erased (career_quiet_users). Absent: nobody is.
   quiet?: (userIds: string[]) => Promise<Set<string>>;
   // The watch records of people whose alerts were set by text (career_watch_kv, career:watch-profile:<user>), by user.
@@ -135,6 +139,10 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
   if (d.introReminders) {
     const ir = d.introReminders;
     await step("intro_reminders", () => runIntroReminders({ due: async (iso) => awake(await ir.due(iso), (r) => r.userId), outbox: store, now: started, markReminded: ir.markReminded, canText: ir.canText }), (n) => { stats.intro_reminders = n; });
+  }
+  if (d.peopleSweeps) {
+    const ps = d.peopleSweeps;
+    await step("people_sweeps", () => runPeopleSweeps({ ...ps, awake: (rows) => awake(rows, (r) => r.user_id) }), (n) => { stats.people_sweeps = n; });
   }
   const sent: { outreach?: Record<string, unknown> } = {};
   if (d.outreach) await step("outreach", () => d.outreach!(started), (r) => { sent.outreach = r; });

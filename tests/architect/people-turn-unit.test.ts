@@ -267,7 +267,8 @@ Deno.test("people turn: prompt injection: a page Person whose jobTitle is an ins
   const prompts: string[] = [];
   const spy = async (p: any) => { prompts.push(JSON.stringify(p)); return await model(p); };
   const deps: PeopleDeps = { store, gmail: null, resolve: async () => ["93.184.215.14"],
-    fetch: (async (u: string | URL | Request) => String(u).endsWith("/robots.txt") ? new Response("", { status: 404 }) : new Response(page, { headers: { "content-type": "text/html" } })) as typeof fetch };
+    fetch: (async () => new Response("", { status: 599 })) as typeof fetch,
+    pageGet: async (u: URL) => u.pathname === "/robots.txt" ? new Response("", { status: 404 }) : new Response(page, { headers: { "content-type": "text/html" } }) };
   const state: Record<string, unknown> = { profile: { facts } };
   const say = (message: string, attachments?: any[]) => peopleTurn({ message, userId: U, threadId: T, now: NOW, state, attachments, store: memoryOutreachStore(), model: spy, people: deps });
   await say("here", [{ name: "Connections.csv", mime: "text/csv", text: FIXTURE }]);

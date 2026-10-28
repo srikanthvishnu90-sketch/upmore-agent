@@ -9,8 +9,8 @@
 // career_people_sites.ts), never a private or local address (checked on the name AND on every address the name
 // resolves to, before the first request and again on every redirect), never a non-HTTPS page, never a page the site's
 // robots.txt disallows; at most 3 redirects, each checked again; 2 MB, 8 s.
-// Not closed here: the runtime's fetch resolves the name again itself, so a name whose DNS answer changes between this
-// check and the request (rebinding with a near-zero TTL) is not caught by this check alone.
+// DNS rebinding: closed. Each hop connects to the address that was checked (pinnedGet below); nothing resolves the name
+// a second time, so a DNS answer that changes after the check (a near-zero TTL) is never used.
 import { cleanCell, cleanEmail, readsAsInstruction } from "./career_people_import.ts";
 import { neverOpen } from "./career_people_sites.ts";
 
@@ -99,20 +99,127 @@ export const dnsResolver: Resolver = async (host) => {
   return ips;
 };
 // The URL check, then every address the name resolves to: one private address refuses it (a name may answer with several).
-export async function checkHost(raw: string, resolve: Resolver): Promise<{ ok: true; url: URL } | { ok: false; why: PageWhy; detail?: string }> {
+// The vetted address is returned, and it is the only one the request may connect to (pinnedGet): the name is never
+// resolved again between this check and the connection.
+export async function checkHost(raw: string, resolve: Resolver): Promise<{ ok: true; url: URL; ip: string } | { ok: false; why: PageWhy; detail?: string }> {
   const c = checkUrl(raw);
   if (!c.ok) return c;
   let ips: string[];
   try { ips = await resolve(c.url.hostname.replace(/\.$/, "")); } catch (e) { return { ok: false, why: "network", detail: e instanceof Error ? e.message : String(e) }; }
   if (!ips.length) return { ok: false, why: "network", detail: "no address" };
   if (!ips.every(publicAddress)) return { ok: false, why: "private_host" };
-  return c;
+  return { ...c, ip: ips[0].replace(/^\[|\]$/g, "") };
 }
 
-async function timed(f: typeof fetch, url: string, init: RequestInit): Promise<Response> {
+// ------------------------------------------------------------------------------------------------ the pinned request
+// DNS rebinding is closed by never letting anything resolve the name again: the TCP connection goes to the address
+// checkHost vetted, and TLS runs over it for the page's own name (Deno.startTls: SNI and certificate verification
+// against the name, so a hostile DNS answer can't reach an internal service, and a certificate for the name is still
+// required). The request is plain HTTP/1.1 written on that connection (Connection: close, identity encoding), so no
+// client library resolves anything. This runs in Supabase edge functions: outbound TCP and startTls are what the
+// Postgres drivers there use.
+export type PageGet = (url: URL, ip: string, headers: Record<string, string>, signal: AbortSignal) => Promise<Response>;
+export interface Conn { read(p: Uint8Array): Promise<number | null>; write(p: Uint8Array): Promise<number>; close(): void }
+export interface Net { connect(o: { hostname: string; port: number }): Promise<Conn>; startTls(c: Conn, o: { hostname: string }): Promise<Conn> }
+export const denoNet: Net = {
+  connect: (o) => Deno.connect({ hostname: o.hostname, port: o.port, transport: "tcp" }),
+  startTls: (c, o) => Deno.startTls(c as Deno.TcpConn, { hostname: o.hostname }),
+};
+// Bytes one response may carry before it is refused as too large: the page cap plus room for headers and chunk framing.
+const WIRE_MAX = PAGE_MAX_BYTES + 256_000;
+const named = (name: string, message: string) => Object.assign(new Error(message), { name });
+const abortError = () => named("AbortError", "the page took too long");
+
+function indexOf(h: Uint8Array, needle: number[], from = 0): number {
+  outer: for (let i = from; i <= h.length - needle.length; i++) { for (let j = 0; j < needle.length; j++) if (h[i + j] !== needle[j]) continue outer; return i; }
+  return -1;
+}
+const CRLF = [13, 10], HEAD_END = [13, 10, 13, 10];
+const latin1 = (b: Uint8Array) => { let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return s; };
+function dechunk(b: Uint8Array): Uint8Array {
+  const parts: Uint8Array[] = [];
+  let i = 0, n = 0;
+  for (;;) {
+    const eol = indexOf(b, CRLF, i);
+    if (eol < 0) throw named("BadResponse", "chunked body ends early");
+    const size = parseInt(latin1(b.subarray(i, eol)).split(";")[0].trim(), 16);
+    if (!Number.isFinite(size) || size < 0) throw named("BadResponse", "bad chunk size");
+    if (size === 0) break;
+    const start = eol + 2, end = start + size;
+    if (end + 2 > b.length) throw named("BadResponse", "chunked body ends early");
+    parts.push(b.subarray(start, end)); n += size;
+    i = end + 2;
+  }
+  const out = new Uint8Array(n); let o = 0;
+  for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
+}
+// Pure: a whole HTTP/1.1 response (as read until the server closed) into a Response. Exported for the tests.
+export function parseHttpResponse(raw: Uint8Array): Response {
+  const end = indexOf(raw, HEAD_END);
+  if (end < 0) throw named("BadResponse", "no response headers");
+  const lines = latin1(raw.subarray(0, end)).split("\r\n");
+  const m = /^HTTP\/1\.[01] (\d{3})/.exec(lines[0] ?? "");
+  const status = m ? Number(m[1]) : 0;
+  if (status < 200 || status > 599) throw named("BadResponse", `status ${lines[0]?.slice(0, 40)}`);
+  const headers = new Headers();
+  for (const l of lines.slice(1)) {
+    const k = l.indexOf(":");
+    if (k <= 0) continue;
+    try { headers.append(l.slice(0, k).trim(), l.slice(k + 1).trim()); } catch { /* a header no client could hold: dropped */ }
+  }
+  let body = raw.subarray(end + 4);
+  if (/\bchunked\b/i.test(headers.get("transfer-encoding") ?? "")) body = dechunk(body);
+  else if (headers.has("content-length")) {
+    const cl = Number(headers.get("content-length"));
+    if (!Number.isFinite(cl) || cl < 0 || body.length < cl) throw named("BadResponse", "body shorter than its content-length");
+    body = body.subarray(0, cl);
+  }
+  return new Response([204, 205, 304].includes(status) ? null : body.slice(), { status, headers });
+}
+export function pinnedGet(net: Net = denoNet): PageGet {
+  return async (url, ip, headers, signal) => {
+    if (signal.aborted) throw abortError();
+    const target = `${url.pathname || "/"}${url.search}`;
+    const extra = Object.entries(headers).map(([k, v]) => `${k}: ${v}\r\n`).join("");
+    if (/[\r\n\s]/.test(target + url.hostname) || Object.entries(headers).some(([k, v]) => /[\r\n]/.test(k + v))) throw named("BadRequest", "a line break in the request");
+    let conn: Conn | null = null;
+    const onAbort = () => { try { conn?.close(); } catch { /* closed */ } };
+    signal.addEventListener("abort", onAbort, { once: true });
+    try {
+      const tcp = await net.connect({ hostname: ip, port: 443 });
+      conn = tcp;
+      const tls = await net.startTls(tcp, { hostname: url.hostname });
+      conn = tls;
+      const req = new TextEncoder().encode(`GET ${target} HTTP/1.1\r\nHost: ${url.hostname}\r\n${extra}Accept-Encoding: identity\r\nConnection: close\r\n\r\n`);
+      for (let o = 0; o < req.length;) o += await tls.write(req.subarray(o));
+      const parts: Uint8Array[] = [];
+      let n = 0;
+      const buf = new Uint8Array(64 * 1024);
+      for (;;) {
+        const got = await tls.read(buf);
+        if (got === null) break;
+        n += got;
+        if (n > WIRE_MAX) throw named("TooLarge", "the page is over the size limit");
+        parts.push(buf.slice(0, got));
+      }
+      const raw = new Uint8Array(n); let o = 0;
+      for (const p of parts) { raw.set(p, o); o += p.length; }
+      return parseHttpResponse(raw);
+    } catch (e) {
+      if (signal.aborted) throw abortError();
+      throw e;
+    } finally {
+      signal.removeEventListener("abort", onAbort);
+      try { conn?.close(); } catch { /* closed */ }
+    }
+  };
+}
+
+async function timed(get: PageGet, url: URL, ip: string, headers: Record<string, string>): Promise<Response> {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), PAGE_TIMEOUT_MS);
-  try { return await f(url, { ...init, signal: ac.signal }); } finally { clearTimeout(t); }
+  try { return await get(url, ip, headers, ac.signal); } finally { clearTimeout(t); }
 }
 async function capped(r: Response, max: number): Promise<string | null> {
   const reader = r.body?.getReader();
@@ -150,22 +257,22 @@ export function robotsAllows(txt: string, path: string): boolean {
   return best.allow;
 }
 
-export async function readPage(f: typeof fetch, raw: string, resolve: Resolver = dnsResolver): Promise<PageRead> {
+export async function readPage(get: PageGet, raw: string, resolve: Resolver = dnsResolver): Promise<PageRead> {
   const c = await checkHost(raw, resolve);
   if (!c.ok) return c.detail ? { ok: false, why: c.why, detail: c.detail } : { ok: false, why: c.why };
-  let url = c.url;
+  let url = c.url, ip = c.ip;
   try {
-    const rob = await timed(f, `${url.origin}/robots.txt`, { headers: { "user-agent": UA }, redirect: "manual" }).catch(() => null);
+    const rob = await timed(get, new URL("/robots.txt", url.origin), ip, { "User-Agent": UA }).catch(() => null);
     if (rob && rob.ok) { const txt = await capped(rob, 200_000); if (txt !== null && !robotsAllows(txt, url.pathname + url.search)) return { ok: false, why: "robots" }; }
     else await rob?.body?.cancel().catch(() => {});
     for (let hop = 0; ; hop++) {
-      const r = await timed(f, url.toString(), { headers: { "user-agent": UA, accept: "text/html" }, redirect: "manual" });
+      const r = await timed(get, url, ip, { "User-Agent": UA, Accept: "text/html" });
       if (r.status >= 300 && r.status < 400 && r.headers.get("location")) {
         await r.body?.cancel().catch(() => {});
         if (hop >= MAX_REDIRECTS) return { ok: false, why: "redirects" };
         const next = await checkHost(new URL(r.headers.get("location")!, url).toString(), resolve);
         if (!next.ok) return next.detail ? { ok: false, why: next.why, detail: next.detail } : { ok: false, why: next.why };
-        url = next.url;
+        url = next.url; ip = next.ip;
         continue;
       }
       if (!r.ok) { await r.body?.cancel().catch(() => {}); return { ok: false, why: "http", detail: `HTTP ${r.status}` }; }
@@ -177,7 +284,9 @@ export async function readPage(f: typeof fetch, raw: string, resolve: Resolver =
       return { ok: true, url: url.toString(), people, org };
     }
   } catch (e) {
-    return { ok: false, why: (e as Error)?.name === "AbortError" ? "timeout" : "network", detail: e instanceof Error ? e.message : String(e) };
+    const name = (e as Error)?.name;
+    if (name === "TooLarge") return { ok: false, why: "too_large" };
+    return { ok: false, why: name === "AbortError" ? "timeout" : "network", detail: e instanceof Error ? e.message : String(e) };
   }
 }
 

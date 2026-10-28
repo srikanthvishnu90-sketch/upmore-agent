@@ -61,48 +61,108 @@ export function addresses(header: string): { name: string | null; email: string 
   return out;
 }
 
-async function getJson(d: GmailRead, url: string, token: string): Promise<{ ok: true; body: any } | { ok: false; status: number }> {
+async function getJson(d: GmailRead, url: string, token: string): Promise<{ ok: true; body: any } | { ok: false; status: number; retryAfterMs?: number; slow?: boolean }> {
   const r = await d.fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) { await r.body?.cancel().catch(() => {}); return { ok: false, status: r.status }; }
-  return { ok: true, body: await r.json().catch(() => ({})) };
+  if (r.ok) return { ok: true, body: await r.json().catch(() => ({})) };
+  // Gmail refusing because of its own rate limits (429, or 403 with a rate-limit reason): the caller backs off and resumes.
+  const text = await r.text().catch(() => "");
+  const slow = r.status === 429 || (r.status === 403 && /rateLimitExceeded|userRateLimitExceeded|quotaExceeded/i.test(text));
+  const ra = Number(r.headers.get("retry-after"));
+  return { ok: false, status: r.status, slow, retryAfterMs: Number.isFinite(ra) && ra > 0 ? ra * 1000 : 60_000 };
 }
 const header = (msg: any, name: string) => (msg?.payload?.headers ?? []).filter((h: any) => String(h?.name ?? "").toLowerCase() === name).map((h: any) => String(h?.value ?? ""));
 
+// ------------------------------------------------------------------------------------------------ reading in full
+// Gmail is read in full, never truncated: a read is a sequence of STEPS over one query, each resuming from a cursor (the
+// list page's token and the position inside it: keyset over Gmail's own order). A step stops at its deadline (a turn's
+// wait, a scheduled run's share), or when Gmail asks to slow down (then it says when to resume), and hands back the
+// cursor; the caller saves it (career_people_sweep.ts) and the next step continues exactly there.
+export interface Cursor { query: string; pageToken: string | null; skip: number }
+export type Step<T> =
+  | { status: "ok"; items: T[]; read: number; refused: number; next: Cursor | null; newestMs: number | null }
+  | { status: "SLOW_DOWN"; items: T[]; read: number; refused: number; next: Cursor; newestMs: number | null; retryAfterMs: number }
+  | { status: "NOT_WIRED" } | { status: "ERROR"; detail: string };
+export const LIST_PAGE = 100; // messages per list call (Gmail's own maximum is 500): a page size, not a limit
+const PARALLEL = 10;          // message reads in flight at once: how fast, not how many
+type One<T> = { ok: true; items: T[]; refused: boolean; atMs: number } | { ok: false; status: number; slow?: boolean; retryAfterMs?: number } | null;
+async function step<T>(d: GmailRead, token: string, cur: Cursor, deadline: number, one: (id: string) => Promise<One<T>>): Promise<Step<T>> {
+  const items: T[] = [];
+  let read = 0, refused = 0, newestMs: number | null = null, c: Cursor = { ...cur };
+  const out = (next: Cursor | null): Step<T> => ({ status: "ok", items, read, refused, next, newestMs });
+  for (;;) {
+    if (read > 0 && Date.now() >= deadline) return out(c);
+    const list = await getJson(d, `${API}/messages?q=${encodeURIComponent(c.query)}&maxResults=${LIST_PAGE}${c.pageToken ? `&pageToken=${encodeURIComponent(c.pageToken)}` : ""}`, token);
+    if (!list.ok) return list.slow ? { status: "SLOW_DOWN", items, read, refused, next: c, newestMs, retryAfterMs: list.retryAfterMs ?? 60_000 } : { status: "ERROR", detail: `list messages: HTTP ${list.status}` };
+    const ids: string[] = (list.body?.messages ?? []).map((m: any) => String(m?.id ?? "")).filter(Boolean);
+    for (let i = c.skip; i < ids.length; i += PARALLEL) {
+      if (read > 0 && Date.now() >= deadline) return out({ ...c, skip: i });
+      const got = await Promise.all(ids.slice(i, i + PARALLEL).map(one));
+      const bad = got.find((g) => g && !g.ok) as Extract<One<T>, { ok: false }> | undefined;
+      // A refusal anywhere in the group: none of the group counts, and the cursor stays at the group's start.
+      if (bad) return bad.slow ? { status: "SLOW_DOWN", items, read, refused, next: { ...c, skip: i }, newestMs, retryAfterMs: bad.retryAfterMs ?? 60_000 } : { status: "ERROR", detail: `read a message: HTTP ${bad.status}` };
+      for (const g of got) {
+        if (!g || !g.ok) continue; // gone (404) since the list
+        read++; if (g.refused) refused++;
+        items.push(...g.items);
+        if (g.atMs && (newestMs === null || g.atMs > newestMs)) newestMs = g.atMs;
+      }
+    }
+    const tok = list.body?.nextPageToken ? String(list.body.nextPageToken) : null;
+    if (!tok) return out(null);
+    c = { query: c.query, pageToken: tok, skip: 0 };
+  }
+}
+// A query for mail after a time (an incremental read after a finished one): Gmail's after: takes seconds; one second of
+// overlap, and the rows it would repeat are already kept (dedupe in the database).
+const afterPart = (afterMs: number | null | undefined) => (afterMs ? ` after:${Math.max(0, Math.floor(afterMs / 1000) - 1)}` : "");
+const msOf = (g: any) => Number(g?.internalDate) || Date.parse(header(g, "date")[0] ?? "") || 0;
+
 // ------------------------------------------------------------------------------------------------ correspondents
 export interface Correspondent { name: string | null; email: string; domain: string; last_seen_at: string; message_hash: string }
-export async function correspondentsAt(d: GmailRead, userId: string, company: string, o: { maxMessages?: number } = {}): Promise<Read<Correspondent>> {
-  const label = domainLabelOf(company);
-  if (label.length < 2 || FREEMAIL.has(label)) return { status: "ok", items: [], read: 0 };
+export const correspondentsQuery = (label: string, afterMs?: number | null) => `{from:${label} to:${label} cc:${label}} -in:chats -in:spam -in:trash${afterPart(afterMs)}`;
+export const isCompanyLabel = (label: string) => label.length >= 2 && !FREEMAIL.has(label);
+export async function correspondentsStep(d: GmailRead, userId: string, label: string, cur: Cursor, deadline = Number.POSITIVE_INFINITY): Promise<Step<Correspondent>> {
+  if (!isCompanyLabel(label)) return { status: "ok", items: [], read: 0, refused: 0, next: null, newestMs: null };
   const token = await d.token(userId).catch(() => null);
   if (!token) return { status: "NOT_WIRED" };
   try {
     const me = await getJson(d, `${API}/profile`, token);
     const mine = me.ok ? cleanEmail(me.body?.emailAddress) : null;
-    const q = `{from:${label} to:${label} cc:${label}} -in:chats -in:spam -in:trash`;
-    const list = await getJson(d, `${API}/messages?q=${encodeURIComponent(q)}&maxResults=${o.maxMessages ?? 25}`, token);
-    if (!list.ok) return { status: "ERROR", detail: `list messages: HTTP ${list.status}` };
-    const ids: string[] = (list.body?.messages ?? []).map((m: any) => String(m?.id ?? "")).filter(Boolean).slice(0, o.maxMessages ?? 25);
-    const by = new Map<string, Correspondent>();
-    let read = 0;
-    for (const id of ids) {
+    const r = await step<Correspondent>(d, token, cur, deadline, async (id) => {
       const g = await getJson(d, `${API}/messages/${encodeURIComponent(id)}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Date&fields=id,internalDate,payload/headers`, token);
-      if (!g.ok) { if (g.status === 404) continue; return { status: "ERROR", detail: `read a message: HTTP ${g.status}` }; }
-      read++;
-      const at = new Date(Number(g.body?.internalDate) || Date.parse(header(g.body, "date")[0] ?? "") || 0).toISOString();
+      if (!g.ok) return g.status === 404 ? null : g;
+      const atMs = msOf(g.body), at = new Date(atMs).toISOString();
       const hash = await sha(`gmail:${userId}:${id}`);
+      const items: Correspondent[] = [];
       for (const a of [...header(g.body, "from"), ...header(g.body, "to"), ...header(g.body, "cc")].flatMap(addresses)) {
         const [local, domain] = a.email.split("@");
         if (a.email === mine || registrable(domain).label !== label) continue;
         if (ROLE_LOCALS.has(local) || ROLE_LOCALS.has(local.replace(/[._+-]/g, "")) || /^(no-?reply|do-?not-?reply|notifications?|mailer|bounce)/.test(local)) continue;
-        const x = by.get(a.email);
-        if (!x || x.last_seen_at < at) by.set(a.email, { name: a.name ?? x?.name ?? null, email: a.email, domain: registrable(domain).full, last_seen_at: at, message_hash: hash });
-        else if (!x.name && a.name) x.name = a.name;
+        items.push({ name: a.name, email: a.email, domain: registrable(domain).full, last_seen_at: at, message_hash: hash });
       }
+      return { ok: true, items, refused: false, atMs };
+    });
+    if (r.status !== "ok" && r.status !== "SLOW_DOWN") return r;
+    // one person once in a step: their newest message, and a name if any message carried one
+    const by = new Map<string, Correspondent>();
+    for (const x of r.items) {
+      const y = by.get(x.email);
+      if (!y || y.last_seen_at < x.last_seen_at) by.set(x.email, { ...x, name: x.name ?? y?.name ?? null });
+      else if (!y.name && x.name) y.name = x.name;
     }
-    return { status: "ok", items: [...by.values()].sort((a, b) => b.last_seen_at.localeCompare(a.last_seen_at)), read };
+    return { ...r, items: [...by.values()].sort((a, b) => b.last_seen_at.localeCompare(a.last_seen_at)) };
   } catch (e) {
     return { status: "ERROR", detail: e instanceof Error ? e.message : String(e) };
   }
+}
+// Every correspondent at the company, all pages, in one call (no deadline): for callers that read in full at once.
+export async function correspondentsAt(d: GmailRead, userId: string, company: string): Promise<Read<Correspondent>> {
+  const label = domainLabelOf(company);
+  if (!isCompanyLabel(label)) return { status: "ok", items: [], read: 0 };
+  const r = await correspondentsStep(d, userId, label, { query: correspondentsQuery(label), pageToken: null, skip: 0 });
+  if (r.status === "NOT_WIRED" || r.status === "ERROR") return r;
+  if (r.status === "SLOW_DOWN") return { status: "ERROR", detail: "Gmail asked to slow down" };
+  return { status: "ok", items: r.items, read: r.read };
 }
 async function sha(s: string) {
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -177,29 +237,29 @@ function htmlOf(payload: any, depth = 0): string {
   return "";
 }
 
-export async function readJobAlerts(d: GmailRead, userId: string, o: { days?: number; maxMessages?: number } = {}): Promise<Read<JobEmail> & { refused?: number }> {
+export const jobAlertsQuery = (afterMs?: number | null, days = 30) => `from:(${[...SITE.indeed, ...SITE.handshake].join(" OR ")}) newer_than:${days}d -in:spam -in:trash${afterPart(afterMs)}`;
+export async function jobAlertsStep(d: GmailRead, userId: string, cur: Cursor, deadline = Number.POSITIVE_INFINITY): Promise<Step<JobEmail>> {
   const token = await d.token(userId).catch(() => null);
   if (!token) return { status: "NOT_WIRED" };
   try {
-    const q = `from:(${[...SITE.indeed, ...SITE.handshake].join(" OR ")}) newer_than:${o.days ?? 30}d -in:spam -in:trash`;
-    const list = await getJson(d, `${API}/messages?q=${encodeURIComponent(q)}&maxResults=${o.maxMessages ?? 20}`, token);
-    if (!list.ok) return { status: "ERROR", detail: `list messages: HTTP ${list.status}` };
-    const ids: string[] = (list.body?.messages ?? []).map((m: any) => String(m?.id ?? "")).filter(Boolean).slice(0, o.maxMessages ?? 20);
-    const items: JobEmail[] = [];
-    let read = 0, refused = 0;
-    for (const id of ids) {
+    return await step<JobEmail>(d, token, cur, deadline, async (id) => {
       const g = await getJson(d, `${API}/messages/${encodeURIComponent(id)}?format=full`, token);
-      if (!g.ok) { if (g.status === 404) continue; return { status: "ERROR", detail: `read a message: HTTP ${g.status}` }; }
-      read++;
+      if (!g.ok) return g.status === 404 ? null : g;
+      const atMs = msOf(g.body) || Date.now();
       const from = addresses(header(g.body, "from")[0] ?? "")[0];
       const site = from ? siteOfDomain(from.email.split("@")[1]) : null;
-      if (!from || !site || !authenticated(header(g.body, "authentication-results"), from.email.split("@")[1])) { refused++; continue; }
-      const at = new Date(Number(g.body?.internalDate) || Date.parse(header(g.body, "date")[0] ?? "") || Date.now()).toISOString();
+      if (!from || !site || !authenticated(header(g.body, "authentication-results"), from.email.split("@")[1])) return { ok: true, items: [], refused: true, atMs };
       const hash = await sha(`gmail:${userId}:${id}`);
-      for (const p of postingsIn(site, htmlOf(g.body?.payload))) items.push({ source: site, ...p, message_hash: hash, received_at: at });
-    }
-    return { status: "ok", items, read, refused };
+      return { ok: true, items: postingsIn(site, htmlOf(g.body?.payload)).map((p) => ({ source: site, ...p, message_hash: hash, received_at: new Date(atMs).toISOString() })), refused: false, atMs };
+    });
   } catch (e) {
     return { status: "ERROR", detail: e instanceof Error ? e.message : String(e) };
   }
+}
+// Every alert email of the last `days`, all pages, in one call (no deadline).
+export async function readJobAlerts(d: GmailRead, userId: string, o: { days?: number } = {}): Promise<Read<JobEmail> & { refused?: number }> {
+  const r = await jobAlertsStep(d, userId, { query: jobAlertsQuery(null, o.days ?? 30), pageToken: null, skip: 0 });
+  if (r.status === "NOT_WIRED" || r.status === "ERROR") return r;
+  if (r.status === "SLOW_DOWN") return { status: "ERROR", detail: "Gmail asked to slow down" };
+  return { status: "ok", items: r.items, read: r.read, refused: r.refused };
 }

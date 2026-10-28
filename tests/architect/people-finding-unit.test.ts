@@ -8,10 +8,10 @@ const assertEquals = (a: unknown, b: unknown, m?: string) => nodeAssert.deepStri
 const assertMatch = (s: string, rx: RegExp) => nodeAssert.match(s, rx);
 import { cleanCell, connectionsFromZip, dateOf, isFormula, MAX_INFLATE, parseCsv, parseExport, peopleFileText, readsAsInstruction } from "../../supabase/functions/_shared/career_people_import.ts";
 import { addresses, correspondentsAt, postingsIn, readJobAlerts, registrable } from "../../supabase/functions/_shared/career_people_gmail.ts";
-import { checkUrl, peopleOnPage, publicAddress, readPage, robotsAllows } from "../../supabase/functions/_shared/career_people_page.ts";
+import { checkUrl, type PageGet, parseHttpResponse, peopleOnPage, pinnedGet, publicAddress, readPage, robotsAllows } from "../../supabase/functions/_shared/career_people_page.ts";
 import { parsePeopleAsk, pathTo, type PersonRec } from "../../supabase/functions/_shared/career_people.ts";
 
-import { HANDSHAKE_HTML, INDEED_HTML, zipOf } from "./people-finding-fixtures.ts";
+import { fakeNet, HANDSHAKE_HTML, http, INDEED_HTML, pageGetOf, zipOf } from "./people-finding-fixtures.ts";
 const ROOT = new URL("../..", import.meta.url).pathname;
 const FIXTURE = await Deno.readTextFile(`${ROOT}tests/fixtures/people/Connections.csv`);
 
@@ -186,10 +186,10 @@ Deno.test("people: page reader refuses LinkedIn/Indeed/Handshake, private hosts,
   assert(!robotsAllows("User-agent: *\nDisallow: /team", "/team")); assert(robotsAllows("User-agent: *\nDisallow: /team\nAllow: /team/public", "/team/public"));
   assert(robotsAllows("User-agent: Googlebot\nDisallow: /", "/team")); assert(!robotsAllows("User-agent: TraineeBot\nDisallow: /", "/team"));
   const calls: string[] = [];
-  const site = (routes: Record<string, () => Response>) => (async (input: Request | URL | string) => {
-    const u = String(input instanceof Request ? input.url : input); calls.push(u);
+  const site = (routes: Record<string, () => Response>): PageGet => async (url) => {
+    const u = url.toString(); calls.push(u);
     return (routes[u] ?? (() => new Response("nf", { status: 404 })))();
-  }) as typeof fetch;
+  };
   const html = (b: string) => () => new Response(b, { headers: { "content-type": "text/html; charset=utf-8" } });
   assertEquals((await readPage(site({ "https://rampfixture.com/robots.txt": () => new Response("User-agent: *\nDisallow: /team"), "https://rampfixture.com/team": html(TEAM) }), "https://rampfixture.com/team", PUBLIC_DNS)).ok, false);
   assert(!calls.includes("https://rampfixture.com/team"), "a disallowed page is never fetched");
@@ -215,10 +215,10 @@ const WILDCARD: Record<string, string[]> = {
 const fakeDns = async (h: string) => { const ips = WILDCARD[h]; if (!ips) throw new Error(`NXDOMAIN ${h}`); return ips; };
 Deno.test("people: SSRF through DNS: every name is resolved on every hop and a private, loopback, link-local, CGNAT, metadata, ULA or IPv4-mapped address is refused", async () => {
   const calls: string[] = [];
-  const site = (routes: Record<string, () => Response>) => (async (input: Request | URL | string) => {
-    const u = String(input instanceof Request ? input.url : input); calls.push(u);
+  const site = (routes: Record<string, () => Response>): PageGet => async (url) => {
+    const u = url.toString(); calls.push(u);
     return (routes[u] ?? (() => new Response("<html></html>", { headers: { "content-type": "text/html" } })))();
-  }) as typeof fetch;
+  };
   for (const host of Object.keys(WILDCARD).filter((h) => !/rampfixture/.test(h))) {
     calls.length = 0;
     assertEquals(await readPage(site({}), `https://${host}/team`, fakeDns), { ok: false, why: "private_host" }, host);
@@ -242,10 +242,63 @@ Deno.test("people: SSRF through DNS: every name is resolved on every hop and a p
   for (const ip of ["93.184.215.14", "8.8.8.8", "100.63.255.255", "100.128.0.1", "172.32.0.1", "2606:4700::1111", "::ffff:8.8.8.8", "64:ff9b::808:808"]) assert(publicAddress(ip), `${ip} is public`);
 });
 
+// ------------------------------------------------------------------------------------------------ DNS rebinding (follow-up on #222)
+// A rebinding name answers a public address to the check and a private one right after (a near-zero TTL). The page
+// reader must connect to the address it checked, never resolve the name again.
+Deno.test("people: DNS rebinding: every request on a hop goes to the address that was checked, and the name is resolved once per hop", async () => {
+  const asked: string[] = [];
+  let n = 0;
+  const rebinding = async (h: string) => { asked.push(h); n++; if (h === "rebind.attacker.example.com") return n === 1 ? ["93.184.215.14"] : ["127.0.0.1"]; return h === "www.rampfixture.com" ? ["2606:4700::1111"] : ["8.8.8.8"]; };
+  const calls: { url: string; ip: string }[] = [];
+  const html = (b: string) => () => new Response(b, { headers: { "content-type": "text/html" } });
+  const r = await readPage(pageGetOf({
+    "https://rebind.attacker.example.com/team": () => new Response(null, { status: 302, headers: { location: "https://www.rampfixture.com/team" } }),
+    "https://www.rampfixture.com/team": html(TEAM),
+  }, calls), "https://rebind.attacker.example.com/team", rebinding);
+  assert(r.ok, JSON.stringify(r));
+  assertEquals(asked, ["rebind.attacker.example.com", "www.rampfixture.com"], "one resolution per hop, never a second for the same hop");
+  assertEquals(calls, [
+    { url: "https://rebind.attacker.example.com/robots.txt", ip: "93.184.215.14" },
+    { url: "https://rebind.attacker.example.com/team", ip: "93.184.215.14" },
+    { url: "https://www.rampfixture.com/team", ip: "2606:4700::1111" },
+  ], "robots.txt and the page go to the checked address; the redirect's host to its own checked address");
+});
+
+Deno.test("people: the pinned client: TCP to the checked address, TLS for the page's own name, HTTP/1.1 parsed (length, chunked, size cap, abort)", async () => {
+  const net = fakeNet(({ request }) => {
+    const path = /^GET (\S+) HTTP\/1\.1/.exec(request)?.[1];
+    if (path === "/robots.txt") return http(404, { "content-length": "2" }, "nf");
+    if (path === "/team") return http(200, { "content-type": "text/html", "transfer-encoding": "chunked" }, `${new TextEncoder().encode(TEAM).length.toString(16)}\r\n${TEAM}\r\n0\r\n\r\n`);
+    if (path === "/huge") return http(200, { "content-type": "text/html" }, "x".repeat(2_400_000));
+    return http(200, { "content-type": "text/html", "content-length": "13" }, "<html></html>");
+  });
+  const r = await readPage(pinnedGet(net), "https://rampfixture.com/team", async () => ["93.184.215.14"]);
+  assert(r.ok && r.people.length === 4, JSON.stringify(r));
+  assertEquals(net.log.connect, ["93.184.215.14", "93.184.215.14"], "TCP to the vetted address only, never the name");
+  assertEquals(net.log.sni, ["rampfixture.com", "rampfixture.com"], "TLS (SNI and certificate) for the page's own name");
+  assert(net.log.requests.every((q) => /\r\nHost: rampfixture\.com\r\n/.test(q) && /\r\nConnection: close\r\n/.test(q) && /\r\nUser-Agent: TraineeBot/.test(q)), net.log.requests[0]);
+  assertEquals(await readPage(pinnedGet(net), "https://rampfixture.com/huge", async () => ["93.184.215.14"]), { ok: false, why: "too_large" }, "a body over the cap, with no length given, is refused while reading");
+  // parsing: content-length honored, a short body refused, 1xx refused, a 304 has no body
+  assertEquals(await parseHttpResponse(new TextEncoder().encode(http(200, { "content-length": "3" }, "abcdef"))).text(), "abc");
+  for (const bad of [http(200, { "content-length": "9" }, "abc"), "HTTP/1.1 101 Switching\r\n\r\n", "garbage", http(200, { "transfer-encoding": "chunked" }, "zz\r\nabc")]) {
+    let threw = false; try { parseHttpResponse(new TextEncoder().encode(bad)); } catch { threw = true; }
+    assert(threw, JSON.stringify(bad.slice(0, 40)));
+  }
+  assertEquals(parseHttpResponse(new TextEncoder().encode(http(304, {}, ""))).status, 304);
+  // an aborted request is an AbortError, and the connection is never opened after it
+  const ac = new AbortController(); ac.abort();
+  const before = net.log.connect.length;
+  let name = ""; try { await pinnedGet(net)(new URL("https://rampfixture.com/x"), "93.184.215.14", {}, ac.signal); } catch (e) { name = (e as Error).name; }
+  assertEquals([name, net.log.connect.length], ["AbortError", before]);
+  // a line break smuggled into a header is refused before anything is written
+  let refused = false; try { await pinnedGet(net)(new URL("https://rampfixture.com/x"), "93.184.215.14", { "User-Agent": "a\r\nX-Evil: 1" }, new AbortController().signal); } catch { refused = true; }
+  assert(refused);
+});
+
 // ------------------------------------------------------------------------------------------------ review of #217: never LinkedIn, Indeed or Handshake
 Deno.test("people: LinkedIn, Indeed and Handshake are refused on every country domain and subdomain, and never fetched", async () => {
   const calls: string[] = [];
-  const f = (async (input: Request | URL | string) => { calls.push(String(input)); return new Response("<html></html>", { headers: { "content-type": "text/html" } }); }) as typeof fetch;
+  const f: PageGet = async (url) => { calls.push(url.toString()); return new Response("<html></html>", { headers: { "content-type": "text/html" } }); };
   for (const u of ["https://indeed.co.uk/viewjob?jk=1", "https://www.indeed.co.uk/viewjob", "https://uk.indeed.com/cmp/Ramp", "https://indeed.de/", "https://www.indeed.jobs/", "https://indeed.com.au/",
     "https://linkedin.cn/in/x", "https://www.linkedin.cn/", "https://de.linkedin.com/company/ramp", "https://linkedin.co.uk/", "https://lnkd.in/abc", "https://www.lnkd.in/x", "https://media.licdn.com/x",
     "https://joinhandshake.com/", "https://app.joinhandshake.com/stu/jobs/1", "https://ucla.joinhandshake.com/x", "https://joinhandshake.co.uk/", "https://LinkedIn.com./in/x"]) {
@@ -254,7 +307,7 @@ Deno.test("people: LinkedIn, Indeed and Handshake are refused on every country d
   }
   assertEquals(calls, [], "nothing fetched from any of them");
   // a redirect onto one of them is refused before it is followed
-  const r = await readPage((async (input: Request | URL | string) => { calls.push(String(input)); return String(input).endsWith("/team") ? new Response(null, { status: 301, headers: { location: "https://www.indeed.co.uk/cmp/x" } }) : new Response("", { status: 404 }); }) as typeof fetch,
+  const r = await readPage(async (url) => { calls.push(url.toString()); return url.toString().endsWith("/team") ? new Response(null, { status: 301, headers: { location: "https://www.indeed.co.uk/cmp/x" } }) : new Response("", { status: 404 }); },
     "https://rampfixture.com/team", PUBLIC_DNS);
   assertEquals(r, { ok: false, why: "blocked_site" });
   assert(!calls.some((c) => /indeed/.test(c)), calls.join(" "));

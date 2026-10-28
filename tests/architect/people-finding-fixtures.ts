@@ -39,3 +39,43 @@ export const INDEED_HTML = `<html><body><p>New jobs for "data analyst"</p>
 export const HANDSHAKE_HTML = `<table><tr><td><a href="https://app.joinhandshake.com/jobs/1234567?ref=email">Analytics Intern<script>steal()</script></a></td></tr>
 <tr><td>Stripe · Chicago, IL</td></tr><tr><td><a href="https://app.joinhandshake.com/notifications">See all</a></td></tr></table>`;
 
+
+// ------------------------------------------------------------------------------------------------ pages, pinned
+// A page reader's transport over fixtures, by full URL; every request's URL and the address it was pinned to recorded.
+import type { Conn, Net, PageGet } from "../../supabase/functions/_shared/career_people_page.ts";
+export function pageGetOf(routes: Record<string, () => Response>, calls: { url: string; ip: string }[] = [], fallback: () => Response = () => new Response("nf", { status: 404 })): PageGet {
+  return async (url, ip) => { calls.push({ url: url.toString(), ip }); return (routes[url.toString()] ?? fallback)(); };
+}
+// A fake network for the real pinned client (pinnedGet): each connect and TLS start is recorded, and each connection
+// answers the request written on it with serve()'s raw HTTP bytes, delivered in small reads.
+export interface NetLog { connect: string[]; sni: string[]; requests: string[] }
+export function fakeNet(serve: (r: { ip: string; sni: string; request: string }) => string | Uint8Array, log: NetLog = { connect: [], sni: [], requests: [] }): Net & { log: NetLog } {
+  const conn = (ip: string): Conn & { sni: string } => {
+    let sent = "", out: Uint8Array | null = null, at = 0;
+    const c = {
+      sni: "",
+      async write(p: Uint8Array) { sent += new TextDecoder().decode(p); return p.length; },
+      async read(p: Uint8Array) {
+        if (!out) {
+          if (!sent.includes("\r\n\r\n")) return null;
+          log.requests.push(sent);
+          const r = serve({ ip, sni: c.sni, request: sent });
+          out = typeof r === "string" ? new TextEncoder().encode(r) : r;
+        }
+        if (at >= out.length) return null;
+        const n = Math.min(p.length, 7000, out.length - at);
+        p.set(out.subarray(at, at + n)); at += n;
+        return n;
+      },
+      close() {},
+    };
+    return c;
+  };
+  return {
+    log,
+    async connect(o) { log.connect.push(o.hostname); return conn(o.hostname); },
+    async startTls(c, o) { log.sni.push(o.hostname); (c as any).sni = o.hostname; return c; },
+  };
+}
+export const http = (status: number, headers: Record<string, string>, body: string) =>
+  `HTTP/1.1 ${status} X\r\n${Object.entries(headers).map(([k, v]) => `${k}: ${v}\r\n`).join("")}\r\n${body}`;

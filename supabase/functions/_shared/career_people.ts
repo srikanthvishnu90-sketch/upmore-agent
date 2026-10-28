@@ -28,14 +28,15 @@ import { parseNetworkingAsk } from "./career_networking.ts";
 import { CAREER_READ_SCOPE, careerTokenFor } from "./career_mail_gmail.ts";
 import { connectUrl } from "./agent/integrations.ts";
 import { cleanCell, companyKey, parseCsv, parseExport, type ParsedExport, peopleFileText, type PersonRow, sha256Hex } from "./career_people_import.ts";
-import { correspondentsAt, domainLabelOf, type GmailRead, heardFrom, readJobAlerts } from "./career_people_gmail.ts";
-import { checkUrl, readPage, type Resolver } from "./career_people_page.ts";
+import { domainLabelOf, type GmailRead, heardFrom, isCompanyLabel } from "./career_people_gmail.ts";
+import { memorySweepStore, type SweepOutcome, type SweepSink, type SweepStore, supabaseSweepStore, sweepTurn } from "./career_people_sweep.ts";
+import { checkUrl, type PageGet, pinnedGet, readPage, type Resolver } from "./career_people_page.ts";
 
 export const IMPORT_INTENT = "career_contacts_import", AT_INTENT = "career_contacts_at", ALUMNI_INTENT = "career_people_alumni";
 export const PAGE_INTENT = "career_people_page", JOBS_INTENT = "career_job_emails", FORGET_INTENT = "career_people_forget";
 export const INTRO_INTENT = "career_intro_request", INTRO_UPDATE_INTENT = "career_intro_update", INTRO_LIST_INTENT = "career_intro_list";
 export const SCHOOL_INTENT = "career_people_school";
-export const MIRROR_MAX = 1000;     // rows also kept in the thread's contacts list, for the email drafter (snapshot is at most 1 MB)
+export const MIRROR_MAX = 1000;     // a convenience copy in the thread (snapshot at most 1 MB); the drafter also reads career_people, so no one is out of reach
 export const PASTE_WINDOW_MS = 60 * 60_000;
 export const LIST_MAX = 15;
 // One read page: how many rows a turn reads from one table at once (an indexed, bounded read). Not a volume limit: the
@@ -215,7 +216,7 @@ export function supabasePeopleStore(admin: any): PeopleStore {
 export interface PeopleDeps {
   store: PeopleStore;
   gmail: GmailRead | null; // null: no Gmail reading here
-  fetch: typeof fetch;     // for a public page the person sent
+  fetch: typeof fetch;     // Gmail's API (a public page is never read with fetch: see pageGet)
   // The scheduled push for intro reminders is wired (CAREER_INTRO_REMINDERS=on at career-proactive): the remind
   // reply's words follow this flag, the same way the alert copy follows its delivery flag — off, the reminder is
   // brought up at the person's next message and the reply says exactly that.
@@ -224,14 +225,23 @@ export interface PeopleDeps {
   canText?: (userId: string) => Promise<boolean>;
   // The page reader's DNS (career_people_page.ts); absent: the runtime's.
   resolve?: Resolver;
+  // A public page is read over a connection pinned to the address its name was checked at (career_people_page.ts
+  // pinnedGet); absent: the runtime's TCP and TLS. Tests pass one that serves fixtures.
+  pageGet?: PageGet;
+  // Gmail reads in full: the saved cursors (career_people_sweep.ts). Absent: a cursor kept for this call only.
+  sweeps?: SweepStore;
+  // The scheduled run carries unfinished Gmail reads on (CAREER_PEOPLE_SWEEP=on at career-proactive): the reply's words
+  // follow this flag. Off, a read that isn't finished goes on at the person's next ask, and the reply says exactly that.
+  sweepPush?: boolean;
 }
 // The live wiring, built by the caller (agent-chat/handler-career.ts) from the clients it already holds and passed in as
 // `people`; this module never reads the process environment or makes a client of its own. No `people` (the unit tests
 // that call networkingTurn alone): there is no people turn, and the networking turn answers exactly as before.
 // deno-lint-ignore no-explicit-any
-export function supabasePeopleDeps(admin: any, o: { fetch: typeof fetch; token: GmailRead["token"]; introPush: boolean; resolve?: Resolver }): PeopleDeps {
+export function supabasePeopleDeps(admin: any, o: { fetch: typeof fetch; token: GmailRead["token"]; introPush: boolean; sweepPush?: boolean; resolve?: Resolver }): PeopleDeps {
   return {
     store: supabasePeopleStore(admin), gmail: { fetch: o.fetch, token: o.token }, fetch: o.fetch, introPush: o.introPush, resolve: o.resolve,
+    sweeps: supabaseSweepStore(admin), sweepPush: !!o.sweepPush,
     // A texting channel the outbox can deliver to (channel_contacts, not opted out): the scheduled push reaches only them.
     canText: async (userId) => {
       const r = await admin.from("channel_contacts").select("contact").eq("user_id", userId).eq("opted_out", false).limit(1);
@@ -516,20 +526,33 @@ function uniq(rows: PersonRec[]): PersonRec[] {
   }
   return out;
 }
-async function gmailAt(o: PeopleTurnIn, d: PeopleDeps, firm: string): Promise<{ rows: PersonRec[]; state: "read" | "not_connected" | "error" | "not_a_domain" }> {
-  if (!d.gmail) return { rows: [], state: "not_connected" };
+// Where a sweep keeps what it read: people from Gmail headers (career_people, source gmail; one row per address) and
+// postings from alert emails (career_job_emails, once per link). Used by the turn and by the scheduled run alike.
+export function peopleSink(store: PeopleStore): SweepSink {
+  return {
+    async people(userId, label, key, items, read) {
+      await store.importRows(userId, "gmail", `Gmail, people at ${label}`, null, items.map((c) => ({
+        name: c.name, email: c.email, company: c.domain, company_key: key, position: "", school: "", connected_on: null, last_seen_at: c.last_seen_at,
+        source_ref: `Gmail message ${c.message_hash.slice(0, 12)}`, source_url: null, dedupe_key: `e:${c.email}`,
+      })), read, 0, false);
+    },
+    async jobs(userId, items) {
+      return await store.saveJobs(userId, items.map((j) => ({ source: j.source, title: j.title, detail: j.detail, url: j.url, message_hash: j.message_hash, received_at: j.received_at })));
+    },
+  };
+}
+const sweepsOf = (d: PeopleDeps) => (d.sweeps ??= memorySweepStore());
+type GmailState = "read" | "not_connected" | "error" | "not_a_domain" | "more" | "busy" | "slow";
+async function gmailAt(o: PeopleTurnIn, d: PeopleDeps, firm: string): Promise<{ rows: PersonRec[]; state: GmailState; sweep: SweepOutcome | null }> {
+  if (!d.gmail) return { rows: [], state: "not_connected", sweep: null };
   const label = domainLabelOf(firm);
-  const r = await correspondentsAt(d.gmail, o.userId, firm);
-  if (r.status === "NOT_WIRED") return { rows: [], state: "not_connected" };
-  if (r.status === "ERROR") return { rows: [], state: "error" };
-  if (label.length < 2) return { rows: [], state: "not_a_domain" };
-  if (r.items.length) {
-    await d.store.importRows(o.userId, "gmail", `Gmail, people at ${label}`, null, r.items.map((c) => ({
-      name: c.name, email: c.email, company: c.domain, company_key: companyKey(firm), position: "", school: "", connected_on: null, last_seen_at: c.last_seen_at,
-      source_ref: `Gmail message ${c.message_hash.slice(0, 12)}`, source_url: null, dedupe_key: `e:${c.email}`,
-    })), r.read, 0, false);
-  }
-  return { rows: await d.store.atCompany(o.userId, companyKey(firm)).then((x) => x.filter((p) => p.source === "gmail")), state: "read" };
+  if (!isCompanyLabel(label)) return { rows: [], state: "not_a_domain", sweep: null };
+  const key = companyKey(firm);
+  const r = await sweepTurn({ sweeps: sweepsOf(d), sink: peopleSink(d.store), gmail: d.gmail, userId: o.userId, kind: "correspondents", scope: label, companyKey: key });
+  if (r.status === "not_connected") return { rows: [], state: "not_connected", sweep: r };
+  if (r.status === "error") return { rows: [], state: "error", sweep: r };
+  const rows = await d.store.atCompany(o.userId, key).then((x) => x.filter((p) => p.source === "gmail"));
+  return { rows, state: r.status === "read" ? (r.more ? "more" : "read") : r.status, sweep: r };
 }
 async function everyoneAt(o: PeopleTurnIn, d: PeopleDeps, firm: string) {
   const key = companyKey(firm);
@@ -538,11 +561,21 @@ async function everyoneAt(o: PeopleTurnIn, d: PeopleDeps, firm: string) {
   const list = stateRows(o).filter((p) => p.company_key === key);
   // A full page means there are more on file than one turn reads: the database's own count is the total then.
   const more = stored.length >= PAGE && d.store.tallies ? await d.store.tallies(o.userId, key) : null;
-  return { people: uniq([...stored.filter((p) => p.source !== "gmail"), ...g.rows, ...list]), gmail: g.state, stored: more ? more.at_company : null };
+  return { people: uniq([...stored.filter((p) => p.source !== "gmail"), ...g.rows, ...list]), gmail: g.state, sweep: g.sweep, stored: more ? more.at_company : null };
 }
-const gmailNote = (s: string, firm: string) =>
+const hhmm = (iso: string) => `${iso.slice(11, 16)} UTC`;
+// What is still being read, said plainly: how far the read is, and when the rest comes (the scheduled run, or their next ask).
+function moreNote(w: SweepOutcome | null, what: string, push: boolean | undefined): string {
+  if (!w) return "";
+  if (w.status === "read" && w.more) return `I've read ${plural(w.readSoFar, "email")} ${what} so far and there are more; ${push ? "I'm reading the rest now, so ask again in a few minutes to see everything." : "ask again and I'll read the next part."}`;
+  if (w.status === "busy") return `I'm already reading your emails ${what} (${plural(w.readSoFar, "email")} so far); ask again in a minute to see the rest.`;
+  if (w.status === "slow") return `Gmail asked me to slow down, so I paused reading your emails ${what} after ${plural(w.readSoFar, "email")}; ${push ? `I'll pick it up again after ${hhmm(w.retryAt)}.` : `ask again after ${hhmm(w.retryAt)} and I'll continue.`}`;
+  return "";
+}
+const gmailNote = (s: string, firm: string, w: SweepOutcome | null = null, push?: boolean) =>
   s === "not_connected" ? `Your Gmail isn't connected, so I didn't check who you've emailed at ${firm}. To include them, connect it (read-only):\n${connectUrl("gmail")}`
-  : s === "error" ? "I couldn't read your Gmail just now, so people you've emailed aren't included." : "";
+  : s === "error" ? "I couldn't read your Gmail just now, so people you've emailed aren't included."
+  : moreNote(w, `with ${firm}`, push);
 
 async function askForExport(o: PeopleTurnIn, d: PeopleDeps): Promise<string> {
   const p = await d.store.prefs(o.userId);
@@ -558,13 +591,13 @@ async function whoTurn(o: PeopleTurnIn, d: PeopleDeps, firmAsked: string): Promi
   // Only their earlier lists, no export and no Gmail: the networking turn answers, as before.
   if (!total && listed.length && !gmailOn) return null;
   const firm = cleanCell(firmAsked, 60);
-  const { people, gmail, stored } = await everyoneAt(o, d, firm);
+  const { people, gmail, sweep, stored } = await everyoneAt(o, d, firm);
   if (!people.length) {
     const none = total + listed.length
       ? `None of your ${plural(total + listed.length, "contact")} is at ${firm}.`
       : `You haven't sent me any contacts yet, so I can't say who you know at ${firm}.`;
     const ask = counts.linkedin_export ? `If ${firm} publishes a team page, send me its link and I'll read the names it lists. ${NO_SEARCH}` : await askForExport(o, d);
-    return { reply: [none, NO_FINDER, ask, gmailNote(gmail, firm)].filter(Boolean).join(" ").replace(/ (Your Gmail isn't connected)/, "\n\n$1"), intent: AT_INTENT, status: total + listed.length ? "none_at_firm" : "no_contacts" };
+    return { reply: [none, NO_FINDER, ask, gmailNote(gmail, firm, sweep, d.sweepPush)].filter(Boolean).join(" ").replace(/ (Your Gmail isn't connected)/, "\n\n$1"), intent: AT_INTENT, status: total + listed.length ? "none_at_firm" : "no_contacts" };
   }
   const mailed = people.filter((p) => p.email).length;
   const shown = people.slice(0, LIST_MAX);
@@ -576,7 +609,7 @@ async function whoTurn(o: PeopleTurnIn, d: PeopleDeps, firmAsked: string): Promi
   const lines = [head, ...shown.map(lineOf),
     ...(rest > 0 ? [`and ${fmtN(rest)} more.`] : []),
     `\nSay "intro to <name> at ${firm}" for a note you can send, or "get me an intro to <someone there>" and I'll find who can introduce you.`,
-    gmailNote(gmail, firm) ? `\n${gmailNote(gmail, firm)}` : ""];
+    gmailNote(gmail, firm, sweep, d.sweepPush) ? `\n${gmailNote(gmail, firm, sweep, d.sweepPush)}` : ""];
   return { reply: lines.filter(Boolean).join("\n"), intent: AT_INTENT, status: "listed" };
 }
 const factSchools = (o: PeopleTurnIn) => confirmed((((o.state.profile as any)?.facts) ?? []) as unknown[]).filter((f: any) => f.kind === "education").map((f: any) => factText(f));
@@ -615,7 +648,7 @@ const PAGE_WHY: Record<string, string> = {
 async function pageTurn(o: PeopleTurnIn, d: PeopleDeps, a: Extract<Ask, { kind: "page" }>): Promise<PeopleResult> {
   const c = checkUrl(a.url);
   if (!c.ok) return { reply: `I didn't open it: ${PAGE_WHY[c.why]}.`, intent: PAGE_INTENT, status: "refused" };
-  const r = await readPage(d.fetch, a.url, d.resolve);
+  const r = await readPage(d.pageGet ?? pinnedGet(), a.url, d.resolve);
   if (!r.ok) return { reply: `I didn't read it: ${PAGE_WHY[r.why]}${r.detail && r.why === "http" ? ` (${r.detail})` : ""}. Nothing was saved.`, intent: PAGE_INTENT, status: "refused" };
   const company = cleanCell(a.firm ?? r.org ?? "", 200);
   let people = r.people;
@@ -643,18 +676,22 @@ async function pageTurn(o: PeopleTurnIn, d: PeopleDeps, a: Extract<Ask, { kind: 
 async function jobsTurn(o: PeopleTurnIn, d: PeopleDeps): Promise<PeopleResult> {
   const off = `I read Handshake and Indeed postings from their alert emails in your Gmail (I never log in to either site), and your Gmail isn't connected. Connect it (read-only):\n${connectUrl("gmail")}`;
   if (!d.gmail) return { reply: off, intent: JOBS_INTENT, status: "not_connected" };
-  const r = await readJobAlerts(d.gmail, o.userId);
-  if (r.status === "NOT_WIRED") return { reply: off, intent: JOBS_INTENT, status: "not_connected" };
-  if (r.status === "ERROR") return { reply: "I couldn't read your Gmail just now, so I didn't check your Handshake and Indeed emails. Nothing was changed.", intent: JOBS_INTENT, status: "error" };
-  const added = await d.store.saveJobs(o.userId, r.items.map((j) => ({ source: j.source, title: j.title, detail: j.detail, url: j.url, message_hash: j.message_hash, received_at: j.received_at })));
-  const all = await d.store.jobs(o.userId, 20);
-  const refused = r.refused ? ` ${plural(r.refused, "email")} that claimed to be from them didn't pass Gmail's sender check, so I skipped ${r.refused === 1 ? "it" : "them"}.` : "";
-  if (!all.length) return { reply: `I read ${plural(r.read, "email")} from Handshake and Indeed in the last 30 days and found no job links in them.${refused}`, intent: JOBS_INTENT, status: "none" };
+  const r = await sweepTurn({ sweeps: sweepsOf(d), sink: peopleSink(d.store), gmail: d.gmail, userId: o.userId, kind: "job_alerts", scope: "", companyKey: "" });
+  if (r.status === "not_connected") return { reply: off, intent: JOBS_INTENT, status: "not_connected" };
+  if (r.status === "error") return { reply: "I couldn't read your Gmail just now, so I didn't check your Handshake and Indeed emails. Nothing was changed.", intent: JOBS_INTENT, status: "error" };
+  const all = await d.store.jobs(o.userId, LIST_MAX);
+  const read = r.status === "read" ? r.read : 0, added = r.status === "read" ? r.newJobs : 0, refusedN = r.status === "read" ? r.refused : 0;
+  const refused = refusedN ? ` ${plural(refusedN, "email")} that claimed to be from them didn't pass Gmail's sender check, so I skipped ${refusedN === 1 ? "it" : "them"}.` : "";
+  const more = moreNote(r, "from Handshake and Indeed", d.sweepPush);
+  if (!all.length) {
+    const head = r.status === "read" && !r.more ? `I read ${plural(r.readSoFar, "email")} from Handshake and Indeed in the last 30 days and found no job links in them.` : "No job links from Handshake or Indeed yet.";
+    return { reply: [head + refused, more].filter(Boolean).join(" "), intent: JOBS_INTENT, status: r.status === "read" && !r.more ? "none" : "reading" };
+  }
   const site = (s: string) => s === "indeed" ? "Indeed" : "Handshake";
   return {
-    reply: [`From your Handshake and Indeed emails (${fmtN(r.read)} read, ${fmtN(added)} new posting${added === 1 ? "" : "s"}):`,
+    reply: [`From your Handshake and Indeed emails (${fmtN(read)} read just now, ${fmtN(added)} new posting${added === 1 ? "" : "s"}), the newest ${fmtN(all.length)}:`,
       ...all.map((j) => `- ${j.title}${j.detail ? ` · ${j.detail}` : ""} (${site(j.source)}, ${day(j.received_at)})\n  ${j.url}`),
-      `Each link is the one in the email. I never log in to Handshake or Indeed.${refused}`].join("\n"),
+      `Each link is the one in the email. I never log in to Handshake or Indeed.${refused}`, ...(more ? [more] : [])].join("\n"),
     intent: JOBS_INTENT, status: "listed",
   };
 }
@@ -677,8 +714,9 @@ async function forgetTurn(o: PeopleTurnIn, d: PeopleDeps, what: Extract<Ask, { k
     const chats = others.threads ? `your chats' lists (${plural(others.threads + (before > contactsOf(o.state).length ? 1 : 0), "chat")})` : "this chat's list";
     parts.push(what === "all" ? `Deleted all the people you gave me: ${plural(gone, "person")} from your LinkedIn export, Gmail and pages${fromChats ? `, and ${plural(fromChats, "row")} from ${chats}` : ""}.` : `Deleted your LinkedIn contacts: ${plural(gone, "person")} from your export${fromChats ? ` and ${fmtN(fromChats)} from ${chats}` : ""}.`);
   }
-  if (what === "gmail") { const gone = await d.store.forget(o.userId, ["gmail"]); n += gone; parts.push(`Deleted ${plural(gone, "person")} read from your Gmail.`); }
-  if (what === "jobs") { const gone = await d.store.forgetJobs(o.userId); n += gone; parts.push(`Deleted ${plural(gone, "posting")} read from your Handshake and Indeed emails.`); }
+  if (what === "gmail") { const gone = await d.store.forget(o.userId, ["gmail"]); await sweepsOf(d).forget(o.userId, ["correspondents"]); n += gone; parts.push(`Deleted ${plural(gone, "person")} read from your Gmail.`); }
+  if (what === "all") await sweepsOf(d).forget(o.userId, ["correspondents"]);
+  if (what === "jobs") { const gone = await d.store.forgetJobs(o.userId); await sweepsOf(d).forget(o.userId, ["job_alerts"]); n += gone; parts.push(`Deleted ${plural(gone, "posting")} read from your Handshake and Indeed emails.`); }
   if (what === "intros" || what === "all") { const gone = await d.store.forgetIntros(o.userId); n += gone; parts.push(`Deleted ${plural(gone, "intro request")}.`); }
   if (what === "linkedin") { const left = d.store.tallies ? (await d.store.tallies(o.userId, "")).intros_open : (await d.store.intros(o.userId)).filter((i) => i.status !== "cancelled").length; if (left) parts.push(`Your ${plural(left, "intro request")} ${left === 1 ? "is" : "are"} kept; say "forget my intro requests" to delete ${left === 1 ? "it" : "them"} too.`); }
   return { reply: n ? parts.join(" ") : `There was nothing to delete. ${parts.join(" ")}`.trim(), intent: FORGET_INTENT, status: n ? "forgotten" : "nothing" };

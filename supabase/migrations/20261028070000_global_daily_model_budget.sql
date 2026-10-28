@@ -220,3 +220,35 @@ grant execute on function public.model_budget_day(timestamptz), public.model_bud
   public.model_budget_expire(timestamptz), public.model_budget_closed(text, timestamptz),
   public.model_budget_reserve(bigint, text, text, timestamptz), public.model_budget_settle(uuid, bigint, timestamptz),
   public.model_budget_release(uuid, timestamptz) to service_role;
+
+-- Spend the ledger never saw (owner, 2026-10-28: "$15 TOTAL today", and the ledger starts when this migration is applied):
+-- the owner reads the provider's own usage page for a day and records that amount once, so the day's limit is a total, not a
+-- fresh allowance. It is one settled row (role 'prior_spend') per day, so the books still balance; recording again REPLACES
+-- that day's figure (never adds twice) and can only raise or lower it to what the owner states. Service role only; owner-run
+-- through scripts/launch/model-budget-prior-spend.sql.
+create or replace function public.model_budget_record_prior_spend(p_day date, p_micros bigint, p_source text default 'provider usage page')
+returns jsonb language plpgsql set search_path = public, pg_temp as $$
+declare old bigint; rec record;
+begin
+  if p_micros is null or p_micros < 0 then raise exception 'prior spend must be zero or a positive number of micro-dollars'; end if;
+  perform 1 from public.model_budget_days where day = p_day for update;
+  if not found then raise exception 'no approved budget row for %', p_day; end if;
+  -- The day's one prior-spend row, updated in place (rows are never deleted): settled at the stated figure, or released at zero.
+  select coalesce(sum(actual_micros) filter (where status = 'settled'), 0) into old from public.model_budget_reservations where day = p_day and role = 'prior_spend';
+  update public.model_budget_reservations set status = 'released', actual_micros = null, closed_at = now() where day = p_day and role = 'prior_spend';
+  if p_micros > 0 then
+    update public.model_budget_reservations set status = 'settled', micros = p_micros, actual_micros = p_micros, cost_known = true,
+        model = left(coalesce(p_source, 'provider usage page'), 200), closed_at = now()
+      where id = (select id from public.model_budget_reservations where day = p_day and role = 'prior_spend' order by created_at limit 1);
+    if not found then
+      insert into public.model_budget_reservations (day, micros, status, cost_known, actual_micros, model, role, closed_at)
+        values (p_day, p_micros, 'settled', true, p_micros, left(coalesce(p_source, 'provider usage page'), 200), 'prior_spend', now());
+    end if;
+  end if;
+  update public.model_budget_days set spent_micros = spent_micros - old + p_micros, updated_at = now() where day = p_day
+    returning spent_micros, reserved_micros, limit_micros into rec;
+  return jsonb_build_object('day', p_day, 'prior_spend', p_micros, 'spent', rec.spent_micros, 'reserved', rec.reserved_micros, 'limit', rec.limit_micros,
+    'left', greatest(0, rec.limit_micros - rec.spent_micros - rec.reserved_micros));
+end $$;
+revoke all on function public.model_budget_record_prior_spend(date, bigint, text) from public, anon, authenticated;
+grant execute on function public.model_budget_record_prior_spend(date, bigint, text) to service_role;

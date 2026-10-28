@@ -18,14 +18,25 @@ select t.ok((select count(*) = 1 from public.founder_alerts where kind = 'model_
 select public.model_budget_reserve(1, null, null, '2026-10-29T05:00:30Z');
 select t.ok((select count(*) = 1 from public.founder_alerts where kind = 'model_budget_exhausted' and detail ->> 'day' = '2026-10-29'), 'a second refusal writes no second alert');
 select t.ok((select count(*) = 2 from public.model_budget_days), 'no refusal created a budget row');
-select t.ok((select reserved_micros = 15000000 from public.model_budget_days where day = '2026-10-28'), 'the 10-28 day is its own: its $15 was not touched by 10-29');
+select t.ok((select spent_micros + reserved_micros = 15000000 from public.model_budget_days where day = '2026-10-28'), 'the 10-28 day is its own: its $15 (spent once past the TTL) was not touched by 10-29');
 -- A missing usage record keeps the whole reservation as spent.
 select public.model_budget_settle(id) from public.model_budget_reservations where micros = 15000000 and day = '2026-10-29';
 select t.ok((select spent_micros = 15000000 and reserved_micros = 5000000 from public.model_budget_days where day = '2026-10-29'), 'settling without a proven cost keeps the whole worst case as spent');
 select t.must_fail($$select public.model_budget_reserve(0)$$, 'positive', 'a zero reservation is an error');
+-- Spend the ledger never saw (the owner's figure from the provider's usage page) counts against the day's total, once.
+select t.ok((public.model_budget_record_prior_spend('2026-10-29', 1230000) ->> 'prior_spend')::bigint = 1230000, 'prior spend recorded');
+select t.ok((select spent_micros = 16230000 from public.model_budget_days where day = '2026-10-29'), 'it is added to the day''s spent');
+select public.model_budget_record_prior_spend('2026-10-29', 2000000);
+select t.ok((select spent_micros = 17000000 from public.model_budget_days where day = '2026-10-29'), 'recording again replaces the figure, never adds twice');
+select public.model_budget_record_prior_spend('2026-10-29', 0);
+select t.ok((select spent_micros = 15000000 from public.model_budget_days where day = '2026-10-29'), 'zero takes it back out');
+select t.ok((select count(*) = 1 from public.model_budget_reservations where role = 'prior_spend'), 'one prior-spend row per day, kept for the record');
+select t.must_fail($$select public.model_budget_record_prior_spend('2026-12-25', 1)$$, 'no approved budget row', 'a day with no approved budget is refused');
+select t.must_fail($$select public.model_budget_record_prior_spend('2026-10-29', -1)$$, 'zero or a positive', 'a negative figure is refused');
 reset role;
 set role authenticated;
 select t.must_fail($$select public.model_budget_reserve(1)$$, 'permission denied', 'a signed-in person cannot reserve');
 select t.must_fail($$select * from public.model_budget_days$$, 'permission denied', 'a signed-in person cannot read the days');
+select t.must_fail($$select public.model_budget_record_prior_spend('2026-10-28', 1)$$, 'permission denied', 'a signed-in person cannot record spend');
 reset role;
 rollback;

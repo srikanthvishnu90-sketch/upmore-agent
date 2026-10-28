@@ -44,7 +44,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -o pipefail
-          bash scripts/launch/trainee-go-live.sh --dry-run --non-interactive --sha "$HEAD_SHA" 2>&1 | tee "$RUNNER_TEMP/dry-run.log"
+          bash scripts/launch/trainee-go-live.sh --dry-run --non-interactive --sha "$HEAD_SHA" 2>&1 | tee "$RUNNER_TEMP/dry-run.log" || { grep -n "FAIL\|stale\|Error\|error" "$RUNNER_TEMP/dry-run.log" | head -20 | while IFS= read -r l; do echo "::error::$l"; done; tail -8 "$RUNNER_TEMP/dry-run.log" | while IFS= read -r l; do echo "::error::$l"; done; exit 1; }
           grep -q '^STEP 6/6 smoke: OK$' "$RUNNER_TEMP/dry-run.log"
   rehearsal:
     name: migration rehearsal (live-shaped schema)

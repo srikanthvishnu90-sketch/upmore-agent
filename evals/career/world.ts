@@ -17,6 +17,7 @@ import { DEFAULT_PREFS } from "../../supabase/functions/_shared/career_alerts.ts
 import { memoryWantStore } from "../../supabase/functions/_shared/career_apply_want.ts";
 import { CARD_INTENT, cardTurn } from "../../supabase/functions/_shared/career_apply_cards.ts";
 import { QUESTIONS_INTENT, questionsTurn } from "../../supabase/functions/_shared/career_apply_questions.ts";
+import { billingTurn } from "../../supabase/functions/_shared/career_billing.ts";
 import { alertControlTurn } from "../../supabase/functions/_shared/career_alert_control.ts";
 import { memoryOutreachStore, outreachTurn } from "../../supabase/functions/_shared/career_outreach.ts";
 import { memoryEventStore } from "../../supabase/functions/_shared/agent/timeline.ts";
@@ -132,13 +133,20 @@ export async function worldTurn(w: World, o: { brain: "agent" | "router"; thread
   if (situation && C) ctx.statusRecords = C.statusRecordsFrom(situation.capabilities);
   const controlled = w.H.isHostControlled(message, ctx);
   let out: { reply: string; intent: string | null; handler: string }, seen: Seen | null = null;
-  const alertAns = !controlled ? await alertControlTurn({ message, userId: USER, store: w.alerts }).catch(() => null) : null;
-  const card = !controlled && !alertAns ? await cardTurn({ message, userId: USER, threadId: o.threadId, now, store: w.cardStore as any }) : null;
-  const asked = !alertAns && !card && !controlled ? await questionsTurn({ message, userId: USER, threadId: o.threadId, now, store: w.questionStore as any, situation } as any) : null;
+  // Billing is code-first in the handler (before everything else); the world has no subscription and no Stripe, so a cancel
+  // ask is answered from the empty record and a price ask says so, exactly as the handler does for an account with no row.
+  const lastBill = (w as any)._billMeta ?? ((w as any)._billMeta = {});
+  const billAns = !controlled ? await billingTurn({ message, userId: USER, threadId: o.threadId, now, stripe: null,
+    store: { subscription: async () => null, lastMeta: async (tid: string) => lastBill[tid] ?? null, markCancelling: async () => {} } }).catch(() => null) : null;
+  if (billAns) lastBill[o.threadId] = { intent: billAns.intent, ...(billAns.meta ?? {}) };
+  const alertAns = !controlled && !billAns ? await alertControlTurn({ message, userId: USER, store: w.alerts }).catch(() => null) : null;
+  const card = !controlled && !alertAns && !billAns ? await cardTurn({ message, userId: USER, threadId: o.threadId, now, store: w.cardStore as any }) : null;
+  const asked = !alertAns && !billAns && !card && !controlled ? await questionsTurn({ message, userId: USER, threadId: o.threadId, now, store: w.questionStore as any, situation } as any) : null;
   const gmailOn = situation ? situation.capabilities.some((c: any) => c.id === "gmail_send" && c.status === "on") : false;
-  const outAns = !alertAns && !card && !asked && !controlled
+  const outAns = !alertAns && !billAns && !card && !asked && !controlled
     ? await outreachTurn({ message, userId: USER, threadId: o.threadId, now, store: w.outreach, gmailConnected: async () => gmailOn, connectAsk: missingIntegration("gmail") }).catch(() => null) : null;
-  if (alertAns) out = { reply: alertAns.reply, intent: alertAns.intent, handler: "code:alerts" };
+  if (billAns) out = { reply: billAns.reply, intent: billAns.intent, handler: "code:billing" };
+  else if (alertAns) out = { reply: alertAns.reply, intent: alertAns.intent, handler: "code:alerts" };
   else if (card) out = { reply: card.reply, intent: ["shown", "not_on_card", "change"].includes(card.status) ? CARD_INTENT : "career_apply_card_answer", handler: "code:cards" };
   else if (asked) out = { reply: asked.reply, intent: ["shown", "partial"].includes(asked.status) ? QUESTIONS_INTENT : "career_apply_questions_answer", handler: "code:questions" };
   else if (outAns) out = { reply: outAns.reply, intent: outAns.intent, handler: "code:outreach" };

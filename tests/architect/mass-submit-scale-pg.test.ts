@@ -120,8 +120,9 @@ Deno.test({
           console.log(`SCALE ${m}: ${SMALL} items -> ${s.reqs.length} requests, ${Math.round(s.ms)} ms; ${BIG} items -> ${b.reqs.length} requests, ${Math.round(b.ms)} ms`);
           assert(b.reqs.length <= s.reqs.length + 2, `"${m}": ${b.reqs.length} requests for ${BIG} vs ${s.reqs.length} for ${SMALL}: ${b.reqs.map((x) => x.path.split("?")[0]).join(", ")}`);
         }
-        // A wall-time sanity bound on a shared CI runner, not a benchmark: one yes of 500 well under 30 s.
-        assert(big.yes.ms < 30_000, `the yes of ${BIG} took ${Math.round(big.yes.ms)} ms`);
+        // A wall-time sanity bound only (a shared runner varies several-fold; the request count above is the real bound):
+        // one yes of 500 in under 2 minutes. Measured on an idle machine: about 2 to 5 s.
+        assert(big.yes.ms < 120_000, `the yes of ${BIG} took ${Math.round(big.yes.ms)} ms`);
       });
     } finally {
       h?.restore();

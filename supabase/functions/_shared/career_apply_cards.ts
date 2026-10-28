@@ -109,6 +109,7 @@ const UNCLEAR =
 const NAME_STOP = new Set([
   "the", "it", "that", "this", "them", "these", "those", "one", "ones", "all", "any", "some", "others", "rest", "me",
   "please", "yes", "no", "yet", "now", "sure", "so", "really", "everything", "i", "you",
+  "approve", "send", "submit", "apply", "confirm", "go", "go ahead",
 ]);
 const NAME_DESCRIBES = new Set(["one", "ones", "in", "at", "from", "with", "that", "which", "where", "first", "last", "other", "whatever", "something", "remote", "onsite"]);
 
@@ -217,8 +218,13 @@ export function parseCardReply(text: string): CardReply | null {
     // One unmarked number without "only"/"just" ("yes 3", "send 3") may be a count or a number: unclear. "#3",
     // "number 3" and "only 3" are clear.
     if (s && !only && !s.names.length && s.nums.length === 1 && !/(?:#|\bnumber\b|\bno\.)/.test(body)) return { kind: "unclear" };
-    // A named employer after a bare "yes" ("yes acme") is not clear enough: unclear, never approved.
-    if (s && bare && s.names.length) return { kind: "unclear" };
+    // A named employer after a bare "yes" ("yes acme") is not clear enough: unclear, never approved. A yes followed by a
+    // sentence ("yes, that's my resume", "yes I want alerts for data jobs") is not about the card at all: the brain's.
+    if (s && bare && s.names.length) {
+      const nameLike = s.names.length === 1 && !s.nums.length && s.names[0].split(" ").length <= 2 &&
+        !/\b(?:my|your|our|me|i|i'?m|it'?s|that'?s|this|is|are|was|were|be|do|did|want|need|have|got|can|will|would)\b/.test(s.names[0]);
+      return nameLike ? { kind: "unclear" } : null;
+    }
     if (s && (only || pick || !s.names.length)) {
       r = softYes && bare ? { kind: "unclear" } : { kind: "only", only: s.nums };
       if (r.kind === "only" && s.names.length) r.onlyNames = s.names;
@@ -330,7 +336,8 @@ const RESULT: Record<string, string> = {
   declined: "not sent",
   left_out: "not sent: you left it out",
   said_no: "not sent: you said no",
-  daily_cap: "not sent: today's daily limit is already used",
+  // NO LIMITS: the database says daily_cap only against a daily pace the person set themselves (CAPS-1390).
+  daily_cap: "not sent: it is over the daily pace you set yourself; say \"no daily pace\" to lift it, then \"show my applications\"",
   company_cooldown: "not sent: you applied to them in the last 30 days",
   duplicate: "not sent: you already applied to this posting",
   stale: "not sent: your details changed after it was prepared; prepare it again",

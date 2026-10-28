@@ -208,6 +208,20 @@ test("(owner 4) 'set a job alert for data analyst roles in Chicago' creates the 
   assert.match(String(f.reply), /Data Analyst at Acme/, String(f.reply));
 });
 
+test("(e2e #227) 'my name is Priya Raman' is saved as the person's fact and acknowledged; 'what's my name?' reads it back", async () => {
+  await setup();
+  const p = account("u-priya");
+  const { out } = p.say("my name is Priya Raman");
+  assert.match(String(out.reply), /Nice to meet you, Priya — I've saved your name\./, String(out.reply));
+  assert.ok(!/did not catch|not sure which part/i.test(String(out.reply)), String(out.reply));
+  const persisted = JSON.stringify(p.snap()) + JSON.stringify(p.account());
+  const facts = (p.account().statedFacts || p.snap().stores?.statedFacts || {}).facts || [];
+  assert.ok(facts.some((f) => f.kind === "name" && f.value === "Priya Raman") || /"kind":"name","value":"Priya Raman"/.test(persisted), `the name is stored: ${persisted.slice(0, 400)}`);
+  assert.match(String(p.say("what's my name?").out.reply), /Your name is Priya Raman/);
+  const p2 = account("u-noname");
+  assert.match(String(p2.say("what's my name?").out.reply), /haven't told me your name/, "never invented");
+});
+
 test("(owner 5) search + tailor + alert in one message: every part is acknowledged, the alert is saved", async () => {
   await setup();
   const p = account("u-owner5");

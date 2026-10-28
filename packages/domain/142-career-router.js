@@ -3016,7 +3016,7 @@ const CareerRouter = (() => {
     if (ENTITLEMENT.test(t)) facts.push("On that topic the specifics depend on where you live — deadlines and amounts are set by your state, and your state agency for it is the source for them, not me.");
     const quoted = raw.length > 80 ? `${raw.slice(0, 77).trim()}...` : raw;
     const said = quoted.replace(/[\u201c\u201d"]/g, "");
-    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: [`I could not match \u201c${said}\u201d to anything I can act on from here, and I changed nothing.`, ...facts, "If it is about a particular role or company, name it and I will take it from there."].join(" ") };
+    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: [`I could not match \u201c${said}\u201d to anything I can act on from here, and I changed nothing.`, ...facts, `Tell me the role or company that \u201c${said.length > 40 ? `${said.slice(0, 37).trim()}...` : said}\u201d is about, and I will take it from there.`].join(" ") };
   }
   // A question about the person's own record ("how many years of ICU experience do I have?", "what degree do I have?"),
   // answered by quoting the confirmed facts that match its words. Null when the question is not about them or no fact

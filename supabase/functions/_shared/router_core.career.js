@@ -14998,7 +14998,7 @@ const CareerRouter = (() => {
     if (ENTITLEMENT.test(t)) facts.push("On that topic the specifics depend on where you live — deadlines and amounts are set by your state, and your state agency for it is the source for them, not me.");
     const quoted = raw.length > 80 ? `${raw.slice(0, 77).trim()}...` : raw;
     const said = quoted.replace(/[\u201c\u201d"]/g, "");
-    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: [`I could not match \u201c${said}\u201d to anything I can act on from here, and I changed nothing.`, ...facts, "If it is about a particular role or company, name it and I will take it from there."].join(" ") };
+    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: [`I could not match \u201c${said}\u201d to anything I can act on from here, and I changed nothing.`, ...facts, `Tell me the role or company that \u201c${said.length > 40 ? `${said.slice(0, 37).trim()}...` : said}\u201d is about, and I will take it from there.`].join(" ") };
   }
   function answerFromRecord(raw, ctx) {
     const t = lc(raw);
@@ -27821,7 +27821,7 @@ const CareerBatchApply = (() => {
       }
     }
     if (sm.confirmations.length) lines.push(`Submitted ${sm.confirmations.length} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
-    for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${st.code} — ${st.reason}`}`);
+    for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : st.code === "BOARD_NOT_WIRED" ? "I cannot send applications to this employer's site from here yet, so nothing was prepared or sent; you can apply on their page yourself" : `${st.code} — ${st.reason}`}`);
     const capDef = sm.deferred.filter((x) => x.code === "CAP_REACHED");
     const countDef = sm.deferred.filter((x) => x.code === "COUNT_DEFERRED");
     if (capDef.length) lines.push(`${capDef.length} hit today's application cap and are queued for ${capDef[0].resumeOn || "tomorrow"} — they resume automatically, they are not lost.`);

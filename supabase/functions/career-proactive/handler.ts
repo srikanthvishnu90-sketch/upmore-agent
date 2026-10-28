@@ -49,6 +49,8 @@ export interface ProactiveDeps {
   // WO-033: approved outreach (everything approved and due; only Gmail refusing slows a person, NO LIMITS), and the replies on threads already sent. Absent: none.
   // A failure here is reported in the run's answer and never stops the alerts.
   outreach?: (now: number) => Promise<Record<string, unknown>>;
+  // MASS NETWORKING M5: replies understood, follow-ups and calls (career_outreach_replies.ts runRepliesLane). Absent: none.
+  replies?: (now: number) => Promise<Record<string, unknown>>;
   // D-033 (people finding): introduction reminders whose date has come, queued to the outbox (the reminder only,
   // never the note). Wired only with CAREER_INTRO_REMINDERS=on. Absent: reminders stay in-chat only.
   introReminders?: { due: (nowIso: string) => Promise<IntroDueRow[]>; markReminded: (userId: string, n: number) => Promise<void>; canText?: (userId: string) => Promise<boolean> };
@@ -144,9 +146,11 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
     const ps = d.peopleSweeps;
     await step("people_sweeps", () => runPeopleSweeps({ ...ps, awake: (rows) => awake(rows, (r) => r.user_id) }), (n) => { stats.people_sweeps = n; });
   }
-  const sent: { outreach?: Record<string, unknown> } = {};
+  const sent: { outreach?: Record<string, unknown>; replies?: Record<string, unknown> } = {};
   if (d.outreach) await step("outreach", () => d.outreach!(started), (r) => { sent.outreach = r; });
   if (errors.outreach) sent.outreach = { error: errors.outreach };
+  if (d.replies) await step("replies", () => d.replies!(started), (r) => { sent.replies = r; });
+  if (errors.replies) sent.replies = { error: errors.replies };
   const ms = d.now() - started;
   const failed = Object.keys(errors);
   const error = failed.length ? errors[failed[0]] : null;

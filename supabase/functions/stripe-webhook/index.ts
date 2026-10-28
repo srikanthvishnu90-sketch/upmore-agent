@@ -103,6 +103,8 @@ serve(async (req) => {
         stripe_subscription_id: sub.id,
         current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
         current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+        // Billing by text (20261028130000): a plan ending at period end is said so, never "next charge".
+        cancel_at_period_end: sub.cancel_at_period_end === true,
         price_cents: 1000,
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });

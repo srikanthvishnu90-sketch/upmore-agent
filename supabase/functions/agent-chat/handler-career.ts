@@ -92,6 +92,7 @@ import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.t
 import { careerGrant, followupTurn, gmailReadNow, mailNow, supabaseFollowupStores } from "../_shared/career_inbox_followups.ts";
 import { gmailSender } from "../_shared/career_outreach_gmail.ts";
 import { fileUploadFor } from "../_shared/channel_resume_upload.ts"; // FEATURE 16
+import { outlookAsk, outlookChatTurn } from "../_shared/outlook_connector.ts"; // M4: Outlook
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
@@ -402,7 +403,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // SERIAL-1461: the id of the message this text replies to, when the channel passes one (a string or a number). A
       // text yes approves a card only in direct reply to the message that carried it.
       const replyTo = typeof body.reply_to_message_id === "string" || typeof body.reply_to_message_id === "number" ? body.reply_to_message_id : null;
-      const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      // M4: Outlook (Microsoft Graph) as a peer of Gmail, from any channel: "connect my outlook" / "use my work email" makes a
+      // one-time link bound to this person, channel and thread; "disconnect outlook" deletes the access and what was read
+      // from it and cancels its pending sends (_shared/outlook_connector.ts). Code's, before every other turn.
+      const outlookAns = !careerTask && !careerBatch && outlookAsk(message)
+        ? await outlookChatTurn({ admin, message, userId: user.id, threadId: tid, bridge: isBridgeCall, now: Date.now(), env: Deno.env })
+          .catch((e) => { console.error("outlook turn:", e?.message ?? e); return null; })
+        : null;
+      const card = !outlookAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         // FEATURE 16: OWNER RULE (2026-10-26): no card without a confirmed resume on file (resumeReady).
         ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
         : null;
@@ -644,6 +652,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // END FEATURE GV
       if (googleOff) {
         out = { reply: disconnectReply(googleOff), intent: "career_google_disconnect", resultStatus: googleOff.ok ? (googleOff.had.length || googleOff.mailErased ? "completed" : "nothing") : "failed", contained: false, handler: "google_disconnect" };
+      } else if (outlookAns) {
+        out = { reply: outlookAns.reply, intent: outlookAns.intent, resultStatus: outlookAns.resultStatus, contained: false, handler: outlookAns.handler };
+        if (outlookAns.meta) agentMeta = { ...(agentMeta || {}), ...outlookAns.meta };
       } else if (card) {
         // A card still waiting for its answer stays this thread's last word (D-MS-1: also after "wait", an unclear reply
         // or a number not on it); an answered one does not.

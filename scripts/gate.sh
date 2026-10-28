@@ -255,7 +255,7 @@ if [[ $partition == all || $partition == core ]]; then
   step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
   step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
   step career-bundle python3 scripts/build-router-core.py --career-only --check
-  step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-telegram-link/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts supabase/functions/site-signup/index.ts supabase/functions/site-careers/index.ts supabase/functions/career-cloud-runner/index.ts
+  step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-telegram-link/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts supabase/functions/site-signup/index.ts supabase/functions/site-careers/index.ts supabase/functions/career-cloud-runner/index.ts supabase/functions/outlook-oauth/index.ts
 fi
 
 # Every step's result again at the end: a CI log read from its tail still shows which step failed.

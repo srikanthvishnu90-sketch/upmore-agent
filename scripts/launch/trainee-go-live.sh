@@ -26,6 +26,21 @@
 #   WHATSAPP_TOKEN (the permanent system-user token), WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_APP_SECRET,
 #   WHATSAPP_VERIFY_TOKEN (Enter generates one when a token is given), WHATSAPP_TEMPLATE_UPDATES (the approved template's
 #   name), WHATSAPP_TEMPLATE_LANGUAGE (default en_US), WHATSAPP_DAILY_TEMPLATES (default 250)
+# FEATURE 17, the cloud runner (preparation and sending without anyone's computer; docs/launch/CLOUD-RUNNER.md). Wired
+# only when VERCEL_TOKEN is given (or CLOUD_RUNNER_SECRET is set on the project); otherwise nothing of it is touched:
+#   VERCEL_TOKEN, VERCEL_TEAM_ID, VERCEL_PROJECT_ID    the sandbox host (a team-scoped token)
+#   CLOUD_SANDBOX_SNAPSHOT_ID                          the runner snapshot; or --build-snapshot builds one at --sha
+#                                                      (one sandbox for ~25 minutes, Vercel spend) and uses its id
+#   CLOUD_RUNNER_SECRET, CLOUD_DISPATCH_SECRET, CAREER_PREPARE_AHEAD_TOKEN   function secrets (Enter generates each)
+#   CLOUD_BRIDGE_URL and CAREER_PREPARE_AHEAD_URL      derived from the project ref, never asked
+#   the numbers, each optional. Infrastructure sizing not given is set to the runner's default (CLOUD_WAVE1 below, the
+#   same numbers as cloud_runner_http.ts LIMIT_DEFAULTS and docs/launch/CLOUD-RUNNER.md):
+#     CLOUD_MAX_CONCURRENT CLOUD_MAX_PER_PORTAL CLOUD_MAX_STARTS_PER_TICK CLOUD_PREPARE_MAX_CONCURRENT CLOUD_PREPARE_STARTS_PER_TICK
+#   The per-person and per-site numbers are never set unless given (owner, 2026-10-27, NO LIMITS: no number of Trainee's
+#   own; the brake is an outside system's refusal); given, any whole number from 1:
+#     CLOUD_MAX_PER_PERSON_DAY CLOUD_MAX_PER_SITE_MINUTE CLOUD_PREPARE_PER_PERSON_DAY CLOUD_PREPARE_PER_SITE_MINUTE
+#   CLOUD_RUNNER_ENABLED, CLOUD_PREPARE_ENABLED        'on' turns sending / preparation on; unset: not touched (off
+#                                                      until set). The database's own switches still decide every claim.
 # Steps, each a numbered STEP line ending OK or FAILED; the run stops at the first failure:
 #   1 preflight   tools, inputs, a clean tree at HEAD = --sha, the commit staged from git archive, the router bundle
 #                 checks and deno check of the entry points there, the provenance manifest printed
@@ -57,7 +72,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 REPO="$(pwd)"
-DRY=""; SKIP_MIG=""; SKIP_DEPLOY=""; ONLY_SMOKE=""; BRAIN=""; ALLOW_SEND=""; NOWAIT=""; WANT_SHA=""; VERIFY=""; VERIFY_MODE=""
+DRY=""; SKIP_MIG=""; SKIP_DEPLOY=""; ONLY_SMOKE=""; BRAIN=""; ALLOW_SEND=""; NOWAIT=""; WANT_SHA=""; VERIFY=""; VERIFY_MODE=""; BUILD_SNAPSHOT=""
 NONINT=""; [[ "${TRAINEE_NON_INTERACTIVE:-}" == 1 ]] && NONINT=1
 DEPLOY_LABEL="${TRAINEE_DEPLOY_LABEL:-owner}"
 while (( $# )); do
@@ -70,6 +85,7 @@ while (( $# )); do
     --brain=*) BRAIN="${1#--brain=}" ;;
     --allow-send) ALLOW_SEND=1 ;;
     --no-wait) NOWAIT=1 ;;
+    --build-snapshot) BUILD_SNAPSHOT=1 ;;
     --non-interactive) NONINT=1 ;;
     --sha) shift; WANT_SHA="${1:-}" ;;
     --sha=*) WANT_SHA="${1#--sha=}" ;;
@@ -169,6 +185,7 @@ MIGRATIONS=(
   20261026210016_career_resume_required.sql
   20261026210017_career_resume_on_file_one_record.sql
   20261026220016_channel_telegram_login.sql
+  20261026230017_career_cloud_hosted_apply.sql
   20261026230100_career_erase_complete.sql
   20261026230300_career_turn_gate.sql
   20261026230400_career_kb_postings_recency_index.sql
@@ -257,6 +274,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_resume_uploads') is not null and exists (select 1 from pg_trigger where tgname = 'career_apply_jobs_resume_guard') and exists (select 1 from pg_proc where proname = 'career_resume_ok') and exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%no_resume%')"
   "exists (select 1 from pg_proc where proname = 'career_resume_on_file' and prosrc like '%career_resume_rule_on%' and prosrc like '%career_resume_record%')"
   "to_regclass('public.channel_telegram_logins') is not null and exists (select 1 from pg_proc where proname = 'channel_telegram_link_as')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_cloud_dispatch_claim2') and to_regclass('public.career_apply_prepare_requests') is not null"
   "exists (select 1 from pg_proc where proname = 'career_erase_person') and exists (select 1 from pg_constraint where conname = 'extension_submission_reports_user_fk')"
   "to_regclass('public.career_turn_gate') is not null and exists (select 1 from pg_proc where proname = 'career_turn_gate_ready')"
   "to_regclass('public.career_kb_postings_posted_at_recent') is not null"
@@ -294,10 +312,19 @@ CHANNEL_PLAIN=(TELEGRAM_BOT_USERNAME WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TEMPLATE_
 # Every function step 4 deploys, in its order: the provenance manifest hashes each, the ledger records each.
 # FEATURE 16: Telegram's login, verified, links a chat to the signed-in person; it takes the person's own session (JWT on).
 JWT_FNS=(trainee-telegram-link)
+# FEATURE 17: the cloud runner (sending and preparation), deployed always; without its secrets it answers 503 not configured.
+CLOUD_FN=career-cloud-runner
+CLOUD_HIDDEN=(CLOUD_RUNNER_SECRET CLOUD_DISPATCH_SECRET CAREER_PREPARE_AHEAD_TOKEN VERCEL_TOKEN)
+CLOUD_PLAIN=(VERCEL_TEAM_ID VERCEL_PROJECT_ID CLOUD_SANDBOX_SNAPSHOT_ID CLOUD_MAX_CONCURRENT CLOUD_MAX_PER_PORTAL CLOUD_MAX_STARTS_PER_TICK
+  CLOUD_MAX_PER_PERSON_DAY CLOUD_MAX_PER_SITE_MINUTE CLOUD_PREPARE_MAX_CONCURRENT CLOUD_PREPARE_STARTS_PER_TICK CLOUD_PREPARE_PER_PERSON_DAY
+  CLOUD_PREPARE_PER_SITE_MINUTE CLOUD_RUNNER_ENABLED CLOUD_PREPARE_ENABLED)
+# The runner's infrastructure sizing, set by name when not given. No per-person or per-site number (NO LIMITS, 2026-10-27).
+declare -A CLOUD_WAVE1=([CLOUD_MAX_CONCURRENT]=2 [CLOUD_MAX_PER_PORTAL]=1 [CLOUD_MAX_STARTS_PER_TICK]=2
+  [CLOUD_PREPARE_MAX_CONCURRENT]=2 [CLOUD_PREPARE_STARTS_PER_TICK]=2)
 # Mass networking (lane M1): the sending rail's sender, started by pg_cron (trainee-career-send) with the proactive
 # secret; it sends nothing until CAREER_SEND_RAIL=on is set (docs/architect/OUTREACH-SEND-2026-10-27.md).
 SEND_FNS=(career-send)
-DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${JWT_FNS[@]}" "${OAUTH_FNS[@]}" "${SEND_FNS[@]}")
+DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${JWT_FNS[@]}" "${OAUTH_FNS[@]}" "${SEND_FNS[@]}" "$CLOUD_FN")
 # WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
 STAGE_PATHS=(supabase scripts packages corpus)
 PROV="$REPO/scripts/launch/deploy-provenance.cjs"
@@ -322,7 +349,8 @@ mask_values() {
   local v
   for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_URL CAREER_INGEST_SECRET CAREER_PROACTIVE_SECRET TRAINEE_DELIVER_SECRET TRAINEE_INBOUND_SECRET \
     LOOPMESSAGE_API_KEY OPENAI_API_KEY UPMORE_TEST_JWT TRAINEE_ALLOWED_CONTACTS TRAINEE_SMOKE_CONTACT INGEST_CONTACT_EMAIL PDL_API_KEY \
-    TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN CAREER_PREPARE_AHEAD_URL CAREER_PREPARE_AHEAD_TOKEN; do
+    TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN \
+    CLOUD_RUNNER_SECRET CLOUD_DISPATCH_SECRET CAREER_PREPARE_AHEAD_TOKEN VERCEL_TOKEN CAREER_PREPARE_AHEAD_URL; do
     [[ -n "${!v:-}" ]] && printf '%s\n' "${!v}"
   done
   # The database password on its own too (an error may print the URL's parts, never the whole URL).
@@ -607,8 +635,9 @@ if [[ -z "$ONLY_SMOKE" ]]; then
   [[ -z "${INGEST_CONTACT_EMAIL:-}" || "$INGEST_CONTACT_EMAIL" == *@* ]] || fail "INGEST_CONTACT_EMAIL is not an email address"
   [[ -z "${CAREER_PREPARE_AHEAD_URL:-}" || "$CAREER_PREPARE_AHEAD_URL" =~ ^https://[^/[:space:]]+(/[^[:space:]]*)?$ ]] || fail "CAREER_PREPARE_AHEAD_URL must be an https URL (the value is not shown)"
   [[ -z "${CAREER_PREPARE_AHEAD_TOKEN:-}" || "$CAREER_PREPARE_AHEAD_TOKEN" =~ $SECRET_RE ]] || fail "CAREER_PREPARE_AHEAD_TOKEN must be 32 or more of A-Z a-z 0-9 . _ ~ - (the value is not shown)"
-  if [[ -n "${CAREER_PREPARE_AHEAD_URL:-}${CAREER_PREPARE_AHEAD_TOKEN:-}" && ( -z "${CAREER_PREPARE_AHEAD_URL:-}" || -z "${CAREER_PREPARE_AHEAD_TOKEN:-}" ) ]]; then
-    fail "CAREER_PREPARE_AHEAD_URL and CAREER_PREPARE_AHEAD_TOKEN go together: give both or neither"
+  # A host URL needs its token. A token alone is the cloud runner's (FEATURE 17): its URL is derived from the project.
+  if [[ -n "${CAREER_PREPARE_AHEAD_URL:-}" && -z "${CAREER_PREPARE_AHEAD_TOKEN:-}" ]]; then
+    fail "CAREER_PREPARE_AHEAD_URL needs CAREER_PREPARE_AHEAD_TOKEN: give both, or only the token for the cloud runner"
   fi
   [[ -z "${LOOPMESSAGE_DAILY_CONTACTS:-}" || "$LOOPMESSAGE_DAILY_CONTACTS" =~ ^[1-9][0-9]*$ ]] || fail "LOOPMESSAGE_DAILY_CONTACTS must be a whole number of contacts a day"
   # WO-038: Telegram and WhatsApp, each optional (docs/launch/TRAINEE-GO-LIVE.md has where each value comes from).
@@ -644,6 +673,38 @@ if [[ -z "$ONLY_SMOKE" ]]; then
     if [[ -n "${!v:-}" ]] && ! env_safe "${!v}"; then fail "$v has a space, quote, # or backslash (the value is not shown)"; fi
   done
 fi
+# FEATURE 17: the cloud runner, wired only when its host token is given (or its secret is already on the project).
+CLOUD_WIRE=""
+if [[ -z "$ONLY_SMOKE" ]]; then
+  ask VERCEL_TOKEN "Vercel token scoped to the team, for the cloud runner's sandboxes (Enter: the cloud runner is not wired now)" hidden
+  if [[ -n "${VERCEL_TOKEN:-}" || -n "${CLOUD_RUNNER_SECRET:-}" ]]; then CLOUD_WIRE=1; fi
+  if [[ -n "$CLOUD_WIRE" ]]; then
+    ask VERCEL_TEAM_ID "Vercel team id (team_...)" plain
+    ask VERCEL_PROJECT_ID "Vercel project id (prj_...)" plain
+    [[ -n "$BUILD_SNAPSHOT" ]] || ask CLOUD_SANDBOX_SNAPSHOT_ID "Runner snapshot id (snap_...; Enter keeps what is set; --build-snapshot builds one)" plain
+    for v in CLOUD_RUNNER_SECRET CLOUD_DISPATCH_SECRET CAREER_PREPARE_AHEAD_TOKEN; do
+      ask "$v" "$v (Enter to generate a new 48-character one)" hidden
+      if [[ -z "${!v:-}" && -z "$DRY" ]]; then
+        if [[ -n "$NONINT" ]] && nonint_absent "$v"; then continue; fi
+        printf -v "$v" '%s' "$(gen_secret)"; GENERATED+=("$v")
+      fi
+      if [[ -n "${!v:-}" && ! "${!v}" =~ $SECRET_RE ]]; then fail "$v must be 32 or more of A-Z a-z 0-9 . _ ~ - (the value is not shown)"; fi
+    done
+    [[ -z "${VERCEL_TEAM_ID:-}" || "$VERCEL_TEAM_ID" =~ ^team_[A-Za-z0-9]{8,64}$ ]] || fail "VERCEL_TEAM_ID is not a team id (team_...)"
+    [[ -z "${VERCEL_PROJECT_ID:-}" || "$VERCEL_PROJECT_ID" =~ ^prj_[A-Za-z0-9]{8,64}$ ]] || fail "VERCEL_PROJECT_ID is not a project id (prj_...)"
+    [[ -z "${CLOUD_SANDBOX_SNAPSHOT_ID:-}" || "$CLOUD_SANDBOX_SNAPSHOT_ID" =~ ^snap_[A-Za-z0-9]{8,64}$ ]] || fail "CLOUD_SANDBOX_SNAPSHOT_ID is not a snapshot id (snap_...)"
+    if [[ -n "${VERCEL_TOKEN:-}" ]] && ! env_safe "$VERCEL_TOKEN"; then fail "VERCEL_TOKEN has a space, quote, # or backslash (the value is not shown)"; fi
+    for v in CLOUD_MAX_CONCURRENT CLOUD_MAX_PER_PORTAL CLOUD_MAX_STARTS_PER_TICK CLOUD_MAX_PER_PERSON_DAY CLOUD_MAX_PER_SITE_MINUTE \
+      CLOUD_PREPARE_MAX_CONCURRENT CLOUD_PREPARE_STARTS_PER_TICK CLOUD_PREPARE_PER_PERSON_DAY CLOUD_PREPARE_PER_SITE_MINUTE; do
+      [[ -z "${!v:-}" || "${!v}" =~ ^[1-9][0-9]{0,8}$ ]] || fail "$v must be a whole number from 1"
+    done
+    for v in CLOUD_RUNNER_ENABLED CLOUD_PREPARE_ENABLED; do
+      [[ -z "${!v:-}" || "${!v}" == on || "${!v}" == off ]] || fail "$v takes on or off"
+    done
+  else
+    echo "  cloud runner: not wired now (VERCEL_TOKEN not given); its function is deployed and answers 503 until it is"
+  fi
+fi
 ask UPMORE_TEST_JWT "Test user JWT for the agent-chat check (Enter to skip that check)" hidden
 if [[ -n "$ALLOW_SEND" ]]; then
   ask TRAINEE_SMOKE_CONTACT "Your own phone number for the HELP text (--allow-send texts it)" hidden required
@@ -678,7 +739,7 @@ fi
 if [[ -z "$ONLY_SMOKE" && -z "$SKIP_DEPLOY" ]]; then
   CHECK=(supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts
     supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
-    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/outlook-oauth/index.ts supabase/functions/career-send/index.ts)
+    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/outlook-oauth/index.ts supabase/functions/career-send/index.ts supabase/functions/career-cloud-runner/index.ts)
   run "deno check ${CHECK[*]}" deno check "${CHECK[@]}"
 fi
 ok
@@ -767,6 +828,34 @@ else
   for v in "${CHANNEL_HIDDEN[@]}" "${CHANNEL_PLAIN[@]}"; do
     if [[ -n "${!v:-}" ]]; then add "$v" "${!v}" "***"; else echo "  kept: $v (not given; what is set stays, and with nothing set that channel is NOT_WIRED)"; fi
   done
+  # FEATURE 17: the cloud runner's secrets and numbers, by name; the URLs are derived from the project ref.
+  if [[ -n "$CLOUD_WIRE" ]]; then
+    if [[ -n "$BUILD_SNAPSHOT" ]]; then
+      if [[ -n "$DRY" ]]; then echo "DRY: VERCEL_TOKEN=*** VERCEL_TEAM_ID=... VERCEL_PROJECT_ID=... deno run -A scripts/cloud-runner/build-snapshot.ts ${SHIP_SHA:-<sha>} (one sandbox, ~25 min; prints SNAPSHOT snap_...)"
+      else
+        [[ -n "${VERCEL_TOKEN:-}" && -n "${VERCEL_TEAM_ID:-}" && -n "${VERCEL_PROJECT_ID:-}" && -n "$SHIP_SHA" ]] || fail "--build-snapshot needs VERCEL_TOKEN, VERCEL_TEAM_ID, VERCEL_PROJECT_ID and --sha"
+        echo "  > deno run -A scripts/cloud-runner/build-snapshot.ts $SHIP_SHA"
+        snap_out="$(VERCEL_TOKEN="$VERCEL_TOKEN" VERCEL_TEAM_ID="$VERCEL_TEAM_ID" VERCEL_PROJECT_ID="$VERCEL_PROJECT_ID" deno run -A scripts/cloud-runner/build-snapshot.ts "$SHIP_SHA" 2>&1)" \
+          || { printf '%s\n' "$snap_out" | mask; fail "the runner snapshot was not built"; }
+        printf '%s\n' "$snap_out" | mask
+        CLOUD_SANDBOX_SNAPSHOT_ID="$(printf '%s\n' "$snap_out" | sed -n 's/^SNAPSHOT \(snap_[A-Za-z0-9]*\).*/\1/p' | tail -1)"
+        [[ "$CLOUD_SANDBOX_SNAPSHOT_ID" =~ ^snap_ ]] || fail "the snapshot build printed no SNAPSHOT id"
+      fi
+    fi
+    for v in "${CLOUD_HIDDEN[@]}"; do
+      if [[ -n "${!v:-}" ]]; then add "$v" "${!v}" "***"
+      elif [[ " ${KEEP_LIVE[*]} " == *" $v "* ]]; then echo "  kept: $v (set on the project; not given, so not touched)"
+      elif [[ -n "$DRY" && "$v" != VERCEL_TOKEN ]]; then add "$v" "" "<generated>"
+      else echo "  kept: $v (not given)"; fi
+    done
+    for v in "${CLOUD_PLAIN[@]}"; do
+      if [[ -n "${!v:-}" ]]; then add "$v" "${!v}" "${!v}"
+      elif [[ -n "${CLOUD_WAVE1[$v]:-}" ]]; then add "$v" "${CLOUD_WAVE1[$v]}" "${CLOUD_WAVE1[$v]}"; echo "  $v: not given, set to the first wave's ${CLOUD_WAVE1[$v]}"
+      else echo "  kept: $v (not given; off for a switch, no number for a per-person or per-site limit)"; fi
+    done
+    add CLOUD_BRIDGE_URL "$BASE/functions/v1/$CLOUD_FN" "$BASE/functions/v1/$CLOUD_FN"
+    add CAREER_PREPARE_AHEAD_URL "$BASE/functions/v1/$CLOUD_FN/prepare" "$BASE/functions/v1/$CLOUD_FN/prepare"
+  fi
   # Networking follow-up reminders (architect ruling R2, 2026-10-27): on for launch, so the chat's promise of a texted
   # reminder is kept. career-proactive queues each due one once to career_outbox; trainee-deliver texts it. A person with
   # no texting channel is told plainly that no message comes (career_outreach_track.ts reminderWords). Before the brain
@@ -837,7 +926,7 @@ else
     ledger_function agent-chat
   fi
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
-  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${OAUTH_FNS[@]}"; do
+  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${OAUTH_FNS[@]}" "$CLOUD_FN"; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt --use-docker
     if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
     else ledger_function "$fn"; fi
@@ -871,6 +960,9 @@ else
   sched CAREER_INGEST_SECRET career-ingest scripts/launch/schedule-career-ingest.sql
   sched CAREER_PROACTIVE_SECRET career-proactive scripts/launch/schedule-career-proactive.sql
   sched TRAINEE_DELIVER_SECRET trainee-deliver scripts/launch/schedule-trainee-deliver.sql
+  # FEATURE 17: the cloud runner's two ticks (sending and preparation), only when it is wired on this run.
+  if [[ -n "$CLOUD_WIRE" ]]; then sched CLOUD_DISPATCH_SECRET "$CLOUD_FN" scripts/launch/schedule-career-cloud.sql
+  else echo "  cloud runner schedules: not touched (not wired on this run)"; fi
   ok
 fi
 

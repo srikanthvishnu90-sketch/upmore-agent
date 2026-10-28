@@ -903,7 +903,7 @@ const CareerBatchApply = (() => {
     UNKNOWN_OUTCOME: "the submit gave no readable result, so it is recorded as unknown and will not be sent again on its own",
     NOT_PREPARED: "it is selected but not prepared yet",
     NOT_SUBMITTED: "it reached the final review but was not in what you approved, so it was not sent",
-    CAP_REACHED: "today's application limit was reached, so it waits for the next day",
+    CAP_REACHED: "this older batch path's own daily count paused it, so nothing was sent; it resumes the next day (applying from chat and your card has no such count)",
     COUNT_DEFERRED: "it is beyond the number you asked for, so it stays in the queue",
     KNOCKOUT_UNMET: "it has a requirement you don't meet",
     JOB_CLOSED: "the posting is closed",
@@ -961,7 +961,7 @@ const CareerBatchApply = (() => {
           : a.stage === "submitted" ? (a.confirmationId ? `submitted — confirmation ${a.confirmationId}` : "sent — no confirmation from the employer is recorded, so this is not counted as submitted")
           : a.stage === "captcha_handoff" ? "a captcha appeared — the last step is yours"
           : a.stage === "stopped" ? "stopped (named below)"
-          : a.stage === "deferred_cap" ? "queued past today's cap"
+          : a.stage === "deferred_cap" ? "paused by the older batch path's own daily count"
           : a.stage === "selected" ? "selected, not prepared yet"
           : a.stage === "excluded_by_user" ? "left out by your yes — not sent"
           : a.stage;
@@ -982,7 +982,7 @@ const CareerBatchApply = (() => {
     for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${plainStop(st.code)}.`}`);
     const capDef = sm.deferred.filter((x) => x.code === "CAP_REACHED");
     const countDef = sm.deferred.filter((x) => x.code === "COUNT_DEFERRED");
-    if (capDef.length) lines.push(`${capDef.length} hit today's application cap and are queued for ${capDef[0].resumeOn || "tomorrow"} — they resume automatically, they are not lost.`);
+    if (capDef.length) lines.push(`${capDef.length} were paused by this older batch path's own daily count and resume on ${capDef[0].resumeOn || "the next day"} — they are not lost; applying from chat and your card has no such count.`);
     if (countDef.length) lines.push(`${countDef.length} more were eligible beyond the ${run.requested} you named; they stay in the queue.`);
     return lines;
   }

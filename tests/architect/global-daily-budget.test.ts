@@ -231,17 +231,18 @@ Deno.test("every paid call goes through the gateway: no direct provider URL, key
   eq(scanForDirectProviderUse({ "supabase/functions/_shared/model_gateway.ts": 'fetch("https://api.openai.com/x")' }), [], "the gateway is allowed");
 });
 
-Deno.test("gateway source: the only sends are in callModel and webSearchCall, each after its reservation, and the kill switch and fail-closed checks come first", async () => {
+Deno.test("gateway source: the only sends are in callModel and responsesCall, each after its reservation, and the kill switch and fail-closed checks come first", async () => {
   const g = await Deno.readTextFile(new URL("model_gateway.ts", SHARED));
   const sends = [...g.matchAll(/await request\(/g)].map((m) => m.index!);
-  eq(sends.length, 3, "exactly three sends: OpenAI and Anthropic in callModel, OpenAI's web search in webSearchCall");
-  const fn = g.indexOf("export async function callModel"), ws = g.indexOf("export async function webSearchCall"), end = g.indexOf("// What a person reads when the provider is down");
-  assert(fn > 0 && ws > fn && end > ws, "callModel, then webSearchCall, then the rest");
+  eq(sends.length, 3, "exactly three sends: OpenAI and Anthropic in callModel, OpenAI's web search in responsesCall");
+  const fn = g.indexOf("export async function callModel"), ws = g.indexOf("export async function responsesCall"), end = g.length;
+  assert(fn > 0 && ws > fn, "callModel, then responsesCall");
   // Each door, in its own text: pause check, reserve, refusal check, then its sends.
-  for (const [name, from, to] of [["callModel", fn, g.indexOf("// ---- web search", fn)], ["webSearchCall", ws, end]] as const) {
+  for (const [name, from, to] of [["callModel", fn, g.indexOf("// What a person reads when the provider is down", fn)], ["responsesCall", ws, end]] as const) {
     const body = g.slice(from, to), mine = sends.filter((i) => i > from && i < to).map((i) => i - from);
     assert(mine.length >= 1, `${name} sends`);
     const paused = body.indexOf("budgetPausedByEnv("), reserve = body.indexOf("await gate.reserve("), closed = body.indexOf("if (!got.ok)");
+    if (name === "responsesCall") assert(body.indexOf("refuseVoiceModel(") >= 0 && body.indexOf("refuseVoiceModel(") < paused, "voice models are refused before anything else");
     assert(paused > 0 && paused < reserve && reserve < closed && closed < Math.min(...mine), `${name}: pause check, reserve, refusal check, then the first send`);
   }
   assert(sends.every((i) => i > fn && i < end), "every send is inside one of the two doors");

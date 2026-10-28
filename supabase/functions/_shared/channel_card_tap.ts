@@ -9,8 +9,8 @@
 // The button binds the card: its data is "tca:<card id>:<digest>" (Approve) or "tcd:<card id>:<digest>" (Decline), the
 // digest being the first 16 hex of sha256 over the card's id and each item's number and payload hash. A tap whose card
 // is gone, answered, someone else's, or whose items changed since the buttons were made approves nothing, and says so.
-import { answerText, type CardResult } from "./career_apply_cards.ts";
-import { type EventStore, recordEvent } from "./agent/timeline.ts";
+import { answerText, type CardResult, pagesOf } from "./career_apply_cards.ts";
+import { type EventStore, recordEvents } from "./agent/timeline.ts";
 
 export interface TapCard { id: string; user_id?: string; items: { n: number; prepared_id: string; payload_hash: string }[]; state: string; shown_at?: string }
 export interface TapStore {
@@ -45,7 +45,7 @@ export const TAP_FAILED = "Nothing was approved: the card could not be answered 
 
 // toast: the short line on the button (answerCallbackQuery); reply: the message in the chat, when there is one.
 export async function tapCard(o: { userId: string; data: string; now: number; store: TapStore; events?: EventStore | null }):
-  Promise<{ toast: string; reply: string; status: string }> {
+  Promise<{ toast: string; reply: string; status: string; parts?: string[] }> {
   const t = parseTap(o.data);
   if (!t) return { toast: "Nothing was approved.", reply: TAP_UNKNOWN, status: "unknown" };
   let card: TapCard | null;
@@ -68,14 +68,15 @@ export async function tapCard(o: { userId: string; data: string; now: number; st
     console.error("card tap:", msg.slice(0, 200));
     return { toast: "Nothing was approved.", reply: TAP_FAILED, status: "failed" };
   }
-  for (const r of results) {
-    await recordEvent(o.events, {
-      user_id: o.userId, at: o.now, kind: r.result === "queued" ? "application_approved" : "status_change", subject: r.company,
-      detail: { card: card.id, n: r.n, result: r.result, via: "telegram button" }, source: "card",
-    });
-  }
+  // SCALE (owner, 2026-10-27): the batch's timeline lines in one write, never one round trip per item.
+  await recordEvents(o.events, results.map((r) => ({
+    user_id: o.userId, at: o.now, kind: r.result === "queued" ? "application_approved" : "status_change", subject: r.company,
+    detail: { card: card.id, n: r.n, result: r.result, via: "telegram button" }, source: "card",
+  })));
   const queued = results.filter((r) => r.result === "queued").length;
-  return { toast: t.approve ? (queued ? "Approved." : "Nothing was approved.") : "Declined. Nothing was sent.", reply: answerText(results), status: "answered" };
+  const reply = answerText(results, { declined: t.approve ? undefined : "said_no" });
+  const parts = pagesOf(reply);
+  return { toast: t.approve ? (queued ? "Approved." : "Nothing was approved.") : "Declined. Nothing was sent.", reply, status: "answered", ...(parts.length ? { parts } : {}) };
 }
 
 // The store over the service client, every read scoped to the person who tapped.

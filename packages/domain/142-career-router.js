@@ -537,6 +537,13 @@ const CareerRouter = (() => {
 
   // The words of a search that name nothing: a role or a place makes it a different search from the saved one.
   const GENERIC_ASK = new Set("find me some any new a an the my show get give search list look for looking jobs job roles role positions position openings opening work please can you could i would like to want see what are there is good best top matches match more other open".split(" "));
+  // The cities the board's own postings are in (lower case, first part of the location).
+  function poolCities(ctx) {
+    const out = new Set();
+    for (const p of postingsFromCtx(ctx)) { const c = lc(s(p.location).split(",")[0].split("\u2014")[0].trim()); if (c && c !== "remote" && !/^remote\b/.test(c)) out.add(c); }
+    return out;
+  }
+  const citiesIn = (text, ctx) => [...poolCities(ctx)].filter((c) => new RegExp(`\\b${c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(lc(text)));
   function handleDiscovery(text, ctx, opts) {
     const o = opts || {};
     const profile = ctx.profile;
@@ -558,6 +565,12 @@ const CareerRouter = (() => {
         usedSaved = `${roleText || "any role"}${(saved.places || []).length || saved.remote ? ` in ${[...(saved.places || []).map(placeCase), ...(saved.remote ? ["remote"] : [])].join(" or ")}` : ""}`;
       }
     }
+    // A place named in the ask narrows the search to it (remote kept when asked for); the places ride the search record.
+    let cities = o.locations ? [...o.locations].filter((x) => x !== "remote") : [];
+    if (!o.locations) {
+      cities = citiesIn(text, ctx);
+      if (cities.length) o.locations = new Set([...cities, ...(/\bremote\b/i.test(text) ? ["remote"] : [])]);
+    }
     const { ranked, excluded, dedupedTo, family, left } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
     // COMPLEXITY WAVE (BUG-173): remember the search's parameters —
     // a follow-up ("remote ones too", "I meant data science", "what
@@ -570,8 +583,10 @@ const CareerRouter = (() => {
       const whereM = s(text).match(/\bin\s+([A-Z][A-Za-z]+(?:\s[A-Z][A-Za-z]+){0,2}|NYC|SF|LA)\b/) || s(text).match(/\b(NYC|New York|Chicago|Boston|San Francisco|Los Angeles|Houston|Dallas|London|Illinois|Midwest)\b/);
       ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastParams: {
         families: (fams || []).slice(),
-        roleText: roleM ? `${roleM[1].trim()} ${roleM[2]}` : (prevP ? prevP.roleText : null),
+        roleText: roleM ? `${roleM[1].trim()} ${roleM[2]}` : (prevP ? prevP.roleText : (usedSaved && saved && (saved.roles || []).length ? `${saved.roles.join(" or ")} roles` : null)),
         altRoleText: prevP ? prevP.roleText : null,
+        cities,
+        savedRoles: usedSaved && saved ? (saved.roles || []).join(" or ") : (prevP ? prevP.savedRoles || null : null),
         whereText: whereM ? whereM[1] : (prevP ? prevP.whereText : null),
         remote: /\bremote\b/i.test(text) || (prevP ? !!prevP.remote : false),
         bands: o.bands ? Array.from(o.bands) : (prevP ? prevP.bands : []),
@@ -675,7 +690,7 @@ const CareerRouter = (() => {
     const prev = ctx.discovery && ctx.discovery.lastParams;
     if (!prev) return null;
     const t = lc(text);
-    if (!/\b(i meant|ones too|is fine too|are fine too|either is fine|show me both|what did you find|back to jobs|back to the jobs|anywhere|abt|about|are in too|is in too|in too|also in)\b/.test(t) && !/\bactually\b/.test(t) && !(t.split(/\s+/).length <= 8 && /\b(remote|anywhere|both)\b/.test(t))) return null;
+    if (!/\b(i meant|ones too|is fine too|are fine too|either is fine|show me both|what did you find|back to jobs|back to the jobs|anywhere|abt|about|are in too|is in too|in too|also in|too|as well|instead)\b/.test(t) && !/\b(search|try|look|run it) again\b/.test(t) && !/\bactually\b/.test(t) && !(t.split(/\s+/).length <= 8 && /\b(remote|anywhere|both)\b/.test(t))) return null;
     const changes = [];
     let fams = (prev.families || []).slice();
     let roleText = prev.roleText || null;
@@ -699,10 +714,21 @@ const CareerRouter = (() => {
     const anyM = t.match(/\banywhere in\s+([a-z ]{3,24}?)(?:\s+works|\s+is fine|[.!?]|$)/) || t.match(/\banywhere in\s+([a-z ]{3,24})/);
     if (anyM) { whereText = anyM[1].trim().replace(/\b\w/g, (ch) => ch.toUpperCase()); changes.push(`the map widened to anywhere in ${whereText}`); }
     if (/\binternships?\b[^.]*\bfine too\b|\binternships are fine\b/.test(t) && !bands.includes("intern")) { bands = bands.concat(["intern"]); changes.push("internships that convert are in alongside the new-grad roles"); }
-    const recapOnly = /\bwhat did you find\b|\bback to (the )?jobs\b/.test(t) && !changes.length;
+    let cities = Array.isArray(prev.cities) ? prev.cities.slice() : [];
+    const named = citiesIn(text, ctx).filter((c) => !cities.includes(c));
+    const cityAsk = citiesIn(text, ctx);
+    if (cityAsk.length && /\b(too|also|as well|instead|what about|how about|and)\b/.test(t)) {
+      const instead = /\binstead\b/.test(t);
+      cities = instead ? cityAsk : [...cities, ...named];
+      whereText = cities.map(placeCase).join(" or ");
+      changes.push(instead ? `the place is ${whereText} now, replacing the earlier one` : `${named.map(placeCase).join(" or ") || whereText} is in alongside the earlier place`);
+    }
+    const again = /\b(search|try|look|run it) again\b/.test(t);
+    const recapOnly = (/\bwhat did you find\b|\bback to (the )?jobs\b/.test(t) || again) && !changes.length;
     if (!changes.length && !recapOnly) return null;
+    if (prev.savedRoles && !roleText) roleText = `${prev.savedRoles} roles`;
     const scopeLine = `Search as it now stands: ${roleText || (fams.length ? fams.map(familyLabel).join(" + ") + " roles" : "your earlier ask")}${whereText ? ` in ${whereText}` : ""}${remote ? ", remote included" : ""}${bands.includes("intern") ? ", internships included" : ""}.`;
-    const res = handleDiscovery(text, ctx, { families: fams, bands: bands.length ? new Set(bands) : undefined });
+    const res = handleDiscovery(text, ctx, { families: fams, bands: bands.length ? new Set(bands) : undefined, locations: cities.length ? new Set([...cities, ...(remote ? ["remote"] : [])]) : undefined });
     if (!res) return null;
     if (recapOnly) {
       const reply = compose({ headline: "Back to the search you already ran.", facts: [scopeLine, res.shortlist && res.shortlist.length ? `It holds ${res.shortlist.length} roles — the top of the list is unchanged.` : "It still holds no matching roles — the list itself is the limit today, not the search."], nextStep: "Widen the role or the map, or paste a posting, and the search moves." });
@@ -11146,7 +11172,7 @@ const CareerRouter = (() => {
     const asksPay = /\b(pay|paying|salary|comp|compensation|range|rate)\b/.test(t);
     const one = /\b(?:the|that|this)\s+[a-z0-9][a-z0-9 .&']{1,30}?\s+(?:one|role|job|position|posting)\b/.test(t) || /\bwhat about (?:the )?[a-z0-9]/.test(t);
     if (!asksPay && !one) return null;
-    if (/\b(tailor|apply|cover letter|resume|interview|follow up|remind|draft|send|questions)\b/.test(t)) return null;
+    if (/\b(tailor|apply|cover letter|resume|interview|follow up|remind|draft|send|questions|sponsor\w*|visa|eligib\w*|qualif\w*|requir\w*)\b/.test(t)) return null;
     const pool = postingsFromCtx(ctx);
     const hit = pool.find((p) => p.company && lc(p.company).length >= 3 && t.includes(lc(p.company)));
     if (!hit) return null;

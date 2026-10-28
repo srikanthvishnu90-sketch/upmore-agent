@@ -233,7 +233,7 @@ Deno.test("every paid call goes through the gateway: no direct provider URL, key
 
 Deno.test("gateway source: the only sends are in callModel and responsesCall, each after its reservation, and the kill switch and fail-closed checks come first", async () => {
   const g = await Deno.readTextFile(new URL("model_gateway.ts", SHARED));
-  const sends = [...g.matchAll(/await request\(/g)].map((m) => m.index!);
+  const sends = [...g.matchAll(/await (?:request|send)\(/g)].map((m) => m.index!);
   eq(sends.length, 3, "exactly three sends: OpenAI and Anthropic in callModel, OpenAI's web search in responsesCall");
   const fn = g.indexOf("export async function callModel"), ws = g.indexOf("export async function responsesCall"), end = g.length;
   assert(fn > 0 && ws > fn, "callModel, then responsesCall");

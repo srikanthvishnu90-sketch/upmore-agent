@@ -16,6 +16,10 @@ export interface MailStore {
   // false: that draft was made before (once per application and kind, ever).
   saveDraft(userId: string, d: Draft): Promise<boolean>;
   saveCursor(userId: string, readThrough: number): Promise<void>;
+  // Google verification (2026-10-26): is the person's career Google grant still there? A run reads their Gmail first and
+  // writes afterwards; if they said "disconnect gmail" in between, what it read must not be saved. A store without it
+  // never skips a write (the tests' stores that have no grants).
+  stillConnected?(userId: string): Promise<boolean>;
   // WO-051: model calls granted to this person today (UTC), at most `want` and never past `cap` in the day, counted in the
   // database before any call (career_mail_model_claim). A store without it grants none: the model is never asked.
   claimModelCalls?(userId: string, want: number, cap: number, now: number): Promise<number>;
@@ -54,7 +58,7 @@ export interface MemoryMail {
   // WO-051: model calls granted, by "<user>|<UTC day>".
   model_calls: Record<string, number>;
 }
-export function memoryMailStore(init: Partial<MemoryMail> = {}): MailStore & { dump(): MemoryMail } {
+export function memoryMailStore(init: Partial<MemoryMail> = {}): MailStore & { dump(): MemoryMail; disconnect(userId: string): void } {
   const st: MemoryMail = { people: [], queue: {}, tracker: {}, events: {}, drafts: {}, cursors: {}, model_calls: {}, ...JSON.parse(JSON.stringify(init)) };
   return {
     async people(limit) {
@@ -75,6 +79,9 @@ export function memoryMailStore(init: Partial<MemoryMail> = {}): MailStore & { d
       return true;
     },
     async saveCursor(u, at) { st.cursors[u] = at; },
+    async stillConnected(u) { return st.people.some((p) => p.user_id === u); },
+    // What "disconnect gmail" does to this store: the grant goes, and so do the events, drafts and cursor.
+    disconnect(u) { st.people = st.people.filter((p) => p.user_id !== u); delete st.events[u]; delete st.drafts[u]; delete st.cursors[u]; },
     async claimModelCalls(u, want, cap, now) {
       const key = `${u}|${new Date(now).toISOString().slice(0, 10)}`, used = st.model_calls[key] ?? 0;
       const got = Math.max(0, Math.min(Math.floor(want), Math.min(cap, MAIL_MODEL_DAILY_CAP) - used));
@@ -131,6 +138,10 @@ export function supabaseMailStore(admin: any): MailStore {
     },
     async saveCursor(u, at) {
       must(await admin.from("career_mail_cursors").upsert({ user_id: u, read_through: new Date(at).toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id" }), "save the mail cursor");
+    },
+    async stillConnected(u) {
+      const r = must<any[]>(await admin.from("user_oauth_connections").select("provider").eq("user_id", u).eq("provider", "google_career").limit(1), "read the career grant") ?? [];
+      return r.length > 0;
     },
     // The database's own day and count (20261021130000_career_mail_model_calls.sql); the run's clock is not trusted here.
     async claimModelCalls(u, want, cap) {

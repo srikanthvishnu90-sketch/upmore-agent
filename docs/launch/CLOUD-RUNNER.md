@@ -258,6 +258,15 @@ with no email after 24 hours (`unconfirmed_after_24h` in the rates).
 
 **Off:** unset `CLOUD_RUNNER_ENABLED`, or `CAREER_CLOUD_APPLY` to anything but `on` (the claim then returns nothing).
 
+## Mass submission and preparation at scale (2026-10-27)
+
+The VM cloud worker (`workers/career-cloud/worker.ts`) is no longer one loop that takes at most 6. Any number of instances
+run against the one database, each running as many applications as its machine holds. They use fair leased claims,
+reclaim after a crash, and hold off a site for every instance only when that site refuses (429, Retry-After, or a
+verification check). There is no number of ours. The preparation host (`prepare-ahead.ts`) makes preparation reachable
+for a person with only a phone (audit B2). Runbook, env names and the owner's steps: **docs/launch/MASS-SUBMISSION.md**.
+The sandbox dispatcher above is unchanged.
+
 ## What the database still limits today (not changed here)
 
 - The cloud gate: a family opens only after 3 hand submissions by the owner's gate testers, each confirmed by the

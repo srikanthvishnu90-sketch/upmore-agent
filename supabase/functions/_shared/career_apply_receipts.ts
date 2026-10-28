@@ -26,6 +26,7 @@ const NOT_SENT: Record<string, string> = {
   PERSON_DID_NOT_SUBMIT: "Submit was not pressed in the window within 10 minutes",
   IDENTITY_NUMBER_REQUESTED: "the form asks for an ID number, which Trainee never fills in",
   ACCOUNT_LOGIN_REQUIRED: "the employer's site needs you to sign in to an account first",
+  HOST_RATE_LIMITED: "the employer's site was turning visitors away for a while (too many requests), so nothing was filled in; ask me to send it again later",
   needs_answers: "the form has questions you have not answered yet",
 };
 const NEEDS_YOU: Record<string, string> = {
@@ -36,6 +37,8 @@ const NEEDS_YOU: Record<string, string> = {
   // check, press Submit. The check stopped it before Submit, so nothing reached the employer.
   bot_check: "a verification check appeared, and Trainee never solves one, so finish this one yourself: open the link below, " +
     "enter the answers you approved on the card, complete the check on the page, then press Submit",
+  // Mass submission: the employer's site asks you to sign in to an account; Trainee never signs in for you.
+  login_required: "the employer's site asks you to sign in to an account first, and Trainee never signs in for you, so finish this one yourself at this link",
 };
 
 // WO-032: a row is confirmed only by the employer's email matched to it (career_apply_confirm.ts); its receipt says whose

@@ -45,7 +45,7 @@ import { linkChecker } from "../_shared/link_check.ts";
 import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
 import { STAGED_TOOL_POLICY, stagedRoute } from "./career_staged.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
-import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
+import { CARD_ANSWER_INTENT, CARD_INTENT, cardTurn, cardWaiting, supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { mockTurn, supabaseMockStore as supabaseMockStoreUncapped } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
@@ -624,11 +624,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (googleOff) {
         out = { reply: disconnectReply(googleOff), intent: "career_google_disconnect", resultStatus: googleOff.ok ? (googleOff.had.length || googleOff.mailErased ? "completed" : "nothing") : "failed", contained: false, handler: "google_disconnect" };
       } else if (card) {
-        // A card still waiting for its answer stays this thread's last word; an answered one does not.
-        const waiting = ["shown", "not_on_card", "change"].includes(card.status);
-        out = { reply: card.reply, intent: waiting ? CARD_INTENT : "career_apply_card_answer", resultStatus: card.status, contained: false, handler: "cards" };
-        // SERIAL-1451: the shown card's id rides the reply, so a yes in this thread answers this card and no other.
-        if (card.status === "shown" && card.card_id) agentMeta = { card_id: card.card_id };
+        // A card still waiting for its answer stays this thread's last word (D-MS-1: also after "wait", an unclear reply
+        // or a number not on it); an answered one does not.
+        const waiting = cardWaiting(card);
+        out = { reply: card.reply, intent: waiting ? CARD_INTENT : CARD_ANSWER_INTENT, resultStatus: card.status, contained: false, handler: "cards", ...(card.parts ? { parts: card.parts } : {}) };
+        // SERIAL-1451: the waiting card's id rides the reply, so the next yes in this thread answers this card and no other.
+        if (waiting && card.card_id) agentMeta = { card_id: card.card_id };
       } else if (mock) {
         // The mock's own intent: MOCK_INTENT while its question waits, so only then is the next text an answer.
         out = { reply: mock.reply, intent: mock.intent, resultStatus: mock.status, contained: false, handler: "mock" };

@@ -82,6 +82,7 @@ jobs:
           CLOUD_PREPARE_PER_SITE_MINUTE: ${{ secrets.CLOUD_PREPARE_PER_SITE_MINUTE }}
           CLOUD_RUNNER_ENABLED: ${{ secrets.CLOUD_RUNNER_ENABLED }}
           CLOUD_PREPARE_ENABLED: ${{ secrets.CLOUD_PREPARE_ENABLED }}
+          CAREER_PREPARE_AHEAD_URL: ${{ secrets.CAREER_PREPARE_AHEAD_URL }}
           TRAINEE_GO_LIVE_LOG: ${{ runner.temp }}/go-live/go-live.log
           TRAINEE_DEPLOY_LABEL: github-actions run ${{ github.run_id }}
         run: |
@@ -114,6 +115,7 @@ jobs:
           MASK_19: ${{ secrets.CLOUD_DISPATCH_SECRET }}
           MASK_20: ${{ secrets.CAREER_PREPARE_AHEAD_TOKEN }}
           MASK_21: ${{ secrets.VERCEL_TOKEN }}
+          MASK_22: ${{ secrets.CAREER_PREPARE_AHEAD_URL }}
         run: |
           out="$RUNNER_TEMP/deploy-artifacts"; mkdir -p "$out"
           cp "$RUNNER_TEMP/go-live/go-live.log" "$out/" 2>/dev/null || echo "no log was written"

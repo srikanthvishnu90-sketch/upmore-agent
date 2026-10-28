@@ -63,6 +63,8 @@ export function parseNetworkingAsk(message: string): Ask | null {
     /^(?:do i (?:know|have) (?:anyone|anybody|any (?:contacts|connections))|(?:is there )?(?:anyone|anybody) (?:i know|in my (?:network|contacts|connections))) (?:at|from) (.+)$/i,
     /^find(?: me)? (?:someone|somebody|anyone|anybody|a person|people|a contact|contacts) (?:at|from) (.+)$/i,
     /^(?:my|any) (?:contacts|connections) (?:at|from) (.+)$/i,
+    // "I want to reach people at Stripe": the people on file there, named, as "who do I know at Stripe" answers.
+    /^(?:i(?: want| need| would like|'d like| wanna) to |let'?s )?(?:reach|contact|connect with|network with|get in touch with) (?:people|someone|somebody|anyone|anybody|folks|contacts|connections)(?: i know)? (?:at|from) (.+)$/i,
   ];
   for (const rx of who) {
     const m = rx.exec(t);

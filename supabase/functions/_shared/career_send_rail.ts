@@ -185,6 +185,27 @@ export async function outreachSendStatus(d: Rpc, userId: string): Promise<SendSt
   if (account?.state === "paused") parts.push(`Sending from your Gmail is paused${account.reason ? ` (${account.reason})` : ""}. Say "resume sending" when you want what's waiting to go.`);
   return { counts: c, waiting, sent, nextAt: s?.next_at ?? null, account: account ? { state: account.state, resume_at: account.resume_at ?? null, reason: account.reason ?? null } : null, line: parts.join(" ") };
 }
+// "where are my emails", "what's the status of my emails?", "did my emails go out?": an ask about the emails themselves,
+// never one about applications (career_apply_status.ts) or about replies ("who replied", the replies turn).
+const EMAIL_WORDS = String.raw`(?:(?:outreach|cold|networking|approved|queued|intro) )?(?:e-?mails?|outreach(?: e-?mails?)?)`;
+const EMAIL_STATUS = [
+  new RegExp(String.raw`^(?:so |and |ok |okay )?(?:where are|where'?s|how are|what'?s the status (?:of|on)|what is the status (?:of|on)|status (?:of|on)|any updates? on|update on|check on|show me the status of) (?:all )?(?:of )?my ${EMAIL_WORDS}$`),
+  new RegExp(String.raw`^(?:did|have|has) (?:all )?(?:of )?(?:my|the) ${EMAIL_WORDS} (?:go out|gone out|been sent|get sent|send|sent)(?: yet)?$`),
+  new RegExp(String.raw`^(?:my )?(?:e-?mail|outreach e-?mail|sending) status$`),
+];
+export function emailStatusAsk(message: string): boolean {
+  const t = String(message ?? "").toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, " ").replace(/[?.!]+$/, "").trim();
+  return t.length <= 120 && EMAIL_STATUS.some((re) => re.test(t));
+}
+// The chat's answer to that ask, from the rail's own counts (career_send_status) and, when the caller can read them, the
+// approved emails not on the rail (e.g. approved before Gmail was connected). Not this ask: null.
+export async function outreachStatusTurn(o: { message: string; userId: string; rail: Rpc; approvedNotQueued?: (userId: string) => Promise<number> }): Promise<{ reply: string; intent: string; status: string } | null> {
+  if (!emailStatusAsk(o.message)) return null;
+  const s = await outreachSendStatus(o.rail, o.userId);
+  const off = o.approvedNotQueued ? await o.approvedNotQueued(o.userId) : 0;
+  const more = off > 0 ? ` ${n_(off, "email")} you approved ${off === 1 ? "is" : "are"} not queued to send yet.` : "";
+  return { reply: s.line + more, intent: "career_outreach_send_status", status: s.waiting || s.sent || off ? "shown" : "none" };
+}
 // "resume sending" after a pause (bounces, or Gmail's spam or policy refusal): 'resumed', or the account's state.
 export async function resumeSending(d: Rpc, userId: string): Promise<string> {
   return String(await call(d, "career_send_resume", { user: userId }));

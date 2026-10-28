@@ -74,10 +74,9 @@ const questionsIn = (reply) => (String(reply).match(/\?/g) || []).length;
 function assertCatchAll(turn, what) {
   assert.equal(turn.fallback, false, `${what}: fell to the banner: ${turn.reply.slice(0, 140)}`);
   assert.equal(turn.intent, "career_catchall", `${what}: intent ${turn.intent}`);
-  // WO-111: one plain sentence naming the words it could not act on; no menu, no claimed understanding.
-  assert.match(turn.reply, /could not match/i, `${what}: catch-all shape (no claimed understanding)`);
-  assert.doesNotMatch(turn.reply, /i understand|here is what i can do/i, `${what}: must not claim understanding`);
-  assert.ok(questionsIn(turn.reply) <= 1, `${what}: at most one question: ${turn.reply.slice(0, 200)}`);
+  assert.match(turn.reply, /did not catch|didn't catch|not sure which part|What role, and which|I can check on that|Which company should we start/i, `${what}: catch-all shape (no claimed understanding)`);
+  assert.doesNotMatch(turn.reply, /i understand/i, `${what}: must not claim understanding`);
+  assert.equal(questionsIn(turn.reply), 1, `${what}: exactly one bounded question: ${turn.reply.slice(0, 200)}`);
 }
 
 // ---------- catch-all reachability: statements ----------

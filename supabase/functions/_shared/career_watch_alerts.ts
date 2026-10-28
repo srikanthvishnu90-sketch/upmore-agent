@@ -80,8 +80,10 @@ export async function syncWatchAlerts(o: {
   if (prev && prev.prefs.on && JSON.stringify(prev.prefs.interests ?? null) === JSON.stringify(interests)) return { action: "unchanged" };
   // The table keeps the watches' words in `keywords` (1 to 10) and their places in `locations` (up to 10); the
   // watches themselves decide the match.
-  const keywords = [...new Set(interests.flatMap((i) => i.keywords))];
-  if (keywords.length > 10) return { action: "refused", reason: `the watches name ${keywords.length} title terms; alerts hold 10` };
+  // NO LIMITS (owner, 2026-10-27; Telegram list #7, 2026-10-28): the column is a summary of the watches' words, and the
+  // match reads each watch's own terms (prefs.interests). It used to refuse the whole save past 10 distinct terms, so an
+  // 11th title term silently turned every watch's alerts off. The summary keeps the first 10; every watch keeps all of its own.
+  const keywords = [...new Set(interests.flatMap((i) => i.keywords))].slice(0, 10);
   const v = validPrefs({ keywords, locations: [...new Set(interests.flatMap((i) => i.locations))].slice(0, 10) }, prev?.prefs ?? DEFAULT_PREFS);
   if (!v.ok) return { action: "refused", reason: v.error };
   const row = startWatching(prev, { userId: o.userId, prefs: { ...v.prefs, interests }, tz: prev?.tz ?? DEFAULT_TZ, now: o.now });

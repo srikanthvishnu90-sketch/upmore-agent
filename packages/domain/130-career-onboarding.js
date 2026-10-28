@@ -102,9 +102,28 @@ const CareerOnboarding = (() => {
     if (/what roles|roles.*looking|looking for/.test(q)) return (prefs.roles || []).length ? hit(`You are looking for: ${prefs.roles.join(", ")}.`, "profile preferences.roles (stored)") : miss("target roles");
     if (/where.*(?:live|based)|location/.test(q)) return basics.location ? hit(`You are based in ${basics.location}.`, "profile basics.location (stored)") : miss("location");
     if (/comp floor|pay floor|minimum.*(?:pay|salary|comp)/.test(q)) return prefs.compFloor ? hit(`Your pay floor: ${prefs.compFloor}.`, "profile preferences.compFloor (stored)") : miss("pay floor");
-    if (/gpa/.test(q)) return (p.defaults && p.defaults.gpa) ? hit(`Your GPA on file: ${p.defaults.gpa}.`, "profile defaults.gpa (stored)") : miss("GPA");
+    if (/gpa/.test(q)) {
+      if (p.defaults && p.defaults.gpa) return hit(`Your GPA on file: ${p.defaults.gpa}.`, "profile defaults.gpa (stored)");
+      // The confirmed resume's education entry, as written there ("..., GPA 3.7, ..."); a draft is never read.
+      const g = confirmedEducation(p).map((f) => { const m = /\bGPA\b[:\s]*([0-4]\.\d{1,2})\b/i.exec(eduLine(f)); return m && { gpa: m[1], school: eduSchool(f) }; }).find(Boolean);
+      return g ? hit(`Your GPA on your confirmed resume: ${g.gpa}${g.school ? ` (${g.school})` : ""}.`, "confirmed resume fact: education") : miss("GPA");
+    }
+    if (SCHOOL_ASK.test(q)) {
+      const edu = confirmedEducation(p);
+      // Nothing confirmed: stand down, so a school the person stated in chat (142's stated-fact read-back) still answers.
+      if (!edu.length) return { found: false, answer: null, reasked: false, ask: null };
+      return hit(`From your confirmed resume: ${edu.map(eduLine).join("; ")}.`, "confirmed resume fact: education");
+    }
     return { found: false, answer: null, reasked: false, ask: null };
   }
+  // School asks: "where did I go to school?", "what school do I go to?", "what is my school / university / degree?".
+  const SCHOOL_ASK = /\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b|\bwhat (?:school|college|university) (?:did|do) i (?:go to|attend)\b|\bwhat(?:'?s| is) my (?:school|college|university|alma mater|degree)\b/;
+  // Confirmed education entries only (the person's yes on the resume); a draft or a quarantined entry is never read back.
+  function confirmedEducation(p) {
+    return ((p && p.facts) || []).filter((f) => f && f.kind === "education" && f.needs_confirmation !== true && (f.status == null || f.status === "confirmed"));
+  }
+  const eduLine = (f) => String(f.title || f.text || "").split("\n")[0].replace(/\s+/g, " ").trim();
+  const eduSchool = (f) => (eduLine(f).split(/\s+[-–—]\s+|,/)[0] || "").trim();
 
   // ---------- 2b. Sensitive (T3) answers: verbatim confirm, never guessed ----------
   const SENSITIVE_FIELDS = {
@@ -546,7 +565,7 @@ const CareerOnboarding = (() => {
       const r = answerCurrent(c.profile, text);
       return { intent: "onboarding_answer", done: r.done, answered: r.answered, pending: r.pending || null, reply: r.text };
     }
-    if (c.profile && /^(what'?s|what is) my\b/.test(t)) {
+    if (c.profile && (/^(what'?s|what is) my\b/.test(t) || SCHOOL_ASK.test(t))) {
       const r = answerFromProfile(c.profile, text);
       if (r.found || r.ask) return { intent: "profile_recall", found: r.found, source: r.source || null, reply: r.found ? r.answer : r.ask };
     }

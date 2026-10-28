@@ -12,6 +12,7 @@
 //      functions (the draft bridge is not installed here), a started sandbox is stopped at the finish.
 //   3. real Postgres and the real engine in Chromium on a local form: the engine's dry run prepares, then the sandbox
 //      runner submits exactly the approved application once, records it, and reads back submitted_unconfirmed.
+import { confirmedResumeSql } from "../flow/resume-seed.ts"; // OWNER RULE 2026-10-26: the person has a confirmed resume
 import assertNode from "node:assert/strict";
 import { pgBinDir, startPg, type Pg } from "../flow/pg.ts";
 import { type ClaimedJob, dispatch, handleBridge, jobToken, type Rpc, type SandboxHost } from "../../supabase/functions/_shared/cloud_runner.ts";
@@ -125,6 +126,7 @@ async function people(pg: Pg, ids: string[], portals: string[]) {
     await pg.sql(`insert into auth.users (id, email) values ('${u}', '${u.slice(-2)}@example.test');
       insert into public.profiles (id) values ('${u}');
       insert into public.career_watch_kv (user_id, key, value) values ('${u}', 'career:account', '{"epoch":1,"version":1,"paused":false}');
+      ${confirmedResumeSql(u)}
       select public.career_apply_cloud_optin_as('${u}', true, 'TEST terms');
       insert into public.career_apply_cloud_resumes (user_id, sha256, filename, bytes, privacy_epoch)
        values ('${u}', '${RESUME_SHA}', 'resume.pdf', decode('${btoa(String.fromCharCode(...RESUME))}', 'base64'), 1);`);
@@ -313,13 +315,14 @@ Deno.test({
       // Setup, named: the approved application as the cloud claim leaves it (driving, source cloud, its own lease) and its
       // approved resume where the cloud keeps it. The claim itself refuses any host but a portal family's (part 2 and
       // tests/db/career_apply_cloud_runner.test.sql), so a page on 127.0.0.1 is put in its claimed state directly.
+      // The resume first: the owner's resume rule (20261026210016) lets a row into driving only with its resume stored.
+      await pg.sql(`insert into public.career_apply_cloud_resumes (user_id, sha256, filename, bytes, privacy_epoch)
+        values ('${P1}', '${p.payload.resume_sha256}', 'resume.pdf', decode('${btoa(String.fromCharCode(...resume))}', 'base64'), 1)`);
       const q = (s: string) => `$q$${s}$q$`;
       const claimed = JSON.parse(await pg.sql(`insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash,
         state, attempts, claimed_at, lease_token, source) select '${P1}', ${q(p.payload.job_id)}, ${q(p.payload.company)}, ${q(p.payload.url)}, x.p,
         public.career_apply_payload_hash(x.p), public.career_apply_payload_hash(x.p), 'driving', 1, now(), gen_random_uuid(), 'cloud'
         from (select ${q(JSON.stringify(p.payload))}::jsonb p) x returning json_build_object('id', id, 'lease', lease_token)`).then((s) => s.split("\n").at(-1)!));
-      await pg.sql(`insert into public.career_apply_cloud_resumes (user_id, sha256, filename, bytes, privacy_epoch)
-        values ('${P1}', '${p.payload.resume_sha256}', 'resume.pdf', decode('${btoa(String.fromCharCode(...resume))}', 'base64'), 1)`);
 
       const rpc = pgRpc(pg), readJob = pgReadJob(pg), stopped: string[] = [];
       const deps = { rpc, readJob, secret: SECRET, stop: async (s: string) => { stopped.push(s); } };

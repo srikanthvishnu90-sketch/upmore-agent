@@ -2,13 +2,14 @@
 //
 // Every caller (the chat reply, the flow router, the financial planner) keeps building the request it always built, in
 // the Anthropic Messages shape, and reads back the same shape. This module sends it to the configured provider and
-// translates both ways, so the planner's tool loop, the router's forced tool call and the chat's text reply do not change
-// when the provider does. Switching back is one secret (MODEL_PROVIDER=anthropic), not a code change.
+// translates both ways, so the planner's tool loop, the router's forced tool call and the chat's text reply keep one shape.
 //
-// Provider: OpenAI, always, unless MODEL_PROVIDER=anthropic is set on purpose (owner, 2026-10-12: this app runs on OpenAI
-// only and never spends Anthropic API credits by accident). A missing OPENAI_API_KEY stays OpenAI and fails as
-// "not configured" with the honest outage reply; it never falls back to Anthropic. Model: OPENAI_MODEL (default gpt-5-nano) or ANTHROPIC_MODEL (default claude-haiku-4-5-20251001); the router
-// may use OPENAI_ROUTER_MODEL / ANTHROPIC_ROUTER_MODEL. Keys are read from the environment only and never logged.
+// Provider: OpenAI, always (owner rule: OpenAI only, no Anthropic API spend; CLAUDE.md). No secret can switch it:
+// MODEL_PROVIDER, ANTHROPIC_API_KEY, ANTHROPIC_MODEL and ANTHROPIC_ROUTER_MODEL are ignored (Q3, 2026-10-28; the launch
+// audit's SEC11 found one secret change would have moved spend to Anthropic). A missing OPENAI_API_KEY fails as
+// "not configured" with the honest outage reply. Model: OPENAI_MODEL (default gpt-5-nano); the router may use
+// OPENAI_ROUTER_MODEL. Keys are read from the environment only and never logged. The Anthropic request branch in
+// callModel is reachable only from a hand-built ModelConfig (the finance planner's tests); it is on the removal list.
 import { ModelUnavailableError, providerError, recordModelUsage, reserveModelCall } from "./model_calls.ts";
 
 export type Provider = "openai" | "anthropic";
@@ -17,22 +18,14 @@ export interface ModelConfig { provider: Provider; model: string; apiKey: string
 type Env = { get(name: string): string | undefined };
 
 export const OPENAI_DEFAULT_MODEL = "gpt-5-nano";
-export const ANTHROPIC_DEFAULT_MODEL = "claude-haiku-4-5-20251001";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const PROVIDER_NAME: Record<Provider, string> = { openai: "OpenAI", anthropic: "Anthropic" };
 
 export function modelConfig(env: Env, role: ModelRole = "chat"): ModelConfig {
-  const asked = String(env.get("MODEL_PROVIDER") || "").trim().toLowerCase();
-  const provider: Provider = asked === "anthropic" ? "anthropic" : "openai";
-  if (provider === "openai") {
-    const base = env.get("OPENAI_MODEL") || OPENAI_DEFAULT_MODEL;
-    const model = (role === "router" && env.get("OPENAI_ROUTER_MODEL")) || base;
-    return { provider, model, apiKey: env.get("OPENAI_API_KEY") || "", reasoningEffort: reasoningModel(model) ? (env.get("OPENAI_REASONING_EFFORT") || "minimal") : null };
-  }
-  const base = env.get("ANTHROPIC_MODEL") || ANTHROPIC_DEFAULT_MODEL;
-  const model = (role === "router" && env.get("ANTHROPIC_ROUTER_MODEL")) || base;
-  return { provider, model, apiKey: env.get("ANTHROPIC_API_KEY") || "", reasoningEffort: null };
+  const base = env.get("OPENAI_MODEL") || OPENAI_DEFAULT_MODEL;
+  const model = (role === "router" && env.get("OPENAI_ROUTER_MODEL")) || base;
+  return { provider: "openai", model, apiKey: env.get("OPENAI_API_KEY") || "", reasoningEffort: reasoningModel(model) ? (env.get("OPENAI_REASONING_EFFORT") || "minimal") : null };
 }
 export const providerName = (c: ModelConfig) => PROVIDER_NAME[c.provider];
 // Reasoning models (gpt-5 family, o-series) take max_completion_tokens and reasoning_effort, and reject a custom temperature.
@@ -141,6 +134,49 @@ export function meterAdd(m: TurnMeter | undefined, cfg: ModelConfig, usage: any,
   m.input_tokens += Number(usage && usage.input_tokens) || 0; m.output_tokens += Number(usage && usage.output_tokens) || 0;
   m.cached_tokens += Number(usage && usage.cache_read_input_tokens) || 0;
   const c = costMicros(cfg.model, usage); if (c === null) m.unpriced++; else m.usd_micros += c;
+}
+
+// Every user turn leaves one cost row, so a missing row can never be read as zero spend (2026-10-28).
+//   metered, calls = 0   the turn made no model call (the row says zero, in so many words);
+//   metered, calls > 0   the turn's calls, tokens and estimated cost;
+//   unrecorded           the sink was missing or refused the write, so how many calls the turn made is NOT KNOWN
+//                        (calls is null, never 0). A reader must count these turns as unknown, not as free.
+// Meters are tracked, so a turn that throws after calling the model is still recorded. finish() runs once, at the end of
+// the turn, whatever the reply was. It returns what the turn is now recorded as. Recording never breaks a reply.
+export type TurnRecord = "metered" | "zero" | "unrecorded" | "skipped";
+export function turnLedger(admin: any, userId: string, threadId: string | null) {
+  const tracked: TurnMeter[] = [], done = new Set<TurnMeter>();
+  let wrote = 0, failed = false, skipped = false;
+  const put = async (row: Record<string, unknown>): Promise<string | null> => {
+    if (!admin || typeof admin.from !== "function") return "no cost sink is wired";
+    try { const r = await admin.from("agent_turn_costs").insert({ user_id: userId, thread_id: threadId, ...row }); return r && r.error ? String(r.error.message || r.error) : null; }
+    catch (e) { return e instanceof Error ? e.message : String(e); }
+  };
+  const record = async (m: TurnMeter) => {
+    if (!m.calls || done.has(m)) return; // a meter with no calls adds nothing; the turn's zero row says so
+    done.add(m);
+    const err = await put({ meter_state: "metered", provider: m.provider, models: m.models, calls: m.calls, failed: m.failed, input_tokens: m.input_tokens, output_tokens: m.output_tokens, cached_tokens: m.cached_tokens, usd_micros: m.usd_micros, unpriced: m.unpriced });
+    if (err) { failed = true; console.error("turn cost not recorded:", err); } else wrote++;
+  };
+  return {
+    track(m: TurnMeter): TurnMeter { tracked.push(m); return m; },
+    record,
+    // A replayed turn (same turn key) is the first run's answer again: its row is the first run's.
+    skip() { skipped = true; },
+    async finish(): Promise<TurnRecord> {
+      if (skipped) return "skipped";
+      for (const m of tracked) await record(m);
+      if (!failed && wrote > 0) return "metered";
+      if (!failed) {
+        const err = await put({ meter_state: "metered", calls: 0 });
+        if (!err) return "zero";
+        console.error("turn cost not recorded:", err);
+      }
+      const err = await put({ meter_state: "unrecorded", calls: null });
+      if (err) console.error("turn marked unrecorded failed (the turn is unrecorded and has no row):", err);
+      return "unrecorded";
+    },
+  };
 }
 
 // Health events: one row per provider call outcome, so a dead key shows within minutes (model-health reads them).

@@ -488,7 +488,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const repliesStore = supabaseRepliesStore(admin);
       const repliesAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await repliesTurn({ message, userId: user.id, chatThreadId: tid, now: Date.now(), store: repliesStore,
-            tz: await admin.from("career_alert_prefs").select("tz").eq("user_id", user.id).maybeSingle().then((r: any) => r.data?.tz ?? null, () => null) })
+            // Never fails the turn: an unreadable time zone is none (the replies turn says times in UTC then).
+            tz: await (async () => { try { const r: any = await admin.from("career_alert_prefs").select("tz").eq("user_id", user.id).maybeSingle(); return r?.data?.tz ?? null; } catch { return null; } })() })
           .catch((e) => { console.error("outreach replies turn:", e?.message ?? e); return null; })
         : null;
       // WO-039: the cloud on and off, code's like the card: "apply for me in the cloud" shows the exact terms, a "yes" while

@@ -40,7 +40,49 @@ export function applyAsk(message: string): { company: string; role: string | nul
 
 // The batch ask: the listed postings (all, the first N, the Nth, or N of them). Questions, past tense and a named employer
 // ("apply to the analyst role at Acme": the single ask's) are never this ask.
-export type ManyAsk = { kind: "all" } | { kind: "first"; n: number } | { kind: "nth"; i: number } | { kind: "pick"; is: number[] };
+// D-MS-2 (2026-10-27): "all" may carry a filter over the listed postings ("apply to all remote ones", "apply to every
+// SWE intern role you found"): only the listed postings that match it are queued, as one batch.
+export type ListFilter = { remote: boolean; words: string[]; said: string };
+export type ManyAsk = { kind: "all"; filter?: ListFilter } | { kind: "first"; n: number } | { kind: "nth"; i: number } | { kind: "pick"; is: number[] };
+// Short forms a person types for a role family, read against the listed titles.
+const ROLE_ALIASES: Record<string, string[]> = {
+  swe: ["software engineer", "software engineering", "software developer", "swe"],
+  sde: ["software development engineer", "software engineer", "sde"],
+  dev: ["developer", "engineer"],
+  eng: ["engineer", "engineering"],
+  pm: ["product manager", "program manager", "pm"],
+  ds: ["data scientist", "data science"],
+  ml: ["machine learning", "ml"],
+  ai: ["ai", "artificial intelligence", "machine learning"],
+  fe: ["frontend", "front end", "front-end"],
+  be: ["backend", "back end", "back-end"],
+  ux: ["ux", "user experience", "designer"],
+  intern: ["intern", "internship", "co-op"],
+  internship: ["intern", "internship", "co-op"],
+  internships: ["intern", "internship", "co-op"],
+  interns: ["intern", "internship", "co-op"],
+};
+const FILTER_NOISE = new Set(["the", "of", "a", "an", "my", "those", "these", "them", "that", "you", "i", "just", "jobs", "job", "roles", "role", "ones", "one", "postings", "posting", "positions", "position", "openings", "opening", "listings", "listing", "remaining", "other"]);
+// The words of an "all <words> ones" / "every <words> role you found" ask, or null when it is not that shape. "remote" is
+// read against the posting's location (and title); every other word against the title.
+export function listFilterOf(after: string): ListFilter | null {
+  const m = /^(?:all(?:\s+of)?(?:\s+the)?|every(?:\s+one\s+of\s+the)?|each(?:\s+of\s+the)?)\s+(.+?)\s+(?:ones?|roles?|jobs?|postings?|positions?|internships?|openings?|listings?)(?:\s+(?:you(?:'ve| have)?\s+(?:just\s+)?(?:found|listed|showed|shown|sent|gave)(?:\s+me)?|(?:on|from)\s+(?:the|that|your)\s+list|there|here|above))?(?:\s+please)?$/.exec(after);
+  if (!m) return null;
+  const raw = m[1].toLowerCase().replace(/[^a-z0-9+#/ -]/g, " ").split(/\s+/).filter((w) => w && !FILTER_NOISE.has(w));
+  // "every remote internship": the noun itself is the filter word.
+  if (/\binternships?\b/.test(after) && !raw.some((w) => /^intern/.test(w))) raw.push("intern");
+  if (!raw.length) return null;
+  const remote = raw.includes("remote");
+  return { remote, words: raw.filter((w) => w !== "remote"), said: m[1].trim() };
+}
+const titleHas = (title: string, w: string) => {
+  const t = ` ${lower(title)} `;
+  return (ROLE_ALIASES[w] ?? [w]).some((a) => t.includes(` ${lower(a)} `) || t.includes(` ${lower(a)}s `));
+};
+export function matchesFilter(e: { title?: string | null; location?: string | null }, f: ListFilter): boolean {
+  if (f.remote && !/\bremote\b/i.test(`${e.location ?? ""} ${e.title ?? ""}`)) return false;
+  return f.words.every((w) => titleHas(String(e.title ?? ""), w));
+}
 const WORD_N: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
 const ORD: Record<string, number> = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 };
 const numOf = (w: string) => /^\d+$/.test(w) ? Number(w) : WORD_N[w.toLowerCase()];
@@ -58,6 +100,11 @@ export function applyManyAsk(message: string): ManyAsk | null {
   // engineering intern roles") is the broad ask, the batch delegation's (career_batch_apply), never this turn's.
   m = after.match(/^(?:all\s+)?(\d{1,3}|two|three|four|five|six|seven|eight|nine|ten)\s+(?:roles?|jobs?|postings?|positions?|internships?|openings?|of (?:them|these|those))\b/);
   if (m) return { kind: "first", n: numOf(m[1]) };
+  // D-MS-2: "all remote ones", "every SWE intern role you found": the listed postings that match, as one batch.
+  if (!/^(?:all\s+(?:of\s+)?)?(?:these|those|them|both)\b/.test(after)) {
+    const filter = listFilterOf(after);
+    if (filter) return { kind: "all", filter };
+  }
   if (/^(?:all\s+(?:of\s+)?)?(?:these|those|them|both|each of (?:these|those|them)|every one of (?:these|those|them)|them all|the ones (?:you )?(?:just )?listed|the list|all)\b/.test(after)) return { kind: "all" };
   // FEATURE 1: positions ("1 and 3", "#2", "the 2nd one", "the first and third").
   const is = positionsOf(after);
@@ -291,7 +338,7 @@ function prepareRunsNow(o: { prepareOn?: () => boolean }): boolean {
 const NOTHING_SENT_MANY = (prepares = true) => (prepares
   ? "Nothing is sent and nothing is filled yet: I prepare each one before you ask, from the facts you confirmed and a resume tailored to it; if a form asks something you haven't told me, I'll ask you here."
   : "Nothing is sent and nothing is filled yet: they wait in your queue until the Trainee extension prepares each one on your computer.") +
-  " Each application goes to its employer only when you approve it on the card that shows it exactly; one card can carry several, and one yes to that card approves exactly what it shows.";
+  " Each application goes to its employer only when you approve it on the card that shows it exactly; once they're prepared, \"show my applications\" shows them all on one card, and one yes to that card approves exactly what it shows.";
 const nameOf = (p: { title?: string | null; company?: string | null }) =>
   !p.company && /^#\d+$/.test(String(p.title ?? "")) ? String(p.title) : `${p.title || "the posting"} at ${p.company || "an employer not on record"}`;
 const listed = (names: string[], max = 12) => names.length <= max ? names.join("; ") : `${names.slice(0, max).join("; ")}; and ${names.length - max} more`;
@@ -321,6 +368,13 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
     if (!inRange.length) return { reply: `I listed ${list.length}, so there is no ${outRange.map((i) => `#${i}`).join(" or ")}; nothing was queued. Say which of the ${list.length} you mean.`, status: "none", intent };
     slice = inRange.map((i) => list[i - 1]);
     for (const i of outRange) missing.push({ job_id: null, company: "", title: `#${i}`, reason: `not on the list I showed (I listed ${list.length})` });
+  } else if (ask.filter) {
+    // D-MS-2: "all remote ones": the listed postings that match, all of them, as one batch; none matching queues nothing.
+    slice = list.filter((e) => matchesFilter(e, ask.filter!));
+    if (!slice.length) {
+      return { reply: `None of the ${list.length} I listed ${list.length === 1 ? "is" : "are"} ${ask.filter.said}, so nothing was queued. Say "apply to all of them", or name which ones ("apply to 1 and 3").`, status: "none", intent, queued: [], refused: [] };
+    }
+    if (slice.length < list.length) note = `${slice.length} of the ${list.length} I listed ${slice.length === 1 ? "is" : "are"} ${ask.filter.said}: those ${slice.length === 1 ? "one" : String(slice.length)}. `;
   } else slice = list.slice();
   const total = slice.length + missing.length;
   const listedPicks: Pick[] = slice.map((e) => ({ job_id: e.id ?? undefined, url: e.url ?? undefined, company: e.company ?? undefined, title: e.title ?? undefined, location: e.location ?? undefined }));

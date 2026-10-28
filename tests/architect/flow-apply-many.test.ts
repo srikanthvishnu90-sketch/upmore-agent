@@ -249,10 +249,11 @@ Deno.test({
         const other: Chat = agentChat!.chat("tok-other");
         const theirs = await other.say("yes");
         assert(theirs.resultStatus !== "answered" && theirs.intent !== "career_apply_card", `another person's yes is not this card's: ${theirs.intent} ${theirs.reply}`);
-        // SERIAL-1461: a bare yes in thread A (no reply id) approves nothing and says how.
+        // D-MS-1 (2026-10-27; replaces SERIAL-1461's reply-only rule): a bare yes in thread A is about the card A showed,
+        // and that card was closed by B's: out of date, nothing approved.
         const bareA = await say("yes");
-        assertEquals(bareA.resultStatus, "needs_reply", bareA.reply);
-        assert(/reply directly to the card/.test(bareA.reply) && /tap Approve/.test(bareA.reply) && /Nothing was approved/.test(bareA.reply), bareA.reply);
+        assertEquals(bareA.resultStatus, "card_outdated", bareA.reply);
+        assert(/out of date/.test(bareA.reply) && /nothing was approved/.test(bareA.reply), bareA.reply);
         // A yes in thread A in reply to A's card message: that card is out of date; nothing is approved, on either card.
         const cardMsgA = await pg.sql(`select id from public.agent_messages where thread_id = '${chat.thread()}' and role = 'assistant' and meta->>'card_id' = '${metaA.card_id}' order by id desc limit 1`);
         const yesA = await say("yes", { reply_to_message_id: Number(cardMsgA) });

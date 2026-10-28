@@ -47,6 +47,9 @@ alter table public.career_people add column if not exists fetched_at timestamptz
 alter table public.career_people add column if not exists profile_text text check (profile_text is null or length(profile_text) <= 600);
 -- The person's own row this provider row is the same person as (a published address found for a contact who had none).
 alter table public.career_people add column if not exists same_as bigint references public.career_people(id) on delete set null;
+-- Its foreign key needs this index: without it every deleted row (an erase, a person's own delete) scans the whole table
+-- for rows linked to it (CI: a million-row cleanup that never finished).
+create index if not exists career_people_same_as_idx on public.career_people (same_as) where same_as is not null;
 alter table public.career_people drop constraint if exists career_people_provider_shape;
 alter table public.career_people add constraint career_people_provider_shape check (
   (source = 'provider') = (provider is not null and provider_id is not null and fetched_at is not null)

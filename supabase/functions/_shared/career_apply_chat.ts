@@ -4,14 +4,14 @@
 // what was queued and that nothing is prepared, filled or sent by it: preparation uses only confirmed facts, the form's
 // open questions are asked of the person in chat, and the exact application goes only on their tap on its card.
 // A posting not on file is said so, never invented; a second ask for the same posting queues nothing twice; the screens
-// the brain's queue_applications applies (their current employer, an application there in the last 30 days) apply here.
+// the brain's queue_applications applies (their current employer, this exact posting already in their applications) apply here.
 // No product ceiling (owner, 2026-10-22: no cap on applications): only a daily pace the person set themselves is read,
 // and only once the turn is an apply ask; the once-per-employer guard, the exact-payload approval on each card and the
 // site limits stand. The batch ask (SERIAL-1410 (1): "apply to these", "apply to the top 2", "apply to 3 roles", "apply
 // to the second one") queues from the postings the thread last listed (the router's discovery.lastShortlist), each one
 // through the same screens on its own; the reply lists what was queued and what was not, with the reason for each. With
 // no list on the thread the batch ask is not this turn's.
-import { COMPANY_COOLDOWN_DAYS, INT4_MAX, type Limits, PACE_RE } from "./career_apply.ts";
+import { INT4_MAX, type Limits, PACE_RE } from "./career_apply.ts";
 import { type EmployerAnswer, employerQuestion, type Pick, queueWants, screenPicks, type WantStore } from "./career_apply_want.ts";
 import type { AppRow } from "./career_apply_status.ts";
 import { type FetchFeed, type PostingsDb, searchWords } from "./career_ingest.ts";
@@ -117,7 +117,7 @@ const lower = (s: unknown) => String(s ?? "").toLowerCase().replace(/[’']/g, "
 // one that failed before anything left, or stopped for the person, does not.
 const COUNTED = new Set(["queued", "driving", "submitted_unconfirmed", "confirmed", "unknown_outcome"]);
 export function trackedFromRows(rows: AppRow[]): TrackedApp[] {
-  return rows.map((r) => ({ ref: r.id, company: r.company, role: r.title ?? undefined, applied_at: r.created_at, stage: COUNTED.has(r.state) ? "Submitted" : "Saved", source: "queue" as const }));
+  return rows.map((r) => ({ ref: r.id, company: r.company, role: r.title ?? undefined, url: r.url ?? undefined, applied_at: r.created_at, stage: COUNTED.has(r.state) ? "Submitted" : "Saved", source: "queue" as const }));
 }
 
 export interface ApplyChatDeps {
@@ -286,7 +286,7 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
         ask: [{ job_id: p.job_id ?? null, url: String(p.url ?? ""), company: p.company, title: p.title }] };
     }
     const why = first?.reason ?? `nothing was queued`;
-    return { reply: `${coverageLine(0, 1)} Not queued: ${why}. (Trainee applies to an employer once in ${COMPANY_COOLDOWN_DAYS} days.)`, status: "refused", intent,
+    return { reply: `${coverageLine(0, 1)} Not queued: ${why}.`, status: "refused", intent,
       posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 } };
   }
   const resumeMissing = await noResume(o);
@@ -385,7 +385,7 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   let apps: TrackedApp[];
   try { apps = trackedFromRows(await o.apps()); }
   catch { return { reply: "I couldn't read your applications just now, so I couldn't rule out one already sent to any of these; nothing was queued. Ask again in a minute.", status: "unreadable", intent }; }
-  // Each posting through the same screens as a single ask, on its own: their current employer, an application there in 30 days.
+  // Each posting through the same screens as a single ask, on its own: their current employer, this exact posting already applied to.
   const screened = screenPicks(picks, { apps, facts: o.facts ?? [], now: o.now, resolved: await answersOf(o) });
   // SERIAL-1491: the possible-match question attaches to its own posting; the rest of the batch goes on.
   const asking = screened.refused.filter((r) => r.ask === "employer");
@@ -418,7 +418,7 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   if (refused.length) parts.push(`Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.reason}`), 8)}.`);
   if (asking.length) parts.push(askText(asking.map((r) => r.posting), o.facts ?? []));
   const status = queued.length ? "queued" : already ? "already" : asking.length ? "asking_employer" : "refused";
-  const tail = queued.length || already ? ` ${NOTHING_SENT_MANY(prepareRunsNow(o))}` : refused.length ? ` (Trainee applies to an employer once in ${COMPANY_COOLDOWN_DAYS} days.)` : "";
+  const tail = queued.length || already ? ` ${NOTHING_SENT_MANY(prepareRunsNow(o))}` : "";
   return { reply: `${note}${parts.join(" ")}${tail}`.trim(), status, intent, queued, refused, coverage: { queued: queued.length, total }, ...(kick ? { prepare: kick } : {}),
     ...(asking.length ? { ask: asking.map((r) => ({ job_id: r.posting.job_id, url: r.posting.url, company: r.posting.company, title: r.posting.title })) } : {}) };
 }

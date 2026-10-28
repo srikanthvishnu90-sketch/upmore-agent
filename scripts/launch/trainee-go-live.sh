@@ -55,10 +55,15 @@
 #                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
 #                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret),
 #                 all from the staged commit; each deploy writes its ledger row (sha, bundle sha256, platform version)
-#   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault)
+#   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault);
+#                 then ONLY the cron jobs the owner names with --unschedule-cron are unscheduled (an explicit allowlist
+#                 of exact job names; by default NO job is removed: scripts/launch/unschedule-legacy-finance.sql)
 #   6 smoke       scripts/launch/trainee-smoke.cjs against the live project (waits for each schedule to fire once
 #                 unless --no-wait; --allow-send also texts HELP's reply to TRAINEE_SMOKE_CONTACT through LoopMessage)
 # --skip-migrations / --skip-deploy skip step 2 / 4; --only-smoke runs only 1 and 6.
+# --unschedule-cron <name[,name...]> unschedules exactly those pg_cron jobs in step 5 (exact names, A-Za-z0-9 _ . -; the
+#   owner reads cron.job first). Without it step 5 removes nothing, whatever else is scheduled on the project.
+# Step 4 never deploys an Upmore-only function: preflight stops if DEPLOY_FNS names one (UPMORE_ONLY_FNS below).
 # --dry-run prints every command with each secret as *** and runs nothing (tests/trainee-go-live.test.cjs).
 # --non-interactive (or TRAINEE_NON_INTERACTIVE=1; the production workflow passes it): nothing is ever asked and no terminal
 #   is opened. Every required value missing (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_URL, --sha) fails
@@ -74,6 +79,7 @@ cd "$(dirname "$0")/../.."
 REPO="$(pwd)"
 DRY=""; SKIP_MIG=""; SKIP_DEPLOY=""; ONLY_SMOKE=""; BRAIN=""; ALLOW_SEND=""; NOWAIT=""; WANT_SHA=""; VERIFY=""; VERIFY_MODE=""; BUILD_SNAPSHOT=""
 NONINT=""; [[ "${TRAINEE_NON_INTERACTIVE:-}" == 1 ]] && NONINT=1
+UNSCHEDULE_CRON=""
 DEPLOY_LABEL="${TRAINEE_DEPLOY_LABEL:-owner}"
 while (( $# )); do
   case "$1" in
@@ -87,6 +93,8 @@ while (( $# )); do
     --no-wait) NOWAIT=1 ;;
     --build-snapshot) BUILD_SNAPSHOT=1 ;;
     --non-interactive) NONINT=1 ;;
+    --unschedule-cron) shift; UNSCHEDULE_CRON="${1:-}" ;;
+    --unschedule-cron=*) UNSCHEDULE_CRON="${1#--unschedule-cron=}" ;;
     --sha) shift; WANT_SHA="${1:-}" ;;
     --sha=*) WANT_SHA="${1#--sha=}" ;;
     --verify) shift; VERIFY="${1:-}"; VERIFY_MODE=1 ;;
@@ -199,6 +207,7 @@ MIGRATIONS=(
   20261027170000_career_people_scale.sql
   20261027170100_career_people_gmail_sweep.sql
   20261027200000_career_send_queue.sql
+  20261027210000_career_people_provider.sql
   20261027230000_career_outlook_connector.sql
   20261027240000_career_outreach_replies.sql
   20261028050000_agent_turn_costs_always_recorded.sql
@@ -292,6 +301,7 @@ MIGRATION_MARK=(
   "to_regprocedure('public.career_people_import_part(uuid,text,text,text,jsonb,integer,integer,boolean,bigint)') is not null and to_regclass('public.agent_flow_state_user') is not null"
   "to_regclass('public.career_people_gmail_sweeps') is not null and exists (select 1 from pg_proc where proname = 'career_people_sweep_claim')"
   "to_regclass('public.career_send_queue') is not null and exists (select 1 from pg_proc where proname = 'career_send_complete_one') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_send_rail')"
+  "to_regclass('public.career_provider_jobs') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_people' and column_name = 'sendable')"
   "to_regclass('public.career_outlook_sends') is not null and exists (select 1 from pg_proc where proname = 'career_outlook_claim') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_outlook_erase')"
   "to_regclass('public.career_outreach_turns') is not null and exists (select 1 from pg_proc where proname = 'career_outreach_action_claim' and prosrc like '%skip locked%')"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'agent_turn_costs' and column_name = 'meter_state')"
@@ -333,6 +343,16 @@ declare -A CLOUD_WAVE1=([CLOUD_MAX_CONCURRENT]=2 [CLOUD_MAX_PER_PORTAL]=1 [CLOUD
 # secret; it sends nothing until CAREER_SEND_RAIL=on is set (docs/architect/OUTREACH-SEND-2026-10-27.md).
 SEND_FNS=(career-send)
 DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${JWT_FNS[@]}" "${OAUTH_FNS[@]}" "${SEND_FNS[@]}" "$CLOUD_FN")
+# The Upmore finance functions still in supabase/functions. Trainee never deploys them (production stops drifting toward
+# the finance app); retiring them on the live project is the owner's decision (docs/architect/REMOVAL-LIST-2026-10-28.md).
+UPMORE_ONLY_FNS=(agent-exec agent-message-inbound agent-message-turn agent-message-worker agent-payments agent-proactive
+  agent-workflows broker-oauth-callback broker-oauth-start cancel-watcher exec-vault-store manual-connect news-feed plaid
+  plaid-sync simplefin-claim simplefin-proxy stripe-checkout stripe-credits stripe-webhook)
+[[ -z "$UNSCHEDULE_CRON" || "$UNSCHEDULE_CRON" =~ ^[A-Za-z0-9_.-]+(,[A-Za-z0-9_.-]+)*$ ]] || { echo "--unschedule-cron takes exact job names, comma-separated (A-Za-z0-9 _ . -)"; exit 64; }
+for fn in "${DEPLOY_FNS[@]}"; do
+  [[ " ${UPMORE_ONLY_FNS[*]} " != *" $fn "* ]] || { echo "go-live: $fn is an Upmore finance function; Trainee never deploys it"; exit 64; }
+done
+LEGACY_CRON_SQL=scripts/launch/unschedule-legacy-finance.sql
 # WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
 STAGE_PATHS=(supabase scripts packages corpus)
 PROV="$REPO/scripts/launch/deploy-provenance.cjs"
@@ -968,6 +988,12 @@ else
   sched CAREER_INGEST_SECRET career-ingest scripts/launch/schedule-career-ingest.sql
   sched CAREER_PROACTIVE_SECRET career-proactive scripts/launch/schedule-career-proactive.sql
   sched TRAINEE_DELIVER_SECRET trainee-deliver scripts/launch/schedule-trainee-deliver.sql
+  # Removing a schedule is the owner's call, by exact name: with no --unschedule-cron, nothing is removed.
+  if [[ -z "$UNSCHEDULE_CRON" ]]; then echo "  kept: every other pg_cron job (none named with --unschedule-cron)"
+  else
+    run "psql *** -X -q -v ON_ERROR_STOP=1 -v allow=$UNSCHEDULE_CRON -f $LEGACY_CRON_SQL (unschedules only: $UNSCHEDULE_CRON)" \
+      psql "${SUPABASE_DB_URL:-}" -X -q -v ON_ERROR_STOP=1 -v allow="$UNSCHEDULE_CRON" -f "$LEGACY_CRON_SQL"
+  fi
   # FEATURE 17: the cloud runner's two ticks (sending and preparation), only when it is wired on this run.
   if [[ -n "$CLOUD_WIRE" ]]; then sched CLOUD_DISPATCH_SECRET "$CLOUD_FN" scripts/launch/schedule-career-cloud.sql
   else echo "  cloud runner schedules: not touched (not wired on this run)"; fi

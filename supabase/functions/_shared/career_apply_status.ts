@@ -17,7 +17,7 @@ const MAX_LISTED = 8, RECENT_DAYS = 30;
 // One application as career_apply_jobs keeps it (the columns read; no answer's text).
 export interface AppRow {
   id: string; company: string; state: string; reason?: string | null; confirmation_id?: string | null;
-  email_confirmed_at?: string | null; created_at: string; updated_at: string; title?: string | null;
+  email_confirmed_at?: string | null; created_at: string; updated_at: string; title?: string | null; url?: string | null;
 }
 export type ReadApplications = (userId: string) => Promise<AppRow[]>;
 
@@ -25,7 +25,7 @@ export type ReadApplications = (userId: string) => Promise<AppRow[]>;
 // deno-lint-ignore no-explicit-any
 export function supabaseApplications(admin: any): ReadApplications {
   return async (userId) => {
-    const r = await admin.from("career_apply_jobs").select("id,company,state,reason,confirmation_id,email_confirmed_at,created_at,updated_at,title:payload->>title")
+    const r = await admin.from("career_apply_jobs").select("id,company,url,state,reason,confirmation_id,email_confirmed_at,created_at,updated_at,title:payload->>title")
       .eq("user_id", userId).order("updated_at", { ascending: false }).limit(500);
     if (r.error) throw new Error(`read the applications: ${r.error.message}`);
     return (r.data ?? []) as AppRow[];

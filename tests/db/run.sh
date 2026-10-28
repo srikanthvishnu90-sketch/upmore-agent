@@ -597,6 +597,12 @@ echo "== career_outreach_replies.test.sql (a stop is final; one follow-up after 
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outreach_replies.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_outreach_replies_load.py (10,000 people, 50,000 approved actions, 20 concurrent workers: exactly once, fair)"
 python3 "$HERE/career_outreach_replies_load.py" "${PSQL[@]}"
+# D-MN-3 (20261027210000): the people provider's dedupe at 1M people rows and its lookup queue under 20 concurrent
+# workers (exactly once, fair across people), measured. The ledger above applied it; applied twice more: idempotent.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027210000_career_people_provider.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027210000_career_people_provider.sql"
+echo "== career_people_provider_scale.py (1M people rows: indexed dedupe; 55,000 lookups, 20 workers: exactly once, fair)"
+python3 "$HERE/career_people_provider_scale.py" "${PSQL[@]}"
 # LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left
 # (the card-cloud bridge included). The test applies it (twice) over production's shape, then checks the whole schema:
 # no SECURITY DEFINER function anon can run, none without a fixed search_path.

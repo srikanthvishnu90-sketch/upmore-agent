@@ -652,7 +652,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
               return r.data?.[0]?.channel ?? null;
             },
             // D-033 people finding: the LinkedIn export, Gmail correspondents (the career grant's read scope), pages, intros.
-            people: supabasePeopleDeps(admin, { fetch, token: careerTokenFor(f08Grant, PEOPLE_READ_SCOPE), introPush: Deno.env.get("CAREER_INTRO_REMINDERS") === "on" }) })
+            // D-MN-3 people discovery: web search + public pages when CAREER_PEOPLE_SEARCH=on; off, the reply says so.
+            people: supabasePeopleDeps(admin, { fetch, token: careerTokenFor(f08Grant, PEOPLE_READ_SCOPE), introPush: Deno.env.get("CAREER_INTRO_REMINDERS") === "on", env: (k) => Deno.env.get(k) }) })
           .catch((e) => { console.error("networking turn:", e?.message ?? e); return null; })
         : null;
       await ledger.record(netMeter);

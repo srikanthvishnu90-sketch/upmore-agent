@@ -63,11 +63,20 @@ if [ -n "$BRANCHES" ] || [ "${INSTINCT_FORCE_SCRATCH:-}" = 1 ]; then
     if ! git -C "$ROOT" fetch --quiet "${deepen[@]}" origin "+refs/heads/$b:refs/remotes/origin/$b" 2>/dev/null; then
       SKIPPED="$SKIPPED $b(not pushed)"; echo "instinct: $b is not on origin; left out" >&2; continue
     fi
-    if git -C "$TREE" -c user.name=instinct -c user.email=instinct@example.invalid merge --quiet --no-edit --no-ff "origin/$b" >/dev/null 2>&1; then
+    G=(git -C "$TREE" -c user.name=instinct -c user.email=instinct@example.invalid)
+    if "${G[@]}" merge --quiet --no-edit --no-ff "origin/$b" >/dev/null 2>&1; then
       MERGED="$MERGED $b@$(git -C "$ROOT" rev-parse --short "origin/$b")"
     else
-      git -C "$TREE" merge --abort >/dev/null 2>&1 || true
-      SKIPPED="$SKIPPED $b(merge conflict)"; echo "instinct: $b does not merge cleanly onto the set; left out" >&2
+      conflicted="$(git -C "$TREE" diff --name-only --diff-filter=U)"
+      # A conflict only in documents changes nothing that runs: the base's text is kept, and the scorecard says so.
+      if [ -n "$conflicted" ] && ! grep -qvE '(^docs/|\.md$)' <<<"$conflicted"; then
+        while read -r f; do "${G[@]}" checkout --ours -- "$f"; "${G[@]}" add -- "$f"; done <<<"$conflicted"
+        "${G[@]}" commit --quiet --no-edit
+        MERGED="$MERGED $b@$(git -C "$ROOT" rev-parse --short "origin/$b")(docs kept from the base: $(tr '\n' ' ' <<<"$conflicted"))"
+      else
+        "${G[@]}" merge --abort >/dev/null 2>&1 || true
+        SKIPPED="$SKIPPED $b(merge conflict in $(tr '\n' ' ' <<<"$conflicted"))"; echo "instinct: $b does not merge cleanly onto the set; left out" >&2
+      fi
     fi
   done
   # The judge is always this checkout's.

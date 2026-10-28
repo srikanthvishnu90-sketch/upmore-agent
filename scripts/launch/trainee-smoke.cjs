@@ -92,6 +92,26 @@ async function checkGate(g, { base, secret, fetchFn }) {
   return out;
 }
 
+// Audit B2: the preparation host (workers/career-browser/prepare-ahead.ts serve) that prepares applications for a person
+// with only a phone. Not given: NOT RUN, said as NOT_WIRED (the chat then says nothing is prepared without the extension).
+// Given: its GET /status must refuse a wrong token and answer the right one as the prepare-ahead service. Read only.
+async function checkPrepareHost({ url, token, fetchFn }) {
+  const name = 'preparation host (phone-only preparation)';
+  if (!url || !token) return [r('NOT RUN', name, 'NOT_WIRED: no CAREER_PREPARE_AHEAD_URL/TOKEN given; a person with only a phone gets nothing prepared (docs/launch/CLOUD-RUNNER.md, Preparation host)')];
+  let where;
+  try { const u = new URL(url); if (u.protocol !== 'https:') throw new Error(); where = `${u.origin}/status`; }
+  catch { return [r('FAIL', name, 'CAREER_PREPARE_AHEAD_URL is not an https URL')]; }
+  const out = [];
+  const w = await call(fetchFn, where, { headers: { authorization: `Bearer wrong-${crypto.randomBytes(20).toString('hex')}` } }, 15000);
+  out.push(w.status === 401 || w.status === 403 ? r('PASS', `${name} refuses a wrong token`, `HTTP ${w.status}`)
+    : r('FAIL', `${name} refuses a wrong token`, `HTTP ${w.status || 'none'}: ${said(w)}`));
+  const a = await call(fetchFn, where, { headers: { authorization: `Bearer ${token}` } }, 15000);
+  if (a.status === 200 && a.body && a.body.ok === true && a.body.service === 'prepare-ahead') {
+    out.push(r('PASS', `${name} is up`, `${Number(a.body.in_flight) || 0} in flight, up to ${Number(a.body.concurrency) || 1} at once${a.body.last_error ? `; last error: ${clip(a.body.last_error, 100)}` : ''}`));
+  } else out.push(r('FAIL', `${name} is up`, `HTTP ${a.status || 'none'}: ${said(a) || 'not the prepare-ahead status'}`));
+  return out;
+}
+
 // The body parseLoopInbound (supabase/functions/_shared/loopmessage.ts) reads as an inbound text: alert_type, message_id,
 // recipient (the texting contact), text. A fresh id each run, so the dedupe table never answers "duplicate webhook".
 function helpBody(contact, now) {
@@ -209,7 +229,7 @@ async function main(argv, env, deps = {}) {
   const fetchFn = deps.fetch || fetch, sleep = deps.sleep || ((ms) => new Promise((res) => setTimeout(res, ms)));
   const now = deps.now || Date.now;
   // Never print a value that was handed in; an error message from a provider or psql could carry one back.
-  const hidden = ['SUPABASE_DB_URL', 'UPMORE_TEST_JWT', 'TRAINEE_SMOKE_CONTACT', ...GATED.map((g) => g.env), ...CHANNEL_SECRETS].map((k) => env[k]).filter((v) => v && v.length >= 4);
+  const hidden = ['SUPABASE_DB_URL', 'UPMORE_TEST_JWT', 'TRAINEE_SMOKE_CONTACT', 'CAREER_PREPARE_AHEAD_URL', 'CAREER_PREPARE_AHEAD_TOKEN', ...GATED.map((g) => g.env), ...CHANNEL_SECRETS].map((k) => env[k]).filter((v) => v && v.length >= 4);
   const scrub = (s) => hidden.reduce((t, v) => t.split(v).join('***').split(encodeURIComponent(v)).join('***'), String(s));
   const line = (x) => log(scrub(`${x.status.padEnd(7)} ${x.check}${x.detail ? `: ${x.detail}` : ''}`));
   let opts;
@@ -240,6 +260,9 @@ async function main(argv, env, deps = {}) {
   else optional(r('NOT RUN', "Telegram's webhook", 'Telegram NOT_WIRED: no TELEGRAM_BOT_TOKEN given'));
   if (env.WHATSAPP_VERIFY_TOKEN) add(await checkWhatsApp({ base, verifyToken: env.WHATSAPP_VERIFY_TOKEN, fetchFn }));
   else optional(r('NOT RUN', 'trainee-whatsapp', 'WhatsApp NOT_WIRED: no WHATSAPP_VERIFY_TOKEN given'));
+  // Not wired is reported, not counted (as a channel not given); wired and failing is a FAIL.
+  const prep = await checkPrepareHost({ url: env.CAREER_PREPARE_AHEAD_URL, token: env.CAREER_PREPARE_AHEAD_TOKEN, fetchFn });
+  if (prep.length === 1 && prep[0].status === 'NOT RUN') optional(prep[0]); else add(prep);
   if (env.UPMORE_TEST_JWT) add(await checkChatHi({ base, jwt: env.UPMORE_TEST_JWT, fetchFn }));
   else add(r('NOT RUN', 'agent-chat answers "hi" for the test user', 'missing UPMORE_TEST_JWT'));
 
@@ -261,5 +284,5 @@ async function main(argv, env, deps = {}) {
   return n('FAIL') ? 1 : 0;
 }
 
-module.exports = { GATED, RUNS, CHANNEL_SECRETS, checkGate, checkInboundHelp, checkTelegram, checkTelegramWebhook, checkWhatsApp, checkChatNoJwt, checkChatHi, checkRuns, helpBody, main };
+module.exports = { GATED, RUNS, CHANNEL_SECRETS, checkPrepareHost, checkGate, checkInboundHelp, checkTelegram, checkTelegramWebhook, checkWhatsApp, checkChatNoJwt, checkChatHi, checkRuns, helpBody, main };
 if (require.main === module) main(process.argv.slice(2), process.env).then((code) => { process.exitCode = code; }, (e) => { console.log(`FAIL    trainee smoke crashed: ${e && e.message}`); process.exitCode = 1; });

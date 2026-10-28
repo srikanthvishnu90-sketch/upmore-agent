@@ -27,6 +27,7 @@
 //   Either may come back on the send itself or later in a "failed" status (SECONDARY), so both paths hold the message.
 import { equalSecret } from "./message_service.ts";
 import { type ChannelAdapter, type InboundMessage, packMessages, pacer, type ParseResult, type SendResult, type StatusEvent, WHATSAPP_WINDOW_MS } from "./channel_adapters.ts";
+import { nativeRender } from "./channel_voice.ts";
 
 export const WHATSAPP_GRAPH = "https://graph.facebook.com";
 export const WHATSAPP_DEFAULT_VERSION = "v21.0"; // ASSUMED still served; WHATSAPP_GRAPH_VERSION overrides it
@@ -85,10 +86,15 @@ export function parseWhatsAppBody(b: any, phoneNumberId?: string): { messages: I
   return { messages, statuses, ignored };
 }
 
+// V1 TEXTING VOICE (CAREER_TEXTING_NATIVE=on, `native`): messages split on the reply's own words with WhatsApp's own
+// *bold* (channel_voice.ts); and the typing indicator, which also marks the person's message read: POST
+// /<phone number id>/messages {messaging_product:"whatsapp", status:"read", message_id:<their message's id>,
+// typing_indicator:{type:"text"}}; "The typing indicator will be dismissed once you respond, or after 25 seconds, whichever
+// comes first" (VERIFIED-S: https://developers.facebook.com/documentation/business-messaging/whatsapp/typing-indicators/).
 export function whatsappAdapter(o: {
   token: string; phoneNumberId: string; appSecret?: string; verifyToken?: string; version?: string;
   template?: { name: string; language: string } | null; dailyTemplates?: number;
-  fetch?: typeof fetch; timeoutMs?: number; clock?: () => number; sleep?: (ms: number) => Promise<void>;
+  fetch?: typeof fetch; timeoutMs?: number; clock?: () => number; sleep?: (ms: number) => Promise<void>; native?: boolean;
 }): ChannelAdapter {
   const f = o.fetch ?? fetch, timeout = o.timeoutMs ?? 15000, version = o.version || WHATSAPP_DEFAULT_VERSION;
   // One message a second to one person: separate messages keep their order, and Meta's per-pair limit is not tested
@@ -115,7 +121,20 @@ export function whatsappAdapter(o: {
     channel: "whatsapp", provider: "whatsapp",
     limits: { chars: WHATSAPP_CHARS, packChars: PACK, perChatGapMs: 1000, overallPerSecond: 50, windowMs: WHATSAPP_WINDOW_MS, dailyContacts: null, dailyTemplates: o.dailyTemplates ?? DEFAULT_DAILY_TEMPLATES },
     capabilities: { buttons: true, documents: true, previews: true, templates: !!o.template },
-    render: (text) => packMessages(text, PACK),
+    render: o.native ? nativeRender("whatsapp", PACK) : (text) => packMessages(text, PACK),
+    typingEveryMs: 20000,
+    async typing(_address, inboundId): Promise<boolean> {
+      // Tied to the message they sent (a wamid); without it there is nothing to show the indicator against.
+      if (!inboundId || !/^wamid\./.test(inboundId)) return false;
+      try {
+        const res = await f(`${WHATSAPP_GRAPH}/${version}/${o.phoneNumberId}/messages`, {
+          method: "POST", headers: { Authorization: `Bearer ${o.token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ messaging_product: "whatsapp", status: "read", message_id: inboundId, typing_indicator: { type: "text" } }), signal: AbortSignal.timeout(timeout),
+        });
+        const b = await res.json().catch(() => null) as any;
+        return res.ok && b?.success === true;
+      } catch { return false; }
+    },
     async parseInbound(req): Promise<ParseResult> {
       if (req.method === "GET") {
         const u = new URL(req.url), verify = o.verifyToken ?? "";

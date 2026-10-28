@@ -45,7 +45,7 @@ import { linkChecker } from "../_shared/link_check.ts";
 import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
 import { STAGED_TOOL_POLICY, stagedRoute } from "./career_staged.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
-import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
+import { CARD_ANSWER_INTENT, CARD_INTENT, cardTurn, cardWaiting, supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { mockTurn, supabaseMockStore as supabaseMockStoreUncapped } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
@@ -82,6 +82,7 @@ import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, su
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
 import { disconnectGoogle, disconnectReply, isGoogleDisconnect } from "../_shared/google_disconnect.ts"; // FEATURE GV
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
+import { CAREER_READ_SCOPE as PEOPLE_READ_SCOPE, supabasePeopleDeps } from "../_shared/career_people.ts"; // D-033
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
 // FEATURE 8: inbox check and follow-ups that can be sent.
@@ -584,7 +585,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
             previousAsk: async () => {
               const r = await admin.from("agent_messages").select("content").eq("thread_id", tid).eq("role", "user").order("id", { ascending: false }).limit(1);
               return r.error ? null : (r.data?.[0]?.content ?? null);
-            } })
+            },
+            // D-033 people finding: the LinkedIn export, Gmail correspondents (the career grant's read scope), pages, intros.
+            people: supabasePeopleDeps(admin, { fetch, token: careerTokenFor(f08Grant, PEOPLE_READ_SCOPE), introPush: Deno.env.get("CAREER_INTRO_REMINDERS") === "on" }) })
           .catch((e) => { console.error("networking turn:", e?.message ?? e); return null; })
         : null;
       if (netMeter.calls) await recordTurnCost(admin, user.id, tid, netMeter);
@@ -620,11 +623,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: outlookAns.reply, intent: outlookAns.intent, resultStatus: outlookAns.resultStatus, contained: false, handler: outlookAns.handler };
         if (outlookAns.meta) agentMeta = { ...(agentMeta || {}), ...outlookAns.meta };
       } else if (card) {
-        // A card still waiting for its answer stays this thread's last word; an answered one does not.
-        const waiting = ["shown", "not_on_card", "change"].includes(card.status);
-        out = { reply: card.reply, intent: waiting ? CARD_INTENT : "career_apply_card_answer", resultStatus: card.status, contained: false, handler: "cards" };
-        // SERIAL-1451: the shown card's id rides the reply, so a yes in this thread answers this card and no other.
-        if (card.status === "shown" && card.card_id) agentMeta = { card_id: card.card_id };
+        // A card still waiting for its answer stays this thread's last word (D-MS-1: also after "wait", an unclear reply
+        // or a number not on it); an answered one does not.
+        const waiting = cardWaiting(card);
+        out = { reply: card.reply, intent: waiting ? CARD_INTENT : CARD_ANSWER_INTENT, resultStatus: card.status, contained: false, handler: "cards", ...(card.parts ? { parts: card.parts } : {}) };
+        // SERIAL-1451: the waiting card's id rides the reply, so the next yes in this thread answers this card and no other.
+        if (waiting && card.card_id) agentMeta = { card_id: card.card_id };
       } else if (mock) {
         // The mock's own intent: MOCK_INTENT while its question waits, so only then is the next text an answer.
         out = { reply: mock.reply, intent: mock.intent, resultStatus: mock.status, contained: false, handler: "mock" };

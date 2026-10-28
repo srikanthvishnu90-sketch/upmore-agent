@@ -3439,6 +3439,12 @@ const CareerRouter = (() => {
     if (ctx.pastedText) input.pastedText = ctx.pastedText;
     if (ctx.linkedinConnectionsCsv) input.linkedinConnectionsCsv = ctx.linkedinConnectionsCsv;
     if (ctx.forwardedEmail) input.forwardedEmail = ctx.forwardedEmail;
+    // PRODUCT AUDIT 2026-10-28 (#7): "how do i upload my resume" got the networking contact-list intake (enrichment,
+    // deduped counts). A resume is not a contact list: say how to send it.
+    if (!Object.keys(input).length && /\b(resume|cv)\b/i.test(s(text)) && !/\b(contacts?|names|list|spreadsheet|csv|linkedin)\b/i.test(s(text))) {
+      const reply = compose({ headline: "Paste your resume text right here, or attach the PDF or Word file.", facts: ["I'll read it back to you before anything is used."], nextStep: "Want to send it now?" });
+      return { intent: "career_resume_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
     const Intake = getIntake();
     if (Object.keys(input).length && Intake && Intake.intake) {
       const r = Intake.intake(input, { knownDepartures: ctx.knownDepartures || [] });

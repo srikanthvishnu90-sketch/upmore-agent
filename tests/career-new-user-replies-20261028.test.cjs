@@ -132,6 +132,14 @@ test("(8) 'remind me tomorrow to follow up' is not a read-back of the record", a
   assert.notEqual(o.intent, "conversation_recall", String(o.reply));
 });
 
+test("(7) 'how do i upload my resume' is about the resume, not the networking contact list", async () => {
+  await setup();
+  const o = convo()("how do i upload my resume");
+  assert.equal(o.intent, "career_resume_guidance", String(o.reply));
+  assert.ok(!/enrich|deduped|every name/i.test(String(o.reply)), String(o.reply));
+  assert.equal(convo()("upload my contacts list").intent, "outreach_clarification", "a contact list keeps its intake");
+});
+
 test("(10) pause replies are plain words", async () => {
   await setup();
   const say = convo();

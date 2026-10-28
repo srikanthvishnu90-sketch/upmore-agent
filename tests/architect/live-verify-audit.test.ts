@@ -125,7 +125,7 @@ Deno.test({ name: "live verify: every audit check passes its pass-shaped seed an
     conn = await readOnlyConnection(pg);
 
     await t.step("B1 and SEC2: grants", async () => {
-      await seed(`create or replace function public.exec_vault_read(p text) returns text language sql security definer as $$ select p $$;
+      await seed(`create or replace function public.exec_vault_read(p_name text) returns text language sql security definer as $$ select p_name $$;
         grant execute on function public.exec_vault_read(text) to anon`);
       is(await AU.anonVaultRead(db()), "FAIL", "anon can call it");
       is(await AU.definerNotPublic(db()), "FAIL", "a definer function anon can call");
@@ -253,7 +253,7 @@ Deno.test({ name: "live verify: every audit check passes its pass-shaped seed an
       is(await AU.prepareKeepsUp(db()), "FAIL", "nothing to measure");
       await seed(`insert into career_apply_wanted (user_id, posting_key, url, queued_at) values ('${V}', 'key1', 'https://jobs.ashbyhq.com/a/1', now() - interval '2 hours')`);
       is(await AU.prepareKeepsUp(db()), "FAIL", "not prepared");
-      await seed(`insert into career_apply_prepared (user_id, job_id, company, url, payload, payload_hash, card_lines, created_at) values ('${V}', 'key1', 'A', 'https://jobs.ashbyhq.com/a/1', '{}', '${H("e")}', '{"1. A"}', now() - interval '110 minutes')`);
+      await seed(`set session_replication_role = replica; insert into career_apply_prepared (user_id, job_id, company, url, payload, payload_hash, card_lines, created_at) values ('${V}', 'key1', 'A', 'https://jobs.ashbyhq.com/a/1', '{}', '${H("e")}', '{"1. A"}', now() - interval '110 minutes'); set session_replication_role = origin;`); // seed state only: the resume guard (owner rule 2026-10-26) is not what this check measures
       is(await AU.prepareKeepsUp(db()), "PASS");
 
       is(await AU.cloudConfirmed(db()), "FAIL", "no cloud submit");

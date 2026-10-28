@@ -50,6 +50,7 @@ import { mockTurn, supabaseMockStore as supabaseMockStoreUncapped } from "../_sh
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
 import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_status.ts";
+import { outreachStatusTurn } from "../_shared/career_send_rail.ts"; // "where are my emails"
 import { standingTurn, supabaseStanding } from "../_shared/career_standing.ts";
 // FEATURE 14: receipts
 import { receiptTurn, supabaseReceipts } from "../_shared/career_apply_receipt_read.ts";
@@ -645,6 +646,22 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (offered?.state) (ctx as any).offerBenchmark = offered.state;
       const offerAns = offered?.answer ?? null;
       // END FEATURE 12
+      // MASS NETWORKING M1: "where are my emails" / "what's the status of my emails?": the send rail's own counts
+      // (career_send_status) and the approved emails not on the rail; read only, nothing is sent or changed.
+      const outreachStatus = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !networking && !offerAns && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await outreachStatusTurn({ message, userId: user.id, rail: { rpc: (name, args) => admin.rpc(name, args) }, approvedNotQueued: async (u) => {
+            const d = await admin.from("career_outreach_drafts").select("id").eq("user_id", u).eq("status", "approved").limit(1000);
+            if (d.error) throw new Error(`read approved drafts: ${d.error.message}`);
+            const ids = (d.data ?? []).map((r: any) => r.id);
+            const onRail = new Set<string>();
+            for (let i = 0; i < ids.length; i += 100) { // short request URLs: 100 ids per read
+              const q = await admin.from("career_send_queue").select("source_id").eq("user_id", u).eq("kind", "outreach").in("source_id", ids.slice(i, i + 100));
+              if (q.error) throw new Error(`read the send queue: ${q.error.message}`);
+              for (const r of q.data ?? []) onRail.add(r.source_id);
+            }
+            return ids.length - onRail.size;
+          } }).catch((e) => { console.error("outreach status turn:", e?.message ?? e); return null; })
+        : null;
       // FEATURE 13: staged brain release. With CAREER_BRAIN=staged, a turn that every code-first turn above passed on, and
       // that the router itself would answer only with advice or conversation, goes to the brain (career_staged.ts); every
       // action stays code's and the router still answers a model failure. Unset or CAREER_BRAIN=router, it is never
@@ -722,6 +739,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       } else if (offerAns) { // FEATURE 12: the offer turn's answer; the counter's card rides the reply's meta.
         out = { reply: offerAns.reply, intent: offerAns.intent, resultStatus: offerAns.status, contained: false, handler: "offer", parts: offerAns.parts };
         if (offerAns.card) agentMeta = { offer_card: offerAns.card };
+      } else if (outreachStatus) {
+        out = { reply: outreachStatus.reply, intent: outreachStatus.intent, resultStatus: outreachStatus.status, contained: false, handler: "outreach_status" };
       } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || staged.toBrain()) && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };

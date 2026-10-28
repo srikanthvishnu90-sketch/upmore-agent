@@ -84,7 +84,7 @@ import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
 import { disconnectGoogle, disconnectReply, isGoogleDisconnect } from "../_shared/google_disconnect.ts"; // FEATURE GV
-import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
+import { networkingTurn, siteRefusedTurn } from "../_shared/career_networking.ts"; // FEATURE 10
 import { CAREER_READ_SCOPE as PEOPLE_READ_SCOPE, supabasePeopleDeps } from "../_shared/career_people.ts"; // D-033
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
@@ -406,11 +406,19 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // M4: Outlook (Microsoft Graph) as a peer of Gmail, from any channel: "connect my outlook" / "use my work email" makes a
       // one-time link bound to this person, channel and thread; "disconnect outlook" deletes the access and what was read
       // from it and cancels its pending sends (_shared/outlook_connector.ts). Code's, before every other turn.
-      const outlookAns = !careerTask && !careerBatch && outlookAsk(message)
+      // OWNER RULE: never LinkedIn, Indeed or Handshake. An ask to apply, message or act on one of them, or a link to one,
+      // is declined plainly, naming the site, before every other turn (no card, question, apply, link read or batch sees
+      // it): nothing is queued and nothing is left waiting for a later "yes" (career_networking.ts siteRefusedTurn).
+      const siteNo = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await siteRefusedTurn({ message, userId: user.id, threadId: tid, now: Date.now(), state: ctx as unknown as Record<string, unknown>,
+            store: supabaseOutreachStore(admin), events, model: null })
+          .catch((e) => { console.error("site refusal turn:", e?.message ?? e); return null; })
+        : null;
+      const outlookAns = !siteNo && !careerTask && !careerBatch && outlookAsk(message)
         ? await outlookChatTurn({ admin, message, userId: user.id, threadId: tid, bridge: isBridgeCall, now: Date.now(), env: Deno.env })
           .catch((e) => { console.error("outlook turn:", e?.message ?? e); return null; })
         : null;
-      const card = !outlookAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const card = !outlookAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         // FEATURE 16: OWNER RULE (2026-10-26): no card without a confirmed resume on file (resumeReady).
         ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
         : null;
@@ -427,7 +435,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // "use 2" saves it.
       const draftMeter = newMeter();
       const draftCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
-      const asked = !card && !mock && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const asked = !card && !mock && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin), situation,
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
         : null;
@@ -440,7 +448,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // last word), and applying by email: "apply by email to Acme" shows the whole email drafted from confirmed facts,
       // and "yes" while it is the last word sends exactly that email once from the person's Gmail, only with
       // CAREER_EMAIL_SEND=on (WO-091c; off, the yes is told so and the card is kept). Code's, like the card.
-      const free = !card && !mock && !asked && !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
+      const free = !card && !mock && !asked && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
       const which = free ? await confirmWhichTurn({ message, userId: user.id, threadId: tid, store: supabaseConfirmStore(admin) }) : null;
       const sendToken = careerTokenFor({
         env: Deno.env, fetch, now: Date.now,
@@ -482,7 +490,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // message; sending is the scheduled run's. A store that cannot be read sends the text on to the brain, never a guess.
       const outreachStore = supabaseOutreachStore(admin), outreachMeter = newMeter();
       const outreachModel = (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { meter: outreachMeter, role: "chat" });
-      const outreachAns = !card && !mock && !asked && !which && !emailed && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const outreachAns = !card && !mock && !asked && !which && !emailed && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await outreachTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: outreachStore, events, tz: undefined,
             redraft: (d) => draftFor({ model: outreachModel, facts: ((ctx as any).profile?.facts ?? []), r: d.recipient, previous: d.body }),
             gmailConnected: () => careerGrantHas(admin, user.id, GMAIL_SEND_SCOPE), connectAsk: missingIntegration("gmail"),
@@ -498,13 +506,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (outreachMeter.calls) await recordTurnCost(admin, user.id, tid, outreachMeter);
       // WO-039: the cloud on and off, code's like the card: "apply for me in the cloud" shows the exact terms, a "yes" while
       // they are the thread's last word (and nothing was texted since) turns it on, and "cloud off" turns it off at any time.
-      const cloud = !card && !mock && !asked && !which && !emailed && !outreachAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const cloud = !card && !mock && !asked && !which && !emailed && !outreachAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cloudTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCloudOptinStore(admin) })
         : null;
       // Option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's
       // tap on the exact payload does. A "yes" while the cloud card is the thread's last word only opens that card, read
       // as the person. Never on a channel's service-role turn.
-      const cardYes = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const cardYes = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cloudCardYesTurn({ message, threadId: tid, ownSession: !isBridgeCall, store: personCloudCardStore(supabase) })
         : null;
       // SUBMIT-STEER-1130: "did my application to Acme go through?", "where are my applications": answered from
@@ -517,7 +525,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // only on an apply ask; the once-per-employer guard and the card's approval stand.
       // SERIAL-1430 (b): "set my daily pace to N" / "no daily pace": the person's own number, kept only when the column holds
       // it (career_apply_pace_set refuses the rest and says the rule); code's, like the card.
-      const paced = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const paced = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await paceTurn({ message, userId: user.id, admin })
         : null;
       // The screens read the confirmed facts and what the person stated in chat ("I work at X" lands in statedFacts).
@@ -526,7 +534,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const employerAsk = supabaseEmployerAskStore(admin);
       // SERIAL-1490/1491: "is X where you work now?" is answered by the next yes or no while that question is this thread's
       // last word: no queues exactly that posting once, yes keeps it out; the same answer again is told it stands.
-      const employerAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const employerAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await employerAnswerTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: employerAsk, wants: supabaseWantStore(admin),
             apps: () => supabaseApplications(admin)(user.id), facts: screenFacts, limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid) })
           .catch((e) => { console.error("employer answer turn:", e?.message ?? e); return null; })
@@ -540,11 +548,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const feature1 = feature1Deps({ admin, userId: user.id, env: Deno.env, fetch: (i, init) => fetch(i, init), posting: (id) => supabasePostingsDb(admin).get(id) });
       // FEATURE 1 end
       // FEATURE 17: "cancel my application to X" / "don't apply to X": withdrawn before it is sent (career_hosted_prepare.ts).
-      const cancelled = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const cancelled = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cancelTurn({ message, userId: user.id, admin }).catch((e) => { console.error("feature 17 cancel:", (e as Error)?.message ?? e); return null; })
         : null;
       // END FEATURE 17
-      const queued = !cancelled && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const queued = !cancelled && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applyTurn({
           ...feature1.apply,
           // FEATURE E2E: a pasted posting link (or a role at a registered board) read from the ATS's public API on demand
@@ -564,7 +572,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // database wrote when the application finished (career_apply_receipts), the person's own only, read by code; what was
       // sent field by field with each answer's fact, where and when, the hashes, the employer's words, and the pictures of
       // the proof attached through the channel artifact path. Nothing is sent or changed by it.
-      const receiptAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const receiptAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await receiptTurn({ message, userId: user.id, now: Date.now(), read: supabaseReceipts(admin) }).catch((e) => { console.error("receipt turn:", e?.message ?? e); return null; })
         : null;
       // END FEATURE 14
@@ -577,7 +585,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // follow-up to X": the due or drafted follow-up as one email card (outreach store, hash-bound); "yes" while it is the
       // last word sends exactly it once from their Gmail, only with CAREER_EMAIL_SEND=on and gmail.send.
       const f08Stores = supabaseFollowupStores(admin), f08Grant = careerGrant(admin, Deno.env, fetch);
-      const f08 = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const f08 = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !receiptAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await followupTurn({ message, userId: user.id, threadId: tid, now: Date.now(), deps: {
             read: supabaseStanding(admin), outreach: outreachStore, events, lastAssistant: f08Stores.lastAssistant, addressOnRecord: f08Stores.addressOnRecord,
             name: () => ((ctx as any).profile?.basics?.name ?? null), markSent: f08Stores.markSent,
@@ -587,10 +595,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
             send: countSend(turnEffects, (u: string, m: any) => gmailSender({ fetch, token: (uu: string) => sendToken(uu) }).send(u, m)), connectAsk: missingIntegration("gmail"),
           } }).catch((e) => { console.error("follow-up turn:", e?.message ?? e); return null; })
         : null;
-      const stood = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const stood = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !receiptAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await standingTurn({ message, userId: user.id, now: Date.now(), read: supabaseStanding(admin) }).catch((e) => { console.error("standing turn:", e?.message ?? e); return null; })
         : null;
-      const status = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const status = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !receiptAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
         : null;
       // FEATURE 17: a status answer also says where each posting they asked for stands before it is on the queue.
@@ -602,7 +610,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // Only addresses in the person's own contacts; the model writes only with CAREER_NETWORKING_DRAFT=on (metered).
       // Nothing is sent here: sending stays career-proactive's, behind CAREER_OUTREACH_SEND.
       const netMeter = newMeter();
-      const networking = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const networking = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !receiptAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await networkingTurn({ message, userId: user.id, threadId: tid, now: Date.now(), state: ctx as unknown as Record<string, unknown>, store: outreachStore, events,
             attachments: Array.isArray(body.attachments) ? (body.attachments as any[]).filter((a) => a && typeof a === "object").map((a) => ({ name: String(a.name ?? "contacts.csv"), mime: typeof a.mime === "string" ? a.mime : "", text: typeof a.text === "string" ? a.text : null })) : [],
             model: Deno.env.get("CAREER_NETWORKING_DRAFT") === "on" ? (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { meter: netMeter, role: "chat" }) : null,
@@ -629,7 +637,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // offer placed against DOL LCA, BLS OEWS and the pay open postings on file state (a median only from 5 or more), and
       // the counter drafted on a card that cites it. Code's, before the router; nothing is sent. The thread keeps its
       // offers in the offerBenchmark store, which the snapshot carries and an erase clears.
-      const offered = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !networking && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const offered = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !networking && !receiptAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await offerChatTurn({ message, now: Date.now(), state: (ctx as any).offerBenchmark ?? null, postings: supabasePostingsDb(admin) })
           .catch((e) => { console.error("offer turn:", e?.message ?? e); return null; })
         : null;
@@ -651,6 +659,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // END FEATURE GV
       if (googleOff) {
         out = { reply: disconnectReply(googleOff), intent: "career_google_disconnect", resultStatus: googleOff.ok ? (googleOff.had.length || googleOff.mailErased ? "completed" : "nothing") : "failed", contained: false, handler: "google_disconnect" };
+      } else if (siteNo && !mock) { // a mock in progress keeps its answer (its guards are the card's, WO-025)
+        out = { reply: siteNo.reply, intent: siteNo.intent, resultStatus: siteNo.status, contained: false, handler: "site_refused" };
       } else if (outlookAns) {
         out = { reply: outlookAns.reply, intent: outlookAns.intent, resultStatus: outlookAns.resultStatus, contained: false, handler: outlookAns.handler };
         if (outlookAns.meta) agentMeta = { ...(agentMeta || {}), ...outlookAns.meta };
@@ -774,7 +784,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // when it has a match, else the saved snapshot, ranked by fit; with CAREER_JUDGE=on the top N are judged by the
         // model on the fixed scale (metered, cached per posting and profile hash), else the fit order stands. The listed
         // postings become the thread's shortlist, so "apply to these" means them.
-        const f5Free = !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
+        const f5Free = !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
         const f5JudgeOn = Deno.env.get("CAREER_JUDGE") === "on";
         const f5Prompt = f5Free ? await judgePromptTurn({ message, userId: user.id, now: Date.now(), memory: supabaseMemoryStore(admin), judgeOn: f5JudgeOn }) : null;
         if (!f5Prompt) await ensurePool();
@@ -854,7 +864,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // FEATURE 9: account memory. After a router turn, the facts the person stated in this message get their provenance
       // event, and a standing need the router did not act on is kept on the account (_shared/career_account_memory.ts).
       // The profile and the tracker themselves ride the account record through the host seam (career_host.js).
-      if (out.handler !== "agent" && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)) {
+      if (out.handler !== "agent" && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)) {
         const mem = await accountMemoryAfterTurn({ message, userId: user.id, threadId: tid, now: Date.now(), out, ctx,
           statedBefore: statedFactsBefore(loaded.account, loaded.snapshot), events, standing: supabaseMemoryStore(admin) })
           .catch((e) => { console.error("career memory:", e?.message ?? e); return null; });

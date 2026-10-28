@@ -11,6 +11,7 @@
 import { CareerJobs } from "./router_core.career.js";
 import { type Board, type FetchFeed, type FeedPosting, type FeedRead, type Posting, type PostingsDb, searchWords } from "./career_ingest.ts";
 import { detectPortal, postingKey } from "./posting_key.ts";
+import { neverOpen } from "./career_people_sites.ts";
 
 // ------------------------------------------------------------------------------------------------ the asks
 const URL_IN = /https?:\/\/[^\s<>"'()]+/gi;
@@ -28,6 +29,10 @@ export function linkAsk(message: string): LinkAsk | null {
   return asks.length === 1 ? asks[0] : null;
 }
 export function linkOf(url: string): LinkAsk | null {
+  // Never LinkedIn, Indeed or Handshake (owner rule), on any suffix or subdomain: the chat declines those before this turn.
+  let host = "";
+  try { host = new URL(url).hostname; } catch { return null; }
+  if (neverOpen(host)) return null;
   const portal = detectPortal(url);
   if (!portal || portal.family === "workday") return null;
   const key = postingKey(url);

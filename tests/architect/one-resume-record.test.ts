@@ -361,6 +361,31 @@ Deno.test({ name: "one confirmed resume: entries, readers, change, delete, trick
       await pg.sql(`insert into public.career_apply_cloud_resumes (user_id, sha256, filename, bytes, privacy_epoch) values ('${v}', '${await shaBytes(PDF_A)}', 'x.pdf', decode('${b64(PDF_A)}', 'base64'), 0)`);
       eq(await w.record(v), null);
     });
+
+    await t.step("(8) an emailed application tried again (not_submitted -> driving) goes only with the record's file; the retry with another attachment is refused", async () => {
+      const u = await w.person();
+      const f = await w.telegramFile(u, PDF_A, "Ada Resume.pdf");
+      await w.confirm(u, { kind: "file", ref: f.ref, sha256: f.sha });
+      eq((await w.record(u)).state, "confirmed");
+      // An email application whose attachment is not the record's file. Gmail refused it (nothing went): not_submitted, as
+      // the finish records it. Written past the insert guard here, as a restore could: the retry is what is under test.
+      const other = "b".repeat(64);
+      const mail = { kind: "email", version: 1, user_id: u, job_id: "mail-1", company: "Acme", title: "Analyst", url: "https://acme.example/jobs/1",
+        to: "jobs@acme.example", subject: "Application", body: "Hello", attachment: { filename: "resume.pdf", sha256: other, size: 10, tailored: false },
+        resume_sha256: other, resume_tailored: false };
+      const h = await w.hash(mail);
+      await pg.sql(`set session_replication_role = replica;
+        insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, attempts, source)
+        values ('${u}', 'mail-1', 'Acme', 'https://acme.example/jobs/1', ${q(JSON.stringify(mail))}::jsonb, '${h}', '${h}', 'not_submitted', 1, 'email');
+        set session_replication_role = origin;
+        insert into public.career_watch_kv (user_id, key, value) values ('${u}', 'career:email-card',
+          jsonb_build_object('id', 'c1', 'state', 'shown', 'payload', ${q(JSON.stringify(mail))}::jsonb, 'payload_hash', '${h}', 'shown_at', now(), 'thread', 't'));`);
+      // A fresh yes: the reserve moves the same tracked row back to driving (career_apply_email_reserve_for), which this
+      // rule refuses for a resume that is not the record's.
+      const again = await pg.asService().rpc("career_apply_email_reserve_as", { p_user: u, p_payload: mail, p_hash: h });
+      ok(/no_resume/.test(again.error?.message ?? ""), `the retry with another attachment is refused: ${JSON.stringify(again)}`);
+      eq(await w.jobs(u), "mail-1:not_submitted", "and the row stays not sent");
+    });
   } finally {
     await pg.stop();
   }

@@ -129,7 +129,7 @@ const CareerRouter = (() => {
   // happen to sit one edit from the vocabulary (they→the, have→wave,
   // list→lift, step→stop, left→lift). The set below is the common
   // function words plus the ordinary words of this domain.
-  const COMMON_WORDS = new Set(["sample", "samples", "tracked", "tracking", "contact", "contacts", "content", "contents", "field", "fields", "held", "reason", "reasons", "format", "formats", "formatted", "honesty", "honestly", "bounces", "bounced", "bouncing", "lifts", "lifted", "tue", "mon", "wed", "thu", "fri", "sat", "sun", "approved", "approval", "rule", "rules", "round", "rounds", "score", "scores", "prep", "comes", "back", "hiring", "manager", "deeper", "versus", "earlier", "changes", "change", "changed", "adjusted", "logged", "roadmap", "brief", "briefs", "final", "versus", "actual", "actually", "assessment", "assessments", "paused", "interviews", "companies", "schools", "resumes", "packets", "trackers", "seasons", "timelines", "passwords", "scored", "counters", "closes", "funding", "funded", "they", "them", "then", "than", "this", "that", "these", "those", "there", "their", "have", "gave", "has", "had", "having", "with", "from", "your", "yours", "what", "when", "where", "which", "while", "would", "could", "should", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can", "cannot", "did", "do", "does", "doing", "done", "down", "during", "each", "few", "for", "further", "get", "got", "gets", "go", "goes", "going", "gone", "he", "her", "here", "hers", "him", "his", "how", "i", "if", "in", "into", "is", "it", "its", "itself", "just", "know", "known", "let", "like", "make", "makes", "many", "may", "me", "might", "more", "most", "must", "my", "no", "nor", "not", "now", "of", "off", "on", "once", "only", "or", "other", "our", "ours", "out", "over", "own", "per", "same", "she", "so", "some", "such", "take", "takes", "tell", "the", "through", "to", "too", "under", "until", "up", "very", "was", "way", "we", "were", "will", "you",
+  const COMMON_WORDS = new Set([/* PRODUCT AUDIT 2026-10-28: texting shorthand is never "corrected" ("thx" was read as "the") */ "thx", "ty", "tysm", "lol", "lmao", "nvm", "idk", "pls", "plz", "ur", "wat", "kk", "omg", "btw", "sample", "samples", "tracked", "tracking", "contact", "contacts", "content", "contents", "field", "fields", "held", "reason", "reasons", "format", "formats", "formatted", "honesty", "honestly", "bounces", "bounced", "bouncing", "lifts", "lifted", "tue", "mon", "wed", "thu", "fri", "sat", "sun", "approved", "approval", "rule", "rules", "round", "rounds", "score", "scores", "prep", "comes", "back", "hiring", "manager", "deeper", "versus", "earlier", "changes", "change", "changed", "adjusted", "logged", "roadmap", "brief", "briefs", "final", "versus", "actual", "actually", "assessment", "assessments", "paused", "interviews", "companies", "schools", "resumes", "packets", "trackers", "seasons", "timelines", "passwords", "scored", "counters", "closes", "funding", "funded", "they", "them", "then", "than", "this", "that", "these", "those", "there", "their", "have", "gave", "has", "had", "having", "with", "from", "your", "yours", "what", "when", "where", "which", "while", "would", "could", "should", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can", "cannot", "did", "do", "does", "doing", "done", "down", "during", "each", "few", "for", "further", "get", "got", "gets", "go", "goes", "going", "gone", "he", "her", "here", "hers", "him", "his", "how", "i", "if", "in", "into", "is", "it", "its", "itself", "just", "know", "known", "let", "like", "make", "makes", "many", "may", "me", "might", "more", "most", "must", "my", "no", "nor", "not", "now", "of", "off", "on", "once", "only", "or", "other", "our", "ours", "out", "over", "own", "per", "same", "she", "so", "some", "such", "take", "takes", "tell", "the", "through", "to", "too", "under", "until", "up", "very", "was", "way", "we", "were", "will", "you",
     "step", "steps", "list", "lists", "listed", "left", "life", "live", "lives", "half", "close", "closed", "fund", "funds", "top", "week", "weeks", "send", "sent", "sends", "work", "works", "word", "words", "world", "team", "teams", "deal", "deals", "call", "calls", "meet", "talk", "walk", "week", "year", "years", "time", "times", "day", "days", "thing", "things", "people", "person", "place", "point", "case", "cases", "part", "parts", "week", "group", "groups", "play", "plays", "area", "areas", "book", "books", "money", "story", "stories", "fact", "facts", "month", "months", "lot", "door", "doors", "side", "sides", "kind", "kinds", "head", "heads", "hand", "hands", "life", "part", "week", "child", "week", "eye", "eyes", "woman", "week", "place", "week", "work", "week", "case", "week", "point", "week", "number", "numbers", "night", "nights", "water", "room", "rooms", "mother", "father", "power", "city", "cities", "week", "story", "young", "fact", "month", "different", "lot", "right", "study", "book", "eye", "job", "jobs", "word", "though", "business", "issue", "issues", "side", "kind", "head", "far", "black", "long", "both", "little", "house", "yes", "after", "since", "long", "provide", "service", "around", "friend", "important", "father", "sit", "away", "until", "power", "hour", "game", "often", "yet", "line", "political", "end", "among", "ever", "stand", "bad", "lose", "however", "member", "pay", "law", "meet", "car", "nearly", "include", "nothing", "either", "still", "once", "least", "letter", "become", "left", "found", "role", "roles", "firm", "firms", "week", "help", "next", "early", "several", "occur", "least", "alone", "win", "wins", "won", "past", "last", "best", "rest", "test", "fast", "cost", "post", "host", "vast", "lost", "just", "must", "cast", "dust", "exit", "exam", "text", "sex", "next", "context", "firms", "forms", "farms", "first", "fish", "firm", "girl", "girls", "visit", "list", "lift", "left", "gift", "shift", "draft", "daft", "craft", "graft", "wave", "waves", "cave", "gave", "have", "save", "pave", "wage", "wake", "wale", "wane", "want", "ward", "ware", "warm", "warn", "warp", "wars", "wash", "wasp", "weak", "wear", "webs", "week", "weep", "well", "went", "were", "west", "what", "when", "stop", "step", "shop", "shot", "show", "slot", "slow", "snap", "snow", "soap", "sock", "soda", "sofa", "soft", "soil", "sold", "sole", "some", "song", "soon", "sort", "soul", "soup", "sour", "span", "spar", "spin", "spot", "star", "stay", "stem", "step", "stir", "stop", "such", "suit", "sure", "surf", "halt", "hall", "halo", "half", "halved", "salt", "malt", "balt", "talk", "tall", "call", "fall", "wall", "ball", "mall", "gall", "pall", "fall", "sell", "tell", "well", "bell", "cell", "fell", "hell", "yell", "never", "newer", "lever", "fever", "sever", "every", "even", "ever", "oven", "over", "eves", "deny", "defy", "very", "pause", "cause", "clause", "pauses", "mouse", "house", "phase", "praise", "please", "closed", "close", "closes", "closet", "cloned", "crosed", "cancel", "cancer", "cancels", "chancel", "channel", "panel", "camel", "came", "camp", "cane", "cans", "cape", "card", "care", "cart", "case", "cash", "cast", "cats", "cave"]);
   // 2026-10-23: real English words one edit away from a routing word, which detypo used to "correct" into that word:
   // "analysis" -> "analysts" sent "get into data analysis" to the banking outreach plan, "fine" -> "find" and "states" ->
@@ -2891,14 +2891,67 @@ const CareerRouter = (() => {
     // canned specifics.
     const ENTITLEMENT = /\b(unemployment|benefits?|severance|disability|workers'? comp|fmla|overtime|minimum wage)\b/;
     const hasAnchor = /\b(at|for|with) [A-Z][a-z]/.test(raw) || /\b(january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|next week|next month|this week|this month)\b/.test(t);
-    const facts = [];
-    if (ENTITLEMENT.test(t)) facts.push("On that topic the specifics depend on where you live — deadlines and amounts are set by your state, and your state agency for it is the source for them, not me.");
-    facts.push(CAPABILITY_LINE);
-    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: compose({
-      headline: "I did not catch what to do with that one.",
-      facts,
-      nextStep: hasAnchor ? "Do you want the general picture, or help acting on your specific case?" : "Which role or company is it about, and what date does it turn on?",
-    }) };
+    if (ENTITLEMENT.test(t)) {
+      return { intent: "career_catchall", resultStatus: "awaiting_user", reply: compose({
+        headline: "On that one the specifics depend on where you live — your state agency sets the deadlines and amounts, not me.",
+        facts: [],
+        nextStep: hasAnchor ? "Do you want the general picture, or help acting on your specific case?" : "Want help with the job-search side of it?",
+      }) };
+    }
+    // PRODUCT AUDIT 2026-10-28 (#1): the catch-all used to open with "I did not catch what to do with that one.", dump
+    // every capability and ask "what date does it turn on?" to a "thx" or a "yes". It now answers what it can from the
+    // kind of message and the person's own record (is a resume confirmed?), in a few short lines, with one question.
+    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: catchAllReply(raw, ctx) };
+  }
+
+  // PRODUCT AUDIT 2026-10-28: whether the person has confirmed resume entries (education, work, projects, skills) on
+  // their profile; a stated goal or preference alone is not a resume.
+  function resumeOnRecord(ctx) {
+    try {
+      const facts = ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(ctx && ctx.profile) : [];
+      return facts.some((f) => f && ["education", "experience", "project", "leadership", "skill"].includes(f.kind));
+    } catch { return false; }
+  }
+  // PRODUCT AUDIT 2026-10-28 (#1): the catch-all's reply. Nothing here claims an action or a fact: it reads only whether
+  // the person has confirmed resume facts on record, and asks one question.
+  function catchAllReply(raw, ctx) {
+    const t = lc(raw).replace(/[!?.]+$/, "").trim();
+    const hasResume = resumeOnRecord(ctx);
+    const next = hasResume
+      ? "Want me to find roles that fit your resume?"
+      : "Want to start by sending me your resume? Paste the text here or attach the file.";
+    // The composer keeps one sentence per headline and per fact: the first sentence leads, the rest are facts.
+    const say = (text, nextStep) => { const [h, ...rest] = String(text).split(/(?<=[.!?])\s+/); return compose({ headline: h, facts: rest, nextStep }); };
+    if (/^(thx|thanks|thank you|thank u|ty|tysm|cool|nice|great|awesome|perfect|lol|lmao|haha|ok|okay|k|kk|got it|sounds good|alright|nvm|never ?mind|nevermind)\b/.test(t)) {
+      return say("Anytime.", next);
+    }
+    if (/^(yes|yeah|yep|yup|sure|no|nope|nah|idk|i don'?t know|not sure|maybe)\b/.test(t)) {
+      return say("No problem — there's nothing waiting on your answer right now.", next);
+    }
+    if (/\b(cost|price|pricing|free|pay for|subscription|charge|billing)\b/.test(t)) {
+      return say("I can't see pricing or billing from this chat, so I won't guess at it.", next);
+    }
+    if (/\b(don'?t|do not|dont) have (a |an )?(resume|cv)\b|\bno (resume|cv)\b/.test(t)) {
+      return say("That's fine — we can build one together.", "What was your most recent job or school, and what kind of role do you want next?");
+    }
+    if (/\b(upload|send|attach|add|share)\b.*\b(resume|cv)\b|^(resume|cv)$/.test(t)) {
+      return say("Paste your resume text right here, or attach the PDF or Word file. I'll read it back to you before anything is used.", "Want to send it now?");
+    }
+    if (/\b(cancel|undo|that was wrong|that'?s wrong|wrong|mistake|stop that)\b/.test(t)) {
+      return say("Okay — nothing goes out without your yes.", "What should I change or undo?");
+    }
+    if (/\b(status|replies|reply|heard back|hear back|what happened|update)\b/.test(t)) {
+      return say("I can check on that.", "Which application — the company name is enough?");
+    }
+    if (/\b(network|networking|reach out|outreach|recruiter|referral)\b/.test(t)) {
+      return say("I can help you reach people at the companies you want.", "Which company should we start with?");
+    }
+    if (/^(jobs?|apply|applying|roles?|work|positions?|find jobs?|search)$/.test(t)) {
+      return say(hasResume ? "Sure." : "Sure — I'll search as soon as I know what you're after.", "What role, and which city or remote?");
+    }
+    return say("I'm not sure which part of your search that's about — I find roles, track your applications and prep you for interviews.", hasResume
+      ? "Which of those should we do?"
+      : "Which of those should we do, or do you want to send me your resume first?");
   }
 
   function handlePendingAffirmation(text, ctx) {
@@ -10890,7 +10943,7 @@ const CareerRouter = (() => {
     const t = lc(raw).replace(/[’]/g, "'");
     if (!t) return null;
     // Identity and capability: who or what this is, what it does. The greeting's own answer.
-    if (/^(?:(?:hi|hey|hello|yo|ok|okay|so|um)[\s,!.]+)*(?:who (?:are you|is this)|what (?:exactly )?(?:are you|is this|is trainee)|what(?:'s| is) this(?: thing| app)?|what do you do|what can you (?:do|help with)(?: for me)?|how does (?:this|it) work|what(?:'s| is) up|whats up|wassup|sup)[\s?!.]*$/.test(t)) return greetingResult();
+    if (/^(?:(?:hi|hey|hello|yo|ok|okay|so|um)[\s,!.]+)*(?:who (?:are you|is this)|what (?:exactly )?(?:are you|is this|is trainee)|what(?:'s| is) this(?: thing| app)?|what do you do|what (?:can|do) (?:you|u|ya) (?:do|help with)(?: for me)?|wh?at can (?:you|u) do|how does (?:this|it) work|what(?:'s| is) up|whats up|wassup|sup)[\s?!.]*$/.test(t)) return greetingResult(ctx);
     // The approval rule: nothing goes out on the product's own initiative.
     if ((/\b(send|sends|sent|submit|submits|submitted|apply|applies|applied|email|emails|emailed|message|messages|messaged|reach out|contact|post)\b/.test(t)
         && /\bwithout (?:asking|checking|telling|me\b|my (?:permission|approval|ok|okay|consent|say[- ]so|yes|go[- ]ahead))|\bon (?:your|its) own\b|\bautomatically\b|\bbehind my back\b|\bbefore i (?:say yes|approve|agree|ok|okay|confirm|see)\b|\b(?:unless|until) i (?:approve|say|confirm|ok|okay|agree)\b/.test(t))
@@ -10951,7 +11004,9 @@ const CareerRouter = (() => {
     }
     // A role search without the find verb: "any X roles in Y?", "show me remote X internships", "X jobs near Y".
     if (FAM_ROLE_NOUN.test(t) && !/\b(?:applied|my applications?)\b/.test(t)
-        && (/\b(?:any|show me|list|got any|are there|see|browse|look(?:ing)? (?:at|for))\b/.test(t) || /\b(?:in|near|around)\s+[A-Z][a-z]/.test(raw) || /\bremote\b/.test(t))) {
+        && (/\b(?:any|show me|list|got any|are there|see|browse|look(?:ing)? (?:at|for))\b/.test(t) || /\b(?:in|near|around)\s+[A-Z][a-z]/.test(raw) || /\bremote\b/.test(t)
+          // PRODUCT AUDIT 2026-10-28 (#3): texted in lowercase ("data analyst jobs in chicago") is the same search.
+          || /\b(?:jobs?|roles?|positions?|openings?|internships?)\s+(?:in|near|around)\s+[a-z]{3,}/.test(t))) {
       if (/\binternships?\b/.test(t)) return handleInternship(text, ctx);
       return handleDiscovery(text, ctx, {});
     }
@@ -10977,18 +11032,20 @@ const CareerRouter = (() => {
   function handleGreeting(text, ctx) {
     const raw = s(text).trim();
     const isStart = /^\/start(\s+\S+)?[.!]?$/i.test(raw);
-    const isGreeting = /^(hi|hello|hey|hiya|howdy|greetings|good\s+(morning|afternoon|evening))(\s+there)?[\s!.]*$/i.test(raw);
+    const isGreeting = /^(hi|hello|hey|hiya|howdy|yo|sup|heya|hii+|hey+|greetings|good\s+(morning|afternoon|evening))(\s+(there|trainee))?[\s!.]*$/i.test(raw);
     if (!isStart && !isGreeting) return null;
-    return greetingResult();
+    return greetingResult(ctx);
   }
-  function greetingResult() {
+  // PRODUCT AUDIT 2026-10-28 (#2): the greeting was 477 characters (two texts on SMS) and the same whatever the person
+  // had already done. Now: who Trainee is in one line, and the one next step that fits their record.
+  function greetingResult(ctx) {
+    const hasResume = resumeOnRecord(ctx);
     const reply = compose({
       headline: "Hi — I'm Trainee, your career agent.",
-      facts: [
-        "I find roles that fit you, tailor your resume to each posting, prep you for interviews, and keep track of every application — all right here in this chat.",
-        "What you tell me about your search stays on your record — your target firms, your contacts, your deadlines — and you can ask me what I have on record any time, and correct anything that is wrong.",
-      ],
-      nextStep: "Tell me the role and field you're after — or just say \"find jobs\" — and I'll start there.",
+      facts: ["I find jobs that fit you, get your applications ready for your OK, and prep you for interviews, all by text."],
+      nextStep: hasResume
+        ? "What role should I look for — and where, or remote?"
+        : "To start, paste your resume or attach the file — or just tell me the role you want.",
     });
     return { intent: "career_greeting", reply, resultStatus: "awaiting_user", sends: 0 };
   }

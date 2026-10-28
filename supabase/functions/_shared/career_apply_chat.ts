@@ -225,7 +225,7 @@ export async function paceTurn(o: { message: string; userId: string; admin: { rp
     if (/invalid pace/.test(msg)) return { reply: `${ask.pace} is not a pace I can keep: ${PACE_RULE}. Your pace is unchanged.`, status: "refused", intent };
     return { reply: "I couldn't save that just now, so your pace is unchanged. Say it again in a minute.", status: "unreadable", intent };
   }
-  if (ask.pace === null) return { reply: "Done: no daily pace. I queue what you ask for, one application per employer in 30 days, and each goes only when you approve it on the card that shows it exactly.", status: "none", intent };
+  if (ask.pace === null) return { reply: "Done: no daily pace. I queue what you ask for, and each goes only when you approve it on the card that shows it exactly.", status: "none", intent };
   const n = Number(r?.data?.pace ?? ask.pace);
   return { reply: `Done: your daily pace is ${n} a day. I won't queue more than that in a day; say "no daily pace" to lift it, or a new number to change it.`, status: "set", intent };
 }
@@ -235,7 +235,7 @@ export async function paceTurn(o: { message: string; userId: string; admin: { rp
 // configured (prepareRunsNow), Trainee prepares it; without it, only the Trainee extension on the person's computer does.
 const NOTHING_SENT = (company: string, prepares = true) => prepares
   ? `Nothing is sent and nothing is filled yet: I prepare it before you ask, from the facts you confirmed and a resume tailored to it; if the form asks something you haven't told me, I'll ask you here. The exact application goes to ${company} only when you approve it on the card that shows it exactly.`
-  : `Nothing is sent and nothing is filled yet: it waits in your queue until the Trainee extension prepares it on your computer. The exact application goes to ${company} only when you approve it on the card that shows it exactly.`;
+  : `Nothing is sent and nothing is filled yet: it's in your queue to be prepared. The exact application goes to ${company} only when you approve it on the card that shows it exactly.`;
 
 export async function applyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | null> {
   // FEATURE E2E: a pasted posting link, or a role named by the company's possessive, read from the ATS on demand
@@ -337,7 +337,7 @@ function prepareRunsNow(o: { prepareOn?: () => boolean }): boolean {
 }
 const NOTHING_SENT_MANY = (prepares = true) => (prepares
   ? "Nothing is sent and nothing is filled yet: I prepare each one before you ask, from the facts you confirmed and a resume tailored to it; if a form asks something you haven't told me, I'll ask you here."
-  : "Nothing is sent and nothing is filled yet: they wait in your queue until the Trainee extension prepares each one on your computer.") +
+  : "Nothing is sent and nothing is filled yet: they're in your queue to be prepared.") +
   " Each application goes to its employer only when you approve it on the card that shows it exactly; once they're prepared, \"show my applications\" shows them all on one card, and one yes to that card approves exactly what it shows.";
 const nameOf = (p: { title?: string | null; company?: string | null }) =>
   !p.company && /^#\d+$/.test(String(p.title ?? "")) ? String(p.title) : `${p.title || "the posting"} at ${p.company || "an employer not on record"}`;

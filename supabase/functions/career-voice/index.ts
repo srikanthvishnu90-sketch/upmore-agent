@@ -11,6 +11,7 @@ import { corsFor } from "../agent-chat/_shared/chat_cors.ts";
 import { deliverDue } from "../_shared/channel.ts";
 import { supabaseChannelStore } from "../_shared/channel_store.ts";
 import { loopSend } from "../_shared/loopmessage.ts";
+import { rpcBudgetGate } from "../_shared/model_budget.ts";
 import { handleVoice, openaiMint, supabaseVoiceSessions } from "../_shared/career_voice.ts";
 import { DEFAULT_DAILY_CONTACTS } from "../trainee-deliver/handler.ts";
 
@@ -29,6 +30,7 @@ serve((req) => {
     cors,
     sessions: supabaseVoiceSessions(admin),
     mint: (apiKey) => openaiMint(apiKey),
+    budget: rpcBudgetGate((name, args) => admin.rpc(name, args)),
     // The debrief goes out now when the texting channel is wired; otherwise the scheduled delivery run sends it (each
     // minute). Either way the outbox keeps it once, under mock:<session id>.
     deliver: loopKey

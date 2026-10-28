@@ -54,7 +54,7 @@ export async function startPg(opts: { includeBridge?: boolean } = {}): Promise<P
   if (prov.code !== 0) throw Error(`provision failed: ${prov.stderr.slice(-800)}`);
   const base = ["-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-h", work, "-p", String(port), "-U", "postgres", "-d", "postgres"];
   const sql = async (text: string) => {
-    const r = await run("psql", base, text);
+    const r = await run(`${bin}/psql`, base, text); // the binary itself: the Debian psql is a Perl wrapper, slow to start
     if (r.code !== 0) throw Error(r.stderr.trim());
     return r.stdout.trim();
   };

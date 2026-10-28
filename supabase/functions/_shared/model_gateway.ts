@@ -9,7 +9,8 @@
 // only and never spends Anthropic API credits by accident). A missing OPENAI_API_KEY stays OpenAI and fails as
 // "not configured" with the honest outage reply; it never falls back to Anthropic. Model: OPENAI_MODEL (default gpt-5-nano) or ANTHROPIC_MODEL (default claude-haiku-4-5-20251001); the router
 // may use OPENAI_ROUTER_MODEL / ANTHROPIC_ROUTER_MODEL. Keys are read from the environment only and never logged.
-import { ModelUnavailableError, providerError, recordModelUsage, reserveModelCall } from "./model_calls.ts";
+import { ModelBudgetBlockedError, ModelUnavailableError, providerError, recordModelUsage, reserveModelCall } from "./model_calls.ts";
+import { type BudgetGate, budgetBlockOfType, budgetPausedByEnv, budgetReply, denoEnvGet, REFUSED_BEFORE_GENERATION, resolveBudgetGate, usageProven, worstCaseMicros } from "./model_budget.ts";
 
 export type Provider = "openai" | "anthropic";
 export type ModelRole = "chat" | "router" | "planner" | "probe";
@@ -192,30 +193,67 @@ export function adminHealthSink(admin: any): HealthSink {
   return async (e) => { try { await admin.from("agent_provider_events").insert(e); } catch (_) { /* health logging never breaks a reply */ } };
 }
 
-export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeoutMs?: number; meter?: TurnMeter; health?: HealthSink }
+export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeoutMs?: number; meter?: TurnMeter; health?: HealthSink; budget?: BudgetGate }
 // The one call. Returns an Anthropic-shaped message; throws ModelUnavailableError (provider status, type and message,
 // never the key) when the provider refuses, fails or is not configured.
+//
+// 2026-10-28, the global daily budget (_shared/model_budget.ts, migration 20261028070000): this function is the ONLY door to a
+// paid model, and nothing is sent before the worst-case cost of the request has been reserved in the day's row. Settled to the
+// proven cost after; kept at the full worst case when anything about the call is unproven; given back only for a proven no-call.
 export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions = {}): Promise<any> {
   const role = o.role || "chat", request = o.request || fetch, started = Date.now();
   const report = async (ok: boolean, status: number | null, type: string | null, detail: string | null) => { if (o.health) await o.health({ provider: cfg.provider, model: cfg.model, role, ok, status, error_type: type, detail, latency_ms: Date.now() - started }); };
   if (!cfg.apiKey) { const e = new ModelUnavailableError(0, "not_configured", `${providerName(cfg)} API key is not configured`); meterAdd(o.meter, cfg, null, true); await report(false, null, e.type, e.detail); throw e; }
-  let res: Response;
-  try {
-    res = cfg.provider === "openai"
-      ? await request(OPENAI_URL, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify(toOpenAI(payload, cfg)), signal: AbortSignal.timeout(o.timeoutMs || 30000) })
-      : await request(ANTHROPIC_URL, { method: "POST", headers: { "content-type": "application/json", "x-api-key": cfg.apiKey, "anthropic-version": "2023-06-01" }, body: JSON.stringify(Object.assign({}, payload, { model: cfg.model })), signal: AbortSignal.timeout(o.timeoutMs || 30000) });
-  } catch (err) {
-    const e = new ModelUnavailableError(0, err && (err as any).name === "TimeoutError" ? "timeout" : "network", `${providerName(cfg)}: ${err instanceof Error ? err.message : String(err)}`);
-    meterAdd(o.meter, cfg, null, true); await report(false, null, e.type, e.detail); throw e;
+  // ---- reserve (nothing is sent until this succeeds) ----
+  const env = denoEnvGet();
+  if (budgetPausedByEnv(env || (() => undefined))) throw new ModelBudgetBlockedError("paused", "MODEL_BUDGET_PAUSED is on");
+  const gate = resolveBudgetGate(o.budget, env);
+  if (!gate) throw new ModelBudgetBlockedError("unavailable", "the budget service is configured without a key");
+  const sendBody = cfg.provider === "openai" ? toOpenAI(payload, cfg) : Object.assign({}, payload, { model: cfg.model });
+  const bodyText = JSON.stringify(sendBody);
+  const worst = worstCaseMicros(cfg.model, PRICES, {
+    bytes: new TextEncoder().encode(bodyText).length,
+    images: JSON.stringify(payload).split('"type":"image').length - 1,
+    maxOutputTokens: Number(cfg.provider === "openai" ? sendBody.max_completion_tokens : sendBody.max_tokens ?? 1024) || 1024,
+  });
+  const got = await gate.reserve(worst, { model: cfg.model, role });
+  if (!got.ok) {
+    console.error(`[model] budget ${got.reason}${got.detail ? `: ${got.detail}` : ""}`);
+    throw new ModelBudgetBlockedError(got.reason, got.reason === "limit" ? "today's global model budget is used up" : got.reason === "paused" ? "the model budget is switched off" : `the model budget could not be checked${got.detail ? `: ${got.detail}` : ""}`);
   }
-  if (!res.ok) { const e = await providerError(res); meterAdd(o.meter, cfg, null, true); await report(false, e.status, e.type, e.detail); throw e; }
-  const raw = await res.text();
-  if (raw.length > 200000) { const e = new ModelUnavailableError(502, "too_large", `${providerName(cfg)} response is too large`); meterAdd(o.meter, cfg, null, true); await report(false, 502, e.type, e.detail); throw e; }
-  let out: any;
-  try { const body = JSON.parse(raw); out = cfg.provider === "openai" ? fromOpenAI(body) : body; }
-  catch (err) { const e = err instanceof ModelUnavailableError ? err : new ModelUnavailableError(502, "bad_response", `${providerName(cfg)} returned unreadable JSON`); meterAdd(o.meter, cfg, null, true); await report(false, e.status, e.type, e.detail); throw e; }
-  meterAdd(o.meter, cfg, out.usage); await report(true, res.status, null, null);
-  return out;
+  // Until proven otherwise the whole worst case is spent. Only the branches below that prove more change this.
+  let close: { kind: "keep" } | { kind: "actual"; micros: number } | { kind: "release" } = { kind: "keep" };
+  try {
+    let res: Response;
+    try {
+      res = cfg.provider === "openai"
+        ? await request(OPENAI_URL, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${cfg.apiKey}` }, body: bodyText, signal: AbortSignal.timeout(o.timeoutMs || 30000) })
+        : await request(ANTHROPIC_URL, { method: "POST", headers: { "content-type": "application/json", "x-api-key": cfg.apiKey, "anthropic-version": "2023-06-01" }, body: bodyText, signal: AbortSignal.timeout(o.timeoutMs || 30000) });
+    } catch (err) {
+      const e = new ModelUnavailableError(0, err && (err as any).name === "TimeoutError" ? "timeout" : "network", `${providerName(cfg)}: ${err instanceof Error ? err.message : String(err)}`);
+      meterAdd(o.meter, cfg, null, true); await report(false, null, e.type, e.detail); throw e;
+    }
+    if (!res.ok) {
+      if (REFUSED_BEFORE_GENERATION.has(res.status)) close = { kind: "release" };
+      const e = await providerError(res); meterAdd(o.meter, cfg, null, true); await report(false, e.status, e.type, e.detail); throw e;
+    }
+    const raw = await res.text();
+    if (raw.length > 200000) { const e = new ModelUnavailableError(502, "too_large", `${providerName(cfg)} response is too large`); meterAdd(o.meter, cfg, null, true); await report(false, 502, e.type, e.detail); throw e; }
+    let out: any, parsed: any;
+    try { parsed = JSON.parse(raw); out = cfg.provider === "openai" ? fromOpenAI(parsed) : parsed; }
+    catch (err) { const e = err instanceof ModelUnavailableError ? err : new ModelUnavailableError(502, "bad_response", `${providerName(cfg)} returned unreadable JSON`); meterAdd(o.meter, cfg, null, true); await report(false, e.status, e.type, e.detail); throw e; }
+    // Settled to the actual cost only when the provider's own usage block is real (fromOpenAI turns a missing one into zeros)
+    // and the model has a price; otherwise the worst case stays spent.
+    const actual = usageProven(cfg.provider, parsed) ? costMicros(cfg.model, out.usage) : null;
+    if (actual !== null && Number.isFinite(actual)) close = { kind: "actual", micros: Math.max(1, actual) };
+    meterAdd(o.meter, cfg, out.usage); await report(true, res.status, null, null);
+    return out;
+  } finally {
+    try {
+      if (close.kind === "release") await gate.release(got.id);
+      else await gate.settle(got.id, close.kind === "actual" ? close.micros : null);
+    } catch (e) { console.error("[model] budget settle failed; the reservation stays open and expires to its worst case:", e instanceof Error ? e.message : e); }
+  }
 }
 
 // What a person reads when the provider is down: the same sentence everywhere, never planner wording, never silence.
@@ -245,6 +283,7 @@ export async function chatReply(cfg: ModelConfig, payload: any, o: CallOptions =
   catch (e) {
     if (!(e instanceof ModelUnavailableError)) throw e;
     console.error(`[model] chat ${e.summary()}`);
-    return { ok: false, reply: OUTAGE_REPLY, model_error: e.summary() };
+    const block = budgetBlockOfType(e.type);
+    return { ok: false, reply: block ? budgetReply(block) : OUTAGE_REPLY, model_error: e.summary() };
   }
 }

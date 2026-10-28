@@ -2654,7 +2654,6 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       confirmation_id: null
     };
   }
-  var COMPANY_COOLDOWN_DAYS = 30;
   var DAY = 864e5;
   var COUNTED_STATES = /* @__PURE__ */ new Set([
     "queued",
@@ -2694,6 +2693,19 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const st = paceState(l?.daily);
     return st.state === "set" ? st.pace : st.state === "none" ? Infinity : NaN;
   };
+  function postingKey(url) {
+    const m = /^https?:\/\/([^/?#@]+)([^?#]*)(\?[^#]*)?/.exec(String(url ?? "").trim().toLowerCase());
+    if (!m) return null;
+    const h = m[1].replace(/^www\./, "").replace(/:(80|443)$/, "");
+    let p = (m[2] ?? "").replace(/\/+$/, "");
+    if (/^\/[^/]+\/.+\/(apply|application)$/.test(p)) p = p.replace(/\/(apply|application)$/, "").replace(/\/+$/, "");
+    if (/(^|\.)greenhouse\.io$/.test(h)) {
+      const jid = /[?&]gh_jid=([0-9]+)/.exec(m[3] ?? "")?.[1] ?? /\/jobs\/([0-9]+)$/.exec(p)?.[1];
+      if (jid) return "greenhouse.io/jobs/" + jid;
+    }
+    const q = (m[3] ?? "").slice(1).split("&").filter((x) => x !== "" && !/^(utm_[a-z_]*|gh_src|src|source|ref|referrer|lever-[a-z-]*)(=|$)/.test(x)).sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join("&");
+    return h + p + (q ? "?" + q : "");
+  }
   function admitApplication(log, a, now, limits) {
     if (a.approval_hash !== void 0 || a.payload_hash !== void 0) {
       if (!a.approval_hash || a.approval_hash !== a.payload_hash) return {
@@ -2702,14 +2714,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       };
     }
     const mine = log.filter((x) => x.user_id === a.user_id && COUNTED.has(x.state));
-    if (mine.some((x) => x.job_id === a.job_id)) return {
+    const key = postingKey(a.url);
+    if (mine.some((x) => x.job_id === a.job_id || key !== null && postingKey(x.url) === key)) return {
       ok: false,
       reason: "duplicate_job"
-    };
-    const co = normCompany(a.company);
-    if (co && mine.some((x) => normCompany(x.company) === co && now - x.at < COMPANY_COOLDOWN_DAYS * DAY)) return {
-      ok: false,
-      reason: "company_cooldown"
     };
     if (limits?.unreadable !== void 0 || Number.isNaN(dailyLimit(limits))) return {
       ok: false,
@@ -3596,7 +3604,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const admit = admitApplication(log, {
         user_id: o.userId,
         job_id: p.job_id,
-        company: p.company
+        company: p.company,
+        url: p.url
       }, o.now, o.limits);
       if (!admit.ok) {
         skipped.push({
@@ -3731,6 +3740,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         user_id: o.userId,
         job_id: p.job_id,
         company: p.company,
+        url: p.url,
         at: o.now,
         state: "planned"
       });
@@ -4063,7 +4073,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     ownAnswerOnly: () => ownAnswerOnly,
     payloadText: () => payloadText,
     planForm: () => planForm,
-    postingKey: () => postingKey,
+    postingKey: () => postingKey2,
     postingLinks: () => postingLinks,
     quarantinedFact: () => quarantinedFact2,
     questionsForTrainee: () => questionsForTrainee,
@@ -4277,7 +4287,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
     return null;
   }
-  function postingKey(href) {
+  function postingKey2(href) {
     const p = detectPortal(href);
     if (!p) return null;
     const u = new URL(href), seg = u.pathname.split("/").filter(Boolean);
@@ -4922,7 +4932,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const seen = /* @__PURE__ */ new Set(), out = [];
     for (const m of String(text || "").matchAll(/https:\/\/[^\s<>"')]+/g)) {
       const url = m[0].replace(/[.,;]+$/, "");
-      const key = postingKey(url);
+      const key = postingKey2(url);
       if (!key || seen.has(key)) continue;
       seen.add(key);
       out.push(applyUrl(url));

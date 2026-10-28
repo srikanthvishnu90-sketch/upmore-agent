@@ -72,6 +72,8 @@ export function knownFirm(raw: unknown): string | null {
   return null;
 }
 export const sameFirm = (a: unknown, b: unknown) => !!plain(a) && plain(normalizeFirm(a)) === plain(normalizeFirm(b));
+// The key sameFirm compares, for an indexed lookup: sameFirm(a, b) exactly when firmKey(a) !== "" && firmKey(a) === firmKey(b).
+export const firmKey = (a: unknown) => (plain(a) ? plain(normalizeFirm(a)) : "");
 
 // ------------------------------------------------------------------------------------------------ CSV import
 const COLUMNS: Record<string, string[]> = {

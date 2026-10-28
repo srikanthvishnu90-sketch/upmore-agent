@@ -39,7 +39,7 @@ export function wantsFrom(picks: Pick[], now: number): { ok: Want[]; refused: Re
     const url = formUrlFor(String(p?.job_id ?? "")) ?? String(p?.url ?? "").trim();
     if (NEVER.test(host(url))) { refused.push(refusal({ ...p, url }, "LinkedIn and Indeed are never automated; the person applies there themselves")); continue; }
     const key = detectPortal(url) ? postingKey(url) : null;
-    if (!key) { refused.push(refusal({ ...p, url }, "not a Greenhouse, Lever, Ashby or Workday posting link the extension can open")); continue; }
+    if (!key) { refused.push(refusal({ ...p, url }, "not a Greenhouse, Lever, Ashby or Workday posting link I can open yet")); continue; }
     if (seen.has(key)) continue;
     seen.add(key);
     ok.push({ posting_key: key, url: applyUrl(url), company: String(p.company ?? "").slice(0, 200), title: String(p.title ?? "").slice(0, 200), queued_at: new Date(now).toISOString() });
@@ -102,7 +102,7 @@ export async function resolvePicks(picks: Pick[], get?: ((jobId: string) => Prom
     const id = String(p?.job_id ?? "").trim() || (p?.url ? postingKey(String(p.url)) ?? "" : "");
     const rec = id ? await get(id) : null;
     if (!rec) {
-      refused.push(refusal(p, "not found among the postings on file (it may have closed, or was never listed); nothing was queued for it. Search again, or the person can paste its link into the Trainee extension's queue themselves"));
+      refused.push(refusal(p, "not found among the postings on file (it may have closed, or was never listed); nothing was queued for it. Search again, or the person can paste the posting's link in chat"));
       continue;
     }
     const real: Pick = { job_id: String(rec.job_id ?? id), url: String(rec.url || p.url || ""), company: String(rec.company ?? ""), title: String(rec.title ?? ""), location: String(rec.location ?? "") };

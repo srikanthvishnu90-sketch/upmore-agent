@@ -715,14 +715,15 @@ else
   for v in "${CHANNEL_HIDDEN[@]}" "${CHANNEL_PLAIN[@]}"; do
     if [[ -n "${!v:-}" ]]; then add "$v" "${!v}" "***"; else echo "  kept: $v (not given; what is set stays, and with nothing set that channel is NOT_WIRED)"; fi
   done
+  # Networking follow-up reminders (architect ruling R2, 2026-10-27): on for launch, so the chat's promise of a texted
+  # reminder is kept. career-proactive queues each due one once to career_outbox; trainee-deliver texts it. A person with
+  # no texting channel is told plainly that no message comes (career_outreach_track.ts reminderWords). Before the brain
+  # lines: CAREER_BRAIN stays the env file's last name, as F13-10 reads it.
+  add CAREER_OUTREACH_FOLLOWUPS on on
   # The router answers unless the owner asks for the agent brain on this run (D-008); the environment never decides it.
   if [[ "$BRAIN" == agent ]]; then add CAREER_BRAIN agent agent; fi
   # FEATURE 13: the staged release (question and advice turns to the brain, every action to code) only with --brain staged.
   if [[ "$BRAIN" == staged ]]; then add CAREER_BRAIN staged staged; fi
-  # Networking follow-up reminders (architect ruling R2, 2026-10-27): on for launch, so the chat's promise of a texted
-  # reminder is kept. career-proactive queues each due one once to career_outbox; trainee-deliver texts it. A person with
-  # no texting channel is told plainly that no message comes (career_outreach_track.ts reminderWords).
-  add CAREER_OUTREACH_FOLLOWUPS on on
   if [[ -n "$DRY" ]]; then echo "DRY: supabase secrets set --project-ref $REF --env-file <0600 temp file: ${NAMES[*]}>"
   else
     ENVF="$(umask 077; mktemp "${TMPDIR:-/tmp}/trainee-secrets.XXXXXX")"; chmod 600 "$ENVF"

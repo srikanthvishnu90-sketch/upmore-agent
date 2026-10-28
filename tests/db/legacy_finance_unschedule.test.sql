@@ -28,11 +28,11 @@ insert into cron.job (jobname, schedule, command) values
 -- 2. the finance jobs go, everything else stays
 \i :unsched
 do $$
-declare left text;
+declare remaining text;
 begin
-  select string_agg(jobname, ',' order by jobname) into left from cron.job;
-  assert left = 'career-ingest,career-proactive,lookalike,trainee-deliver',
-    format('only the finance jobs are unscheduled, got: %s', left);
+  select string_agg(jobname, ',' order by jobname) into remaining from cron.job;
+  assert remaining = 'career-ingest,career-proactive,lookalike,trainee-deliver',
+    format('only the finance jobs are unscheduled, got: %s', remaining);
   raise notice 'ok - upmore-proactive, plaid-sync-6h, cancel-watcher-daily and a renamed copy are unscheduled';
   raise notice 'ok - career-ingest, career-proactive, trainee-deliver and a look-alike name are kept';
 end $$;

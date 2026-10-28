@@ -16,7 +16,7 @@ function thread(facts: any[]) {
   const wants = memoryWantStore(), messages: { role: string; thread_id: string; meta?: Record<string, any> | null }[] = [];
   const store = memoryEmployerAskStore(messages);
   const search = async (words: string[]) => POSTINGS.filter((p) => words.every((w) => `${p.company} ${p.title}`.toLowerCase().includes(w.toLowerCase())));
-  const base = { userId: "u1", now: NOW, wants, apps: async () => [], facts, employerAnswers: () => store.answers("t1") };
+  const base = { userId: "u1", now: NOW, wants, apps: async () => [], facts: [...facts, ...[{ key: "location", value: "Chicago, IL" }, { key: "relocation", value: "yes" }]], employerAnswers: () => store.answers("t1") };
   const say = async (message: string, shortlist: any[] | null = null) => {
     const a = await employerAnswerTurn({ ...base, message, threadId: "t1", store });
     if (a) {

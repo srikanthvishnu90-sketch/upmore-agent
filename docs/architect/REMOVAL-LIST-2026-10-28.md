@@ -135,7 +135,23 @@ Every guard that fails open on one path is a bug on that path.
 
 **Closed as superseded, each with an evidence comment:** #144 (WO-094 on trunk does the same: `workers/career-browser/production-sources.cjs:36-38, 97`) and #147 (the candidate it repaired is merged: 6b6551cf is an ancestor of trunk). #237 was also closed. No further PR is to be closed until a semantic check shows trunk covers it.
 
-**Everything else stays open.** Nothing below is superseded until a semantic check (not a file-hash or grep check) shows trunk covers it. Notes from the first pass:
+**Semantic check (2026-10-28):** I took each stale PR's added or changed test files at its head, put them on current `trunk` (22fb03dc9) and ran them (`node --test` for `.cjs`, `deno test --no-check` for `.ts`, `CI=true`, this machine). A PR is superseded only if its tests pass there. **None did, so no further PR is closed.**
+
+| PR | Result on trunk | Reading |
+|---|---|---|
+| #99 | `career-extension-browser` 0 pass / 55 fail | env (no jsdom / Chromium sandbox here), inconclusive; the fix is not on trunk |
+| #102 | `wo-083-corrections` 2 pass / 5 fail; `wo-002-career-tools` 7 / 1 | behavior not on trunk |
+| #107 | `wo-076-ready-first`, `wo-066-chat-to-queue` 0 / 1 each | module missing on trunk |
+| #108 | `wo-074-standing-answers` does not load | `standing_answers.ts` missing on trunk |
+| #110, #111, #113, #115 | each test file fails (0 pass) | fixtures and helpers missing on trunk |
+| #114 | `career-brutal-residuals` 5 / 8 | 8 residuals still reproduce on trunk |
+| #116 | 15 portal and browser test files, 0 pass | seven portal families not on trunk |
+| #119 | `career-mi106-repost-stale` 3 / 8 | repost handling not on trunk |
+| #128, #129, #137, #141 | their `wo-*` tests do not load, or 0 / 17 | their modules are missing on trunk |
+| #139 | `trainee-go-live` 12 / 3, `deploy-provenance` 8 / 4 | its expectations differ from trunk's script |
+| #146 | `career-link-liveness` 0 / 1, `career-pool-liveness` 0 / 9 | **not superseded**; its liveness tests fail on trunk |
+| #142 | no test files | its migration is live but not on trunk |
+| #163, #167, #140, #148 | not run (evidence or doc PRs, or a bundle of the above) | stay open |
 
 | PR | Note |
 |---|---|

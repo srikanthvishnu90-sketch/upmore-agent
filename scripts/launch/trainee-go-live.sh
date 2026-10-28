@@ -40,10 +40,14 @@
 #                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
 #                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret),
 #                 all from the staged commit; each deploy writes its ledger row (sha, bundle sha256, platform version)
-#   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault)
+#   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault);
+#                 then the legacy Upmore finance jobs (upmore-proactive, plaid-sync-6h, cancel-watcher-daily) are
+#                 unscheduled (scripts/launch/unschedule-legacy-finance.sql; nothing else is touched)
 #   6 smoke       scripts/launch/trainee-smoke.cjs against the live project (waits for each schedule to fire once
 #                 unless --no-wait; --allow-send also texts HELP's reply to TRAINEE_SMOKE_CONTACT through LoopMessage)
 # --skip-migrations / --skip-deploy skip step 2 / 4; --only-smoke runs only 1 and 6.
+# --keep-legacy-cron leaves the legacy finance schedules running (step 5 then only schedules Trainee's own jobs).
+# Step 4 never deploys an Upmore-only function: preflight stops if DEPLOY_FNS names one (UPMORE_ONLY_FNS below).
 # --dry-run prints every command with each secret as *** and runs nothing (tests/trainee-go-live.test.cjs).
 # --non-interactive (or TRAINEE_NON_INTERACTIVE=1; the production workflow passes it): nothing is ever asked and no terminal
 #   is opened. Every required value missing (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_URL, --sha) fails
@@ -59,6 +63,7 @@ cd "$(dirname "$0")/../.."
 REPO="$(pwd)"
 DRY=""; SKIP_MIG=""; SKIP_DEPLOY=""; ONLY_SMOKE=""; BRAIN=""; ALLOW_SEND=""; NOWAIT=""; WANT_SHA=""; VERIFY=""; VERIFY_MODE=""
 NONINT=""; [[ "${TRAINEE_NON_INTERACTIVE:-}" == 1 ]] && NONINT=1
+KEEP_LEGACY_CRON=""
 DEPLOY_LABEL="${TRAINEE_DEPLOY_LABEL:-owner}"
 while (( $# )); do
   case "$1" in
@@ -71,6 +76,7 @@ while (( $# )); do
     --allow-send) ALLOW_SEND=1 ;;
     --no-wait) NOWAIT=1 ;;
     --non-interactive) NONINT=1 ;;
+    --keep-legacy-cron) KEEP_LEGACY_CRON=1 ;;
     --sha) shift; WANT_SHA="${1:-}" ;;
     --sha=*) WANT_SHA="${1#--sha=}" ;;
     --verify) shift; VERIFY="${1:-}"; VERIFY_MODE=1 ;;
@@ -268,6 +274,15 @@ CHANNEL_PLAIN=(TELEGRAM_BOT_USERNAME WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TEMPLATE_
 # FEATURE 16: Telegram's login, verified, links a chat to the signed-in person; it takes the person's own session (JWT on).
 JWT_FNS=(trainee-telegram-link)
 DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${JWT_FNS[@]}")
+# The Upmore finance functions still in supabase/functions. Trainee never deploys them (production stops drifting toward
+# the finance app); retiring them on the live project is the owner's decision (docs/architect/REMOVAL-LIST-2026-10-28.md).
+UPMORE_ONLY_FNS=(agent-exec agent-message-inbound agent-message-turn agent-message-worker agent-payments agent-proactive
+  agent-workflows broker-oauth-callback broker-oauth-start cancel-watcher exec-vault-store manual-connect news-feed plaid
+  plaid-sync simplefin-claim simplefin-proxy stripe-checkout stripe-credits stripe-webhook)
+for fn in "${DEPLOY_FNS[@]}"; do
+  [[ " ${UPMORE_ONLY_FNS[*]} " != *" $fn "* ]] || { echo "go-live: $fn is an Upmore finance function; Trainee never deploys it"; exit 64; }
+done
+LEGACY_CRON_SQL=scripts/launch/unschedule-legacy-finance.sql
 # WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
 STAGE_PATHS=(supabase scripts packages corpus)
 PROV="$REPO/scripts/launch/deploy-provenance.cjs"
@@ -818,6 +833,13 @@ else
   sched CAREER_INGEST_SECRET career-ingest scripts/launch/schedule-career-ingest.sql
   sched CAREER_PROACTIVE_SECRET career-proactive scripts/launch/schedule-career-proactive.sql
   sched TRAINEE_DELIVER_SECRET trainee-deliver scripts/launch/schedule-trainee-deliver.sql
+  # The legacy finance jobs still fire on the live project (audit 2026-10-26 O2: upmore-proactive hourly, plaid-sync-6h
+  # with a bearer token in its text, cancel-watcher-daily answering 401). Unscheduling only; no function or data is touched.
+  if [[ -n "$KEEP_LEGACY_CRON" ]]; then echo "  kept: the legacy finance schedules (--keep-legacy-cron)"
+  else
+    run "psql *** -X -q -v ON_ERROR_STOP=1 -f $LEGACY_CRON_SQL (unschedules upmore-proactive, plaid-sync-6h, cancel-watcher-daily)" \
+      psql "${SUPABASE_DB_URL:-}" -X -q -v ON_ERROR_STOP=1 -f "$LEGACY_CRON_SQL"
+  fi
   ok
 fi
 

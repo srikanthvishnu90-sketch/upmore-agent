@@ -490,3 +490,51 @@ test('the migration rehearsal reads go-live\'s own lists and checks every mark a
   const src = fs.readFileSync(SCRIPT, 'utf8');
   assert.doesNotMatch(src, /proname = 'career_apply_ledger_refusal' and prosrc like '%own is not null%'/, '20261025160000 redefines it without that text');
 });
+
+// Q3 (2026-10-28): production stops drifting toward the finance app. Step 5 unschedules the three legacy finance pg_cron
+// jobs (audit 2026-10-26 O2/SEC9) after Trainee's own, unless --keep-legacy-cron; step 4 never deploys an Upmore-only
+// function. The SQL itself runs against Postgres in tests/db/legacy_finance_unschedule.test.sql.
+test('legacy finance cron: step 5 unschedules them after Trainee\'s schedules; --keep-legacy-cron keeps them; --only-smoke never touches them', () => {
+  const { code, out } = dry();
+  assert.equal(code, 0, out);
+  const base = 'https://abcdefghijklmnopqrst.supabase.co/functions/v1';
+  inOrder(out, ['STEP 5/6 schedules', `-v url=${base}/trainee-deliver -f scripts/launch/schedule-trainee-deliver.sql`,
+    'DRY: psql *** -X -q -v ON_ERROR_STOP=1 -f scripts/launch/unschedule-legacy-finance.sql', 'STEP 5/6 schedules: OK', 'STEP 6/6 smoke']);
+  const kept = dry(['--keep-legacy-cron']);
+  assert.equal(kept.code, 0, kept.out);
+  assert.doesNotMatch(kept.out, /unschedule-legacy-finance\.sql/);
+  assert.match(kept.out, /kept: the legacy finance schedules \(--keep-legacy-cron\)/);
+  assert.match(kept.out, /schedule-trainee-deliver\.sql/, 'Trainee\'s own schedules still run');
+  assert.doesNotMatch(dry(['--only-smoke']).out, /unschedule-legacy-finance\.sql/);
+  const sql = fs.readFileSync(path.join(root, 'scripts/launch/unschedule-legacy-finance.sql'), 'utf8');
+  const code_ = sql.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n');
+  assert.match(code_, /cron\.unschedule\(/);
+  for (const verb of [/\bdrop\b/i, /\bdelete\b/i, /\btruncate\b/i, /\bupdate\b/i, /\binsert\b/i, /vault\./i, /cron\.schedule\(/, /\bselect\s+command\b/i])
+    assert.doesNotMatch(code_, verb, `the file only unschedules (${verb})`);
+  for (const job of ['upmore-proactive', 'plaid-sync-6h', 'cancel-watcher-daily']) assert.ok(code_.includes(`'${job}'`), job);
+  for (const trainee of ['career-ingest', 'career-proactive', 'trainee-deliver']) assert.ok(!code_.includes(trainee), `${trainee} is never named`);
+});
+
+test('go-live never deploys an Upmore-only function: no deploy line names one, and a DEPLOY_FNS that did would stop the run', () => {
+  const script = fs.readFileSync(SCRIPT, 'utf8');
+  const list = script.match(/UPMORE_ONLY_FNS=\(([^)]*)\)/);
+  assert.ok(list, 'UPMORE_ONLY_FNS is declared');
+  const upmoreOnly = list[1].split(/\s+/).filter(Boolean);
+  for (const fn of ['agent-proactive', 'plaid-sync', 'cancel-watcher', 'agent-payments', 'stripe-webhook', 'broker-oauth-start', 'news-feed'])
+    assert.ok(upmoreOnly.includes(fn), `${fn} is listed as Upmore-only`);
+  for (const fn of upmoreOnly) assert.ok(fs.existsSync(path.join(root, 'supabase/functions', fn)), `${fn} is a real function directory`);
+  const { code, out } = dry();
+  assert.equal(code, 0, out);
+  const deployed = [...out.matchAll(/supabase functions deploy ([a-z0-9-]+)/g)].map((m) => m[1]);
+  assert.ok(deployed.includes('agent-chat') && deployed.includes('trainee-deliver'), deployed.join(','));
+  for (const fn of deployed) assert.ok(!upmoreOnly.includes(fn), `${fn} is deployed and is not Upmore-only`);
+  // The guard itself: a copy of the script whose DEPLOY_FNS names an Upmore-only function refuses to run.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-go-live-guard-'));
+  const bad = path.join(tmp, 'go-live.sh');
+  fs.writeFileSync(bad, script.replace(/^cd "\$\(dirname "\$0"\)\/\.\.\/\.\."$/m, `cd ${JSON.stringify(root)}`)
+    .replace(/^DEPLOY_FNS=\(agent-chat /m, 'DEPLOY_FNS=(agent-chat plaid-sync '));
+  const res = spawnSync('bash', [bad, '--dry-run'], { cwd: root, encoding: 'utf8', env: { PATH: process.env.PATH, HOME: home, ...FAKE } });
+  assert.equal(res.status, 64, res.stdout + res.stderr);
+  assert.match(res.stdout + res.stderr, /plaid-sync is an Upmore finance function; Trainee never deploys it/);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});

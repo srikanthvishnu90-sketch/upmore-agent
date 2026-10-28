@@ -12,7 +12,7 @@ import { domainOf, employerName } from "../employers.ts";
 import type { ProviderPerson } from "../fakes.ts";
 import { advanceClock, type Workers } from "../ticks.ts";
 import { ROOT, SECRETS, type World } from "../world.ts";
-import { guarded, onboard, type Run } from "./common.ts";
+import { guarded, onboard, type Run, sayOrRetry } from "./common.ts";
 
 interface Cfg { emails: number; channels: Channel[]; groups: Set<string> }
 const DAY = 86400_000;
@@ -108,7 +108,7 @@ async function networking(w: World, ws: Workers, card: Scorecard, ch: Channel, n
       return `google_career connected as ${account} with gmail.send; tokens in the vault, never in a table`;
     });
     await run.step("connects Outlook too (Microsoft Graph: mail send, read, calendar), from the link the chat gives", async () => {
-      const t = await p.say("i also use outlook for school email, connect my outlook too");
+      const { t } = await sayOrRetry(p, run, "i also use outlook for school email, connect my outlook too", "connect my outlook", async (x) => /https?:\/\//.test(x.text));
       const fns = [...Deno.readDirSync(`${ROOT}/supabase/functions`)].map((d) => d.name).filter((x) => /outlook|microsoft|ms-?oauth|graph/i.test(x));
       if (!fns.length) notBuilt(`no Outlook/Microsoft connector function in supabase/functions; the reply: "${t.text.slice(0, 160)}"`, "an Outlook connector: Microsoft OAuth start/callback storing a Graph grant (Mail.Send, Mail.Read, Calendars.ReadWrite)");
       const link = (t.text.match(/https?:\/\/\S+/g) ?? []).map((x) => x.replace(/[).,]+$/, "")).find((x) => /outlook|microsoft|functions\/v1/i.test(x));

@@ -66,7 +66,9 @@ export function employers(initial: Posting[]) {
   const submissions: Submission[] = [];
   const opened: { key: string; at: number }[] = [];
   let conf = 1000;
-  const route = (p: Posting) => `/${p.ats}/${p.board}/${p.id}`;
+  // The path a real board URL has (boards.greenhouse.io/<board>/jobs/<id>, jobs.lever.co/<board>/<id>,
+  // jobs.ashbyhq.com/<board>/<id>): the engine names an employer by its board, so the board leads the path.
+  const route = (p: Posting) => `/${p.board}/${p.ats === "greenhouse" ? "jobs/" : ""}${p.id}`;
   const fromPath = (path: string) => postings.find((p) => path === route(p) || path === `${route(p)}/submit`) ?? null;
   const server = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen() {} }, async (req) => {
     const u = new URL(req.url), p = fromPath(u.pathname);

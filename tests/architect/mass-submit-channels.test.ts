@@ -12,7 +12,7 @@ import type { Channel } from "../../supabase/functions/_shared/channel_adapters.
 import { LOOPMESSAGE_SEND_URL, loopSend } from "../../supabase/functions/_shared/loopmessage.ts";
 import { TELEGRAM_API } from "../../supabase/functions/_shared/telegram.ts";
 import { WHATSAPP_GRAPH, whatsappSignature } from "../../supabase/functions/_shared/whatsapp.ts";
-import { cardTurn } from "../../supabase/functions/_shared/career_apply_cards.ts";
+import { CUT_NOTE } from "../../supabase/functions/_shared/conversation.ts";
 import { handleInbound } from "../../supabase/functions/trainee-inbound/handler.ts";
 import { handleTelegram } from "../../supabase/functions/trainee-telegram/handler.ts";
 import { handleWhatsApp } from "../../supabase/functions/trainee-whatsapp/handler.ts";
@@ -89,7 +89,9 @@ function harness(n: number) {
   const mark = () => sent.length;
   const read = (ch: Channel, from = 0) => sent.slice(from).filter((s) => s.channel === ch && s.address === ADDR[ch]);
   const markCard = (ch: Channel, from: number) => { for (const s of read(ch, from)) cardTexts.add(s.id); };
-  return { cards, text, mark, read, markCard, sent };
+  // The outbox rows written so far (one per message part a reply is delivered in).
+  const outboxRows = () => W.outbox.length;
+  return { cards, text, mark, read, markCard, sent, outboxRows };
 }
 const CHANNELS: Channel[] = ["imessage", "telegram", "whatsapp"];
 
@@ -118,6 +120,26 @@ Deno.test("D-MS-1/C1 sixty applications on one card on every channel; one plain 
   }
   eq(seen.telegram, seen.imessage, "Telegram reads what iMessage reads");
   eq(seen.whatsapp, seen.imessage, "WhatsApp reads what iMessage reads");
+});
+
+Deno.test("NO LIMITS/C4 a card of 500 (more than the old 30-part ceiling) arrives whole on every channel, every application, no cut note; one yes approves all 500", async () => {
+  for (const ch of CHANNELS) {
+    const h = harness(500);
+    // Each application with its full read-back (8 answered questions), so the card runs well past 30 messages.
+    for (const p of h.cards.prepared) p.card_lines.splice(2, 0, ...Array.from({ length: 8 }, (_, k) => `Question ${k + 1}: a confirmed answer for ${p.company}, read back from the form.`));
+    await h.text(ch, "hi");
+    const m0 = h.mark();
+    const before = h.outboxRows();
+    await h.text(ch, "show my applications");
+    const sentParts = h.outboxRows() - before;
+    assert(sentParts > 30, `${ch}: the card is ${sentParts} outbox rows, past the old ceiling of 30`);
+    const got = norm(h.read(ch, m0).map((s) => s.text));
+    for (const i of [1, 137, 250, 499, 500]) assert(got.includes(norm([h.cards.prepared[i - 1].card_lines[0]])), `${ch}: application ${i} arrives`);
+    assert(got.includes(`Reply "yes" to send all 500`), `${ch}: the last page arrives`);
+    assert(!got.includes(norm([CUT_NOTE])), `${ch}: nothing cut`);
+    await h.text(ch, "yes");
+    eq([h.cards.answerCalls.length, h.cards.answerCalls[0]?.approve.length, h.cards.queue.length], [1, 500, 500], ch);
+  }
 });
 
 Deno.test("D-MS-1/C2 wait, maybe and 'yes except 2' on every channel: the first two approve nothing, the third approves the rest", async () => {

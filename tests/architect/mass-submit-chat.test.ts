@@ -190,12 +190,16 @@ Deno.test("D-MS-2/2 before builder A's migration the database refuses a card of 
   assert(/^4 applications are ready\./.test(next!.reply), next!.reply);
 });
 
-Deno.test("D-MS-2/3 batchFor: a card past what one reply can carry stops at whole pages and names the rest; an application too long for a text is named, not cut", () => {
+Deno.test("D-MS-2/3 batchFor (NO LIMITS): 400 long applications all go on one card, however many pages, nothing held back; an application too long for a text is named, not cut", () => {
   const long = (i: number): Prepared => ({ id: `L${i}`, company: `Long ${i}`, resume_sha256: "a".repeat(64), card_lines: [`Long ${i}`, ...Array.from({ length: 12 }, (_, k) => `Question ${k}: an answer of some length for posting ${i}, number ${k}.`)] });
   const b = batchFor(Array.from({ length: 400 }, (_, i) => long(i + 1)));
   assert(b && !("tooLong" in b));
-  assert(b.parts.length <= 20 && b.take.length + b.more === 400 && b.more > 0, `${b.parts.length} pages, ${b.take.length} shown, ${b.more} more`);
-  assert(new RegExp(`${b.more} more are ready; they come on the next card`).test(b.parts.at(-1)!), b.parts.at(-1));
+  assert(b.take.length === 400 && b.more === 0 && b.parts.length > 30 && b.parts.every((p) => p.length <= PAGE_CHARS), `${b.parts.length} pages, ${b.take.length} shown, ${b.more} more`);
+  assert(new RegExp(`This card comes in ${b.parts.length} messages; one "yes" approves all 400\\.`).test(b.parts[0]) && /Reply "yes" to send all 400/.test(b.parts.at(-1)!), b.parts[0].slice(0, 200));
+  for (let i = 1; i <= 400; i++) assert(b.text.includes(`${i}. Long ${i}\n`), `item ${i} on the card`);
+  // The database's bound before D-MS-2 is the only thing that holds some back, and the card says so.
+  const held = batchFor(Array.from({ length: 12 }, (_, i) => long(i + 1)), { max: 8 });
+  assert(held && !("tooLong" in held) && held.take.length === 8 && held.more === 4 && /4 more are ready; they come on the next card/.test(held.text));
   const huge: Prepared = { id: "H", company: "Huge Co", resume_sha256: "a".repeat(64), card_lines: ["Huge Co", "x".repeat(5000)] };
   const mixed = batchFor([prep(1), huge, prep(2)]);
   assert(mixed && !("tooLong" in mixed));

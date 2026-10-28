@@ -105,16 +105,14 @@ export function signupAllows(env: CoreDeps["env"], contact: string, phone?: stri
 }
 // The parts contract (WO-038, for WO-033's outreach batch and long cards): agent-chat may answer with `parts`, each at
 // most OUTBOX_CHARS. Each becomes its own outbox row and is never cut: a part over the limit is split on purpose (lines
-// kept together), never truncated. Fewer than two usable parts: null, and the single reply goes as before. At most
-// MAX_PARTS rows; past that the rest is joined into the last row and cut with the cut note, said, never silent.
-export const MAX_PARTS = 30;
+// kept together), never truncated. Fewer than two usable parts: null, and the single reply goes as before.
+// NO LIMITS (owner, 2026-10-27 19:55 CDT): every part is delivered, however many (a card of 500 applications is about 40
+// messages); the old 30-part ceiling, which cut the tail of a long card, is gone. Pacing is the provider's (pacer).
 export function replyParts(raw: unknown): string[] | null {
   if (!Array.isArray(raw)) return null;
   const parts = raw.filter((p): p is string => typeof p === "string").map((p) => p.trim()).filter(Boolean)
     .flatMap((p) => (p.length <= OUTBOX_CHARS ? [p] : packMessages(p, OUTBOX_CHARS)));
-  if (parts.length < 2) return null;
-  if (parts.length <= MAX_PARTS) return parts;
-  return [...parts.slice(0, MAX_PARTS - 1), fitReply(parts.slice(MAX_PARTS - 1).join("\n\n"))];
+  return parts.length < 2 ? null : parts;
 }
 // A provider id becomes a chat turn key the chat accepts (letters, digits, - and _), so agent-chat's own replay guard sees
 // a retry of the same message as the same turn.

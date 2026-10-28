@@ -97,49 +97,12 @@ returns integer language sql security definer set search_path = public, pg_temp 
  select count(*)::int from r
 $$;
 
-create table if not exists public.career_apply_host_backoff (
-  host text primary key check (length(host) between 1 and 255),
-  until timestamptz not null,
-  level integer not null default 0 check (level between 0 and 64),
-  reason text check (length(reason) <= 80),
-  updated_at timestamptz not null default now()
-);
-alter table public.career_apply_host_backoff enable row level security;
-
-create or replace function public.career_apply_host_backoff_get(p_hosts text[])
-returns table (host text, until timestamptz) language sql stable security definer set search_path = public, pg_temp as $$
- select b.host, b.until from public.career_apply_host_backoff b
- where b.host = any(p_hosts[1:1000]) and b.until > clock_timestamp()
-$$;
-
-create or replace function public.career_apply_host_refused(p_host text, p_reason text, p_retry_after_s integer)
-returns timestamptz language plpgsql security definer set search_path = public, pg_temp as $$
-declare b public.career_apply_host_backoff; wait interval; n timestamptz := clock_timestamp();
-begin
- if p_host is null or length(p_host) not between 1 and 255 then raise exception 'invalid host'; end if;
- select * into b from public.career_apply_host_backoff where host = p_host for update;
- wait := case when p_retry_after_s is not null and p_retry_after_s >= 0 then make_interval(secs => least(p_retry_after_s, 86400))
-   else make_interval(secs => least(3600, 30 * power(2, least(coalesce(b.level, 0), 20)))) end;
- insert into public.career_apply_host_backoff (host, until, level, reason, updated_at)
-  values (p_host, n + wait, 1, left(p_reason, 80), n)
-  on conflict (host) do update set until = greatest(career_apply_host_backoff.until, excluded.until),
-   level = least(64, career_apply_host_backoff.level + 1), reason = excluded.reason, updated_at = n
-  returning * into b;
- return b.until;
-end $$;
-
-create or replace function public.career_apply_host_ok(p_host text)
-returns void language sql security definer set search_path = public, pg_temp as $$
- update public.career_apply_host_backoff set level = 0, updated_at = clock_timestamp() where host = p_host and level > 0 and until <= clock_timestamp()
-$$;
+-- 3. Host refusals, shared: shipped as 20261028120000_career_apply_host_gate.sql (career_apply_host_backoff_get /
+--    career_apply_host_refused / career_apply_host_ok over the one back-off table); the tests use the real ones.
 
 revoke all on function public.career_apply_claim_fair(integer, integer, uuid, timestamptz), public.career_apply_lease_begin(uuid[], uuid[], timestamptz),
-  public.career_apply_lease_release(uuid[], uuid[]), public.career_apply_lease_sweep(interval, timestamptz),
-  public.career_apply_host_backoff_get(text[]), public.career_apply_host_refused(text, text, integer), public.career_apply_host_ok(text)
+  public.career_apply_lease_release(uuid[], uuid[]), public.career_apply_lease_sweep(interval, timestamptz)
   from public, anon, authenticated;
 grant execute on function public.career_apply_claim_fair(integer, integer, uuid, timestamptz), public.career_apply_lease_begin(uuid[], uuid[], timestamptz),
-  public.career_apply_lease_release(uuid[], uuid[]), public.career_apply_lease_sweep(interval, timestamptz),
-  public.career_apply_host_backoff_get(text[]), public.career_apply_host_refused(text, text, integer), public.career_apply_host_ok(text)
+  public.career_apply_lease_release(uuid[], uuid[]), public.career_apply_lease_sweep(interval, timestamptz)
   to service_role;
-revoke all on public.career_apply_host_backoff from public, anon, authenticated;
-grant all on public.career_apply_host_backoff to service_role;

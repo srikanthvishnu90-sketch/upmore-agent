@@ -27,7 +27,12 @@ const ON_FILE: Record<string, any> = {
   "greenhouse:c:3": { job_id: "greenhouse:c:3", company: "Charlie Data", title: "Data Analyst", url: "https://boards.greenhouse.io/c/jobs/3", closed_at: null },
   "greenhouse:d:4": { job_id: "greenhouse:d:4", company: "Delta Freight", title: "Data Analyst", url: "https://boards.greenhouse.io/d/jobs/4", closed_at: null },
 };
-const PRIOR = [{ id: "j1", company: "Charlie Data", title: "Data Analyst", state: "submitted_unconfirmed", created_at: new Date(NOW - 10 * 86400_000).toISOString(), updated_at: "" }];
+// Charlie Data: the listed posting itself was applied to 10 days ago (blocks). Delta Freight: a different posting there was
+// applied to 4 days ago (blocks nothing; D-MS-3: only an exact duplicate blocks, no one-per-company window).
+const PRIOR = [
+  { id: "j1", company: "Charlie Data", title: "Data Analyst", url: "https://boards.greenhouse.io/c/jobs/3", state: "submitted_unconfirmed", created_at: new Date(NOW - 10 * 86400_000).toISOString(), updated_at: "" },
+  { id: "j2", company: "Delta Freight", title: "Ops Analyst", url: "https://boards.greenhouse.io/d/jobs/40", state: "submitted_unconfirmed", created_at: new Date(NOW - 4 * 86400_000).toISOString(), updated_at: "" },
+];
 function world(o: { resume?: boolean | null; kick?: "started" | "off" | "failed"; shortlist?: ShortlistEntry[]; postings?: any[]; prepareOn?: boolean } = {}) {
   const wants = memoryWantStore(), kicks: string[][] = [];
   const turn = (message: string) => applyTurn({
@@ -72,14 +77,14 @@ Deno.test("F01 'apply to 1 and 3' queues exactly those two from the list when th
   assert(!/submitted|applied for you/.test(r!.reply), r!.reply);
 });
 
-Deno.test("F01 'apply to all of them': each refusal named with its reason (closed on file, applied in 30 days), the fraction says how many", async () => {
+Deno.test("F01 'apply to all of them': each refusal named with its reason (closed on file, this exact posting already applied to), the fraction says how many; another posting at an employer applied to 4 days ago is queued", async () => {
   const w = world({ kick: "off" });
   const r = await w.turn("apply to all of them");
   eq(r?.status, "queued", r?.reply);
   eq(await w.keys(), ["greenhouse:a:1", "greenhouse:d:4"]);
   assert(r!.reply.startsWith("2/4 queued;"), r!.reply);
   assert(/TEST Analyst at Bravo Labs: posting closed/.test(r!.reply), r!.reply);
-  assert(/Data Analyst at Charlie Data: they already applied/.test(r!.reply) && /30 days/.test(r!.reply), r!.reply);
+  assert(/Data Analyst at Charlie Data: [^\n]*already[^\n]*same posting/.test(r!.reply) && !/30 days/.test(r!.reply), r!.reply);
   assert(/Preparing them hasn't started yet; they wait in your queue\./.test(r!.reply), `off is said, never "started": ${r!.reply}`);
   const again = await w.turn("apply to 1 and 4");
   assert(again!.reply.startsWith("0/2 queued (2 already in your queue);"), again!.reply);

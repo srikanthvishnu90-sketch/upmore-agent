@@ -23,7 +23,7 @@ const REAL_PY = execFileSync('bash', ['-c', 'command -v python3'], { encoding: '
 const HEAD = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
 const OTHER = HEAD.replace(/^./, (c) => (c === 'a' ? 'b' : 'a'));
 // FEATURE 16: trainee-telegram-link (Telegram's login) ships with the rest, JWT on (trainee-go-live.sh JWT_FNS).
-const FNS = ['agent-chat', 'career-ingest', 'career-proactive', 'trainee-deliver', 'trainee-inbound', 'career-voice', 'trainee-telegram', 'trainee-whatsapp', 'trainee-telegram-link', 'outlook-oauth', 'career-send'];
+const FNS = ['agent-chat', 'career-ingest', 'career-proactive', 'trainee-deliver', 'trainee-inbound', 'career-voice', 'trainee-telegram', 'trainee-whatsapp', 'trainee-telegram-link', 'outlook-oauth', 'career-send', 'career-cloud-runner'];
 
 // Distinctive fakes; none may ever be printed (all labelled fake for tests/no-secrets.test.cjs).
 const FAKE = {

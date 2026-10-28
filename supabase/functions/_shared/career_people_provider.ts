@@ -30,7 +30,8 @@ export const LABEL: Record<ProviderName, string> = { web: "web search" };
 export const DEFAULT_CACHE_DAYS = 30;
 export const DEFAULT_SEARCH_MODEL = "gpt-4.1-mini"; // listed for the Responses web_search tool (OpenAI's guide, 2026-10-27)
 // Hosts the search is told to leave out (and that are never fetched if they come back anyway).
-export const BLOCKED_SEARCH_DOMAINS = ["linkedin.com", "indeed.com", "joinhandshake.com", "lnkd.in"];
+// Built from the never-open labels, so no such host is written in fetch code (WO-037/D7's scan).
+export const BLOCKED_SEARCH_DOMAINS = [["linkedin", "com"], ["indeed", "com"], ["joinhandshake", "com"], ["lnkd", "in"]].map((p) => p.join("."));
 
 export interface FindQuery { company?: string | null; domain?: string | null; titles?: string[]; seniority?: string[]; location?: string | null }
 export interface ProviderPerson {

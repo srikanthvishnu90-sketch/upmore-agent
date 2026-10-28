@@ -69,9 +69,11 @@ Deno.test({ name: "people discovery on real Postgres: NOT_WIRED, discover, publi
       'mx', mx, 'sendable', sendable, 'url', source_url, 'same_as', (select o.source from career_people o where o.id = p.same_as)) order by name), '[]') from career_people p where user_id = '${u}' and source = 'provider'`));
 
     // A's own LinkedIn export (N1's import): Ada with no address; Grace with hers.
-    const imp = await pg.asService().rpc("career_people_import", { p_user: A, p_source: "linkedin_export", p_file: "Connections.csv", p_sha: null, p_read: 2, p_skipped: 0, p_replace: true, p_rows: [
+    const imp = await pg.asService().rpc("career_people_import", { p_user: A, p_source: "linkedin_export", p_file: "Connections.csv", p_sha: null, p_read: 3, p_skipped: 0, p_replace: true, p_rows: [
       { name: "Ada Lovelace", email: "", company: "Stripe", company_key: "stripe", position: "Engineering Manager", school: "", connected_on: null, last_seen_at: null, source_ref: "Connections.csv, row 1", source_url: "", dedupe_key: "n:ada lovelace|stripe" },
       { name: "Grace Hopper", email: "grace.hopper@stripe.com", company: "Stripe", company_key: "stripe", position: "Engineering Manager", school: "DePaul University", connected_on: null, last_seen_at: null, source_ref: "Connections.csv, row 2", source_url: "", dedupe_key: "e:grace.hopper@stripe.com" },
+      // A's own row for Alan under another name: only his address says it's him (the same-address rule, not the name rule)
+      { name: "Al Turing", email: "alan.turing@stripe.com", company: "Stripe", company_key: "stripe", position: "Senior Engineering Manager", school: "", connected_on: null, last_seen_at: null, source_ref: "Connections.csv, row 3", source_url: "", dedupe_key: "e:alan.turing@stripe.com" },
     ] });
     assert(!imp.error, JSON.stringify(imp.error));
 
@@ -79,7 +81,7 @@ Deno.test({ name: "people discovery on real Postgres: NOT_WIRED, discover, publi
       const r = await findTargets(A, EM("Stripe"), deps(providerConfig((k) => ({ OPENAI_API_KEY: "sk-test-not-real" } as Record<string, string>)[k])));
       eq(r.status, "NOT_WIRED");
       assert(/isn't switched on yet/.test(r.reply) && !/NOT_WIRED|OPENAI/.test(r.reply), r.reply);
-      eq(r.candidates.map((c) => c.name).sort(), ["Ada Lovelace", "Grace Hopper"]);
+      eq(r.candidates.map((c) => c.name).sort(), ["Ada Lovelace", "Al Turing", "Grace Hopper"]);
       eq(n.calls.length, 0);
       eq(await q(`select count(*) from career_provider_jobs`), "0");
     });
@@ -92,20 +94,19 @@ Deno.test({ name: "people discovery on real Postgres: NOT_WIRED, discover, publi
       assert(n.calls.includes("cloudflare-dns.com/dns-query"), "MX over DNS-over-HTTPS");
       eq((await rows(A)).map((x: any) => [x.name, x.email, x.status, x.ev, x.mx, x.sendable, x.same_as]), [
         ["Ada Lovelace", "ada.lovelace@stripe.com", "published", null, "pass", true, "linkedin_export"], // linked to A's own Ada
-        ["Alan Turing", "alan.turing@stripe.com", "inferred", 2, "pass", true, null],
         ["Katherine Johnson", "katherine.johnson@stripe.com", "inferred", 2, "pass", true, null],
         ["Zoë Ångström", null, "none", null, "pass", false, null],
-      ], "Grace: A already has her address (known), not stored again; the instruction-named person never; Jane Roe (only in the model's words) never");
-      eq((await rows(A)).map((x: any) => x.url), ["https://stripe.com/team", "https://devconf2026.org/speakers", "https://stripe.com/team", "https://stripe.com/team"], "every person keeps the page that names them");
+      ], "Grace and Alan: A already has their addresses (known: by name for Grace, by address alone for Alan), not stored again; the instruction-named person never; Jane Roe (only in the model's words) never");
+      eq((await rows(A)).map((x: any) => x.url), ["https://stripe.com/team", "https://stripe.com/team", "https://stripe.com/team"], "every person keeps the page that names them");
       eq(await q(`select string_agg(domain || ':' || format || ':' || evidence, ',') from career_email_formats`), "stripe.com:first.last:2",
         "learned from the published address and A's own known one: formats only");
       eq(await q(`select count(*) from information_schema.columns where table_name in ('career_email_formats','career_email_format_evidence') and column_name in ('email','name','user_id')`), "0");
       eq(await q(`select count(*) from career_email_format_evidence where addr_hash like '%@%'`), "0");
       const by = Object.fromEntries(r.candidates.map((c) => [c.name, c]));
-      eq(Object.keys(by).sort(), ["Ada Lovelace", "Alan Turing", "Grace Hopper", "Katherine Johnson", "Zoë Ångström"]);
+      eq(Object.keys(by).sort(), ["Ada Lovelace", "Al Turing", "Grace Hopper", "Katherine Johnson", "Zoë Ångström"]);
       eq([by["Ada Lovelace"].address, by["Grace Hopper"].address, by["Katherine Johnson"].address, by["Katherine Johnson"].evidence], ["published", "known", "inferred", 2]);
       assert(/inferred from stripe\.com's format \(2 addresses seen there\), sent only if you approve it/.test(by["Katherine Johnson"].reason), by["Katherine Johnson"].reason);
-      assert(/named on https:\/\/devconf2026\.org\/speakers/.test(by["Alan Turing"].reason));
+      eq(by["Al Turing"].address, "known");
       eq(await q(`select count(*) from career_people where name ilike '%instruction%' or name = 'Jane Roe'`), "0");
       eq(await q(`select (value ? 'memory')::text from career_watch_kv where user_id = '${A}' and key = 'career:account'`), "false", "nothing reached A's memory");
       eq(await q(`select kind || ':' || http_calls || ':' || results || ':' || waiters from career_provider_lookups order by id`), "api:9:5:1", "6 searches, 2 pages, 1 MX; 5 people");
@@ -130,7 +131,7 @@ Deno.test({ name: "people discovery on real Postgres: NOT_WIRED, discover, publi
       eq(await q(`select email_status || ':' || coalesce(email, 'none') || ':' || sendable from career_people where user_id = '${A}' and name = 'Katherine Johnson'`), "bounced:none:false");
       await store.feedback("ada.lovelace@stripe.com", "Ada Lovelace", "reply");
       eq(await q(`select replies || ':' || bounces from career_email_formats where domain = 'stripe.com' and format = 'first.last'`), "1:1");
-      eq(await q(`select count(*) from career_people where user_id = '${A}' and source = 'provider'`), "4", "a refresh, no duplicate");
+      eq(await q(`select count(*) from career_people where user_id = '${A}' and source = 'provider'`), "3", "a refresh, no duplicate");
     });
 
     await t.step("the search service's rate limit: blocked for every instance, the job waits without spending an attempt, said plainly; no call until it allows", async () => {

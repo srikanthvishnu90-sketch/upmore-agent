@@ -18,8 +18,14 @@ export const prep = (i: number): Prepared => ({
 });
 
 // The database, in memory: prepared rows with their current hash, cards, the queue (career_apply_jobs).
-export function db(o: { n?: number; cap?: boolean } = {}) {
-  const prepared = Array.from({ length: o.n ?? 3 }, (_, i) => ({ ...prep(i + 1), hash: `h${i + 1}`, state: "ready" }));
+// `companies`: the employers on the card, in order (default COMPANIES).
+export function db(o: { n?: number; cap?: boolean; companies?: string[] } = {}) {
+  const named = (i: number): Prepared => {
+    const c = o.companies?.[i - 1];
+    if (!c) return prep(i);
+    return { ...prep(i), company: c, card_lines: [`${c}: TEST Analyst`, `Email: t@example.test`, `Resume: resume-${i}.pdf`, `Sends to https://jobs.lever.co/test/${i}`] };
+  };
+  const prepared = Array.from({ length: o.companies?.length ?? o.n ?? 3 }, (_, i) => ({ ...named(i + 1), hash: `h${i + 1}`, state: "ready" }));
   const cards: { id: string; items: { n: number; prepared_id: string; payload_hash: string }[]; shown_at: string; state: string; closed?: boolean }[] = [];
   const queue: { prepared_id: string; approval: string }[] = [];
   const answerCalls: { card: string; approve: number[] }[] = [];

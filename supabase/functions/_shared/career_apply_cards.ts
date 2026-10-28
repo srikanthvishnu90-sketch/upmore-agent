@@ -20,7 +20,25 @@
 // WO-027: each answered line is written to the account's timeline (approved, or the reason it was not sent). A timeline
 // that cannot be written never changes the answer.
 import { type EventStore, recordEvents } from "./agent/timeline.ts";
-import { sameCompany } from "./career_mail.ts";
+// An employer's name as words: lower case, letters and digits, "&" as "and", and only a trailing legal suffix dropped
+// ("Beta Labs, Inc." = "beta labs"); "Group", "Holdings" and the like stay part of the name.
+const LEGAL = new Set(["inc", "llc", "ltd", "corp", "corporation", "co", "company", "plc", "gmbh", "lp", "llp"]);
+export function companyTokens(name: unknown): string[] {
+  const w = String(name ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(Boolean);
+  while (w.length > 1 && LEGAL.has(w[w.length - 1])) w.pop();
+  return w;
+}
+
+// Review of #223 (2026-10-28): a name the person typed names a card item's employer only by an exact match of the
+// normalized words ("beta labs" = "Beta Labs Inc"), or as its leading whole words with a first word of at least three
+// letters ("acme" for "Acme Robotics"). Never a fragment ("ne", "labs", "robotics"), never the loose match
+// (sameCompany's domain and initial forms), so a stray word never matches a company.
+export function namesEmployer(name: string, company: string): boolean {
+  const n = companyTokens(name), c = companyTokens(company);
+  if (!n.length || !c.length) return false;
+  if (n.join(" ") === c.join(" ")) return true;
+  return n.length < c.length && n[0].length >= 3 && n.every((t, i) => c[i] === t);
+}
 
 export interface Prepared {
   id: string;
@@ -56,6 +74,9 @@ export interface CardStore {
   cardState?(userId: string, cardId: string): Promise<"open" | "answered" | "closed" | null>;
   // SCALE: the employer of each of these prepared applications (a card's items), in one bounded read, for "not Acme".
   cardCompanies?(userId: string, preparedIds: string[]): Promise<Map<string, string>>;
+  // NO LIMITS: the pending applications, oldest first, at most `limit` of them in one read, and how many more are ready
+  // past them (counted, never dropped silently). Absent: pending() is read whole.
+  pendingPage?(userId: string, limit: number): Promise<{ rows: Prepared[]; more: number }>;
 }
 
 // D-MS-1 (owner, 2026-10-27): the forms a person answers a card with. Anything else is not an answer and goes to the
@@ -82,6 +103,9 @@ export const CARD_HARD_LIMIT = 4000; // one application alone may go up to the o
 // D-MS-2: the batch shown on "show my applications" is paged into messages of at most PAGE_CHARS for reading (one text
 // each); one yes covers every page. There is no page or item ceiling (NO LIMITS, owner 2026-10-27).
 export const PAGE_CHARS = 3800;
+// How many pending applications one "show my applications" reads (one bounded query per turn, SCALE). Not a limit on
+// applying: past it, the card says how many more are ready, and they come on the next card.
+export const PENDING_READ = 1000;
 // Until builder A's D-MS-2 migration lands, the database refuses a card of more than 8 ('invalid card'). Only then is a
 // card of 8 shown, and the reply says how many more are waiting.
 export const DB_CARD_MAX_BEFORE_DMS2 = 8;
@@ -112,16 +136,33 @@ const NAME_STOP = new Set([
   "approve", "send", "submit", "apply", "confirm", "go", "go ahead",
 ]);
 const NAME_DESCRIBES = new Set(["one", "ones", "in", "at", "from", "with", "that", "which", "where", "first", "last", "other", "whatever", "something", "remote", "onsite"]);
+// Review of #223 (2026-10-28), fail closed: a piece with a "none" word or a time/hold word is never an employer's name
+// ("approve none", "send it later", "yes but wait"): the whole reply is unclear and approves nothing.
+const NONE_WORDS = new Set(["none", "nothing", "nobody", "noone", "neither", "nil", "zero"]);
+const TIME_WORDS = new Set(["wait", "later", "tomorrow", "soon", "now", "today", "tonight", "yet", "hold", "pause", "asap", "eventually", "after", "before", "until", "afterwards", "morning", "evening", "weekend", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]);
+// Words that never begin an employer's name in a reply ("to acme", "it later", "all except"), and a piece made only of
+// such words is never a name.
+const FUNCTION_WORDS = new Set([...NAME_STOP, ...NAME_DESCRIBES, "to", "of", "for", "a", "an", "but", "not", "except", "only", "just", "and", "or",
+  "on", "by", "we", "they", "he", "she", "is", "are", "be", "do", "ahead", "ok", "okay", "my", "your", "every", "each", "both", "either", "no"]);
+const UNCLEAR_SELECTION = "unclear" as const;
+// After a bare "yes": a sentence about something else, not a card answer (the brain's turn).
+const SENTENCE = /\b(?:my|your|our|me|i|i'?m|it'?s|that'?s|this is|is|are|was|were|be|did|want|need|have|got|can|will|would|do)\b/;
+const nameIsUnclear = (piece: string) => {
+  const w = piece.split(" ").filter(Boolean);
+  return !w.length || w.some((x) => NONE_WORDS.has(x) || TIME_WORDS.has(x)) || FUNCTION_WORDS.has(w[0]) || w.every((x) => FUNCTION_WORDS.has(x));
+};
 
 // "1, 2 and 5", "3-5", "#2", "numbers 1 and 3", "acme and beta", "the acme one": numbers and employer names; null when
-// a piece is neither (the reply is then not this shape), or uses "or" (a choice is not an answer).
-export function parseSelection(raw: string): { nums: number[]; names: string[] } | null {
+// a piece is neither (the reply is then not this shape), or uses "or" (a choice is not an answer); "unclear" when a piece
+// looks like words but cannot be an employer's name (a "none" word, a time word, function words): never approved.
+export function parseSelection(raw: string): { nums: number[]; names: string[] } | typeof UNCLEAR_SELECTION | null {
   let t = String(raw ?? "").trim().replace(/[.!]+$/, "").replace(/\s+(?:please|thanks|thank you)$/, "").trim();
   if (!t || /\bor\b/.test(t)) return null;
-  t = t.replace(/^(?:numbers?|nos?\.?)\s+/, "");
+  t = t.replace(/^(?:numbers?|nos?\.)\s+/, "");
   const nums: number[] = [], names: string[] = [];
   for (let piece of t.split(/\s*(?:,|;|\band\b|&|\+)\s*/).map((x) => x.trim()).filter(Boolean)) {
-    piece = piece.replace(/^(?:the|number|no\.?|#)\s*/, "").replace(/\s+(?:one|ones|role|job|application|posting)$/, "").trim();
+    // Whole words only: "the", "number", "no." and "#" are stripped as markers; "none" and "them" are never cut.
+    piece = piece.replace(/^(?:(?:the|number)\s+|no\.\s*|#\s*)/, "").replace(/\s+(?:one|ones|role|job|application|posting)$/, "").trim();
     if (/^\d{1,4}(?:\s+\d{1,4})+$/.test(piece)) {
       nums.push(...piece.split(/\s+/).map(Number));
       continue;
@@ -139,8 +180,15 @@ export function parseSelection(raw: string): { nums: number[]; names: string[] }
       continue;
     }
     // An employer's name: a few words, none of them a description ("the one in Ohio" is not a name: unclear).
-    if (/^[a-z][a-z0-9&.' -]{0,60}$/.test(piece) && !NAME_STOP.has(piece) && piece.split(" ").length <= 4 &&
-      !piece.split(" ").some((w) => NAME_DESCRIBES.has(w))) {
+    if (/^[a-z][a-z0-9&.' -]{0,60}$/.test(piece)) {
+      const words = piece.split(" ");
+      // Not a selection at all (not this shape; the brain's turn): a sentence ("me the pdf as a file in this chat"), a
+      // description ("the one in ohio"), or only function words ("all except", "and submit").
+      if (words.length > 4 || words.some((w) => NAME_DESCRIBES.has(w)) || words.every((x) => FUNCTION_WORDS.has(x))) {
+        // ...unless it says none or not-now ("none of them", "it later"): then it is an answer that approves nothing.
+        return words.some((x) => NONE_WORDS.has(x) || TIME_WORDS.has(x)) ? UNCLEAR_SELECTION : null;
+      }
+      if (nameIsUnclear(piece)) return UNCLEAR_SELECTION;
       names.push(piece);
       continue;
     }
@@ -192,8 +240,8 @@ export function parseCardReply(text: string): CardReply | null {
     const lead = /^(?:approve|send(?: them| all)?|submit|go ahead)[ ,;:-]+(.+)$/.exec(body);
     const m = lead ? EXCEPT_HEAD.exec(lead[1]) : null;
     const s = m ? parseSelection(m[1]) : null;
-    if (m && !s) return { kind: "unclear" };
-    if (s) {
+    if (m && (!s || s === UNCLEAR_SELECTION)) return { kind: "unclear" };
+    if (s && s !== UNCLEAR_SELECTION) {
       r = { kind: "yes", except: s.nums };
       if (s.names.length) r.exceptNames = s.names;
     }
@@ -202,6 +250,7 @@ export function parseCardReply(text: string): CardReply | null {
     const m = EXCEPT_HEAD.exec(body);
     if (m) {
       const s = parseSelection(m[1]);
+      if (s === UNCLEAR_SELECTION) return { kind: "unclear" };
       if (!s) return hadYes ? { kind: "unclear" } : null;
       // "not Acme" alone says what to leave out, not that the rest should go: asked, never approved.
       const affirmed = hadYes || /^(?:(?:approve|send|submit)\s|(?:but|and)\s+(?:approve|send|submit)\s|(?:all|everything|them all|the rest|every one)\s)/.test(body);
@@ -213,18 +262,18 @@ export function parseCardReply(text: string): CardReply | null {
     const only = ONLY_HEAD.exec(body), pick = only ? null : PICK_HEAD.exec(body);
     const bare = !only && !pick && hadYes ? /^(?:to\s+)?(.+)$/.exec(body) : null;
     const m = only ?? pick ?? bare;
-    const s = m ? parseSelection(m[1]) : null;
+    // A yes followed by a sentence ("yes, that's my resume", "yes I want alerts for data jobs") is not about the card at
+    // all: the brain's turn.
+    if (bare && SENTENCE.test(m![1])) return null;
+    const sel = m ? parseSelection(m[1]) : null;
+    if (sel === UNCLEAR_SELECTION) return { kind: "unclear" };
+    const s = sel;
     if (only && !s) return { kind: "unclear" };
     // One unmarked number without "only"/"just" ("yes 3", "send 3") may be a count or a number: unclear. "#3",
     // "number 3" and "only 3" are clear.
     if (s && !only && !s.names.length && s.nums.length === 1 && !/(?:#|\bnumber\b|\bno\.)/.test(body)) return { kind: "unclear" };
-    // A named employer after a bare "yes" ("yes acme") is not clear enough: unclear, never approved. A yes followed by a
-    // sentence ("yes, that's my resume", "yes I want alerts for data jobs") is not about the card at all: the brain's.
-    if (s && bare && s.names.length) {
-      const nameLike = s.names.length === 1 && !s.nums.length && s.names[0].split(" ").length <= 2 &&
-        !/\b(?:my|your|our|me|i|i'?m|it'?s|that'?s|this|is|are|was|were|be|do|did|want|need|have|got|can|will|would)\b/.test(s.names[0]);
-      return nameLike ? { kind: "unclear" } : null;
-    }
+    // A named employer after a bare "yes" ("yes acme") is not clear enough: unclear, never approved.
+    if (s && bare && s.names.length) return { kind: "unclear" };
     if (s && (only || pick || !s.names.length)) {
       r = softYes && bare ? { kind: "unclear" } : { kind: "only", only: s.nums };
       if (r.kind === "only" && s.names.length) r.onlyNames = s.names;
@@ -233,7 +282,7 @@ export function parseCardReply(text: string): CardReply | null {
   if (!r) {
     // "1, 2 and 5" alone, two or more numbers: those only. One bare number is a question, not an answer.
     const s = /^[\d\s,&+#-]+(?:\s*and\s+#?\d+)?$/.test(t) ? parseSelection(t) : null;
-    if (s && !s.names.length && s.nums.length >= 2) r = { kind: "only", only: s.nums };
+    if (s && s !== UNCLEAR_SELECTION && !s.names.length && s.nums.length >= 2) r = { kind: "only", only: s.nums };
   }
   if (r && asked) return { kind: "unclear" };
   if (!r && hadYes && /^(?:but|except|only|just|and)\b/.test(body)) return { kind: "unclear" };
@@ -291,14 +340,15 @@ export interface Batch {
   more: number; // ready but not on this card (only while the database's bound applies)
   skipped: Prepared[]; // too long for a text: left for the app
 }
-export function batchFor(pending: Prepared[], o: { max?: number } = {}): Batch | { tooLong: Prepared } | null {
+// `beyond`: applications ready past what this turn read (the store's one bounded read), said with the rest that wait.
+export function batchFor(pending: Prepared[], o: { max?: number; beyond?: number } = {}): Batch | { tooLong: Prepared } | null {
   if (!pending.length) return null;
   const roomFor = PAGE_CHARS - BATCH_HEAD(9999, 99).length - 2;
   const fits = pending.filter((p) => one(p, 9999).length <= roomFor);
   const skipped = pending.filter((p) => !fits.includes(p));
   if (!fits.length) return { tooLong: pending[0] };
   const paginate = (k: number, pagesGuess: number) => {
-    const take = fits.slice(0, k), more = fits.length - k;
+    const take = fits.slice(0, k), more = fits.length - k + Math.max(0, o.beyond ?? 0);
     const tail = [
       ...(more > 0
         ? [`${more} more ${more === 1 ? "is" : "are"} ready; ${more === 1 ? "it comes" : "they come"} on the next card after you answer this one.`]
@@ -437,8 +487,10 @@ export async function cardTurn(
       if (ready !== true) return { reply: CARD_RESUME_UNREAD, status: "resume_unreadable" };
     }
     // OWNER RULE (2026-10-26): only applications that send a resume are ever on a card (sendsResume, fail closed).
-    const pending = (await o.store.pending(o.userId)).filter(sendsResume);
-    let c = batchFor(pending);
+    // NO LIMITS (review of #223): one bounded read (PENDING_READ); past it, the card says how many more wait, never silent.
+    const page = o.store.pendingPage ? await o.store.pendingPage(o.userId, PENDING_READ) : { rows: await o.store.pending(o.userId), more: 0 };
+    const pending = page.rows.filter(sendsResume);
+    let c = batchFor(pending, { beyond: page.more });
     if (!c) {
       return {
         reply: "Nothing is prepared yet. Prepare applications on your computer first; they show up here.",
@@ -459,7 +511,7 @@ export async function cardTurn(
       // Before builder A's D-MS-2 migration the database refuses a card of more than 8: the first 8 are shown and the
       // reply says how many more wait. Any other refusal is the turn's error, as before.
       if (!(c.take.length > DB_CARD_MAX_BEFORE_DMS2 && /invalid card/.test(String((e as Error)?.message ?? e)))) throw e;
-      const smaller = batchFor(pending, { max: DB_CARD_MAX_BEFORE_DMS2 });
+      const smaller = batchFor(pending, { max: DB_CARD_MAX_BEFORE_DMS2, beyond: page.more });
       if (!smaller || "tooLong" in smaller) throw e;
       c = smaller;
       opened = await o.store.open(o.userId, c.take.map((p) => p.id));
@@ -522,14 +574,19 @@ export async function cardTurn(
     const companies = o.store.cardCompanies
       ? await o.store.cardCompanies(o.userId, ids)
       : new Map((await o.store.pending(o.userId)).map((p) => [p.id, p.company] as const));
-    const missing: string[] = [];
+    const missing: string[] = [], ambiguous: string[] = [];
     for (const name of names) {
-      const hit = card.items.filter((i) => companies.has(i.prepared_id) && sameCompany(companies.get(i.prepared_id), name)).map((i) => i.n);
+      const hit = card.items.filter((i) => companies.has(i.prepared_id) && namesEmployer(name, companies.get(i.prepared_id)!));
       if (!hit.length) missing.push(name);
-      byName.push(...hit);
+      // "only acme" with two Acmes on the card: which one is not guessed. (Leaving out every Acme is safe: it sends less.)
+      if (r.kind === "only" && new Set(hit.map((i) => companyTokens(companies.get(i.prepared_id)).join(" "))).size > 1) ambiguous.push(name);
+      byName.push(...hit.map((i) => i.n));
     }
     if (missing.length) {
       return waiting(`No application on this card is from ${missing.map((m) => `"${m}"`).join(" or ")}, so nothing was approved. ${HOW(total)}`, "not_named");
+    }
+    if (ambiguous.length) {
+      return waiting(`More than one employer on this card matches ${ambiguous.map((m) => `"${m}"`).join(" and ")}, so nothing was approved. Say which by number ("only 1, 3") or by the employer's full name.`, "unclear");
     }
   }
   const leaveOut = r.kind === "no" ? numbers : r.kind === "yes" || r.kind === "except_only" ? [...new Set([...r.except, ...byName])] : [];
@@ -610,15 +667,23 @@ export function supabaseCardStore(admin: any): CardStore {
     if (r.error) throw new Error(`${what}: ${r.error.message}`);
     return r.data;
   };
+  // limit + 1 rows tell whether more wait; only then are the rest counted (one head-only count, no rows read).
+  const pendingPage = async (userId: string, limit: number): Promise<{ rows: Prepared[]; more: number }> => {
+    const rows: Prepared[] = must(
+      await admin.from("career_apply_prepared").select("id,company,card_lines,created_at,resume_sha256:payload->>resume_sha256").eq("user_id", userId)
+        .in("state", ["ready", "shown"]).order("created_at", { ascending: true }).order("id", { ascending: true }).limit(limit + 1),
+      "read prepared applications",
+    ) ?? [];
+    if (rows.length <= limit) return { rows, more: 0 };
+    const counted = await admin.from("career_apply_prepared").select("id", { count: "exact", head: true }).eq("user_id", userId).in("state", ["ready", "shown"]);
+    if (counted.error) throw new Error(`count prepared applications: ${counted.error.message}`);
+    return { rows: rows.slice(0, limit), more: Math.max(1, Number(counted.count ?? limit + 1) - limit) };
+  };
   return {
     async pending(userId) {
-      // D-MS-2: the whole batch, not the first 30.
-      return must(
-        await admin.from("career_apply_prepared").select("id,company,card_lines,created_at,resume_sha256:payload->>resume_sha256").eq("user_id", userId)
-          .in("state", ["ready", "shown"]).order("created_at", { ascending: true }).limit(1000),
-        "read prepared applications",
-      ) ?? [];
+      return (await pendingPage(userId, PENDING_READ)).rows;
     },
+    pendingPage,
     async open(userId, ids) {
       return must(await admin.rpc("career_apply_card_open_as", { p_user: userId, p_ids: ids }), "open a card");
     },

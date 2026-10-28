@@ -12,7 +12,11 @@
 --     (the worker, _shared/career_send_rail.ts); the claim only hands it back with its attempt count.
 --   * Opt-out ("stop", "unsubscribe", "not interested") is honoured forever (career_outreach_dnc, kept through an erase);
 --     a bounced address is never emailed again by anyone (career_send_bad_addresses, a hash only, names nobody).
---   * Never the same person twice for outreach, except one approved follow-up to a sent email that got no reply.
+--   * Never the same person twice for outreach, except the follow-ups the person approves (a sequence of any length,
+--     each approved; the whole sequence stops at any reply, opt-out or bounce).
+--   * Mailbox protection (reacting to outside signals, not a volume limit): when an account's own recent sends bounce
+--     too often, or Gmail answers with a spam or policy refusal, that account's queue pauses, the person is told with the
+--     numbers, and it resumes when they say so (career_send_resume).
 --   * Disconnecting Gmail cancels everything still queued; an erase deletes the queue (career_erase_person finds the
 --     tables from the catalog); deleting the account removes it all.
 --
@@ -75,7 +79,7 @@ grant all on public.career_send_queue to service_role;
 create table if not exists public.career_send_accounts (
   user_id uuid not null references public.profiles(id) on delete cascade,
   provider text not null check (provider in ('gmail', 'outlook')),
-  state text not null default 'ok' check (state in ('ok', 'backoff', 'needs_reconnect', 'disconnected')),
+  state text not null default 'ok' check (state in ('ok', 'backoff', 'needs_reconnect', 'disconnected', 'paused')),
   resume_at timestamptz,
   reason text check (reason is null or length(reason) <= 300),
   strikes int not null default 0 check (strikes >= 0),
@@ -105,6 +109,14 @@ grant all on public.career_send_bad_addresses to service_role;
 -- The opt-out list is read by address alone (a "stop" holds for everyone's email to that address); its key starts with
 -- the person, so without this every check would read the whole list.
 create index if not exists career_outreach_dnc_email on public.career_outreach_dnc (email_hash);
+
+-- The connection row behind each sending provider: Gmail is the career Google grant, Outlook the Microsoft grant (#226).
+create or replace function public.career_send_connection(p_provider text) returns text
+language sql immutable set search_path = public, pg_temp as $$
+  select case p_provider when 'gmail' then 'google_career' when 'outlook' then 'microsoft' end
+$$;
+revoke all on function public.career_send_connection(text) from public, anon, authenticated;
+grant execute on function public.career_send_connection(text) to service_role;
 
 create or replace function public.career_send_email_hash(p_email text) returns text
 language sql immutable set search_path = public, pg_temp as $$
@@ -144,7 +156,8 @@ begin
     exception when others then why := 'invalid'; end;
     if why is null and (k is null or k not in ('outreach', 'application', 'general') or src is null or h !~ '^[a-f0-9]{64}$') then why := 'invalid'; end if;
     if why is null and (it ? 'cc' or it ? 'bcc') then why := 'cc_bcc_not_approved'; end if;
-    if why is null and prov = 'gmail' and not exists (select 1 from public.user_oauth_connections c where c.user_id = u and c.provider = 'google_career') then why := 'not_connected'; end if;
+    if why is null and prov not in ('gmail', 'outlook') then why := 'invalid'; end if;
+    if why is null and not exists (select 1 from public.user_oauth_connections c where c.user_id = u and c.provider = public.career_send_connection(prov)) then why := 'not_connected'; end if;
     if why is null and k = 'outreach' then
       select * into d from public.career_outreach_drafts where id = src and user_id = u;
       if not found then why := 'not_found';
@@ -162,21 +175,25 @@ begin
         continue;
       end if;
     end if;
+    -- A follow-up names the first email of its sequence (follow_up_of): the person's own, to the same address, not
+    -- answered, bounced or dropped. A sequence may be as long as the person approves; it stops at any reply.
     if why is null and fu is not null then
       select * into orig from public.career_send_queue where id = fu and user_id = u;
+      if found and orig.follow_up_of is not null then select * into orig from public.career_send_queue where id = orig.follow_up_of and user_id = u; end if;
       if not found or orig.recipient_email <> to_ then why := 'follow_up_refused';
-      elsif orig.state = 'replied' then why := 'replied';
-      elsif orig.state <> 'sent' then why := 'follow_up_refused';
-      elsif exists (select 1 from public.career_send_queue f where f.follow_up_of = fu and f.state not in ('refused', 'cancelled', 'failed')) then why := 'follow_up_refused';
+      elsif orig.state = 'replied' or exists (select 1 from public.career_send_queue f where f.follow_up_of = orig.id and f.state = 'replied') then why := 'replied';
+      elsif orig.state not in ('queued', 'sending', 'sent') then why := 'follow_up_refused';
+      else fu := orig.id;
       end if;
     end if;
-    -- Outreach: never the same person twice, except the one follow-up above.
+    -- Outreach: never the same person twice, except the follow-ups above.
     if why is null and k = 'outreach' and fu is null and exists (select 1 from public.career_send_queue q where q.user_id = u and q.recipient_email = to_
         and q.kind = 'outreach' and q.state in ('queued', 'sending', 'sent', 'replied', 'bounced')) then why := 'already_emailed'; end if;
     if why is null then
       begin
-        insert into public.career_send_queue(user_id, kind, source_id, approval_hash, idem_key, provider, recipient_email, subject, body, follow_up_of, address_type, address_format)
-        values (u, k, src, h, k || ':' || src || ':' || h, prov, to_, coalesce(it->>'subject', ''), coalesce(it->>'body', ''), fu, nullif(it->>'address_type', ''), nullif(it->>'address_format', ''))
+        insert into public.career_send_queue(user_id, kind, source_id, approval_hash, idem_key, provider, recipient_email, subject, body, follow_up_of, address_type, address_format, next_at)
+        values (u, k, src, h, k || ':' || src || ':' || h, prov, to_, coalesce(it->>'subject', ''), coalesce(it->>'body', ''), fu, nullif(it->>'address_type', ''), nullif(it->>'address_format', ''),
+          greatest(now(), coalesce(nullif(it->>'send_at', '')::timestamptz, now())))
         on conflict (idem_key) do nothing
         returning id into new_id;
       exception when check_violation then why := 'invalid';
@@ -217,7 +234,7 @@ declare
   lease interval := make_interval(secs => coalesce((p->>'lease_seconds')::int, 120));
   t timestamptz := coalesce((p->>'now')::timestamptz, now());
   a public.career_send_accounts; q public.career_send_queue; d public.career_outreach_drafts;
-  items jsonb; out jsonb := '[]'::jsonb; bad text;
+  items jsonb; out jsonb := '[]'::jsonb; bad text; me text; root text;
 begin
   if w is null or length(w) > 100 or n_acc < 1 or per < 1 or lease <= interval '0' then raise exception 'invalid send claim'; end if;
   -- Leases that lapsed (a worker that died): back to queued with their attempt count, so the next worker checks the
@@ -244,6 +261,8 @@ begin
       continue;
     end if;
     items := '[]'::jsonb;
+    -- The person's own address (the connection's), for the List-Unsubscribe header of cold outreach.
+    me := (select lower(c.email) from public.user_oauth_connections c where c.user_id = a.user_id and c.provider = 'google_career');
     for q in
       select * from public.career_send_queue
       where user_id = a.user_id and provider = a.provider and state = 'queued' and next_at <= t
@@ -258,6 +277,20 @@ begin
       if bad is not null then
         update public.career_send_queue set state = 'cancelled', result = bad, updated_at = now() where id = q.id;
         continue;
+      end if;
+      -- A follow-up goes only after its sequence's first email went; an answered or dropped sequence never continues.
+      if q.follow_up_of is not null then
+        root := (select r.state from public.career_send_queue r where r.id = q.follow_up_of);
+        if root is null or root in ('replied', 'bounced', 'cancelled', 'refused', 'failed') then
+          update public.career_send_queue set state = 'cancelled', result = 'sequence stopped', updated_at = now() where id = q.id;
+          continue;
+        elsif root <> 'sent' then
+          continue;
+        -- One step of a sequence at a time, in order: an earlier follow-up still waiting or in flight goes first.
+        elsif exists (select 1 from public.career_send_queue p where p.follow_up_of = q.follow_up_of and p.id <> q.id
+            and p.state in ('queued', 'sending') and (p.next_at, p.created_at, p.id) < (q.next_at, q.created_at, q.id)) then
+          continue;
+        end if;
       end if;
       if q.kind = 'outreach' then
         select * into d from public.career_outreach_drafts where id = q.source_id and user_id = q.user_id for update;
@@ -277,6 +310,7 @@ begin
       items := items || jsonb_build_object('id', q.id, 'user_id', q.user_id, 'kind', q.kind, 'source_id', q.source_id,
         'approval_hash', q.approval_hash, 'provider', q.provider, 'to', q.recipient_email, 'subject', q.subject, 'body', q.body,
         'attempts', q.attempts, 'first_claimed_at', q.first_claimed_at, 'follow_up_of', q.follow_up_of, 'address_type', q.address_type,
+        'from_email', me,
         -- The outreach draft as it is stored now, read under its row lock: the worker re-hashes it before sending.
         'draft', case when q.kind = 'outreach' then jsonb_build_object('recipient', d.recipient, 'subject', d.subject, 'body', d.body, 'footer', d.footer) end);
     end loop;
@@ -341,9 +375,9 @@ begin
     update public.career_send_accounts set strikes = 0, reason = null, updated_at = now() where user_id = q.user_id and provider = q.provider and strikes > 0;
     return 'sent';
   end if;
-  if o in ('retry', 'quota', 'reconnect') then
+  if o in ('retry', 'quota', 'reconnect', 'policy') then
     -- Gmail was disconnected while this one was in flight: it is cancelled with the rest, never queued again.
-    if a.state = 'disconnected' or not exists (select 1 from public.user_oauth_connections c where c.user_id = q.user_id and c.provider = 'google_career') then
+    if a.state = 'disconnected' or not exists (select 1 from public.user_oauth_connections c where c.user_id = q.user_id and c.provider = public.career_send_connection(q.provider)) then
       update public.career_send_queue set state = 'cancelled', result = 'gmail disconnected', lease_owner = null, lease_until = null, updated_at = now() where id = q.id;
       if q.kind = 'outreach' then update public.career_outreach_drafts set status = 'skipped', approved_hash = null, approved_at = null, result = 'gmail disconnected', updated_at = now() where id = q.source_id and user_id = q.user_id and status = 'sending'; end if;
       return 'cancelled';
@@ -365,6 +399,12 @@ begin
         'Gmail has paused sending from your account for now: it limits how much one account can send. ' || waiting ||
         ' approved email' || case when waiting = 1 then ' is' else 's are' end || ' waiting, and Trainee carries on automatically when Gmail allows (around ' ||
         to_char(a.resume_at at time zone 'UTC', 'Mon DD, HH24:MI') || ' UTC). Nothing is lost and nothing is sent twice.');
+    elsif o = 'policy' then
+      update public.career_send_accounts set state = 'paused', reason = left('Gmail refused as spam or policy: ' || detail, 300), updated_at = now()
+      where user_id = q.user_id and provider = q.provider;
+      perform public.career_send_notice(q.user_id, 'send-policy:' || q.user_id || ':' || to_char(now() at time zone 'UTC', 'YYYYMMDDHH24'),
+        'Trainee paused sending from your Gmail: Google refused an email as possible spam or against its sending policy. ' || waiting ||
+        ' approved email' || case when waiting = 1 then ' is' else 's are' end || ' waiting and nothing more goes until you say "resume sending". Sending more right now could hurt your account''s standing.');
     elsif o = 'reconnect' then
       update public.career_send_accounts set state = 'needs_reconnect', reason = left(detail, 300), updated_at = now()
       where user_id = q.user_id and provider = q.provider;
@@ -419,14 +459,14 @@ declare out jsonb;
 begin
   with due as (
     select id from public.career_send_queue
-    where state = 'sent' and gmail_thread is not null and sent_at >= coalesce((p->>'since')::timestamptz, now() - interval '30 days')
+    where state = 'sent' and provider = 'gmail' and gmail_thread is not null and sent_at >= coalesce((p->>'since')::timestamptz, now() - interval '30 days')
       and (checked_at is null or checked_at < now() - make_interval(secs => coalesce((p->>'recheck_seconds')::int, 900)))
     order by checked_at nulls first, sent_at
     limit greatest(1, coalesce((p->>'limit')::int, 200))
     for update skip locked
   ), stamped as (
     update public.career_send_queue s set checked_at = now() from due where s.id = due.id
-    returning s.id, s.user_id, s.kind, s.source_id, s.recipient_email, s.gmail_id, s.gmail_thread, s.address_type, s.address_format
+    returning s.id, s.user_id, s.kind, s.source_id, s.recipient_email, s.gmail_id, s.gmail_thread, s.address_type, s.address_format, s.sent_at
   )
   select coalesce(jsonb_agg(to_jsonb(stamped)), '[]'::jsonb) into out from stamped;
   return out;
@@ -434,21 +474,42 @@ end $$;
 revoke all on function public.career_send_replies_due(jsonb) from public, anon, authenticated;
 grant execute on function public.career_send_replies_due(jsonb) to service_role;
 
--- p: {id, kind: bounce | stop | reply, detail?}. bounce: the address is bad forever, for everyone, and every email still
--- queued to it is cancelled. stop: the address is on the opt-out list forever, and every email still queued to it is
--- cancelled. reply: the person's follow-ups to it are cancelled. Returns what it recorded.
+-- p: {id, kind: bounce | stop | reply, detail?, pause?: {window, bounces, rate}}. bounce: the address is bad forever,
+-- for everyone, and every email still queued to it is cancelled; then the account's own recent sends are looked at (the
+-- last `window`, default 50): at least `bounces` (default 5) bounced and at least `rate` (default 0.1) of them, and the
+-- account pauses with the numbers said to the person. stop: the address is on the opt-out list forever, and every email
+-- still queued to it is cancelled. reply: the rest of that email's follow-up sequence is cancelled. Returns what it
+-- recorded.
 create or replace function public.career_send_record(p jsonb) returns text
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare q public.career_send_queue; k text := p->>'kind';
+declare
+  q public.career_send_queue; k text := p->>'kind'; root uuid;
+  win int := greatest(1, coalesce((p->'pause'->>'window')::int, 50)); min_b int := greatest(1, coalesce((p->'pause'->>'bounces')::int, 5));
+  rate numeric := coalesce((p->'pause'->>'rate')::numeric, 0.1); n int; b int; waiting int;
 begin
   select * into q from public.career_send_queue where id = (p->>'id')::uuid for update;
   if not found or q.state not in ('sent', 'replied', 'bounced') then return 'not_sent'; end if;
+  root := coalesce(q.follow_up_of, q.id);
   if k = 'bounce' then
     insert into public.career_send_bad_addresses(email_hash, reason) values (public.career_send_email_hash(q.recipient_email), 'bounced')
     on conflict (email_hash) do nothing;
     update public.career_send_queue set state = 'bounced', result = left(coalesce(p->>'detail', 'bounced'), 300), updated_at = now() where id = q.id;
     update public.career_send_queue set state = 'cancelled', result = 'bad_address', updated_at = now() where recipient_email = q.recipient_email and state = 'queued';
     if q.kind = 'outreach' then update public.career_outreach_drafts set status = 'bounced', result = 'bounce', updated_at = now() where id = q.source_id and user_id = q.user_id; end if;
+    -- Mailbox protection: the account's own recent sends.
+    select count(*), count(*) filter (where state = 'bounced') into n, b from (
+      select state from public.career_send_queue where user_id = q.user_id and provider = q.provider and sent_at is not null
+        and state in ('sent', 'replied', 'bounced') order by sent_at desc limit win) r;
+    if b >= min_b and b::numeric >= rate * n
+       and exists (select 1 from public.career_send_accounts where user_id = q.user_id and provider = q.provider and state in ('ok', 'backoff')) then
+      select count(*) into waiting from public.career_send_queue where user_id = q.user_id and provider = q.provider and state in ('queued', 'sending');
+      update public.career_send_accounts set state = 'paused', reason = b || ' of the last ' || n || ' emails bounced', updated_at = now()
+      where user_id = q.user_id and provider = q.provider;
+      perform public.career_send_notice(q.user_id, 'send-bounces:' || q.user_id || ':' || to_char(now() at time zone 'UTC', 'YYYYMMDDHH24'),
+        'Trainee paused sending from your Gmail: ' || b || ' of your last ' || n || ' emails bounced (' || round(100.0 * b / n) ||
+        '%). Many bounces can hurt your account''s standing with Gmail. Those addresses won''t be emailed again. ' || waiting ||
+        ' approved email' || case when waiting = 1 then ' is' else 's are' end || ' waiting; say "resume sending" when you want them to go.');
+    end if;
   elsif k in ('stop', 'reply') then
     if k = 'stop' then
       insert into public.career_outreach_dnc(user_id, email_hash, reason) values (q.user_id, public.career_send_email_hash(q.recipient_email), 'recipient asked to stop')
@@ -456,7 +517,9 @@ begin
       update public.career_send_queue set state = 'cancelled', result = 'opted_out', updated_at = now() where recipient_email = q.recipient_email and state = 'queued';
     end if;
     update public.career_send_queue set state = 'replied', result = k, updated_at = now() where id = q.id;
-    update public.career_send_queue set state = 'cancelled', result = 'they replied', updated_at = now() where follow_up_of = q.id and state = 'queued';
+    -- An answer to any email of a sequence stops the whole sequence, and the first email counts as answered.
+    update public.career_send_queue set state = 'replied', result = k, updated_at = now() where id = root and state = 'sent';
+    update public.career_send_queue set state = 'cancelled', result = 'they replied', updated_at = now() where follow_up_of = root and state = 'queued';
     if q.kind = 'outreach' then update public.career_outreach_drafts set status = 'replied', result = k, updated_at = now() where id = q.source_id and user_id = q.user_id; end if;
   else
     raise exception 'unknown reply kind %', k;
@@ -479,6 +542,24 @@ $$;
 revoke all on function public.career_send_status(jsonb) from public, anon, authenticated;
 grant execute on function public.career_send_status(jsonb) to service_role;
 
+-- p: {user, provider?}: the person says "resume sending" after a pause (bounces, or Gmail's spam or policy refusal).
+-- Returns 'resumed', or the account's state when it was not paused.
+create or replace function public.career_send_resume(p jsonb) returns text
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare st text;
+begin
+  update public.career_send_accounts set state = 'ok', reason = null, updated_at = now(),
+    has_work = exists (select 1 from public.career_send_queue q where q.user_id = career_send_accounts.user_id and q.provider = career_send_accounts.provider and q.state = 'queued')
+  where user_id = (p->>'user')::uuid and provider = coalesce(p->>'provider', 'gmail') and state = 'paused'
+  returning 'resumed' into st;
+  if st is null then
+    st := coalesce((select state from public.career_send_accounts where user_id = (p->>'user')::uuid and provider = coalesce(p->>'provider', 'gmail')), 'none');
+  end if;
+  return st;
+end $$;
+revoke all on function public.career_send_resume(jsonb) from public, anon, authenticated;
+grant execute on function public.career_send_resume(jsonb) to service_role;
+
 -- p: {user, source_ids?}: the person takes back emails still queued (all, or those drafts). Returns how many.
 create or replace function public.career_send_cancel(p jsonb) returns int
 language plpgsql security definer set search_path = public, pg_temp as $$
@@ -494,27 +575,31 @@ revoke all on function public.career_send_cancel(jsonb) from public, anon, authe
 grant execute on function public.career_send_cancel(jsonb) to service_role;
 
 -- ---------------------------------------------------------------------------------------------- connect, disconnect
--- Disconnecting the career Google grant (any path that deletes its row) cancels every email still queued from it.
--- Reconnecting (a new or replaced row) lifts needs_reconnect: what was waiting goes out.
+-- Disconnecting a mailbox that sends (the career Google grant for Gmail, the Microsoft grant for Outlook; any path that
+-- deletes its row) cancels every email still queued from it. Reconnecting (a new or replaced row) lifts needs_reconnect:
+-- what was waiting goes out.
 create or replace function public.career_send_on_google() returns trigger
 language plpgsql security definer set search_path = public, pg_temp as $$
+declare prov text;
 begin
   if tg_op = 'DELETE' then
-    if old.provider = 'google_career' then
-      update public.career_send_queue set state = 'cancelled', result = 'gmail disconnected', updated_at = now()
-      where user_id = old.user_id and provider = 'gmail' and state = 'queued';
-      update public.career_outreach_drafts set status = 'skipped', approved_hash = null, approved_at = null, result = 'gmail disconnected', updated_at = now()
+    prov := case old.provider when 'google_career' then 'gmail' when 'microsoft' then 'outlook' end;
+    if prov is not null then
+      update public.career_send_queue set state = 'cancelled', result = prov || ' disconnected', updated_at = now()
+      where user_id = old.user_id and provider = prov and state = 'queued';
+      update public.career_outreach_drafts set status = 'skipped', approved_hash = null, approved_at = null, result = prov || ' disconnected', updated_at = now()
       where user_id = old.user_id and status = 'approved'
-        and id in (select source_id from public.career_send_queue where user_id = old.user_id and kind = 'outreach' and result = 'gmail disconnected');
-      update public.career_send_accounts set state = 'disconnected', has_work = false, reason = 'gmail disconnected', updated_at = now()
-      where user_id = old.user_id and provider = 'gmail';
+        and id in (select source_id from public.career_send_queue where user_id = old.user_id and kind = 'outreach' and result = prov || ' disconnected');
+      update public.career_send_accounts set state = 'disconnected', has_work = false, reason = prov || ' disconnected', updated_at = now()
+      where user_id = old.user_id and provider = prov;
     end if;
     return old;
   end if;
-  if new.provider = 'google_career' then
+  prov := case new.provider when 'google_career' then 'gmail' when 'microsoft' then 'outlook' end;
+  if prov is not null then
     update public.career_send_accounts set state = 'ok', resume_at = null, reason = null, strikes = 0, updated_at = now(),
-      has_work = exists (select 1 from public.career_send_queue where user_id = new.user_id and provider = 'gmail' and state = 'queued')
-    where user_id = new.user_id and provider = 'gmail' and state in ('needs_reconnect', 'disconnected');
+      has_work = exists (select 1 from public.career_send_queue where user_id = new.user_id and provider = prov and state = 'queued')
+    where user_id = new.user_id and provider = prov and state in ('needs_reconnect', 'disconnected');
   end if;
   return new;
 end $$;
@@ -522,3 +607,28 @@ revoke all on function public.career_send_on_google() from public, anon, authent
 drop trigger if exists user_oauth_connections_send_rail on public.user_oauth_connections;
 create trigger user_oauth_connections_send_rail after insert or update or delete on public.user_oauth_connections
   for each row execute function public.career_send_on_google();
+
+-- ---------------------------------------------------------------------------------------------- NO LIMITS on the older path
+-- The owner (2026-10-27 19:55 CDT): "no person limit, never set a limit". The older one-at-a-time outreach claim
+-- (20261022120000_career_control_state.sql) held a daily number (20, up to 30), a first-week warm-up (10), 90-second
+-- spacing and 3 emails per address per 30 days across everyone (removed by the owner at 20:40). Redefined here with the
+-- same signature and every non-volume rule kept: the exact approval's hash, its 7-day life, a paused/STOPped/erased
+-- account sends nothing, do-not-contact across every user. p_day_start stays for callers and is no longer read.
+create or replace function public.career_outreach_claim(p_user uuid, p_draft uuid, p_hash text, p_now timestamptz, p_day_start timestamptz)
+returns text language plpgsql security definer set search_path = public, pg_temp as $$
+declare d public.career_outreach_drafts;
+begin
+ if p_user is null or p_draft is null or p_hash is null or p_now is null then raise exception 'invalid outreach claim'; end if;
+ perform pg_advisory_xact_lock(hashtextextended('career_outreach:' || p_user::text, 0));
+ select * into d from public.career_outreach_drafts where id = p_draft and user_id = p_user for update;
+ if not found or d.status <> 'approved' or d.approved_hash is null then return 'not_approved'; end if;
+ if d.approved_hash <> p_hash or d.hash <> p_hash then return 'changed'; end if;
+ if greatest(d.approved_at, d.created_at) < p_now - interval '7 days' then return 'expired'; end if;
+ if public.career_user_quiet(p_user) then return 'paused'; end if;
+ if exists (select 1 from public.career_outreach_dnc
+   where email_hash = encode(sha256(convert_to(lower(d.recipient_email), 'UTF8')), 'hex')) then return 'do_not_contact'; end if;
+ update public.career_outreach_drafts set status = 'sending', sent_at = p_now, updated_at = now() where id = d.id;
+ return 'ok';
+end $$;
+revoke all on function public.career_outreach_claim(uuid, uuid, text, timestamptz, timestamptz) from public, anon, authenticated;
+grant execute on function public.career_outreach_claim(uuid, uuid, text, timestamptz, timestamptz) to service_role;

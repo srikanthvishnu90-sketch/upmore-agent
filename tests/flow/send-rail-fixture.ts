@@ -23,9 +23,10 @@ export async function railDb(): Promise<RailDb> {
 
 const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
 // A person with a career Google grant (the connection row only: the fake token stands for the vault entry).
-export async function person(db: RailDb, id: string, o: { connected?: boolean } = {}) {
+export async function person(db: RailDb, id: string, o: { connected?: boolean; outlook?: boolean } = {}) {
   await db.sql.query(`insert into auth.users(id, email) values (${q(id)}, ${q(`${id.slice(-6)}@example.test`)}) on conflict do nothing;
     insert into public.profiles(id) values (${q(id)}) on conflict do nothing;
+    ${o.outlook ? `insert into public.user_oauth_connections(user_id, provider, vault_name, email, scopes) values (${q(id)}, 'microsoft', ${q(`oauth_microsoft_${id}`)}, 'me@outlook.example', 'Mail.Send Mail.Read') on conflict do nothing;` : ""}
     ${o.connected === false ? "" : `insert into public.user_oauth_connections(user_id, provider, vault_name, email, scopes) values (${q(id)}, 'google_career', ${q(`oauth_google_career_${id}`)}, 'me@example.test', 'openid email https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send') on conflict do nothing;`}`);
 }
 export const uid = (n: number, tag = "5e") => `00000000-0000-4000-8${tag.padStart(3, "0")}-${n.toString(16).padStart(12, "0")}`;
@@ -76,6 +77,8 @@ export class FakeGmail {
   // Called after Gmail accepted a send and before the worker hears back: lets a test kill the worker there.
   afterAccept: ((m: SentMail) => void) | null = null;
   private seq = 0;
+  // Ids unique across fakes: a later test's Gmail must never answer for an earlier one's thread.
+  private tag = crypto.randomUUID().slice(0, 8);
   fetch = async (input: Request | URL | string, init?: RequestInit): Promise<Response> => {
     const req = input instanceof Request && !init ? input : new Request(input as any, init);
     const u = new URL(req.url);
@@ -99,7 +102,7 @@ export class FakeGmail {
         const [head, body] = raw.split("\r\n\r\n");
         const headers = head.split("\r\n");
         const h = (name: string) => headers.filter((l) => l.toLowerCase().startsWith(`${name.toLowerCase()}:`)).map((l) => l.slice(name.length + 1).trim());
-        const m: SentMail = { id: `m${++this.seq}`, threadId: `t${this.seq}`, account, to: h("To").join(","), subject: decodeWord(h("Subject")[0] ?? ""),
+        const m: SentMail = { id: `m${this.tag}-${++this.seq}`, threadId: `t${this.tag}-${this.seq}`, account, to: h("To").join(","), subject: decodeWord(h("Subject")[0] ?? ""),
           text: new TextDecoder().decode(Uint8Array.from(atob(body.replace(/\r\n/g, "")), (c) => c.charCodeAt(0))).replace(/\r\n/g, "\n"), headers, at: Date.now() };
         this.sent.push(m);
         this.threads.set(m.threadId, [{ id: m.id, labelIds: ["SENT"], from: "me@example.test", subject: m.subject, snippet: m.text.slice(0, 100) }]);
@@ -111,6 +114,13 @@ export class FakeGmail {
     }
     if (req.method === "GET" && path === "/messages") {
       const qs = u.searchParams.get("q") ?? "";
+      // A search of the person's inbox (from: and subject:), e.g. the List-Unsubscribe mailto arriving as a new email.
+      const from = /from:(\S+)/.exec(qs)?.[1];
+      if (from) {
+        const word = /subject:(\S+)/.exec(qs)?.[1]?.toLowerCase() ?? "";
+        const hits = this.inbox.filter((m) => m.account === account && m.from.toLowerCase().includes(from) && m.subject.toLowerCase().includes(word));
+        return Response.json({ messages: hits.map((m) => ({ id: m.id })) });
+      }
       const to = /to:(\S+)/.exec(qs)?.[1] ?? "", after = Number(/after:(\d+)/.exec(qs)?.[1] ?? 0) * 1000;
       const hits = this.sent.filter((m) => m.account === account && m.to === to && m.at >= after);
       return Response.json({ messages: hits.map((m) => ({ id: m.id, threadId: m.threadId })) });
@@ -129,6 +139,9 @@ export class FakeGmail {
     }
     return new Response("{}", { status: 404 });
   };
+  inbox: { id: string; account: string; from: string; subject: string }[] = [];
+  // A new email in the person's inbox, outside any thread Trainee started.
+  received(account: string, from: string, subject: string) { this.inbox.push({ id: `i${++this.seq}`, account, from, subject }); }
   reply(threadId: string, from: string, subject: string, snippet: string) {
     this.threads.get(threadId)!.push({ id: `r${++this.seq}`, labelIds: ["INBOX"], from, subject, snippet });
   }

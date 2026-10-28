@@ -101,13 +101,17 @@ select t.ok((select jsonb_agg(e->>'reason') from jsonb_array_elements(public.car
   jsonb_build_object('kind','general','source_id',gen_random_uuid(),'approval_hash',repeat('d',64),'to','b1@example.test','subject','Hi','body','B'),
   jsonb_build_object('kind','general','source_id',gen_random_uuid(),'approval_hash',repeat('d',64),'to','B2@Example.test','subject','Hi','body','B'))))) e) = '["opted_out","bad_address"]'::jsonb,
   'another person''s email to an opted-out or bounced address is refused');
--- One follow-up, only to a sent email without a reply.
+-- Follow-ups: a sequence the person approves, one email at a time, only to the same address, stopped by any answer.
 select t.ok((select public.career_send_enqueue(jsonb_build_object('user','00000000-0000-4000-8000-0000000052a2','items',jsonb_build_array(
   jsonb_build_object('kind','general','source_id',gen_random_uuid(),'approval_hash',repeat('e',64),'to','b3@example.test','subject','Following up','body','B','follow_up_of',(select id from career_send_queue where recipient_email = 'b3@example.test')))))->0->>'status') = 'queued', 'one follow-up is queued');
 select t.ok((select public.career_send_enqueue(jsonb_build_object('user','00000000-0000-4000-8000-0000000052a2','items',jsonb_build_array(
-  jsonb_build_object('kind','general','source_id',gen_random_uuid(),'approval_hash',repeat('f',64),'to','b3@example.test','subject','Again','body','B','follow_up_of',(select id from career_send_queue where recipient_email = 'b3@example.test' and follow_up_of is null)))))->0->>'reason') = 'follow_up_refused', 'never a second follow-up');
+  jsonb_build_object('kind','general','source_id',gen_random_uuid(),'approval_hash',repeat('f',64),'to','b3@example.test','subject','Again','body','B','follow_up_of',(select id from career_send_queue where recipient_email = 'b3@example.test' and follow_up_of is null)))))->0->>'status') = 'queued', 'a second approved follow-up joins the sequence (any length the person approves)');
+select t.ok((select public.career_send_enqueue(jsonb_build_object('user','00000000-0000-4000-8000-0000000052a2','items',jsonb_build_array(
+  jsonb_build_object('kind','general','source_id',gen_random_uuid(),'approval_hash',repeat('f',64),'to','someone-else@example.test','subject','Again','body','B','follow_up_of',(select id from career_send_queue where recipient_email = 'b3@example.test' and follow_up_of is null)))))->0->>'reason') = 'follow_up_refused', 'a follow-up only to the same address');
 select public.career_send_record(jsonb_build_object('id',(select id from career_send_queue where recipient_email = 'b3@example.test' and follow_up_of is null),'kind','reply'));
-select t.ok((select state from career_send_queue where recipient_email = 'b3@example.test' and follow_up_of is not null) = 'cancelled', 'a reply cancels the follow-up');
+select t.ok((select bool_and(state = 'cancelled') and count(*) = 2 from career_send_queue where recipient_email = 'b3@example.test' and follow_up_of is not null), 'a reply cancels the whole rest of the sequence');
+select t.ok((select public.career_send_enqueue(jsonb_build_object('user','00000000-0000-4000-8000-0000000052a2','items',jsonb_build_array(
+  jsonb_build_object('kind','general','source_id',gen_random_uuid(),'approval_hash',repeat('1',64),'to','b3@example.test','subject','Once more','body','B','follow_up_of',(select id from career_send_queue where recipient_email = 'b3@example.test' and follow_up_of is null)))))->0->>'reason') = 'replied', 'nothing follows up an answered email');
 -- Outreach: never the same person twice.
 insert into career_outreach_drafts(id,user_id,batch_id,n,recipient,recipient_email,subject,body,footer,hash,status,approved_hash,approved_at) values
  ('00000000-0000-4000-8000-00000000d004','00000000-0000-4000-8000-0000000052a1','00000000-0000-4000-8000-00000000b002',1,'{}','one@example.test','Again','B','F',repeat('4',64),'approved',repeat('4',64),now());
@@ -136,6 +140,17 @@ select t.must_fail($$select public.career_send_complete('{}'::jsonb)$$,'permissi
 reset role;
 -- No volume number in the rail's code.
 select t.ok(not exists (select 1 from pg_proc where proname like 'career_send_%' and (prosrc ~* 'daily_cap|interval ''90 seconds''|recipient_cap|>= ?3 then')), 'no daily cap, spacing or per-recipient number in any send function');
+-- NO LIMITS on the older one-at-a-time claim too: 40 approved drafts for one person, claimed in the same second, all go
+-- (it held 10 a day in the first week, 20 by default, 90 seconds apart); a changed one and an opted-out one still do not.
+insert into career_outreach_drafts(id,user_id,batch_id,n,recipient,recipient_email,subject,body,footer,hash,status,approved_hash,approved_at)
+ select ('00000000-0000-4000-8000-0000000e' || lpad(g::text, 4, '0'))::uuid,'00000000-0000-4000-8000-0000000052a3',('00000000-0000-4000-8000-0000000f' || lpad(g::text, 4, '0'))::uuid,1,'{}','old'||g||'@example.test','S','B','F',repeat('e',64),'approved',repeat('e',64),now()
+ from generate_series(1,42) g;
+insert into career_outreach_dnc(user_id,email_hash,reason) values('00000000-0000-4000-8000-0000000052a3',public.career_send_email_hash('old42@example.test'),'recipient asked to stop');
+select t.ok((select count(*) from generate_series(1,40) g where public.career_outreach_claim('00000000-0000-4000-8000-0000000052a3',('00000000-0000-4000-8000-0000000e' || lpad(g::text, 4, '0'))::uuid,repeat('e',64),now(),now() - interval '1 hour') = 'ok') = 40,
+  'the older claim: 40 in one second for one new sender, all ok (no daily number, warm-up or spacing)');
+select t.ok(public.career_outreach_claim('00000000-0000-4000-8000-0000000052a3','00000000-0000-4000-8000-0000000e0041',repeat('f',64),now(),now()) = 'changed', 'the older claim still binds the exact approval');
+select t.ok(public.career_outreach_claim('00000000-0000-4000-8000-0000000052a3','00000000-0000-4000-8000-0000000e0042',repeat('e',64),now(),now()) = 'do_not_contact', 'and still honours an opt-out');
+select t.ok(not exists (select 1 from pg_proc where proname = 'career_outreach_claim' and prosrc ~* 'daily_cap|90 seconds|least\(cap|>= 3'), 'no volume number left in career_outreach_claim');
 -- Erase: the queue and the account go; the opt-out and the bad address stay.
 select public.career_erase_person('00000000-0000-4000-8000-0000000052a2');
 select t.ok((select count(*) = 0 from career_send_queue where user_id = '00000000-0000-4000-8000-0000000052a2') and (select count(*) = 0 from career_send_accounts where user_id = '00000000-0000-4000-8000-0000000052a2'), 'an erase deletes the queue and the account row');

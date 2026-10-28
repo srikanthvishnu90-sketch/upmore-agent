@@ -44,7 +44,7 @@ export interface ProactiveDeps {
   // WO-034: interviews (an invite read by mail tracking is briefed in the same run; a dated interview gets its thank-you
   // and nudge drafted) and the weekly digest. Absent: none of the three this run. Nothing here sends mail.
   briefs?: { interviews: () => InterviewStore; drafts: () => Pick<MailStore, "applications" | "events" | "saveDraft">; digest: () => DigestStore };
-  // WO-033: approved outreach, one send per person per run, and the replies on threads already sent. Absent: none.
+  // WO-033: approved outreach (everything approved and due; only Gmail refusing slows a person, NO LIMITS), and the replies on threads already sent. Absent: none.
   // A failure here is reported in the run's answer and never stops the alerts.
   outreach?: (now: number) => Promise<Record<string, unknown>>;
   // MASS NETWORKING M5: replies understood, follow-ups and calls (career_outreach_replies.ts runRepliesLane). Absent: none.

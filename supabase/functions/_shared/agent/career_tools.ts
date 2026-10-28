@@ -22,7 +22,7 @@ import type { DigestStore, InterviewStore } from "../career_brief_store.ts";
 import { DAY_NAMES, DEFAULT_DIGEST, validDigest } from "../career_digest.ts";
 import { contactsOf, hunterPass, knownFirm, LIST_TARGET_USD, listCost, listReport, sameFirm, type Verifier, vendorSource } from "../career_contacts.ts";
 import {
-  BATCH_MAX, batchMessages, batchText, confirmed, draftFor, emailHash, footerOf, MAX_DAILY, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
+  batchMessages, batchText, confirmed, draftFor, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type OutreachStore, payloadHash, recordOutreach, SIGNATURE_ASK,
 } from "../career_outreach.ts";
 import { legacyRows, REFERRAL_ASK, referralMap, targetFirms } from "../career_referrals.ts";
@@ -730,8 +730,8 @@ export function careerTools(deps: {
     },
     {
       name: "draft_outreach", effect: "write_own",
-      description: "Draft up to 10 cold emails, one per person, from contacts the person sent (only addresses that passed every check run; never anyone already emailed or on their do-not-contact list). Each uses only their confirmed facts, that person's row and what both share. Code shows the batch in full; nothing is sent until they approve.",
-      input_schema: obj({ firm: str("Only people at this firm, if they said one"), title: str("Only people whose title has these words, e.g. 'analyst'"), count: { type: "number", description: `How many, at most ${BATCH_MAX}` } }),
+      description: "Draft cold emails, one per person, as many as the person asks for (all who fit when they give no number), from contacts the person sent (only addresses that passed every check run; never anyone already emailed or on their do-not-contact list). Each uses only their confirmed facts, that person's row and what both share. Code shows the batch in full; nothing is sent until they approve.",
+      input_schema: obj({ firm: str("Only people at this firm, if they said one"), title: str("Only people whose title has these words, e.g. 'analyst'"), count: { type: "number", description: "How many, if they said a number; no limit of Trainee's own" } }),
       run: async (i, c) => {
         const o = outreachOf();
         const prefs = await o.store.prefs(c.userId);
@@ -744,7 +744,7 @@ export function careerTools(deps: {
         const [dnc, contacted] = await Promise.all([o.store.dnc(c.userId), o.store.contacted(c.userId)]);
         const held = { no_email: 0, not_verified: 0, already_contacted: 0, do_not_contact: 0 };
         const words = String(i.title ?? "").toLowerCase().split(/\s+/).filter(Boolean);
-        const want = Math.max(1, Math.min(BATCH_MAX, Math.floor(Number(i.count) || BATCH_MAX)));
+        const want = Number.isInteger(Number(i.count)) && Number(i.count) >= 1 ? Number(i.count) : Infinity; // NO LIMITS: never capped by Trainee
         const pick: typeof rows = [];
         for (const r of rows) {
           if (pick.length >= want) break;
@@ -790,19 +790,6 @@ export function careerTools(deps: {
         if (!c.turn || !lines.every((l) => said.includes(l.toLowerCase()))) throw new Error("not saved: the signature must be the person's own words from this message");
         await outreachOf().store.setPrefs(c.userId, { signature: sig });
         return { signature: sig };
-      },
-    },
-    {
-      name: "set_outreach_limit", effect: "write_own",
-      description: `Set how many outreach emails may go out a day, only when the person asks in this message. Default 20, up to ${MAX_DAILY}, never more; the first week of sending stays at 10 a day whatever is set.`,
-      input_schema: obj({ per_day: { type: "number", description: `1 to ${MAX_DAILY}` } }, ["per_day"]),
-      run: async (i, c) => {
-        const n = Number(i.per_day);
-        if (!Number.isInteger(n) || n < 1) throw new Error("not changed: a whole number from 1");
-        if (n > MAX_DAILY) throw new Error(`not changed: ${MAX_DAILY} a day is the most, ever, so their Gmail stays deliverable`);
-        if (!c.turn || !new RegExp(`(^|\\D)${n}(\\D|$)`).test(c.turn.message)) throw new Error("not changed: the person did not ask for that number in this message");
-        await outreachOf().store.setPrefs(c.userId, { daily_cap: n });
-        return { per_day: n, first_week: Math.min(n, 10) };
       },
     },
     {

@@ -76,8 +76,11 @@ Deno.test({ name: "F10: networking emails from chat at the real handler: import,
       eq([up.intent, up.resultStatus], ["career_contacts_import", "imported"], up.reply);
       assert(/Connections\.csv: imported 6\/8 rows into your contacts \(left out: 1 duplicate; row 7: no name\)/.test(up.reply), up.reply);
       assert(/4\/6 have an email address/.test(up.reply) && /never guess an address/.test(up.reply), up.reply);
-      const stored = JSON.parse(await pg.sql(`select state->'career'->'stores'->'contacts' from public.agent_flow_state where user_id = '${me}' order by updated_at desc limit 1`));
+      // Architect ruling R1 (2026-10-27): the contacts are the account's (career_account_contacts), not the chat's; no chat
+      // state carries a copy. Was: the chat snapshot's stores.contacts held the 6 rows.
+      const stored = JSON.parse(await pg.sql(`select coalesce(jsonb_agg(data order by row_key), '[]'::jsonb) from public.career_account_contacts where user_id = '${me}'`));
       eq(stored.length, 6);
+      eq(await pg.sql(`select count(*) from public.agent_flow_state where user_id = '${me}' and state->'career'->'stores' ? 'contacts'`), "0", "no per-chat copy");
       assert(!JSON.stringify(stored).includes("linkedin.com/in/"), "no profile URL kept");
       const pasted = await say(chat, `and these\n${CONTACTS}`);
       assert(/imported 2\/2 rows/.test(pasted.reply), pasted.reply);

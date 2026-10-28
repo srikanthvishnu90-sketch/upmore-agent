@@ -13,10 +13,10 @@
 // Never an invented address: a recipient is a row of the person's own contacts, with the address on that row, or no one.
 // The model writes only when the caller passes one (CAREER_NETWORKING_DRAFT=on, metered); without it the reply names who
 // would be written to and that nothing was drafted.
-import { type ContactRow, contactsOf, importContactsCsv, importContactsFile, MAX_CONTACTS, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
+import { type ContactRow, contactsOf, firmKey, importContactsCsv, importContactsFile, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
-import { BATCH_MAX, batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
-  type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
+import { batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
+  type KeyedContact, type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
 import { trackTurn } from "./career_outreach_track.ts";
 
@@ -149,12 +149,12 @@ export function typedAddress(message: string): { text: string; email: string | n
 }
 export const TYPED_FILE = "what you typed in chat";
 async function keepTyped(o: NetworkingDeps, name: string, firm: string | null, email: string): Promise<void> {
-  const all = contactsOf(o.state);
-  if (all.some((r) => (r.email ?? "").toLowerCase() === email)) return;
-  const row = all.filter((r) => r.file === TYPED_FILE).length + 1;
+  const book = bookOf(o);
+  if ((await book.byEmail(email)).length) return;
+  const row = Math.max(0, ...(await book.inFile(TYPED_FILE)).map((r) => r.row)) + 1;
   const f = firm ? normalizeFirm(firm) : "";
   const [checked] = await verifyRows([{ file: TYPED_FILE, row, name, email, firm: f, firm_raw: firm ?? "", company: f, title: "", school: "", connected_on: null }], o.mx ?? MX_NOT_WIRED);
-  o.state.contacts = [...all, checked];
+  await book.put([checked]);
 }
 
 export interface NetworkingDeps {
@@ -172,75 +172,108 @@ export interface NetworkingDeps {
 }
 export interface NetworkingResult { reply: string; intent: string; status: string; parts?: string[] }
 
-// Contacts live on the account (the outreach store), not the thread (architect ruling R1, 2026-10-27): a list imported
-// in one thread answers in every thread of the same person. The turn runs on the thread state's working copy:
-//   hydrate  the account's rows, plus rows only this thread holds (kept before accounts held contacts) — except a person
-//            the person told Trainee to forget (the record's `forgotten`): a stale thread copy never brings one back;
-//   persist  what this turn changed, as a delta, onto the account record as it stands now (compare-and-set on its
-//            version, re-read and re-applied if another thread wrote first): rows added or changed are written, rows
-//            removed are deleted and their person remembered as forgotten; a person added again on purpose (a new import
-//            that has them) is no longer forgotten. Nothing is written when the account's privacy epoch moved during
-//            the turn (an erase ran): a turn that started before an erase never writes contacts back after it.
-// A store without the record methods keeps the old thread-only behaviour exactly.
+// Contacts belong to the person's account, not a chat (architect ruling R1, 2026-10-27), at any size: they live in
+// career_account_contacts (20261027160100) and every read here is an indexed, paged query for exactly what the ask needs
+// (the people at one firm, the people of one name, one address, a count); no chat keeps a copy, so no copy is capped and
+// none can go stale. A chat state saved before this still carrying `contacts` is moved to the account once (skipping
+// anyone the person told Trainee to forget) and dropped from the chat. Writes carry the account's privacy epoch read
+// at the start of the turn, so a turn that began before "forget everything" writes nothing after it. People the router
+// kept from an earlier export (the profile's connections) are read from the profile as before.
+// A store without the account methods keeps the old per-chat list exactly (o.state.contacts).
 const rowKey = (r: ContactRow) => `${r.file}#${r.row}`;
-// Who a row is: the address, else the name at the firm. What "forgotten" remembers, so another list's row of the same
-// person can't bring them back either.
+// Who a row is: the address, else the name at the firm. The forgotten list remembers this, so another list's row of the
+// same person can't bring them back either.
 export const personKey = (r: ContactRow) => (r.email ? `e:${r.email.trim().toLowerCase()}` : `n:${plain(r.name)}@${plain(r.firm)}`);
-interface Hydrated { start: Map<string, ContactRow>; account: Map<string, string>; epoch: number | null }
-async function hydrateContacts(o: NetworkingDeps): Promise<Hydrated | null> {
-  if (!o.store.contactsRecord || !o.store.saveContactsRecord) return null;
-  const [rec, epoch] = await Promise.all([o.store.contactsRecord(o.userId).catch(() => null), o.store.accountEpoch ? o.store.accountEpoch(o.userId).catch(() => null) : Promise.resolve(0)]);
-  if (!rec || epoch === null) return null;
-  const forgotten = new Set(rec.forgotten);
-  const merged = new Map<string, ContactRow>();
-  for (const r of rec.items) if (r && typeof r.file === "string") merged.set(rowKey(r), r);
-  const known = new Set(rec.items.map(personKey));
-  // A thread-only row joins unless the account has that row or that person already, or the person was forgotten.
-  for (const r of contactsOf(o.state)) if (!merged.has(rowKey(r)) && !known.has(personKey(r)) && !forgotten.has(personKey(r))) { known.add(personKey(r)); merged.set(rowKey(r), r); }
-  const rows = [...merged.values()].slice(-MAX_CONTACTS);
-  o.state.contacts = rows;
-  return { start: new Map(rows.map((r) => [rowKey(r), r])), account: new Map(rec.items.map((r) => [rowKey(r), JSON.stringify(r)])), epoch };
+// A row with the keys the account table indexes: what any writer (this turn, people finding) hands putContacts.
+export const keyedContact = (r: ContactRow): KeyedContact => ({ row_key: rowKey(r), person_key: personKey(r), file: r.file, name_key: plain(r.name),
+  email: r.email ? r.email.trim().toLowerCase() : null, firm_key: firmKey(r.firm), firm_raw_key: firmKey(r.firm_raw), data: r });
+type Sel = { all?: boolean; linkedin?: boolean; rowKeys?: string[] };
+interface Book {
+  atFirm(firm: string): Promise<ContactRow[]>;      // one person once (uniq), as atFirm did
+  named(nameKey: string, every?: boolean): Promise<ContactRow[]>; // plain(name) = nameKey or starts `${nameKey} `; every: each row, not one per person
+  byEmail(email: string): Promise<ContactRow[]>;
+  inFile(file: string): Promise<ContactRow[]>;
+  total(): Promise<{ total: number; files: string }>; // how many, and "from" what (a file's name, or "N lists")
+  put(rows: ContactRow[], o?: { replaceFile?: string; unlessForgotten?: boolean }): Promise<boolean>;
+  forget(sel: Sel): Promise<number | null>;
 }
-// "saved": the account holds this turn's change; "unchanged": nothing to write; "failed": not written (no record, an erase
-// moved the epoch, the store refused, or other threads kept winning the race).
-async function persistContacts(o: NetworkingDeps, h: Hydrated | null): Promise<"saved" | "unchanged" | "failed"> {
-  if (!h) return "failed";
-  const end = contactsOf(o.state), endKeys = new Set(end.map(rowKey)), endPeople = new Set(end.map(personKey));
-  const upserts = end.filter((r) => h.account.get(rowKey(r)) !== JSON.stringify(r));
-  const removed = [...h.start.keys()].filter((k) => !endKeys.has(k));
-  const forget = new Set(removed.map((k) => personKey(h.start.get(k)!)).filter((p) => !endPeople.has(p)));
-  const restored = new Set(upserts.filter((r) => !h.start.has(rowKey(r))).map(personKey));
-  if (!upserts.length && !removed.length) return "unchanged";
-  for (let attempt = 0; attempt < 4; attempt++) {
-    if (o.store.accountEpoch && (await o.store.accountEpoch(o.userId).catch(() => null)) !== h.epoch) return "failed";
-    const cur = await o.store.contactsRecord!(o.userId).catch(() => null);
-    if (!cur) return "failed";
-    const drop = new Set([...removed, ...upserts.map(rowKey)]);
-    const items = [...cur.items.filter((r) => !drop.has(rowKey(r)) && !forget.has(personKey(r))), ...upserts].slice(-MAX_CONTACTS);
-    const forgotten = [...new Set([...cur.forgotten.filter((p) => !restored.has(p)), ...forget])];
-    if (await o.store.saveContactsRecord!(o.userId, { items, forgotten }, cur.version).catch(() => false)) return "saved";
+const books = new WeakMap<NetworkingDeps, Book>();
+function bookOf(o: NetworkingDeps): Book {
+  let b = books.get(o);
+  if (!b) { b = makeBook(o); books.set(o, b); }
+  return b;
+}
+function makeBook(o: NetworkingDeps): Book {
+  // People the router kept from an earlier export (the profile's connections and graph people), given the same checks.
+  let legacyP: Promise<ContactRow[]> | null = null;
+  const legacy = () => legacyP ??= (async () => {
+    const p: any = o.state.profile ?? {}, g: any = o.state.graph ?? o.state.graphStore ?? {};
+    const list = (v: unknown) => (Array.isArray(v) ? v : []);
+    const older = legacyRows([...list(g.people), ...list(p._careerGraphPeople), ...list(p.connections)]);
+    return older.length ? await verifyRows(older, o.mx ?? MX_NOT_WIRED) : [];
+  })();
+  const named = (rows: ContactRow[], k: string) => rows.filter((r) => { const n = plain(r.name); return !!k && (n === k || n.startsWith(`${k} `)); });
+  const s = o.store;
+  if (!(s.contactsSummary && s.contactsAtFirm && s.contactsNamed && s.contactsByEmail && s.contactsInFile && s.putContacts && s.forgetContacts)) {
+    // The old per-chat list (a store without the account table).
+    const mine = () => contactsOf(o.state);
+    return {
+      atFirm: async (firm) => atFirm([...mine(), ...await legacy()], firm),
+      named: async (k, every) => { const rows = named([...mine(), ...await legacy()], k); return every ? rows : uniq(rows); },
+      byEmail: async (e) => mine().filter((r) => (r.email ?? "").toLowerCase() === e.toLowerCase()),
+      inFile: async (f) => mine().filter((r) => r.file === f),
+      total: async () => { const all = [...mine(), ...await legacy()]; return { total: all.length, files: fileWord(all) }; },
+      put: async (rows, opt = {}) => { const keys = new Set(rows.map(rowKey)); o.state.contacts = [...mine().filter((r) => !keys.has(rowKey(r)) && (opt.replaceFile === undefined || r.file !== opt.replaceFile)), ...rows]; return true; },
+      forget: async (sel) => {
+        const keys = new Set(sel.rowKeys ?? []), all = mine();
+        const people = new Set(all.filter((r) => sel.all || (sel.linkedin && (/connections/i.test(r.file) || (r as any).linkedin_export === true)) || keys.has(rowKey(r))).map(personKey));
+        o.state.contacts = all.filter((r) => !people.has(personKey(r)));
+        return all.length - contactsOf(o.state).length;
+      },
+    };
   }
-  console.error("networking: your contacts changed in another conversation four times while saving; this turn's change was not saved to the account");
-  return "failed";
+  // The account's privacy epoch, read once at the start of the turn (networkingTurn starts it); a write after it moved is
+  // refused by the database (null), and an unreadable epoch writes nothing.
+  const epoch = epochOf(o);
+  return {
+    atFirm: async (firm) => uniq([...await s.contactsAtFirm!(o.userId, firmKey(firm)), ...(await legacy()).filter((r) => sameFirm(r.firm, firm) || sameFirm(r.firm_raw, firm))]),
+    named: async (k, every) => { const rows = [...await s.contactsNamed!(o.userId, k), ...named(await legacy(), k)]; return every ? rows : uniq(rows); },
+    byEmail: (e) => s.contactsByEmail!(o.userId, e),
+    inFile: (f) => s.contactsInFile!(o.userId, f),
+    total: async () => {
+      const [x, old] = await Promise.all([s.contactsSummary!(o.userId), legacy()]);
+      const files = [...new Set([...x.files, ...old.map((r) => r.file)])];
+      const count = x.fileCount + (old.length ? 1 : 0);
+      return { total: x.total + old.length, files: count === 1 ? files[0] : `${count} lists` };
+    },
+    put: async (rows, opt = {}) => {
+      const e = await epoch;
+      if (e === null) return false;
+      return (await s.putContacts!(o.userId, e, rows.map(keyedContact), opt)) !== null;
+    },
+    forget: async (sel) => { const e = await epoch; return e === null ? null : await s.forgetContacts!(o.userId, e, sel); },
+  };
+}
+const epochs = new WeakMap<NetworkingDeps, Promise<number | null>>();
+function epochOf(o: NetworkingDeps): Promise<number | null> {
+  let p = epochs.get(o);
+  if (!p) { p = o.store.accountEpoch ? o.store.accountEpoch(o.userId).then((e) => e, () => null) : Promise.resolve(0); epochs.set(o, p); }
+  return p;
 }
 
 export async function networkingTurn(o: NetworkingDeps): Promise<NetworkingResult | null> {
-  const h = await hydrateContacts(o);
-  let r: NetworkingResult | null = null;
-  try {
-    r = await networkingTurnInner(o);
-  } finally {
-    const saved = await persistContacts(o, h);
-    // A deletion is said only once the account holds it: the thread copy alone would be put back by the next turn.
-    if (h && r?.intent === FORGET_INTENT && r.status === "forgotten" && saved !== "saved") {
-      r = { reply: "I couldn't delete them from your contacts just now, so nothing was deleted. Please try again in a minute.", intent: FORGET_INTENT, status: "not_saved" };
-    }
+  epochOf(o); // the epoch as the turn starts
+  // A chat state saved before contacts moved to the account: moved there once, minus anyone forgotten, then dropped.
+  const old = contactsOf(o.state);
+  if (old.length && o.store.putContacts) {
+    const moved = await bookOf(o).put(old, { unlessForgotten: true }).catch((e) => { console.error("networking: move this chat's contacts to the account:", e instanceof Error ? e.message : e); return null; });
+    if (moved !== null) delete o.state.contacts; // moved, or refused because an erase ran (then they must not come back)
   }
-  return r;
+  return await networkingTurnInner(o);
 }
 
 // "forget my contacts", "delete my linkedin connections", "remove Maya Chen from my contacts": deleted from the person's
-// contacts in every conversation (the account record; persistContacts remembers each person as forgotten).
+// contacts (the account's: every conversation), each person remembered as forgotten.
 export function forgetAsk(message: string): { all: true } | { linkedin: true } | { name: string } | null {
   const t = String(message ?? "").replace(/\s+/g, " ").trim().replace(FILLER, "").replace(/[?!.]+$/, "").trim().toLowerCase();
   if (!/^(?:forget|delete|remove|erase|clear|wipe)\b/.test(t) || t.length > 120) return null;
@@ -249,21 +282,27 @@ export function forgetAsk(message: string): { all: true } | { linkedin: true } |
   const m = /^(?:forget|delete|remove|erase) ([a-z][a-z.'-]*(?: [a-z][a-z.'-]*){0,2}) from (?:my |the )?(?:contacts|connections|contact list|list)$/.exec(t);
   return m ? { name: m[1] } : null;
 }
-function forgetTurn(o: NetworkingDeps, a: NonNullable<ReturnType<typeof forgetAsk>>): NetworkingResult {
-  const all = contactsOf(o.state);
-  const linkedin = (r: ContactRow) => /connections/i.test(r.file) || (r as unknown as { linkedin_export?: boolean }).linkedin_export === true;
-  const gone = "all" in a ? all : "linkedin" in a ? all.filter(linkedin)
-    : all.filter((r) => plain(r.name) === plain(a.name) || (!a.name.includes(" ") && plain(r.name).split(" ")[0] === plain(a.name)));
-  const whoIs = (r: ContactRow) => `${plain(r.name)}@${plain(r.firm)}`; // one person: the same name at the same firm, on any list
-  if ("name" in a && new Set(gone.map(whoIs)).size > 1) {
-    return { reply: `More than one ${a.name} is in your contacts: ${[...new Set(gone.map((r) => `${r.name}${r.firm ? ` at ${r.firm}` : ""}`))].join("; ")}. Say the full name. Nothing was deleted.`, intent: FORGET_INTENT, status: "which" };
-  }
-  if (!gone.length) return { reply: "name" in a ? `No one named ${a.name} is in your contacts, so nothing was deleted.` : `There are no ${"linkedin" in a ? "LinkedIn " : ""}contacts on record to delete.`, intent: FORGET_INTENT, status: "nothing" };
-  const drop = new Set(gone.map(rowKey));
-  o.state.contacts = all.filter((r) => !drop.has(rowKey(r)));
-  const people = new Set(gone.map(whoIs)).size;
-  const what = "name" in a ? gone[0].name : `${people} ${"linkedin" in a ? "LinkedIn " : ""}contact${people === 1 ? "" : "s"}`;
-  return { reply: `Deleted ${what} from your contacts, in every conversation. They won't come back unless you send them to me again. Emails already drafted or sent stay on record.`, intent: FORGET_INTENT, status: "forgotten" };
+async function forgetTurn(o: NetworkingDeps, a: NonNullable<ReturnType<typeof forgetAsk>>): Promise<NetworkingResult> {
+  const book = bookOf(o);
+  const notSaved: NetworkingResult = { reply: "I couldn't delete them from your contacts just now, so nothing was deleted. Please try again in a minute.", intent: FORGET_INTENT, status: "not_saved" };
+  let sel: Sel, what: string | null = null;
+  if ("name" in a) {
+    const want = plain(a.name);
+    const rows = (await book.named(want.split(" ")[0], true)).filter((r) => plain(r.name) === want || (!want.includes(" ") && plain(r.name).split(" ")[0] === want));
+    const whoIs = (r: ContactRow) => `${plain(r.name)}@${plain(r.firm)}`; // one person: the same name at the same firm, on any list
+    if (new Set(rows.map(whoIs)).size > 1) {
+      return { reply: `More than one ${a.name} is in your contacts: ${[...new Set(rows.map((r) => `${r.name}${r.firm ? ` at ${r.firm}` : ""}`))].join("; ")}. Say the full name. Nothing was deleted.`, intent: FORGET_INTENT, status: "which" };
+    }
+    if (!rows.length) return { reply: `No one named ${a.name} is in your contacts, so nothing was deleted.`, intent: FORGET_INTENT, status: "nothing" };
+    // Every row of that person, on any list (the same name at the same firm).
+    sel = { rowKeys: [...new Set(rows.map(rowKey))] };
+    what = rows[0].name;
+  } else sel = "all" in a ? { all: true } : { linkedin: true };
+  // A deletion is said only once the account holds it.
+  const n = await book.forget(sel).catch((e) => { console.error("networking: forget contacts:", e instanceof Error ? e.message : e); return null; });
+  if (n === null) return notSaved;
+  if (!n) return { reply: `There are no ${"linkedin" in a ? "LinkedIn " : ""}contacts on record to delete.`, intent: FORGET_INTENT, status: "nothing" };
+  return { reply: `Deleted ${what ?? `${n} ${"linkedin" in a ? "LinkedIn " : ""}contact${n === 1 ? "" : "s"}`} from your contacts, in every conversation. They won't come back unless you send them to me again. Emails already drafted or sent stay on record.`, intent: FORGET_INTENT, status: "forgotten" };
 }
 
 async function networkingTurnInner(o: NetworkingDeps): Promise<NetworkingResult | null> {
@@ -271,13 +310,13 @@ async function networkingTurnInner(o: NetworkingDeps): Promise<NetworkingResult 
   const pasted = files.length ? null : pastedCsv(o.message);
   if (files.length || pasted) return await importTurn(o, files, pasted);
   const fg = forgetAsk(o.message);
-  if (fg) return forgetTurn(o, fg);
+  if (fg) return await forgetTurn(o, fg);
   // FAMILY NETWORKING: after the draft: marked sent by the person, replies, follow-up reminders, the list of who they
   // reached out to, a follow-up drafted, and LinkedIn automation refused (career_outreach_track.ts).
   const tracked = await trackTurn({ message: o.message, userId: o.userId, threadId: o.threadId, now: o.now, store: o.store, events: o.events,
     facts: (((o.state.profile as any)?.facts ?? []) as unknown[]), model: o.model,
     reminderPush: o.reminderPush === true, textingChannel: o.textingChannel,
-    contactsWithEmail: (name) => contactsOf(o.state).filter((r) => r.email && plain(r.name).split(" ")[0] === plain(name)).map((r) => `${r.name}${r.firm ? ` at ${r.firm}` : ""}`) });
+    contactsWithEmail: async (name) => (await bookOf(o).named(plain(name))).filter((r) => r.email && plain(r.name).split(" ")[0] === plain(name)).map((r) => `${r.name}${r.firm ? ` at ${r.firm}` : ""}`) });
   if (tracked) return tracked;
   const typed = typedAddress(o.message);
   let ask = parseNetworkingAsk(typed.text);
@@ -287,7 +326,7 @@ async function networkingTurnInner(o: NetworkingDeps): Promise<NetworkingResult 
     if (!ask && /^\s*(?:please\s+|can you\s+|could you\s+)?(?:email|e-mail|emial|write(?: an?)?(?: email)? to|draft(?: an?)? (?:email|note|intro) to|send(?: an?)? (?:email|note|intro) to)\b/i.test(o.message))
       return { reply: `Who is ${typed.email}? Send their name and firm with the address, for example "email Maya Chen at Stripe about a coffee chat, ${typed.email}", and I'll draft it for your approval. I never make up a name for an address.`, intent: DRAFT_INTENT, status: "needs_name" };
   }
-  if (ask?.kind === "who") return whoTurn(o, ask.firm, await peopleOf(o));
+  if (ask?.kind === "who") return await whoTurn(o, ask.firm);
   if (ask?.kind === "draft") return await draftTurn(o, ask, typed.email);
   // The answer to "how do you sign your emails?": saved, then the ask that needed it runs.
   if ((await o.store.lastAssistantIntent(o.threadId).catch(() => null)) === SIGNATURE_INTENT) return await signatureTurn(o);
@@ -304,9 +343,14 @@ async function importTurn(o: NetworkingDeps, files: Attachment[], pasted: string
     if (!csv || f.text === null) { lines.push(`${f.name}: not read. I can read a CSV of contacts here; this file type isn't one.`); continue; }
     if (f.text.length > MAX_FILE_CHARS) { lines.push(`${f.name}: not read. It is over ${MAX_FILE_CHARS / 1_000_000} MB; send the connections CSV on its own.`); continue; }
     const parsed = importContactsCsv(f.name, f.text);
-    const r = await importContactsFile(o.state, { name: f.name, text: f.text }, o.mx ?? MX_NOT_WIRED);
+    // Read and checked into a scratch list, then written to the account (a file's rows replace its earlier rows).
+    const scratch: Record<string, unknown> = {};
+    const r = await importContactsFile(scratch, { name: f.name, text: f.text }, o.mx ?? MX_NOT_WIRED);
     if (!r.ok || !r.report) { lines.push(`${f.name}: no contacts imported. It needs a header row with a name column and a company or email column.`); continue; }
-    const rows = contactsOf(o.state).filter((x) => x.file === f.name);
+    const rows = contactsOf(scratch).filter((x) => x.file === f.name);
+    if (!await bookOf(o).put(rows, { replaceFile: f.name }).catch((e) => { console.error("networking: save contacts:", e instanceof Error ? e.message : e); return false; })) {
+      lines.push(`${f.name}: read, but I couldn't save it to your contacts just now, so nothing was imported. Please send it again in a minute.`); continue;
+    }
     imported += rows.length;
     const total = parsed.rows.length + parsed.duplicates + parsed.skipped.length;
     const out = [...(parsed.duplicates ? [`${plural(parsed.duplicates, "duplicate")}`] : []),
@@ -329,20 +373,14 @@ function summarizeSkipped(skipped: { row: number; why: string }[]): string[] {
   return [...by.entries()].map(([why, rows]) => `${rows.length === 1 ? "row" : "rows"} ${rows.slice(0, 5).join(", ")}${rows.length > 5 ? ` and ${rows.length - 5} more` : ""}: ${why}`);
 }
 
-// Everyone the person gave Trainee: the contacts imported here, and people the router kept from an earlier export (the
-// profile's connections and graph people, read the way the brain's referral map reads them), given the same free checks.
-async function peopleOf(o: NetworkingDeps): Promise<ContactRow[]> {
-  const p: any = o.state.profile ?? {}, g: any = o.state.graph ?? o.state.graphStore ?? {};
-  const list = (v: unknown) => (Array.isArray(v) ? v : []);
-  const older = legacyRows([...list(g.people), ...list(p._careerGraphPeople), ...list(p.connections)]);
-  return [...contactsOf(o.state), ...(older.length ? await verifyRows(older, o.mx ?? MX_NOT_WIRED) : [])];
-}
-
-function whoTurn(o: NetworkingDeps, firmAsked: string, all: ContactRow[]): NetworkingResult {
-  const firm = normalizeFirm(firmAsked);
-  if (!all.length) return { reply: `You haven't sent me any contacts yet, so I can't say who you know at ${firm}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: AT_INTENT, status: "no_contacts" };
-  const here = atFirm(all, firm);
-  if (!here.length) return { reply: `None of your ${plural(all.length, "contact")} (from ${fileWord(all)}) is at ${firm}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: AT_INTENT, status: "none_at_firm" };
+async function whoTurn(o: NetworkingDeps, firmAsked: string): Promise<NetworkingResult> {
+  const firm = normalizeFirm(firmAsked), book = bookOf(o);
+  const here = await book.atFirm(firm);
+  if (!here.length) {
+    const all = await book.total();
+    if (!all.total) return { reply: `You haven't sent me any contacts yet, so I can't say who you know at ${firm}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: AT_INTENT, status: "no_contacts" };
+    return { reply: `None of your ${plural(all.total, "contact")} (from ${all.files}) is at ${firm}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: AT_INTENT, status: "none_at_firm" };
+  }
   const withEmail = here.filter((r) => r.email).length;
   const shown = here.slice(0, LIST_MAX);
   const ex = here.find((r) => r.email) ?? here[0];
@@ -356,32 +394,38 @@ function whoTurn(o: NetworkingDeps, firmAsked: string, all: ContactRow[]): Netwo
 
 async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>, typedEmail: string | null = null): Promise<NetworkingResult> {
   if (typedEmail && ask.target.by === "name") await keepTyped(o, ask.target.name.trim(), ask.target.firm, typedEmail);
-  const all = await peopleOf(o), t = ask.target;
+  const book = bookOf(o), t = ask.target;
   const firmName = t.firm ? normalizeFirm(t.firm) : null;
-  if (!all.length) return { reply: `You haven't sent me any contacts yet, so there's no one I can write to${firmName ? ` at ${firmName}` : ""}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "no_contacts" };
+  const none = async () => (await book.total()).total === 0;
+  const noneYet = { reply: `You haven't sent me any contacts yet, so there's no one I can write to${firmName ? ` at ${firmName}` : ""}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "no_contacts" };
   // Who: the rows the ask names, from the person's own contacts only.
   let pool: ContactRow[];
   let label: string;
   if (t.by === "name") {
     const want = plain(t.name), first = want.split(" ")[0];
-    const scope = firmName ? atFirm(all, firmName) : uniq(all);
+    const atThatFirm = firmName ? await book.atFirm(firmName) : [];
+    const scope = firmName ? atThatFirm : await book.named(want.includes(" ") ? want : first);
     const exact = scope.filter((r) => plain(r.name) === want);
     pool = exact.length ? exact : scope.filter((r) => { const n = plain(r.name); return want.includes(" ") ? n.startsWith(`${want} `) : n.split(" ")[0] === first; });
     label = `${t.name}${firmName ? ` at ${firmName}` : ""}`;
-    if (!pool.length) return { reply: `No one named ${t.name}${firmName ? ` at ${firmName}` : ""} is in your contacts${firmName && atFirm(all, firmName).length ? ` (your contacts there: ${atFirm(all, firmName).slice(0, 5).map((r) => r.name).join(", ")})` : ""}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "not_in_contacts" };
+    if (!pool.length && await none()) return noneYet;
+    if (!pool.length) return { reply: `No one named ${t.name}${firmName ? ` at ${firmName}` : ""} is in your contacts${atThatFirm.length ? ` (your contacts there: ${atThatFirm.slice(0, 5).map((r) => r.name).join(", ")})` : ""}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "not_in_contacts" };
     if (pool.length > 1) return { reply: `More than one ${t.name} is in your contacts:\n${pool.slice(0, LIST_MAX).map((r) => `${lineOf(r)}${r.firm ? ` at ${r.firm}` : ""}`).join("\n")}\nSay which, with the full name and firm ("email ${pool[0].name} at ${pool[0].firm || "<firm>"}").`, intent: DRAFT_INTENT, status: "which" };
   } else {
-    const here = atFirm(all, firmName!);
+    const here = await book.atFirm(firmName!);
     const rw = t.role ? plain(t.role) : "";
     const isRecruiter = /recruit|talent|hr|people team/.test(rw);
     pool = !rw ? here : here.filter((r) => { const tt = plain(r.title); return isRecruiter ? /recruit|talent|sourc/.test(tt) : rw.split(" ").every((w) => tt.includes(w.replace(/s$/, ""))); });
     label = `${t.role ? `${t.role}s` : "your contacts"} at ${firmName}`;
     if (!pool.length) {
       const there = here.length ? ` Your contacts at ${firmName}: ${here.slice(0, 5).map((r) => `${r.name}${r.title ? ` (${r.title})` : ""}`).join(", ")}.` : "";
-      return { reply: `${t.role ? `No ${t.role} at ${firmName}` : `No one at ${firmName}`} is in your ${plural(all.length, "contact")}.${there} ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "none_at_firm" };
+      const all = await book.total();
+      if (!all.total) return noneYet;
+      return { reply: `${t.role ? `No ${t.role} at ${firmName}` : `No one at ${firmName}`} is in your ${plural(all.total, "contact")}.${there} ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "none_at_firm" };
     }
   }
-  const want = Math.max(1, Math.min(BATCH_MAX, t.by === "group" && t.count ? t.count : BATCH_MAX));
+  // NO LIMITS: a group draft covers everyone asked for (or everyone matching), not a batch of Trainee's size.
+  const want = Math.max(1, t.by === "group" && t.count ? t.count : pool.length);
   const [dnc, contacted] = await Promise.all([o.store.dnc(o.userId), o.store.contacted(o.userId)]);
   // FAMILY NETWORKING: who was already written to, and how far it went. A by-name ask for someone whose only draft is
   // still waiting (never approved or sent) replaces that draft: the person changed their mind about what to say.

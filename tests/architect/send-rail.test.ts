@@ -3,7 +3,7 @@
 // outbox notice, and exactly what "Gmail" received. No real email is ever sent.
 import assertNode from "node:assert/strict";
 import {
-  buildMime, cancelQueued, outreachSendStatus, queueApproved, queueApprovedOutreach, runReplyCheck, runSendWorker,
+  buildMime, cancelQueued, outreachSendStatus, queueApproved, queueApprovedOutreach, resumeSending, runReplyCheck, runSendWorker,
 } from "../../supabase/functions/_shared/career_send_rail.ts";
 import { payloadHash } from "../../supabase/functions/_shared/career_outreach.ts";
 import { approvedDrafts, CI, draftsReader, FakeGmail, haveDb, person, railDb, railDeps, rows, uid as uidOf } from "../flow/send-rail-fixture.ts";
@@ -54,6 +54,8 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       for (const m of gmail.sent) {
         eq(m.headers.filter((h) => /^to:/i.test(h)).length, 1);
         ok(!m.headers.some((h) => /^(cc|bcc|reply-to|from):/i.test(h)), m.headers.join(" | "));
+        // Cold outreach carries List-Unsubscribe: a mailto to the person's own address.
+        ok(m.headers.includes("List-Unsubscribe: <mailto:me@example.test?subject=unsubscribe>"), m.headers.join(" | "));
       }
       const st = await outreachSendStatus(rpc, u);
       eq([st.sent, st.waiting], [40, 0]);
@@ -185,7 +187,7 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       eq((await rows(db, `select state, result from public.career_send_queue where user_id = '${other}'`))[0], { state: "cancelled", result: "opted_out" });
     });
 
-    await t.step("a reply (not a stop) stops the follow-up; an out-of-office does not count as a reply", async () => {
+    await t.step("a sequence of follow-ups (any length, each approved) goes in order after the first email; a reply stops the rest; an out-of-office does not", async () => {
       const u = uid(8);
       await person(db, u);
       const ds = await approvedDrafts(db, u, [at("replies"), at("ooo")]);
@@ -195,16 +197,47 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       const sentRows = await rows(db, `select id, recipient_email from public.career_send_queue where user_id = '${u}' order by recipient_email`);
       const byTo = Object.fromEntries(sentRows.map((r: any) => [r.recipient_email, r.id]));
       const fuOf = async (to: string) => { const x = { to, subject: "Following up", text: "Following up on my note." }; return { kind: "general" as const, sourceId: crypto.randomUUID(), approvalHash: await payloadHash(x), ...x, followUpOf: byTo[to] }; };
-      eq((await queueApproved(rpc, u, [await fuOf(at("replies"))]))[0].status, "queued");
-      eq((await queueApproved(rpc, u, [await fuOf(at("ooo"))]))[0].status, "queued");
+      // Three follow-ups to "replies", a day apart; two to "ooo". Each is approved (queued) like any email.
+      const day = 86400_000;
+      for (const n of [1, 2, 3]) eq((await queueApproved(rpc, u, [{ ...(await fuOf(at("replies"))), sourceId: crypto.randomUUID(), sendAt: new Date(Date.now() + n * day).toISOString() }]))[0].status, "queued");
+      for (const n of [1, 2]) eq((await queueApproved(rpc, u, [{ ...(await fuOf(at("ooo"))), subject: `Following up ${n}`, approvalHash: await payloadHash({ to: at("ooo"), subject: `Following up ${n}`, text: "Following up on my note." }), sendAt: new Date(Date.now() + n * day).toISOString() }]))[0].status, "queued");
+      // Not before their time.
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-rep-early" });
+      eq(gmail.sent.filter((m) => m.account === u).length, 2, "follow-ups wait for their own time");
       gmail.reply(gmail.to(at("replies"))[0].threadId, at("replies"), "Re: hi", "Sure, happy to chat Thursday.");
       gmail.reply(gmail.to(at("ooo"))[0].threadId, at("ooo"), "Automatic reply: Out of office", "I am away until Monday.");
       const r = await runReplyCheck(railDeps(db, c1, gmail));
       eq([r.replies, r.stops, r.bounces], [1, 0, 0]);
-      const fus = await rows(db, `select recipient_email, state from public.career_send_queue where user_id = '${u}' and follow_up_of is not null order by recipient_email`);
-      eq(fus, [{ recipient_email: at("ooo"), state: "queued" }, { recipient_email: at("replies"), state: "cancelled" }]);
-      // And a second follow-up to the same email is never queued.
-      eq((await queueApproved(rpc, u, [await fuOf(at("ooo"))]))[0].reason, "follow_up_refused");
+      const fus = await rows(db, `select recipient_email, state, count(*)::int n from public.career_send_queue where user_id = '${u}' and follow_up_of is not null group by 1, 2 order by 1`);
+      eq(fus, [{ recipient_email: at("ooo"), state: "queued", n: 2 }, { recipient_email: at("replies"), state: "cancelled", n: 3 }], "a reply stops the whole sequence");
+      // Two days on, the out-of-office sequence goes, in order; the answered one never does.
+      await runSendWorker(railDeps(db, c1, gmail, { now: () => Date.now() + 2 * day + 60_000 }), { worker: "w-rep-later" });
+      eq(gmail.to(at("ooo")).map((m) => m.subject), ["A quick question 2", "Following up 1", "Following up 2"]);
+      eq(gmail.to(at("replies")).length, 1);
+      eq((await queueApproved(rpc, u, [await fuOf(at("replies"))]))[0].reason, "replied", "nothing more to someone who answered");
+    });
+
+    await t.step("a sequence goes one step at a time: follow-ups due together are never claimed together, and go in order", async () => {
+      const u = uid(22);
+      await person(db, u);
+      await queueApprovedOutreach(outreachDeps, u, await approvedDrafts(db, u, [at("steps")]));
+      const gmail = new FakeGmail();
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-steps" });
+      const first = (await rows(db, `select id from public.career_send_queue where user_id = '${u}'`))[0].id;
+      const fu = async (n: number) => { const x = { to: at("steps"), subject: `Step ${n}`, text: `Following up, step ${n}.` }; return { kind: "general" as const, sourceId: crypto.randomUUID(), approvalHash: await payloadHash(x), ...x, followUpOf: first }; };
+      // Three approved in one call, all due now (no sendAt): the same next_at and created_at.
+      eq((await queueApproved(rpc, u, [await fu(1), await fu(2), await fu(3)])).map((r) => r.status), ["queued", "queued", "queued"]);
+      const { data, error } = await rpc.rpc("career_send_claim", { p: { worker: "w-steps-claim", accounts: 50, per_account: 50, lease_seconds: 60 } });
+      ok(!error, error?.message);
+      const mine = (data.accounts as any[]).filter((a) => a.user_id === u).flatMap((a) => a.items);
+      eq(mine.length, 1, `one step of the sequence per claim, never the whole sequence at once: ${mine.map((i: any) => i.subject)}`);
+      // Hand back everything that claim took (from any account), as if it had never run.
+      await db.sql.query(`update public.career_send_queue set state = 'queued', lease_owner = null, lease_until = null, attempts = greatest(0, attempts - 1),
+          first_claimed_at = case when attempts <= 1 then null else first_claimed_at end where state = 'sending' and lease_owner = 'w-steps-claim';
+        update public.career_send_accounts set lease_owner = null, lease_until = null where lease_owner = 'w-steps-claim'`);
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-steps-2" });
+      eq(gmail.to(at("steps")).map((m) => m.subject).slice(1).length, 3, "all three go, each once");
+      eq(new Set(gmail.to(at("steps")).map((m) => m.subject)).size, 4);
     });
 
     await t.step("an inferred address is sent after approval, labelled; its bounce marks it bad forever, for anyone, and tells the format learner", async () => {
@@ -230,6 +263,90 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       eq([r[0].status, r[0].reason], ["refused", "bad_address"]);
       await runSendWorker(railDeps(db, c1, gmail), { worker: "w-b2" });
       eq(gmail.to(at("gone")).length, 1);
+    });
+
+    await t.step("the List-Unsubscribe mailto, arriving as a new email \"unsubscribe\", opts them out forever", async () => {
+      const u = uid(16);
+      await person(db, u);
+      const ds = await approvedDrafts(db, u, [at("unsub")]);
+      await queueApprovedOutreach(outreachDeps, u, ds);
+      const gmail = new FakeGmail();
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-u" });
+      ok(gmail.to(at("unsub"))[0].headers.includes("List-Unsubscribe: <mailto:me@example.test?subject=unsubscribe>"));
+      gmail.received(u, `Someone <${at("unsub")}>`, "unsubscribe");
+      eq((await runReplyCheck(railDeps(db, c1, gmail))).stops, 1);
+      eq((await rows(db, `select 1 from public.career_outreach_dnc where email_hash = public.career_send_email_hash('${at("unsub")}')`)).length, 1);
+      // An application email carries no List-Unsubscribe (it is not cold outreach).
+      const app = { to: at("jobs"), subject: "Application", text: "Please find my application below." };
+      await queueApproved(rpc, u, [{ kind: "application", sourceId: crypto.randomUUID(), approvalHash: await payloadHash(app), ...app }]);
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-u2" });
+      ok(!gmail.to(at("jobs"))[0].headers.some((h) => /^List-Unsubscribe/i.test(h)));
+    });
+
+    await t.step("mailbox protection: rising bounces pause that account, told with the numbers; it resumes when the person says so", async () => {
+      const u = uid(17), fine = uid(18);
+      await person(db, u); await person(db, fine);
+      await queueApprovedOutreach(outreachDeps, u, await approvedDrafts(db, u, addrs("bnc", 10)));
+      const gmail = new FakeGmail();
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-p" });
+      eq(gmail.sent.filter((m) => m.account === u).length, 10);
+      for (const n of [1, 2, 3, 4, 5]) gmail.reply(gmail.to(at(`bnc${n}`))[0].threadId, "mailer-daemon@googlemail.com", "Delivery Status Notification (Failure)", "Address not found");
+      const r = await runReplyCheck(railDeps(db, c1, gmail), { pause: { window: 50, bounces: 5, rate: 0.1 } });
+      eq(r.bounces, 5);
+      eq((await rows(db, `select state, reason from public.career_send_accounts where user_id = '${u}'`))[0], { state: "paused", reason: "5 of the last 10 emails bounced" });
+      const note = await rows(db, `select text from public.career_outbox where user_id = '${u}' and key like 'status:send-bounces:%'`);
+      eq(note.length, 1);
+      ok(/paused sending from your Gmail: 5 of your last 10 emails bounced \(50%\).*say "resume sending"/.test(note[0].text), note[0].text);
+      // Paused: approved email waits; another person's goes.
+      await queueApprovedOutreach(outreachDeps, u, await approvedDrafts(db, u, [at("bnc-later")]));
+      await queueApprovedOutreach(outreachDeps, fine, await approvedDrafts(db, fine, [at("fine-p")]));
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-p2" });
+      eq([gmail.to(at("bnc-later")).length, gmail.to(at("fine-p")).length], [0, 1]);
+      ok(/paused \(5 of the last 10 emails bounced\)/.test((await outreachSendStatus(rpc, u)).line));
+      eq(await resumeSending(rpc, u), "resumed");
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-p3" });
+      eq(gmail.to(at("bnc-later")).length, 1, "the person said resume: it goes");
+    });
+
+    await t.step("Gmail refuses an email as spam or policy: that account pauses at once, told plainly; others keep sending", async () => {
+      const u = uid(19), fine = uid(20);
+      await person(db, u); await person(db, fine);
+      await queueApprovedOutreach(outreachDeps, u, await approvedDrafts(db, u, addrs("pol", 4)));
+      await queueApprovedOutreach(outreachDeps, fine, await approvedDrafts(db, fine, addrs("polfine", 2)));
+      const gmail = new FakeGmail();
+      gmail.script = (acct, n) => (acct === u && n === 2 ? new Response('{"error":{"code":400,"message":"Message rejected. This message was blocked because its content presents a potential spam risk."}}', { status: 400 }) : null);
+      const s = await runSendWorker(railDeps(db, c1, gmail), { worker: "w-pol" });
+      eq(s.policy, 1);
+      eq(gmail.calls.filter((c) => c.method === "POST" && c.account === u).length, 2, "nothing more tried after the refusal");
+      eq(gmail.sent.filter((m) => m.account === fine).length, 2);
+      eq((await rows(db, `select state from public.career_send_accounts where user_id = '${u}'`))[0].state, "paused");
+      const note = await rows(db, `select text from public.career_outbox where user_id = '${u}' and key like 'status:send-policy:%'`);
+      ok(note.length === 1 && /possible spam or against its sending policy\. 3 approved emails are waiting/.test(note[0].text), JSON.stringify(note));
+      gmail.script = null;
+      eq(await resumeSending(rpc, u), "resumed");
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-pol2" });
+      eq(gmail.sent.filter((m) => m.account === u).length, 4);
+    });
+
+    await t.step("Outlook (#226 mail_providers): a person whose sending mailbox is Outlook sends through its provider, once", async () => {
+      const u = uid(21);
+      await person(db, u, { connected: false, outlook: true });
+      const mail = { to: at("viaoutlook"), subject: "Hello from Outlook", text: "One note." };
+      const r = await queueApproved({ ...rpc, which: async () => [{ id: "outlook" as const }] }, u, [{ kind: "general", sourceId: crypto.randomUUID(), approvalHash: await payloadHash(mail), ...mail }]);
+      eq(r[0].status, "queued");
+      eq((await rows(db, `select provider from public.career_send_queue where user_id = '${u}'`))[0].provider, "outlook");
+      const gmail = new FakeGmail();
+      // Not wired in this deployment: it waits, nothing is sent, nothing is lost.
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-o0" });
+      eq((await states(db, u)), { queued: 1 });
+      const calls: unknown[] = [];
+      const outlook = { send: async (userId: string, m: { to: string; subject: string; text: string }, o: { idemKey: string; purpose: string }) => { calls.push([userId, m, o.purpose]); return { status: "sent" as const, id: null, thread_id: null }; } };
+      await runSendWorker({ ...railDeps(db, c1, gmail, { now: () => Date.now() + 3700_000 }), providers: { outlook } }, { worker: "w-o1" });
+      eq(calls, [[u, mail, "general"]]);
+      eq(gmail.sent.filter((m) => m.account === u).length, 0, "never through Gmail");
+      eq(await states(db, u), { sent: 1 });
+      await runSendWorker({ ...railDeps(db, c1, gmail, { now: () => Date.now() + 7400_000 }), providers: { outlook } }, { worker: "w-o2" });
+      eq(calls.length, 1, "once");
     });
 
     await t.step("disconnect Gmail: every pending send is cancelled and nothing more goes", async () => {

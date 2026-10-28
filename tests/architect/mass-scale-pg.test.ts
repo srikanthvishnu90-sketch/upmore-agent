@@ -43,14 +43,24 @@ Deno.test({
           union all select '${heavy}'::uuid;
         insert into auth.users (id, email) select id, id::text || '@example.test' from ppl;
         insert into public.profiles (id) select id from ppl;
-        insert into public.career_watch_kv (user_id, key, value) select id, 'career:account', '{"epoch":0,"version":0,"paused":false}' from ppl;
+        -- The owner's resume rule (20261026210016): each person has a confirmed resume on file (an experience entry, its
+        -- fact_confirmed event, the file the cloud keeps), and every payload binds that file's sha256; without it the claim's
+        -- queued -> driving guard skips the row and nothing is ever sent.
+        insert into public.career_watch_kv (user_id, key, value) select id, 'career:account', jsonb_build_object('epoch', 0, 'version', 0, 'paused', false,
+          'memory', jsonb_build_object('profile', jsonb_build_object('facts', jsonb_build_array(jsonb_build_object('kind', 'experience', 'status', 'confirmed',
+          'needs_confirmation', false, 'confirmation_event_id', 'scale-ev-' || id, 'text', 'Analyst, Scale Co'))))) from ppl;
+        insert into public.career_events (user_id, kind, subject, detail, source)
+          select id, 'fact_confirmed', 'resume entry', jsonb_build_object('confirmation_event_id', 'scale-ev-' || id), 'chat' from ppl;
+        insert into public.career_apply_cloud_resumes (user_id, sha256, filename, bytes, privacy_epoch)
+          select id, encode(sha256(convert_to('%PDF-1.4 scale test resume', 'UTF8')), 'hex'), 'resume.pdf', convert_to('%PDF-1.4 scale test resume', 'UTF8'), 0 from ppl;
         insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, created_at)
         select x.user_id, x.job_id, x.company, x.url, x.p, h, h, x.at from (
           select p.id as user_id, 'scale:' || p.id || ':' || n as job_id, 'TEST Co ' || n as company,
             'https://' || (case when (n % ${HOSTS}) < 2 then 'refuse-' else 'h' end) || (n % ${HOSTS}) || '.example.test/' || p.id || '/' || n as url,
             jsonb_build_object('version', 1, 'user_id', p.id, 'job_id', 'scale:' || p.id || ':' || n, 'company', 'TEST Co ' || n,
               'url', 'https://h.example.test/' || n, 'fields', '[]'::jsonb, 'privacy_epoch', 0, 'account_version', 0,
-              'expires_at', '2099-01-01T00:00:00Z', 'engine_approval', repeat('a', 64)) as p,
+              'expires_at', '2099-01-01T00:00:00Z', 'engine_approval', repeat('a', 64),
+              'resume_sha256', encode(sha256(convert_to('%PDF-1.4 scale test resume', 'UTF8')), 'hex')) as p,
             now() - make_interval(secs => n) as at
           from ppl p cross join lateral generate_series(1, case when p.id = '${heavy}' then ${HEAVY} else ${PER} end) n) x
         cross join lateral (select public.career_apply_payload_hash(x.p) as h) hh;

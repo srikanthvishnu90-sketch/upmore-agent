@@ -250,8 +250,12 @@ Deno.test({
         assert(/changed after it was approved/.test(row.reason), row.reason);
       });
 
-      await t.step("one ledger: an employer the extension already applied to within 30 days is refused at the tap", async () => {
-        assertEquals((await tap(D.url)).result, "company_cooldown");
+      await t.step("one ledger: an employer the extension already applied to is not refused for the employer (D-MS-3); only the person's own pace holds it today", async () => {
+        // D-MS-3 (owner, 2026-10-27): "one per company per 30 days" is gone; only the exact same posting is a duplicate. This
+        // is another posting at that employer, so the employer is no reason; the person's own pace of 3 (set above) is.
+        const r = (await tap(D.url)).result;
+        assert(r !== "company_cooldown", `the employer rule is gone: ${r}`);
+        assertEquals(r, "daily_cap", "the person's own pace of 3 a day, already used");
         assertEquals(await job(D), null);
         assertEquals(D.posts.length, 0);
       });

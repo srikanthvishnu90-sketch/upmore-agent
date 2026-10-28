@@ -13,6 +13,9 @@ import { LOOPMESSAGE_SEND_URL, loopSend } from "../../supabase/functions/_shared
 import { TELEGRAM_API } from "../../supabase/functions/_shared/telegram.ts";
 import { WHATSAPP_GRAPH, whatsappSignature } from "../../supabase/functions/_shared/whatsapp.ts";
 import { CUT_NOTE } from "../../supabase/functions/_shared/conversation.ts";
+import { cardButtons, tapCard, type TapStore } from "../../supabase/functions/_shared/channel_card_tap.ts";
+import { runInbound } from "../../supabase/functions/_shared/channel_inbound.ts";
+import type { EventStore } from "../../supabase/functions/_shared/agent/timeline.ts";
 import { handleInbound } from "../../supabase/functions/trainee-inbound/handler.ts";
 import { handleTelegram } from "../../supabase/functions/trainee-telegram/handler.ts";
 import { handleWhatsApp } from "../../supabase/functions/trainee-whatsapp/handler.ts";
@@ -140,6 +143,37 @@ Deno.test("NO LIMITS/C4 a card of 500 (more than the old 30-part ceiling) arrive
     await h.text(ch, "yes");
     eq([h.cards.answerCalls.length, h.cards.answerCalls[0]?.approve.length, h.cards.queue.length], [1, 500, 500], ch);
   }
+});
+
+Deno.test("SCALE/C5 Telegram's 'Approve all 500' button (#194): one approval call with all 500, the timeline in one write, the full answer delivered in whole messages", async () => {
+  const items = Array.from({ length: 500 }, (_, i) => ({ n: i + 1, prepared_id: `p${i + 1}`, payload_hash: (i % 10).toString().repeat(64) }));
+  const card = { id: "11111111-2222-4333-8444-555555555500", items, state: "open" };
+  const answered: number[][] = [];
+  const store: TapStore = {
+    card: async (_u, id) => (id === card.id ? card : null),
+    prepared: async () => items.map((i) => ({ id: i.prepared_id, payload_hash: i.payload_hash })),
+    answer: async (_u, _c, approve) => { answered.push(approve); return approve.map((n) => ({ n, company: `Scale Employer ${n}`, result: "queued" })); },
+  };
+  const writes: { many: number; one: number } = { many: 0, one: 0 };
+  const events: EventStore = { add: async () => { writes.one++; }, addMany: async () => { writes.many++; }, recall: async () => [] };
+  const [[approve]] = await cardButtons(card);
+  eq(approve.text, "Approve all 500");
+  const tap = await tapCard({ userId: "u", data: approve.data, now: T, store, events });
+  eq([tap.status, answered.length, answered[0].length, writes], ["answered", 1, 500, { many: 1, one: 0 }]);
+  assert(/^500 approved exactly as shown\./.test(tap.reply), tap.reply.slice(0, 80));
+  assert(tap.parts && tap.parts.length > 1 && tap.parts.every((p) => p.length <= 3800) && tap.parts.join("\n") === tap.reply, "paged whole");
+  // Through the inbound core: every part is its own outbox row, nothing cut.
+  const queued: string[] = [];
+  const d: any = {
+    env: { get: () => undefined }, now: () => T, render: (t: string) => [t],
+    store: { claimMessage: async () => true, person: async (c: string) => (c === "tg:1" ? { userId: "u", threadId: "t1", contact: c } : null), refusedBefore: async () => true,
+      createPerson: async () => { throw new Error("no"); }, setThread: async () => {}, setOptOut: async () => {}, enqueueReply: async (_u: string, _k: string, t: string) => { queued.push(t); return true; } },
+    reply: async () => ({ ok: true }), chat: async () => { throw new Error("a tap is never a chat turn"); }, deliver: async () => {},
+    answerCallback: async () => true, cardTap: async () => tap,
+  };
+  await runInbound({ provider: "telegram", channel: "telegram", messageId: "cb-500", contact: "tg:1", address: "1", text: "", kind: "callback", callback: { id: "c1", data: approve.data, messageId: "7" } } as any, d);
+  eq(queued.length, tap.parts!.length, "one outbox row per part");
+  eq(queued.join("\n"), tap.reply, "the whole answer, nothing cut");
 });
 
 Deno.test("D-MS-1/C2 wait, maybe and 'yes except 2' on every channel: the first two approve nothing, the third approves the rest", async () => {

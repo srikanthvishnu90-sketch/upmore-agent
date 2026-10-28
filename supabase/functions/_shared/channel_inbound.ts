@@ -82,7 +82,7 @@ export interface CoreDeps {
   //   gives the message the chat receives for it, else the plain reply to say. Absent: the file is not read (WO-106 reply).
   resumeFile?: (a: { userId: string; doc: NonNullable<InboundMessage["document"]>; now: number }) => Promise<{ ok: true; message: string } | { ok: false; reply: string }>;
   // cardTap: a button tap on a card (channel_card_tap.ts tapCard); answerCallback: the tap answered once on the button.
-  cardTap?: (a: { userId: string; data: string; now: number }) => Promise<{ toast: string; reply: string; status: string }>;
+  cardTap?: (a: { userId: string; data: string; now: number }) => Promise<{ toast: string; reply: string; status: string; parts?: string[] }>;
   answerCallback?: (callbackId: string, text: string) => Promise<boolean>;
   // FEATURE 16: the turn's documents (owner-scoped refs) sent as files after its reply; how many went. Absent: the channel
   // sends no files, and the reply's own words stand (agent-chat says when a file could not be attached).
@@ -221,7 +221,14 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       }
       const tap = await d.cardTap({ userId: person.userId, data: msg.callback.data, now });
       if (d.answerCallback) await d.answerCallback(msg.callback.id, tap.toast).catch(() => false);
-      return await answer(tap.reply, { tap: tap.status });
+      // A tap that approved a large batch answers in several messages (one line per application), each whole, in order.
+      const tapParts = replyParts(tap.parts);
+      if (!tapParts) return await answer(tap.reply, { tap: tap.status });
+      const tapRows = tapParts.map((text, i) => ({ key: `${key}:${i + 1}`, text, part: { of: key, n: i + 1 } }));
+      for (const r of tapRows) await store.enqueueReply(person.userId, r.key, r.text, now, msg.channel, r.part, null);
+      try { for (const r of tapRows) await d.deliver({ userId: person.userId, key: r.key, now }); }
+      catch (e) { console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
+      return ok({ tap: tap.status, parts: tapRows.length });
     }
     // FEATURE 16: a document (a resume as a PDF or Word file): downloaded, read and stored as the person's upload; the
     // chat then reads its text as a pasted resume. Not wired, or not readable: said plainly, and no turn runs.

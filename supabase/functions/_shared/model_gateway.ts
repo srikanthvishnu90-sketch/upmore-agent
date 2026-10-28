@@ -21,6 +21,7 @@ type Env = { get(name: string): string | undefined };
 export const OPENAI_DEFAULT_MODEL = "gpt-5-nano";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+const RESPONSES_URL = "https://api.openai.com/v1/responses";
 const PROVIDER_NAME: Record<Provider, string> = { openai: "OpenAI", anthropic: "Anthropic" };
 
 export function modelConfig(env: Env, role: ModelRole = "chat"): ModelConfig {
@@ -197,6 +198,9 @@ export function adminHealthSink(admin: any): HealthSink {
   return async (e) => { try { await admin.from("agent_provider_events").insert(e); } catch (_) { /* health logging never breaks a reply */ } };
 }
 
+// Voice is OFF for the beta (owner, 2026-10-28): a speech, transcription or realtime model is refused here before anything is reserved or sent.
+export const VOICE_MODEL = /realtime|tts|whisper|transcribe|speech|audio/i;
+export function refuseVoiceModel(model: string) { if (VOICE_MODEL.test(String(model || ""))) throw new ModelUnavailableError(403, "voice_off", "voice and speech models are switched off"); }
 export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeoutMs?: number; meter?: TurnMeter; health?: HealthSink; budget?: BudgetGate }
 // The one call. Returns an Anthropic-shaped message; throws ModelUnavailableError (provider status, type and message,
 // never the key) when the provider refuses, fails or is not configured.
@@ -205,6 +209,7 @@ export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeout
 // paid model, and nothing is sent before the worst-case cost of the request has been reserved in the day's row. Settled to the
 // proven cost after; kept at the full worst case when anything about the call is unproven; given back only for a proven no-call.
 export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions = {}): Promise<any> {
+  refuseVoiceModel(cfg.model);
   const role = o.role || "chat", request = o.request || fetch, started = Date.now();
   const report = async (ok: boolean, status: number | null, type: string | null, detail: string | null) => { if (o.health) await o.health({ provider: cfg.provider, model: cfg.model, role, ok, status, error_type: type, detail, latency_ms: Date.now() - started }); };
   if (!cfg.apiKey) { const e = new ModelUnavailableError(0, "not_configured", `${providerName(cfg)} API key is not configured`); meterAdd(o.meter, cfg, null, true); await report(false, null, e.type, e.detail); throw e; }
@@ -289,5 +294,47 @@ export async function chatReply(cfg: ModelConfig, payload: any, o: CallOptions =
     console.error(`[model] chat ${e.summary()}`);
     const block = budgetBlockOfType(e.type);
     return { ok: false, reply: block ? budgetReply(block) : OUTAGE_REPLY, model_error: e.summary() };
+  }
+}
+
+// OpenAI's Responses API with the web_search tool (people discovery). The same rule as callModel: nothing is sent before the
+// worst case is reserved in the day's row; settled to the proven cost, kept whole when anything is unproven, given back only for
+// a provider refusal before generation. The worst case adds a fee for up to WEB_SEARCH_MAX_CALLS searches at WEB_SEARCH_FEE_MICROS
+// reserved (OpenAI lists web search at about $10 per 1,000 calls; NOT read on its pricing page today, so the reservation rounds up to $0.025 and
+// a proven call settles at the listed $0.01). The caller bounds the request to one search (max_tool_calls: 1) and a short answer.
+// Returns the provider's Response untouched; throws ModelBudgetBlockedError when the budget refuses.
+export const WEB_SEARCH_FEE_MICROS = 25_000, WEB_SEARCH_LISTED_FEE_MICROS = 10_000, WEB_SEARCH_MAX_CALLS = 1;
+export async function responsesCall(o: { apiKey: string; model: string; body: Record<string, unknown>; request?: typeof fetch; budget?: BudgetGate; timeoutMs?: number; role?: ModelRole }): Promise<Response> {
+  refuseVoiceModel(o.model);
+  const send = o.request || fetch;
+  const env = denoEnvGet();
+  if (budgetPausedByEnv(env || (() => undefined))) throw new ModelBudgetBlockedError("paused", "MODEL_BUDGET_PAUSED is on");
+  const gate = resolveBudgetGate(o.budget, env);
+  if (!gate) throw new ModelBudgetBlockedError("unavailable", "the budget service is configured without a key");
+  const bodyText = JSON.stringify({ ...o.body, model: o.model });
+  const worst = worstCaseMicros(o.model, PRICES, { bytes: new TextEncoder().encode(bodyText).length, images: 0, maxOutputTokens: Number(o.body.max_output_tokens) || 4096 }) + 0 + WEB_SEARCH_MAX_CALLS * WEB_SEARCH_FEE_MICROS;
+  const got = await gate.reserve(worst, { model: o.model, role: o.role || "chat" });
+  if (!got.ok) {
+    console.error(`[model] budget ${got.reason}${got.detail ? `: ${got.detail}` : ""}`);
+    throw new ModelBudgetBlockedError(got.reason, got.reason === "limit" ? "the global model budget is used up" : got.reason === "paused" ? "the model budget is switched off" : got.reason === "before" ? "the model budget window has not opened" : got.reason === "after" ? "the model budget window has ended and no new budget is approved" : `the model budget could not be checked${got.detail ? `: ${got.detail}` : ""}`);
+  }
+  let close: { kind: "keep" } | { kind: "actual"; micros: number } | { kind: "release" } = { kind: "keep" };
+  try {
+    const res = await send(RESPONSES_URL, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${o.apiKey}` }, body: bodyText, signal: AbortSignal.timeout(o.timeoutMs || 45000) });
+    if (!res.ok) { if (REFUSED_BEFORE_GENERATION.has(res.status)) close = { kind: "release" }; return res; }
+    // Read a copy: the caller still gets the body. Proven only when the usage block is real and the model has a price.
+    const raw = await res.clone().text().catch(() => ""), j: any = (() => { try { return JSON.parse(raw); } catch { return null; } })();
+    const u = j && j.usage, num = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0;
+    if (u && num(u.input_tokens) && num(u.output_tokens) && Array.isArray(j.output)) {
+      const tokens = costMicros(o.model, u);
+      const searches = j.output.filter((x: any) => x && x.type === "web_search_call").length;
+      if (tokens !== null && Number.isFinite(tokens)) close = { kind: "actual", micros: Math.max(1, Math.min(worst, tokens + searches * WEB_SEARCH_LISTED_FEE_MICROS)) };
+    }
+    return res;
+  } finally {
+    try {
+      if (close.kind === "release") await gate.release(got.id);
+      else await gate.settle(got.id, close.kind === "actual" ? close.micros : null);
+    } catch (e) { console.error("[model] budget settle failed; the reservation stays open and expires to its worst case:", e instanceof Error ? e.message : e); }
   }
 }

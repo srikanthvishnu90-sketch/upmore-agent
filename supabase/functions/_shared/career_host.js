@@ -271,7 +271,7 @@ const CareerHost = (() => {
     if (PAUSE_RE.test(ask)) {
       ctx.globalPause = { set: true, at: new Date(ctx.now).toISOString(), source: "account_control" };
       ctx._hostPatch = { paused: true };
-      return { intent: "career_paused", reply: "Career work is paused. No new action will be started. Earlier uncertain actions remain recorded and will not be retried automatically." };
+      return { intent: "career_paused", reply: "Career work is paused — I won't start anything new, and nothing unfinished will be retried on its own. Text \"resume career work\" when you want me back on it." }; // PRODUCT AUDIT 2026-10-28 (#10): plain words
     }
     if (RESUME_RE.test(ask)) {
       ctx.globalPause = { set: false, source: "account_control" }; ctx._hostPatch = { paused: false };
@@ -577,7 +577,7 @@ const CareerHost = (() => {
       // only (source:"account_control" — the transactional account record);
       // router pauses fall through to dispatch, where 142's ownership-layer
       // pause control + action-only gate enforce them.
-      if (ctx.globalPause && ctx.globalPause.set === true && ctx.globalPause.source === "account_control") return { reply: "Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.", intent: "career_paused", resultStatus: "blocked", action: null, handler: "CareerHostControl", contained: false, capabilities: workerCapabilities };
+      if (ctx.globalPause && ctx.globalPause.set === true && ctx.globalPause.source === "account_control") return { reply: "Career work is paused, so I didn't start anything. Text \"resume career work\" to pick back up.", intent: "career_paused", resultStatus: "blocked", action: null, handler: "CareerHostControl", contained: false, capabilities: workerCapabilities };
       const dispatch = () => {
         let r = CareerAccess.handleChat(text, ctx);
         if (r) { handler = "CareerAccess"; return ensureEndingGuarantee(r, CareerReply); }

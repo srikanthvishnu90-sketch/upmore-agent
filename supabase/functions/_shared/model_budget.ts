@@ -12,8 +12,9 @@
 //     with a 4xx/429 before generating anything;
 //   - the budget cannot be reached or answers badly: FAIL CLOSED, no request.
 //
-// The limit and the window are not configurable from here: they live in the model_budget_settings rows (budget_limit_micros
-// default 20,000,000 micro-USD; window_start / window_end, 2026-10-29T00:00 to 2026-10-30T00:00 America/Chicago).
+// The limits and the window are not configurable from here: each approved Chicago day is a model_budget_days row with its own
+// limit (2026-10-28 $15, 2026-10-29 $20), and the window is the model_budget_settings rows window_start / window_end
+// (2026-10-28T00:00 to 2026-10-30T00:00 America/Chicago).
 // MODEL_BUDGET_PAUSED is the kill switch (an environment secret): while it is true no paid call is made.
 // Where there is no Supabase project at all (a developer's machine running evals, a unit test with a fake provider) the
 // gate is a process-local twin with the same arithmetic: one $20 total for the life of the process, no calendar; with a project URL but no service key, or

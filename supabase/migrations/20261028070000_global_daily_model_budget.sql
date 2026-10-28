@@ -1,14 +1,15 @@
--- A hard, global ONE-DAY model budget (owner, 2026-10-28, corrected the same day): "a fresh $20 total budget across all testers
--- for the Chicago calendar day. Make sure paid calls can't exceed that total, including concurrent calls and missing cost
--- records." The correction: this is the budget for 2026-10-29 America/Chicago ONLY, not a recurring daily allowance.
+-- A hard, global model budget per Chicago day (owner, 2026-10-28, in writing): "Today's testing limit is $15 total; tomorrow,
+-- October 29 Chicago time, is $20 total", across all testers, and "count missing-cost turns at worst-case price against the
+-- budget". Paid calls can't exceed a day's total, including concurrent calls and missing cost records. Not a recurring allowance.
 --
--- The budget is a window and a row:
---   model_budget_settings  window_start / window_end are instants (ISO 8601 with an offset), seeded 2026-10-29T00:00 to
---                          2026-10-30T00:00 America/Chicago (-05:00, CDT); budget_limit_micros is the $20 (default 20,000,000).
---   model_budget_days      the one row for that Chicago date holds spent and reserved micro-dollars. THIS MIGRATION CREATES IT;
---                          no function ever inserts a row. A new budget exists only when the owner approves one and an owner-run
---                          statement inserts its row and moves the window settings.
--- A reservation outside [window_start, window_end), or inside it with no row for the window's date, is refused: before the window
+-- The budget is a window and one row per approved day:
+--   model_budget_settings  window_start / window_end are instants (ISO 8601 with an offset), seeded 2026-10-28T00:00 to
+--                          2026-10-30T00:00 America/Chicago (-05:00, CDT).
+--   model_budget_days      one row per approved Chicago date, each with its own limit_micros and its spent and reserved
+--                          micro-dollars: 2026-10-28 $15, 2026-10-29 $20. THIS MIGRATION CREATES THEM; no function ever inserts
+--                          a row. A new budget exists only when the owner approves one and an owner-run statement inserts its row
+--                          and moves the window settings. A call is charged to the Chicago date it is reserved on.
+-- A reservation outside [window_start, window_end), or inside it on a date with no approved row, is refused: before the window
 -- nothing can be spent early, after it nothing is spent until the owner approves a new budget (no automatic rollover).
 --
 -- Code (_shared/model_budget.ts, called from _shared/model_gateway.ts callModel) works like this around every paid call:
@@ -39,8 +40,8 @@ create table if not exists public.model_budget_settings (
   updated_at timestamptz not null default now()
 );
 insert into public.model_budget_settings (key, value) values
-  ('budget_limit_micros', '20000000'), ('paused', 'false'), ('reservation_ttl_seconds', '900'),
-  ('window_start', '2026-10-29T00:00:00-05:00'), ('window_end', '2026-10-30T00:00:00-05:00')
+  ('paused', 'false'), ('reservation_ttl_seconds', '900'),
+  ('window_start', '2026-10-28T00:00:00-05:00'), ('window_end', '2026-10-30T00:00:00-05:00')
   on conflict (key) do nothing;
 
 create table if not exists public.model_budget_days (
@@ -52,7 +53,9 @@ create table if not exists public.model_budget_days (
   updated_at timestamptz not null default now()
 );
 -- The one budget row, created here and nowhere else (the owner's approval of the 2026-10-29 budget).
-insert into public.model_budget_days (day, limit_micros) values ('2026-10-29', 20000000) on conflict (day) do nothing;
+-- Owner, 2026-10-28 (in writing): $15 total for 2026-10-28 (testing) and $20 total for 2026-10-29 (the beta day), America/Chicago.
+-- Each day is its own row with its own limit; nothing carries from one day to the next.
+insert into public.model_budget_days (day, limit_micros) values ('2026-10-28', 15000000), ('2026-10-29', 20000000) on conflict (day) do nothing;
 
 create table if not exists public.model_budget_reservations (
   id uuid primary key default gen_random_uuid(),
@@ -141,10 +144,9 @@ end $$;
 -- 'limit' | 'paused' | 'before_window' | 'after_window' | 'no_budget', ...}.
 create or replace function public.model_budget_reserve(p_micros bigint, p_model text default null, p_role text default null, p_now timestamptz default now())
 returns jsonb language plpgsql set search_path = public, pg_temp as $$
-declare lim bigint; d date; ws timestamptz; we timestamptz; rec record; rid uuid; paused text;
+declare d date; ws timestamptz; we timestamptz; rec record; rid uuid; paused text;
 begin
   if p_micros is null or p_micros <= 0 then raise exception 'a reservation must be a positive number of micro-dollars'; end if;
-  lim := public.model_budget_int('budget_limit_micros', 20000000);
   select lower(value) into paused from public.model_budget_settings where key = 'paused';
   if paused is not null and paused not in ('true', 'false', '1', '0', 'yes', 'no', 'on', 'off') then raise exception 'model budget setting paused is not true or false'; end if;
   if paused in ('true', '1', 'yes', 'on') then
@@ -158,13 +160,14 @@ begin
   if ws is null or we is null or we <= ws then return public.model_budget_closed('no_budget', p_now); end if;
   if p_now < ws then return public.model_budget_closed('before_window', p_now); end if;
   if p_now >= we then return public.model_budget_closed('after_window', p_now); end if;
-  -- The window's budget row must already exist. Code never creates one.
-  d := public.model_budget_day(ws);
+  -- The budget row of the Chicago day the call is made on must already exist (each day its own owner-approved limit). Code never
+  -- creates one.
+  d := public.model_budget_day(p_now);
   perform 1 from public.model_budget_days where day = d;
   if not found then return public.model_budget_closed('no_budget', p_now); end if;
   -- The one statement that decides. A concurrent caller waits on the row lock, then re-checks the WHERE against the new totals.
-  update public.model_budget_days set reserved_micros = reserved_micros + p_micros, limit_micros = lim, updated_at = p_now
-    where day = d and spent_micros + reserved_micros + p_micros <= lim
+  update public.model_budget_days set reserved_micros = reserved_micros + p_micros, updated_at = p_now
+    where day = d and spent_micros + reserved_micros + p_micros <= limit_micros
     returning spent_micros, reserved_micros, limit_micros into rec;
   if not found then
     select spent_micros, reserved_micros, limit_micros into rec from public.model_budget_days where day = d;

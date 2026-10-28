@@ -11,7 +11,7 @@
 // OPENAI_ROUTER_MODEL. Keys are read from the environment only and never logged. The Anthropic request branch in
 // callModel is reachable only from a hand-built ModelConfig (the finance planner's tests); it is on the removal list.
 import { ModelBudgetBlockedError, ModelUnavailableError, providerError, recordModelUsage, reserveModelCall } from "./model_calls.ts";
-import { type BudgetGate, budgetBlockOfType, budgetPausedByEnv, budgetReply, denoEnvGet, REFUSED_BEFORE_GENERATION, resolveBudgetGate, usageProven, worstCaseMicros } from "./model_budget.ts";
+import { type BudgetGate, budgetBlockOfType, budgetPausedByEnv, budgetReply, denoEnvGet, highestPrice, REFUSED_BEFORE_GENERATION, resolveBudgetGate, usageProven, worstCaseMicros } from "./model_budget.ts";
 
 export type Provider = "openai" | "anthropic";
 export type ModelRole = "chat" | "router" | "planner" | "probe";
@@ -257,6 +257,57 @@ export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions =
       if (close.kind === "release") await gate.release(got.id);
       else await gate.settle(got.id, close.kind === "actual" ? close.micros : null);
     } catch (e) { console.error("[model] budget settle failed; the reservation stays open and expires to its worst case:", e instanceof Error ? e.message : e); }
+  }
+}
+
+// ---- web search (the people finder, career_people_provider.ts) -------------------------------------------------------------
+// OpenAI's hosted web_search tool through the Responses API: the same door and the same budget rule as callModel. Nothing is
+// sent before the worst case is reserved; it is settled to a proven cost only when the provider's usage block is real and the
+// model is priced; a refusal before generation gives it back; anything else keeps the worst case as spent.
+//   worst case = (request bytes + WEB_SEARCH_CONTENT_TOKENS per search) at the model's highest input rate (the table's highest
+//   for an unknown model) + WEB_SEARCH_MAX_OUTPUT output tokens + WEB_SEARCH_CALL_FEE per search, for at most
+//   WEB_SEARCH_MAX_CALLS searches (max_tool_calls caps them). The fee and the content allowance are conservative figures: OpenAI
+//   bills web search per call ($10-$25 per 1,000) and bills the search content as input tokens.
+export const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+export const WEB_SEARCH_MAX_CALLS = 3, WEB_SEARCH_MAX_OUTPUT = 2000, WEB_SEARCH_CONTENT_TOKENS = 32_000, WEB_SEARCH_CALL_FEE = 25_000;
+export type WebSearchResult = { ok: true; json: any } | { ok: false; status: number; body: string; retryAfter: string | null } | { ok: false; status: 0; body: string; retryAfter: null; budget?: string };
+export async function webSearchCall(o: { apiKey: string; model: string; input: string; blockedDomains: string[]; request?: typeof fetch; budget?: BudgetGate; timeoutMs?: number }): Promise<WebSearchResult> {
+  const request = o.request || fetch;
+  const env = denoEnvGet();
+  if (budgetPausedByEnv(env || (() => undefined))) return { ok: false, status: 0, body: "the model budget is switched off", retryAfter: null, budget: "paused" };
+  const gate = resolveBudgetGate(o.budget, env);
+  if (!gate) return { ok: false, status: 0, body: "the budget service is configured without a key", retryAfter: null, budget: "unavailable" };
+  const bodyText = JSON.stringify({
+    model: o.model, tool_choice: "required", include: ["web_search_call.action.sources"], max_tool_calls: WEB_SEARCH_MAX_CALLS, max_output_tokens: WEB_SEARCH_MAX_OUTPUT,
+    tools: [{ type: "web_search", filters: { blocked_domains: o.blockedDomains } }], input: o.input,
+  });
+  const known = PRICES[o.model];
+  const inRate = known ? Math.max(known.input, known.cached, known.cache_write) : highestPrice(PRICES).input;
+  const outRate = known ? known.output : highestPrice(PRICES).output;
+  const tokensIn = new TextEncoder().encode(bodyText).length + WEB_SEARCH_MAX_CALLS * WEB_SEARCH_CONTENT_TOKENS;
+  const worst = Math.ceil(tokensIn * inRate + WEB_SEARCH_MAX_OUTPUT * outRate + WEB_SEARCH_MAX_CALLS * WEB_SEARCH_CALL_FEE);
+  const got = await gate.reserve(worst, { model: o.model, role: "search" });
+  if (!got.ok) return { ok: false, status: 0, body: `budget ${got.reason}`, retryAfter: null, budget: got.reason };
+  let close: { kind: "keep" } | { kind: "actual"; micros: number } | { kind: "release" } = { kind: "keep" };
+  try {
+    let res: Response;
+    try { res = await request(OPENAI_RESPONSES_URL, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${o.apiKey}` }, body: bodyText, signal: AbortSignal.timeout(o.timeoutMs || 45000) }); }
+    catch (e) { return { ok: false, status: 0, body: `search: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200), retryAfter: null }; }
+    if (!res.ok) {
+      if (REFUSED_BEFORE_GENERATION.has(res.status)) close = { kind: "release" };
+      return { ok: false, status: res.status, body: (await res.text().catch(() => "")).slice(0, 800), retryAfter: res.headers.get("retry-after") };
+    }
+    const j: any = await res.json().catch(() => null);
+    const u = j?.usage, fin = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0;
+    const searches = (Array.isArray(j?.output) ? j.output : []).filter((x: any) => x?.type === "web_search_call").length;
+    const tokens = u && fin(u.input_tokens) && fin(u.output_tokens) ? costMicros(o.model, u) : null;
+    if (tokens !== null && Number.isFinite(tokens)) close = { kind: "actual", micros: Math.max(1, tokens + searches * WEB_SEARCH_CALL_FEE) };
+    return { ok: true, json: j };
+  } finally {
+    try {
+      if (close.kind === "release") await gate.release(got.id);
+      else await gate.settle(got.id, close.kind === "actual" ? close.micros : null);
+    } catch (e) { console.error("[model] search budget settle failed; the reservation stays open and expires to its worst case:", e instanceof Error ? e.message : e); }
   }
 }
 

@@ -355,3 +355,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Migrations, RLS and SQL tests on a throwaway Postgres 16, plus the migration ledger
         run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH bash tests/db/run.sh
+  send-rail-load:
+    name: load (send rail)
+    runs-on: ubuntu-24.04
+    # Mass networking (lane M1, owner's scale rule 2026-10-27): 10,000 people x 50 approved emails plus one heavy
+    # sender, 20 concurrent sender sessions, real Postgres 16, Gmail faked. Its own job so the gate's time caps are not
+    # spent on it; it fails the run like any other job. The measured numbers are printed (SEND RAIL LOAD ...).
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: The sending rail under load
+        run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH deno test -A --no-check tests/load/send-rail-load.test.ts

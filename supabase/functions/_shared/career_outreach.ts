@@ -9,9 +9,9 @@
 //      still fails it is not shown.
 //   2. The approval binds the exact message (a SHA-256 of recipient, subject and full text). "redo 3" or "edit 3: ..."
 //      makes a new message, which needs a new approval; the send recomputes the hash and refuses on any difference.
-//   3. Caps, in code here and again in the database (career_outreach_claim): 20 a day by default, the person may set
-//      up to 30, never more; at most 10 a day for the first week when Trainee has no send history for the account; at
-//      least 90 seconds between sends, which the scheduled run spreads (one send per person per run, never a burst).
+//   3. NO LIMITS (owner, 2026-10-27): Trainee sets no volume limit of its own: no daily number, no warm-up, no spacing,
+//      here or in the database (career_outreach_claim). Only Gmail's own refusal (429/quota) slows sending, and the
+//      person is told plainly. What stays: the exact-payload approval, its 7-day life, pause, do-not-contact forever.
 //   4. No blast mode: one recipient per message, no Cc or Bcc, the person's own signature, nothing hidden.
 //   5. A recipient who answers "stop" or "unsubscribe" is on the person's do-not-contact list forever (kept as a hash of
 //      the address, so an erase of the career profile never re-opens them).
@@ -32,13 +32,10 @@ export interface OutreachDraft {
   shared?: Shared[];
 }
 // WO-091c: "expired" (approved more than APPROVAL_TTL_MS ago) and "paused" (the account is paused, opted out or erased).
-export type Admit = "ok" | "not_approved" | "changed" | "expired" | "paused" | "do_not_contact" | "daily_cap" | "spacing" | "recipient_cap";
-// One recipient, every Trainee user: at scale thousands of people target the same few hundred thousand professionals, so a
-// per-person cap alone would still flood them (and their spam reports land on every sender). A recipient gets at most
-// RECIPIENT_CAP Trainee-drafted emails in any RECIPIENT_WINDOW_DAYS, from anyone; and a "stop" to any Trainee user stops
-// every Trainee user's drafts to that address (do-not-contact is checked across people, never only the sender's own).
-export const RECIPIENT_CAP = 3;
-export const RECIPIENT_WINDOW_DAYS = 30;
+export type Admit = "ok" | "not_approved" | "changed" | "expired" | "paused" | "do_not_contact";
+// A "stop" to any Trainee user stops every Trainee user's drafts to that address (do-not-contact is checked across
+// people, never only the sender's own). There is no count of emails per recipient (owner: the cross-person 3-in-30-days
+// rule is removed); the person's own duplicate guard is the already-contacted set and the send rail's already_emailed.
 export interface Prefs { daily_cap: number | null; signature: string | null; list_costs?: Record<string, unknown> }
 export interface OutreachStore {
   saveBatch(userId: string, threadId: string | null, drafts: Omit<OutreachDraft, "id" | "batch_id" | "thread_id">[], at: number): Promise<OutreachDraft[]>;
@@ -98,8 +95,9 @@ export function followupValue(items: Followup[]): { items: Followup[]; next_due_
 export const OUTREACH_INTENT = "career_outreach_batch";
 export const LAPSE_NOTE = "Any not sent within 7 days of your approval lapse unsent; when you next ask I'll say how many, and you can approve them again.";
 export const lapsedLine = (n: number) =>
-  `${n} approved draft${n === 1 ? "" : "s"} lapsed unsent: approved more than 7 days ago, your pace did not reach ${n === 1 ? "it" : "them"}, and that approval is no longer valid. Say "show lapsed" to see exactly ${n === 1 ? "that draft" : "those drafts"} again for a fresh approval.`;
-export const BATCH_MAX = 10, DEFAULT_DAILY = 20, MAX_DAILY = 30, WARMUP_DAILY = 10, WARMUP_DAYS = 7, GAP_MS = 90_000;
+  `${n} approved draft${n === 1 ? "" : "s"} lapsed unsent: approved more than 7 days ago, not sent by then, and that approval is no longer valid. Say "show lapsed" to see exactly ${n === 1 ? "that draft" : "those drafts"} again for a fresh approval.`;
+// BATCH_MAX is a display page (how many drafts one message shows), never a cap on how many are drafted, approved or sent.
+export const BATCH_MAX = 10;
 export const BATCH_TTL_MS = 72 * 3600_000, MAX_WORDS = 120, MESSAGE_MAX = 1500;
 // WO-091c: an approval is for a send soon after it, not whenever Gmail sending starts to work: after 7 days it is dropped.
 export const APPROVAL_TTL_MS = 7 * 86400_000;
@@ -429,15 +427,10 @@ export function parseBatchYes(text: string): Extract<OutreachReply, { kind: "sen
   return null;
 }
 
-// ------------------------------------------------------------------------------------------------ caps
-export function capFor(p: { own: number | null | undefined; firstSentAt: string | null; now: number }): { cap: number; warmup: boolean } {
-  const own = Number.isInteger(p.own) && (p.own as number) >= 1 ? Math.min(p.own as number, MAX_DAILY) : DEFAULT_DAILY;
-  const first = p.firstSentAt ? Date.parse(p.firstSentAt) : NaN;
-  const warmup = !Number.isFinite(first) || p.now - first < WARMUP_DAYS * 86400_000;
-  return { cap: warmup ? Math.min(own, WARMUP_DAILY) : own, warmup };
-}
-// The one admission rule (the database's career_outreach_claim enforces the same numbers).
-export function admitSend(o: { draft: OutreachDraft; hash: string; now: number; dayStart: number; sends: number[]; firstSentAt: string | null; own: number | null; dnc: boolean; recipientSends?: number; quiet?: boolean }): Admit {
+// ------------------------------------------------------------------------------------------------ admission
+// The one admission rule (the database's career_outreach_claim checks the same): the exact approval, its 7-day life, pause
+// and do-not-contact. No volume number of Trainee's own (NO LIMITS).
+export function admitSend(o: { draft: OutreachDraft; hash: string; now: number; dnc: boolean; quiet?: boolean }): Admit {
   if (o.draft.status !== "approved" || !o.draft.approved_hash) return "not_approved";
   if (o.draft.approved_hash !== o.hash || o.draft.hash !== o.hash) return "changed";
   // The database's anchor (career_outreach_claim): the later of the approval and the draft.
@@ -445,10 +438,6 @@ export function admitSend(o: { draft: OutreachDraft; hash: string; now: number; 
   if (Number.isFinite(anchor) && anchor < o.now - APPROVAL_TTL_MS) return "expired";
   if (o.quiet) return "paused";
   if (o.dnc) return "do_not_contact";
-  if ((o.recipientSends ?? 0) >= RECIPIENT_CAP) return "recipient_cap";
-  const { cap } = capFor({ own: o.own, firstSentAt: o.firstSentAt, now: o.now });
-  if (o.sends.filter((t) => t >= o.dayStart && t <= o.now).length >= cap) return "daily_cap";
-  if (o.sends.some((t) => t > o.now - GAP_MS && t <= o.now)) return "spacing";
   return "ok";
 }
 export const dayStartOf = (now: number, tz?: string) => { const [y, m, d] = dayIn(now, tz).split("-").map(Number); return localMidnight(y, m, d, tz || "America/New_York"); };
@@ -633,40 +622,48 @@ export interface ReplyMail { from: string; subject: string; snippet: string; at:
 export type ReplyRead = { status: "ok"; messages: ReplyMail[] } | { status: "NOT_WIRED" } | { status: "ERROR"; detail: string };
 export type ReplyReader = (userId: string, threadId: string) => Promise<ReplyRead>;
 
-// At most one send per person per run (the run is every few minutes, so sends are spread, never a burst), and only
-// through the claim, which checks the approval's hash and age, the person's pause or STOP, the do-not-contact list, the
-// daily cap, warm-up and the gap. An expired approval is dropped and does not use the person's turn this run. One person's
-// failure (a store or claim error) is counted and never stops the next person's send (WO-091c).
-type SendStats = { sent: number; refused: Record<string, number>; not_wired: number; failed: number; errors: number; error: string | null };
-type SendRun = { store: OutreachStore; sender: Sender; now: number; tz?: (userId: string) => Promise<string | undefined>; events?: EventStore | null; maxUsers?: number };
+// Every approved draft that is due goes, in approval order, each only through the claim (the approval's hash and age, the
+// person's pause or STOP, the do-not-contact list). NO LIMITS: no number per person, per day or per run of Trainee's own,
+// no spacing. The only thing that slows a person is Gmail refusing (RATE_LIMITED): their remaining drafts wait for a
+// later run, kept approved; everyone else carries on. Drafts are read in pages; a page that sends nothing ends the run
+// (what is left is waiting on Gmail or refused). One person's failure is counted and never stops the next (WO-091c).
+type SendStats = { sent: number; refused: Record<string, number>; not_wired: number; failed: number; rate_limited: number; errors: number; error: string | null };
+type SendRun = { store: OutreachStore; sender: Sender; now: number; tz?: (userId: string) => Promise<string | undefined>; events?: EventStore | null; page?: number };
 export async function runOutreachSends(o: SendRun) {
-  const stats: SendStats = { sent: 0, refused: {}, not_wired: 0, failed: 0, errors: 0, error: null };
-  const due = await o.store.approvedDue(500);
-  const seen = new Set<string>();
-  for (const { user_id, draft } of due) {
-    if (seen.has(user_id) || seen.size >= (o.maxUsers ?? 200)) continue;
-    seen.add(user_id);
-    try {
-      if (!(await sendOne(o, stats, user_id, draft))) seen.delete(user_id);
-    } catch (e) {
-      stats.errors++;
-      stats.error ??= (e instanceof Error ? e.message : String(e)).slice(0, 300);
+  const stats: SendStats = { sent: 0, refused: {}, not_wired: 0, failed: 0, rate_limited: 0, errors: 0, error: null };
+  const waiting = new Set<string>(); // Gmail said "not now" (or is not wired) for this person this run
+  const tried = new Set<string>();
+  for (;;) {
+    const due = (await o.store.approvedDue(o.page ?? 500)).filter((x) => !tried.has(x.draft.id));
+    if (!due.length) break;
+    const before = stats.sent;
+    for (const { user_id, draft } of due) {
+      tried.add(draft.id);
+      if (waiting.has(user_id)) continue;
+      try {
+        const r = await sendOne(o, stats, user_id, draft);
+        if (r === "wait") waiting.add(user_id);
+      } catch (e) {
+        stats.errors++;
+        stats.error ??= (e instanceof Error ? e.message : String(e)).slice(0, 300);
+      }
     }
+    if (stats.sent === before) break;
   }
   return stats;
 }
-// One approved draft through the claim and the sender. False: it was dropped as expired without using the person's turn.
-async function sendOne(o: SendRun, stats: SendStats, user_id: string, draft: OutreachDraft): Promise<boolean> {
+// One approved draft through the claim and the sender. "wait": Gmail is not taking this person's mail right now.
+async function sendOne(o: SendRun, stats: SendStats, user_id: string, draft: OutreachDraft): Promise<"done" | "wait"> {
   const m = messageOf(draft);
-  if (!/^[^\s@,;<>]+@[^\s@,;<>]+$/.test(m.to)) { stats.refused.bad_address = (stats.refused.bad_address ?? 0) + 1; return true; }
+  if (!/^[^\s@,;<>]+@[^\s@,;<>]+$/.test(m.to)) { stats.refused.bad_address = (stats.refused.bad_address ?? 0) + 1; return "done"; }
   const hash = await payloadHash(m);
   const tz = o.tz ? await o.tz(user_id).catch(() => undefined) : undefined;
   const admit = await o.store.claim(user_id, draft, hash, o.now, dayStartOf(o.now, tz));
   if (admit !== "ok") {
     stats.refused[admit] = (stats.refused[admit] ?? 0) + 1;
-    if (admit === "changed" || admit === "do_not_contact" || admit === "recipient_cap" || admit === "expired") await o.store.update(user_id, { ...draft, status: admit === "changed" ? "shown" : "skipped", approved_hash: null, approved_at: null, result: admit }, { status: "approved" });
+    if (admit === "changed" || admit === "do_not_contact" || admit === "expired") await o.store.update(user_id, { ...draft, status: admit === "changed" ? "shown" : "skipped", approved_hash: null, approved_at: null, result: admit }, { status: "approved" });
     // A paused account keeps its approval: a resume inside the 7 days lets it go, and nothing older ever does.
-    return admit !== "expired";
+    return admit === "paused" ? "wait" : "done";
   }
   const sending: OutreachDraft = { ...draft, status: "sending", sent_at: new Date(o.now).toISOString() };
   const r = await o.sender.send(user_id, m).catch((e) => ({ status: "ERROR", detail: String(e) }) as SendResult);
@@ -676,11 +673,13 @@ async function sendOne(o: SendRun, stats: SendStats, user_id: string, draft: Out
     await recordOutreach(o.events, user_id, "outreach_sent", done, o.now);
     stats.sent++;
   } else {
-    // Not sent: back to approved (the claim's time is cleared), so it goes on a later run once the rail is there.
+    // Not sent: back to approved (the claim's time is cleared), so it goes on a later run: once the rail is there, or
+    // once Gmail takes mail again (its own limit is the only thing that slows sending).
     await o.store.update(user_id, { ...draft, status: r.status === "ERROR" ? "failed" : "approved", sent_at: null, result: r.status === "NOT_WIRED" ? "not_wired" : r.status === "RATE_LIMITED" ? "rate_limited" : `error: ${r.detail}`.slice(0, 200) }, { status: "sending" });
-    if (r.status === "NOT_WIRED") stats.not_wired++; else stats.failed++;
+    if (r.status === "NOT_WIRED") stats.not_wired++; else if (r.status === "RATE_LIMITED") stats.rate_limited++; else stats.failed++;
+    if (r.status === "NOT_WIRED" || r.status === "RATE_LIMITED") return "wait";
   }
-  return true;
+  return "done";
 }
 
 const BOUNCE_FROM = /\b(mailer-daemon|postmaster|mail delivery (subsystem|system))\b/i;
@@ -779,22 +778,16 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
     async addDnc(u: string, h: string) { (dnc[u] ??= new Set()).add(h); },
     async prefs(u: string) { return { ...{ daily_cap: null, signature: null }, ...(prefs[u] ?? {}) } as Prefs; },
     async setPrefs(u: string, p: Partial<Prefs>) {
-      if (p.daily_cap !== undefined && p.daily_cap !== null && !(Number.isInteger(p.daily_cap) && p.daily_cap >= 1 && p.daily_cap <= MAX_DAILY)) throw new Error(`a daily limit is 1 to ${MAX_DAILY}`);
       prefs[u] = { ...{ daily_cap: null, signature: null }, ...(prefs[u] ?? {}), ...p } as Prefs;
     },
     async approvedDue(limit: number) {
       return copy(drafts.filter((d) => d.status === "approved").sort((a, z) => String(a.approved_at).localeCompare(String(z.approved_at))).slice(0, limit).map((d) => ({ user_id: d.user_id, draft: d })));
     },
-    async claim(u: string, draft: OutreachDraft, hash: string, now: number, dayStart: number) {
+    async claim(u: string, draft: OutreachDraft, hash: string, now: number, _dayStart: number) {
       const cur = drafts.find((x) => x.id === draft.id && x.user_id === u);
       if (!cur) return "not_approved";
-      const mine = drafts.filter((d) => d.user_id === u && d.sent_at && ["sending", "sent", "replied", "bounced"].includes(d.status));
-      const sends = mine.map((d) => Date.parse(d.sent_at!));
-      const first = sends.length ? new Date(Math.min(...sends)).toISOString() : null;
-      const h = await emailHash(cur.recipient.email), to = cur.recipient.email.toLowerCase();
-      const recipientSends = drafts.filter((d) => d.recipient.email.toLowerCase() === to && d.sent_at && ["sending", "sent", "replied", "bounced"].includes(d.status)
-        && Date.parse(d.sent_at) > now - RECIPIENT_WINDOW_DAYS * 86400_000).length;
-      const admit = admitSend({ draft: cur, hash, now, dayStart, sends, firstSentAt: first, own: prefs[u]?.daily_cap ?? null, dnc: Object.values(dnc).some((set) => set.has(h)), recipientSends, quiet: quiet.has(u) });
+      const h = await emailHash(cur.recipient.email);
+      const admit = admitSend({ draft: cur, hash, now, dnc: Object.values(dnc).some((set) => set.has(h)), quiet: quiet.has(u) });
       if (admit === "ok") { cur.status = "sending"; cur.sent_at = new Date(now).toISOString(); }
       return admit;
     },

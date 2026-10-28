@@ -1,0 +1,66 @@
+# Live production verification (scripts/live/verify.ts; plan: docs/architect/LIVE-VERIFICATION-PLAN-2026-10-26.md).
+# Drives the real live channels as the dedicated test account (an @upmore.test user flagged trainee_test_account by the
+# owner's setup, scripts/live/test-account.sql), asserts each real outcome in live state through a SELECT-only database
+# role (one extended-protocol query at a time, inside a read-only transaction), cleans up through the product's own erase,
+# and writes a JSON report and a markdown matrix (the job summary and the artifact). It never deploys, migrates, applies
+# or approves anything. Runs in the GitHub environment `production`: its secrets are visible only to an approved run.
+#
+# Started by hand only (the owner's rule of 2026-10-26 14:14 CDT: no run against production he does not start himself;
+# a push trigger would run whatever code a branch holds with these secrets), and only from trunk: the job refuses any
+# other ref, so reviewed code is the only code that ever sees the secrets. Every action is pinned to a commit SHA.
+# Owner, once: add `trunk` to the environment's deployment branches; with Required reviewers on, each run also waits for
+# "Review deployments".
+name: live-verify
+on:
+  workflow_dispatch:
+    inputs:
+      wait_min:
+        description: minutes to wait for scheduled outcomes (alerts, prepare-ahead)
+        default: "20"
+permissions:
+  contents: read
+concurrency:
+  group: live-verify
+  cancel-in-progress: false
+jobs:
+  verify:
+    name: live verify (production)
+    if: github.ref == 'refs/heads/trunk'
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: denoland/setup-deno@e95548e56dfa95d4e1a28d6f422fafe75c4c26fb # v2.0.3
+        with: { deno-version: "v2.9.6" }
+      - name: Verify production
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          # The SELECT-only role's URI (scripts/live/test-account.sql), never the owner's SUPABASE_DB_URL.
+          LIVE_VERIFY_DB_URL: ${{ secrets.LIVE_VERIFY_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          UPMORE_TEST_JWT: ${{ secrets.UPMORE_TEST_JWT }}
+          TRAINEE_VERIFY_EMAIL: ${{ secrets.TRAINEE_VERIFY_EMAIL }}
+          TRAINEE_VERIFY_PASSWORD: ${{ secrets.TRAINEE_VERIFY_PASSWORD }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          TRAINEE_APP_URL: ${{ secrets.TRAINEE_APP_URL }}
+          TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+          TRAINEE_VERIFY_TELEGRAM_CHAT_ID: ${{ secrets.TRAINEE_VERIFY_TELEGRAM_CHAT_ID }}
+          WAIT_MIN: ${{ github.event.inputs.wait_min || '20' }}
+        run: |
+          set -o pipefail
+          deno run -A scripts/live/verify.ts --out "$RUNNER_TEMP/live-verify" --wait-min "$WAIT_MIN"
+      - name: Matrix to the job summary
+        if: always()
+        run: |
+          test -f "$RUNNER_TEMP/live-verify/live-verify.md" && cat "$RUNNER_TEMP/live-verify/live-verify.md" >> "$GITHUB_STEP_SUMMARY" || echo "no report was written" >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: live-verify-${{ github.run_id }}
+          path: ${{ runner.temp }}/live-verify/
+          if-no-files-found: warn
+          retention-days: 30

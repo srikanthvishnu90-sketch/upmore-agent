@@ -516,7 +516,7 @@ const CareerRouter = (() => {
     const pay = item.posting.salary && item.posting.salary.raw ? `, ${item.posting.salary.raw}` : "";
     const url = item.url || postingUrlOf(item.posting);
     // The link rides inside the role's own sentence: the composer keeps one sentence per role.
-    return `${item.title} at ${item.company}${url ? ` (${url})` : ""}, ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
+    return `${item.title} at ${item.company}${url ? ` (${url}), ` : " \u2014 "}${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
   }
 
   // The role families an ASK names. "Design / portfolio-first" is pinned to
@@ -11130,7 +11130,8 @@ const CareerRouter = (() => {
   function carriedLines(ctx) {
     const out = [];
     const order = { experience: 0, location: 1, preference: 2, education: 3, certification: 4, skill: 5, goal: 6 };
-    const facts = ((ctx && ctx.profile && ctx.profile.facts) || []).filter((f) => f && !f.needs_confirmation && f.status !== "draft" && s(f.text).trim());
+    const bridge = !!(ctx && ctx.profile && ctx.profile._fromStatedFacts);
+    const facts = ((ctx && ctx.profile && ctx.profile.facts) || []).filter((f) => f && !f.needs_confirmation && f.status !== "draft" && s(f.text).trim() && (!bridge || f.source === "account"));
     facts.slice().sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9)).forEach((f) => out.push(s(f.text).trim().replace(/[.]+$/, "")));
     const carry = (ctx && ctx.carry) || {};
     for (const x of Array.isArray(carry.standing) ? carry.standing : []) if (s(x).trim()) out.push(`you asked me to keep in mind: ${s(x).trim().replace(/[.]+$/, "")}`);
@@ -11193,6 +11194,7 @@ const CareerRouter = (() => {
     const asksPay = /\b(pay|paying|salary|comp|compensation|range|rate)\b/.test(t);
     const one = /\b(?:the|that|this)\s+[a-z0-9][a-z0-9 .&']{1,30}?\s+(?:one|role|job|position|posting)\b/.test(t) || /\bwhat about (?:the )?[a-z0-9]/.test(t);
     if (!asksPay && !one) return null;
+    if (!/\?\s*$|^(?:what|how|which|is|does|do|tell|show|and)\b/.test(t.trim()) || t.split(/\s+/).length > 12 || /\b(watch|alert|notify|set up|create|track|every|starred)\b/.test(t)) return null;
     if (/\b(tailor|apply|cover letter|resume|interview|follow up|remind|draft|send|questions|sponsor\w*|visa|eligib\w*|qualif\w*|requir\w*)\b/.test(t)) return null;
     const pool = postingsFromCtx(ctx);
     const hit = pool.find((p) => p.company && lc(p.company).length >= 3 && t.includes(lc(p.company)));
@@ -11215,7 +11217,8 @@ const CareerRouter = (() => {
   // the answer says what is missing and that each application waits for the person's approval, instead of re-running a search.
   function handleApplyAllGate(text, ctx) {
     const t = lc(text);
-    if (!/\bapply (?:to )?(?:everything|all|every|anything)\b/.test(t)) return null;
+    if (!/^(?:(?:ok|okay|please|just|then)[ ,]+)*apply (?:to )?(?:everything|all|anything)(?: (?:you|that you) (?:find|found|see|have))?[.!]?$/.test(t.trim())) return null;
+    if (Intel && Intel.respondToRequest) { try { const g = Intel.respondToRequest(text); if (g && g.action === "refuse") return { intent: "intent_refusal", reply: g.text, resultStatus: "blocked", sends: 0, refusal_reason: g.reason || null }; } catch { /* the screen is the guardrail's */ } }
     const hasFacts = ((ctx.profile && ctx.profile.facts) || []).some((f) => f && !f.needs_confirmation && f.status !== "draft");
     const hasList = !!(ctx.discovery && Array.isArray(ctx.discovery.lastShortlist) && ctx.discovery.lastShortlist.length);
     const lead = "Nothing is sent without your approval: I prepare each application, show you the exact answers, and it goes only on your yes.";

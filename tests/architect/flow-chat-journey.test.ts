@@ -103,6 +103,9 @@ Deno.test({
 
       const chat: Chat = h.chat("tok-journey");
       const say = async (message: string, extra: Record<string, unknown> = {}): Promise<Turn> => {
+        // One person's whole journey runs well past the chat's 60-per-hour abuse guard in seconds; that guard is not what
+        // this test measures, so the person's window starts fresh each turn.
+        await pg.sql(`delete from public.agent_rate_limits where user_id = '${PERSON}'`);
         const r = await chat.say(message, extra);
         eq(r.status, 200, `${message}: ${r.reply}`);
         return r;

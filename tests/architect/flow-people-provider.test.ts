@@ -9,11 +9,14 @@ import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
 import {
   findTargets, makeProvider, parseTargetAsk, providerConfig, type ProviderConfig, queryKey, runLookups, supabaseProviderStore, type TargetAsk,
 } from "../../supabase/functions/_shared/career_people_provider.ts";
+import { peopleTurn, supabasePeopleStore, TARGETS_INTENT } from "../../supabase/functions/_shared/career_people.ts";
+import { memoryOutreachStore } from "../../supabase/functions/_shared/career_outreach.ts";
 
 function assert(v: unknown, m?: string): asserts v { nodeAssert.ok(v, m); }
 const eq = (a: unknown, b: unknown, m?: string) => nodeAssert.deepStrictEqual(a, b, m);
 const CI = Deno.env.get("CI") === "true";
 const A = "8c0f8f8e-6a43-4a49-9d2c-0000000000a1", B = "8c0f8f8e-6a43-4a49-9d2c-0000000000b2", C = "8c0f8f8e-6a43-4a49-9d2c-0000000000c3";
+const D = "8c0f8f8e-6a43-4a49-9d2c-0000000000d4";
 const PUBLIC_IP = async () => ["93.184.216.34"];
 
 const html = (ld: unknown) => `<html><head><script type="application/ld+json">${JSON.stringify(ld)}</script></head><body></body></html>`;
@@ -55,7 +58,7 @@ Deno.test({ name: "people discovery on real Postgres: NOT_WIRED, discover, publi
   if (!pgBinDir()) { if (CI) throw new Error("needs Postgres 16 in CI"); console.log("NOT_RUN locally: no Postgres binaries"); return; }
   const pg: Pg = await startPg();
   try {
-    for (const id of [A, B, C]) {
+    for (const id of [A, B, C, D]) {
       await pg.sql(`insert into auth.users (id, email) values ('${id}', '${id}@example.test'); insert into public.profiles (id) values ('${id}');
         insert into public.career_watch_kv (user_id, key, value) values ('${id}', 'career:account', '{"epoch":0,"version":0,"paused":false}');`);
     }
@@ -204,6 +207,40 @@ Deno.test({ name: "people discovery on real Postgres: NOT_WIRED, discover, publi
       const r = await findTargets(A, parseTargetAsk("DePaul alumni at Stripe") as TargetAsk, deps(on()));
       eq(r.candidates.map((c) => c.name), ["Grace Hopper"]);
       assert(/alumni come only from the schools on your own contacts/.test(r.reply));
+    });
+
+    await t.step("the chat: the people turn answers these asks through findTargets (source page and address label each); off, it says so; a bounced address is never inferred for someone new", async () => {
+      const turn = (u: string, message: string, cfg: ProviderConfig) => peopleTurn({ message, userId: u, threadId: `t-${u}`, now: Date.now(), state: {}, store: memoryOutreachStore(), model: null,
+        people: { store: supabasePeopleStore(pg.asService()), gmail: null, fetch: net(n), targets: deps(cfg) } });
+      const k = n.calls.length;
+      // D has nothing yet; discovery off: said plainly, nothing searched, nothing queued, nothing invented
+      const off = await turn(D, "find me engineering managers at Stripe", providerConfig((x) => ({ OPENAI_API_KEY: "sk-test-not-real" } as Record<string, string>)[x]));
+      eq([off!.intent, off!.status], [TARGETS_INTENT, "NOT_WIRED"]);
+      assert(/^No one matching at Stripe yet\. Searching the web for new people isn't switched on yet/.test(off!.reply), off!.reply);
+      eq(await q(`select count(*) from career_people where user_id = '${D}'`), "0");
+      // on: the shared cache answers D (no search). Katherine's address bounced: never inferred again, for anyone (the insert path)
+      const r = await turn(D, "Engineering managers at Stripe?", on());
+      eq([r!.intent, r!.status], [TARGETS_INTENT, "ok"]);
+      eq(n.calls.length, k, "no search, no page, no model call: the cache");
+      eq(await q(`select email_status || ':' || coalesce(email, 'none') || ':' || sendable from career_people where user_id = '${D}' and name = 'Katherine Johnson'`), "bounced:none:false");
+      assert(/<ada\.lovelace@stripe\.com> \(published\): Engineering Manager at Stripe; matches "engineering manager"; named on https:\/\/stripe\.com\/team/.test(r!.reply), r!.reply);
+      assert(/<grace\.hopper@stripe\.com> \(inferred\): .*inferred from stripe\.com's format/.test(r!.reply), r!.reply);
+      assert(/Katherine Johnson: .*named on https:\/\/stripe\.com\/team.*their address bounced before: not used/.test(r!.reply), r!.reply);
+      assert(!/katherine\.johnson@/.test(r!.reply));
+      // A: her own contact is "known"
+      const a = await turn(A, "engineering managers at Stripe", on());
+      assert(/<grace\.hopper@stripe\.com> \(known\): .*from your LinkedIn export/.test(a!.reply), a!.reply);
+      // alumni of X at Y
+      const al = await turn(A, "alumni of DePaul at Stripe", on());
+      eq(al!.intent, TARGETS_INTENT);
+      assert(/^1 person at Stripe/.test(al!.reply) && /Grace Hopper <grace\.hopper@stripe\.com> \(known\): .*went to DePaul University/.test(al!.reply), al!.reply);
+      // every company applied to: all 120, from the cache; no cap of Trainee's own
+      const ap = await turn(C, "people at every company I applied to", on());
+      eq(ap!.intent, TARGETS_INTENT);
+      assert(/120 companies/.test(ap!.reply), ap!.reply);
+      eq(n.calls.length, k, "all cached");
+      // not a discovery ask: answered as before
+      eq(await turn(A, "what's the weather", on()), null);
     });
 
     await t.step("forget: the person's discovered rows and waits go; the shared formats and others' rows stay", async () => {

@@ -31,11 +31,12 @@ import { cleanCell, companyKey, parseCsv, parseExport, type ParsedExport, people
 import { domainLabelOf, type GmailRead, heardFrom, isCompanyLabel } from "./career_people_gmail.ts";
 import { memorySweepStore, type SweepOutcome, type SweepSink, type SweepStore, supabaseSweepStore, sweepTurn } from "./career_people_sweep.ts";
 import { checkUrl, type PageGet, pinnedGet, readPage, type Resolver } from "./career_people_page.ts";
+import { findTargets, makeProvider, parseTargetAsk, providerConfig, supabaseProviderStore, type TargetAsk, type TargetDeps } from "./career_people_provider.ts";
 
 export const IMPORT_INTENT = "career_contacts_import", AT_INTENT = "career_contacts_at", ALUMNI_INTENT = "career_people_alumni";
 export const PAGE_INTENT = "career_people_page", JOBS_INTENT = "career_job_emails", FORGET_INTENT = "career_people_forget";
 export const INTRO_INTENT = "career_intro_request", INTRO_UPDATE_INTENT = "career_intro_update", INTRO_LIST_INTENT = "career_intro_list";
-export const SCHOOL_INTENT = "career_people_school";
+export const SCHOOL_INTENT = "career_people_school", TARGETS_INTENT = "career_people_targets";
 export const MIRROR_MAX = 1000;     // a convenience copy in the thread (snapshot at most 1 MB); the drafter also reads career_people, so no one is out of reach
 export const PASTE_WINDOW_MS = 60 * 60_000;
 export const LIST_MAX = 15;
@@ -233,13 +234,21 @@ export interface PeopleDeps {
   // The scheduled run carries unfinished Gmail reads on (CAREER_PEOPLE_SWEEP=on at career-proactive): the reply's words
   // follow this flag. Off, a read that isn't finished goes on at the person's next ask, and the reply says exactly that.
   sweepPush?: boolean;
+  // People discovery (career_people_provider.ts, D-MN-3 as replaced: web search + public pages, no paid provider):
+  // "engineering managers at Stripe", "people at every company I applied to", "alumni of X at Y" go to findTargets.
+  // Present with provider null when CAREER_PEOPLE_SEARCH is off: the reply then says plainly that searching the web
+  // isn't switched on and answers from the person's own contacts. Absent: those asks are answered as before.
+  targets?: TargetDeps | null;
 }
 // The live wiring, built by the caller (agent-chat/handler-career.ts) from the clients it already holds and passed in as
 // `people`; this module never reads the process environment or makes a client of its own. No `people` (the unit tests
 // that call networkingTurn alone): there is no people turn, and the networking turn answers exactly as before.
 // deno-lint-ignore no-explicit-any
-export function supabasePeopleDeps(admin: any, o: { fetch: typeof fetch; token: GmailRead["token"]; introPush: boolean; sweepPush?: boolean; resolve?: Resolver }): PeopleDeps {
+// `env` (the caller's environment reader) wires people discovery; its switch and key are read there, never here.
+export function supabasePeopleDeps(admin: any, o: { fetch: typeof fetch; token: GmailRead["token"]; introPush: boolean; sweepPush?: boolean; resolve?: Resolver; env?: (k: string) => string | undefined }): PeopleDeps {
+  const cfg = o.env ? providerConfig(o.env) : null;
   return {
+    targets: cfg ? { store: supabaseProviderStore(admin), config: cfg, provider: makeProvider(cfg, o.fetch, { resolve: o.resolve }), now: Date.now } : null,
     store: supabasePeopleStore(admin), gmail: { fetch: o.fetch, token: o.token }, fetch: o.fetch, introPush: o.introPush, resolve: o.resolve,
     sweeps: supabaseSweepStore(admin), sweepPush: !!o.sweepPush,
     // A texting channel the outbox can deliver to (channel_contacts, not opted out): the scheduled push reaches only them.
@@ -372,6 +381,8 @@ export async function peopleTurn(o: PeopleTurnIn): Promise<PeopleResult | null> 
   if (files.length) { try { const r = await fileTurn(o, deps, files); if (r) return r; } catch (e) { return failed(e); } }
   const paste = pasteKind(o.message);
   if (paste) { try { const r = await pasteTurn(o, deps, paste); if (r) return r; } catch (e) { return failed(e); } }
+  const target = deps.targets ? targetAskOf(o.message) : null;
+  if (target) { try { return await targetsTurn(o, deps.targets!, target); } catch (e) { return failed(e); } }
   const ask = parsePeopleAsk(o.message);
   if (!ask) return null;
   try {
@@ -393,6 +404,25 @@ async function answer(o: PeopleTurnIn, d: PeopleDeps, a: Ask): Promise<PeopleRes
     case "intro_cmd": return await introCmd(o, d, a);
     case "intro_list": return await introList(o, d);
   }
+}
+
+// ------------------------------------------------------------------------------------------------ discovery targets
+// An ask findTargets answers. "my school alumni at Stripe" (no school named) stays alumniTurn's, which uses the
+// person's confirmed education.
+function targetAskOf(message: string): TargetAsk | null {
+  const t = parseTargetAsk(tidy(message)) ?? parseTargetAsk(message);
+  if (t?.kind === "alumni" && (/^(?:my|our|fellow|the|any|some)\b/i.test(t.school) || /^(?:school|college|university)$/i.test(t.school))) return null;
+  return t;
+}
+// Candidates with a reason line each: title, why they match, the page that names them, the address and its label
+// (published / known / inferred). Every one is saved in career_people (the drafter reads all of them); the chat lists
+// the first LIST_MAX and says how many more are saved.
+async function targetsTurn(o: PeopleTurnIn, t: TargetDeps, ask: TargetAsk): Promise<PeopleResult> {
+  const r = await findTargets(o.userId, ask, t);
+  const shown = r.candidates.slice(0, LIST_MAX).map((c, i) => `${i + 1}. ${c.name}${c.email ? ` <${c.email}>${c.address ? ` (${c.address})` : ""}` : ""}: ${c.reason}`);
+  const rest = r.candidates.length - shown.length;
+  const more = rest > 0 ? `${fmtN(rest)} more ${rest === 1 ? "person is" : "people are"} saved with your contacts; a draft can reach any of them.` : "";
+  return { reply: [r.reply, ...shown, more].filter(Boolean).join("\n"), intent: TARGETS_INTENT, status: r.status };
 }
 
 // ------------------------------------------------------------------------------------------------ import

@@ -23,6 +23,7 @@
 //   Steps (1) to (5) run with the switch on.
 import assertNode from "node:assert/strict";
 import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
+import { confirmedResumeSql } from "../flow/resume-seed.ts";
 import { deleteReply, parseResumeCommand, statusReply } from "../../supabase/functions/_shared/career_resume_record.ts";
 
 const ok = (v: unknown, m?: string) => assertNode.ok(v, m);
@@ -147,13 +148,18 @@ Deno.test({ name: "one confirmed resume: entries, readers, change, delete, trick
   try {
     await t.step("(0) switch off (as merged): no record, unchanged; a record still stops what the old resume made, and a delete stops everything", async () => {
       const u = await w.person();
+      // #194's rule (20261026210016) holds for everyone: a confirmed resume on file and the resume carried stored for them.
+      // This person has both, the way #194 knows them (a confirmed entry with its event, a stored render), and no record.
+      await pg.sql(confirmedResumeSql(u) + `; insert into storage.buckets (id, name) values ('career-resumes', 'career-resumes') on conflict do nothing;
+        insert into storage.objects (bucket_id, name) values ('career-resumes', '${u}/${"f".repeat(64)}.pdf')`);
       eq((await w.enqueue(w.payload(u, "o-1", "Acme", "f".repeat(64)))).error, null, "no record: unchanged");
       await w.profile(u, [{ id: "legacy", kind: "experience" }]);
       eq(await w.profileIds(u), ["legacy"], "no record: the profile as before");
       const v = await w.person();
       const first = await w.pasteAndConfirm(v, PASTE);
-      // Off, a resume the database can't tie to the record (a render kept outside storage) is not refused...
-      eq((await w.enqueue(w.payload(v, "o-2", "Acme", "9".repeat(64)))).error, null);
+      // Off, this rule alone lets a resume the database can't tie to the record (a render kept outside storage) through; #194's
+      // rule does not: a resume stored nowhere for them is refused either way.
+      ok(/no_resume/.test((await w.enqueue(w.payload(v, "o-2", "Acme", "9".repeat(64)))).error?.message ?? ""));
       // ...but the paste's own text never goes as the file, and a change stops what was made before it.
       ok(/no_resume/.test((await w.enqueue(w.payload(v, "o-3", "Globex", first))).error?.message ?? ""));
       await w.pasteAndConfirm(v, PASTE + "\nPROJECTS\nEngine notes (2026)\n");
@@ -385,6 +391,21 @@ Deno.test({ name: "one confirmed resume: entries, readers, change, delete, trick
       const again = await pg.asService().rpc("career_apply_email_reserve_as", { p_user: u, p_payload: mail, p_hash: h });
       ok(/no_resume/.test(again.error?.message ?? ""), `the retry with another attachment is refused: ${JSON.stringify(again)}`);
       eq(await w.jobs(u), "mail-1:not_submitted", "and the row stays not sent");
+    });
+
+    await t.step("(9) 'resume on file' (#194's career_resume_on_file, read by the chat's apply turn and the card) honours the record", async () => {
+      const onFile = async (u: string) => (await pg.asService().rpc("career_resume_on_file", { p_user: u })).data;
+      // A person #194 counts as having a resume on file: a confirmed entry with its event in their chat profile.
+      const u = await w.person();
+      await pg.sql(confirmedResumeSql(u));
+      // (Step 6 turned the owner's switch on, so everyone is under the rule now.)
+      eq(await onFile(u), false, "under the rule with no record: the chat's entries alone are no resume on file");
+      // They confirm a resume (the record), then say "delete my resume": the entries stay in the chat's profile, but
+      // nothing is on file, so the chat and the card say so instead of queueing what the database then refuses.
+      await w.pasteAndConfirm(u, PASTE);
+      eq(await onFile(u), true, "a confirmed record: on file");
+      eq((await pg.asService().rpc("career_resume_delete_as", { p_user: u })).error, null);
+      eq(await onFile(u), false, "after 'delete my resume': nothing on file, though the entries remain");
     });
   } finally {
     await pg.stop();

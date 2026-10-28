@@ -229,6 +229,8 @@ if [[ -f "$BRIDGE_PATH" ]]; then
     # (named by its prefix here, so tests/flow/provision-pg.sh, which reads the file names above the ledger step, keeps
     # it in filename order, after the migrations it reads)
     [[ "$(basename "$file")" == 20261026210016_* ]] && continue
+    # 20261026210017 replaces 20261026210016's career_resume_on_file (one confirmed resume, #211), so it follows it.
+    [[ "$(basename "$file")" == 20261026210017_* ]] && continue
     cp "$file" "$PENDING_ROOT/supabase/migrations/"
   done
 fi
@@ -492,6 +494,11 @@ fi
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210016_career_resume_required.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210016_career_resume_required.sql"
 "${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('20261026210016_career_resume_required.sql','$(sha256sum "$ROOT/supabase/migrations/20261026210016_career_resume_required.sql" | cut -d' ' -f1)') on conflict do nothing"
+# #211 meets the resume rule (20261026210017): a person under the one-record rule has a resume on file only from the
+# record's entries; applied twice (idempotent), right after 20261026210016, whose function it replaces.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210017_career_resume_on_file_one_record.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210017_career_resume_on_file_one_record.sql"
+"${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('20261026210017_career_resume_on_file_one_record.sql','$(sha256sum "$ROOT/supabase/migrations/20261026210017_career_resume_on_file_one_record.sql" | cut -d' ' -f1)') on conflict do nothing"
 echo "== career_resume_required.test.sql (no resume hash: not queued, not claimed, not prepared, not carded; the resume on file needs its events; uploads erased)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_resume_required.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # FEATURE 16 (20261026220016): Telegram's login links a chat once, to one account; applied twice (idempotent).

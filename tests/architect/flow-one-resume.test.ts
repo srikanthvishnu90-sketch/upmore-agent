@@ -118,7 +118,8 @@ Deno.test({ name: "one confirmed resume, a new person on a texting channel and t
 
     await t.step("texting: applying after the delete is refused in plain words; nothing prepared, queued or sent", async () => {
       const r = await text(`apply to the ${ROLE} role at ${COMPANY2}`);
-      ok(/no confirmed resume on file/i.test(r.reply), `the reply says why: ${r.reply}`);
+      // In #211's words or #194's (whichever turn answers first): no confirmed resume on file.
+      ok(/no confirmed resume on file|no resume on file: I have no confirmed resume/i.test(r.reply), `the reply says why: ${r.reply}`);
       ok(!/\bapplied\b|\bsubmitted\b(?! yet)/i.test(r.reply.replace(/nothing (is|was|has been) (sent|submitted)/ig, "")), `no submission claimed: ${r.reply}`);
       eq(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}'`), "0");
       eq(await pg.sql(`select count(*) from public.career_apply_prepared where user_id = '${PERSON}'`), "0");

@@ -17,8 +17,13 @@ approval → `career_apply_claim_own` → engine (`workers/career-browser/approv
 
 Items in those areas are listed here only so nobody loses them.
 
+**Nothing listed as REMOVED is live.** A removal counts only once its PR is merged into `trunk` AND deployed by the owner's
+go-live. Several PRs are held or unmerged (see each row), and none has been deployed. The live project's `cron.job` holds only
+`cancel-watcher-daily`, `plaid-sync-6h` and `upmore-proactive`, which are not go-live jobs; no cron job is removed by anything
+here unless the owner names it.
+
 **Status words:**
-- **REMOVED (#N)**: removed in that PR.
+- **Removed in #N**: removed in that PR; live only after the PR is merged and the owner deploys it.
 - **OTHER LANE**: an open branch or PR already removes it.
 - **OWNER**: the owner decides, because a rule or a pending decision covers it.
 - **NEXT**: safe, not yet done.
@@ -64,7 +69,7 @@ Every guard that fails open on one path is a bug on that path.
 
 | Cap | Where | Status |
 |---|---|---|
-| `SPEC_CAPS` 15/day, 5/vendor/day, 1/company/30 days | `packages/domain/149-career-portal-apply.js:122-123, 624-667` and its three `CAP_REACHED` stops | **Removed by #237, which is held.** `feat/mass-submit-workers-20261027` (51feaaa8) removes the same caps and adds per-portal refusal pacing. That version is a superset; the coordinator picks which one merges. |
+| `SPEC_CAPS` 15/day, 5/vendor/day, 1/company/30 days | `packages/domain/149-career-portal-apply.js:122-123, 624-667` and its three `CAP_REACHED` stops | OTHER LANE. #237 is closed; `feat/mass-submit-workers-20261027` (51feaaa8) removes the same caps and adds per-portal refusal pacing. Not on trunk yet. |
 | 155's `CAP_REACHED` deferral and the "today's application limit" text | `155-career-batch-apply.js:480-482, 780-782, 812-823, 906, 983` | Dead once 149 never returns `CAP_REACHED`. OTHER LANE (#223, mass-submit-workers) |
 | One per company per 30 days | TS: `career_apply.ts:45, 91`; `career_apply_want.ts`. SQL: `career_apply_ledger_refusal` (latest `20261025160000:39, 103`), the cloud refusal, `career_apply_want_guard`, `career_erase_complete` | OTHER LANE: `feat/mass-submit-db-20261027` removes the TS side and adds `20261027141000_career_apply_mass_submit.sql` |
 | Per-person product daily limit 25/50 | was `career_apply_daily_limit` and `least(...)` | Already gone on trunk (`20261025140000_career_apply_no_volume_ceiling.sql`; `tests/db/career_apply_daily_limit.test.sql` "no product daily number"). Only the person's own pace remains. |
@@ -81,9 +86,9 @@ Every guard that fails open on one path is a bug on that path.
 
 | Item | Size | Why it hurts | Status |
 |---|---|---|---|
-| Model gateway: one secret (`MODEL_PROVIDER=anthropic`) moved every Trainee model call to Anthropic | `_shared/model_gateway.ts:25-36` (trunk) | Breaks the owner rule "OpenAI only, no Anthropic API spend" (audit SEC11) | **REMOVED (#241).** The Anthropic branch inside `callModel` remains, reachable only from the finance planner's tests. NEXT, together with the planner. |
-| 20 finance functions: agent-exec, agent-message-inbound, -turn, -worker, agent-payments, agent-proactive, agent-workflows, broker-oauth-callback, -start, cancel-watcher, exec-vault-store, manual-connect, news-feed, plaid, plaid-sync, simplefin-claim, -proxy, stripe-checkout, -credits, -webhook | about 16 still ACTIVE live (audit §5) | Live drift, anon-callable definers (audit SEC2), attack surface | Go-live never deploys them, enforced by `UPMORE_ONLY_FNS` (#239). **OWNER**: retire the live functions and delete the directories ("whether to retire the Upmore finance leftovers", handoff §8). |
-| 3 legacy finance pg_cron jobs: `upmore-proactive` hourly, `plaid-sync-6h`, `cancel-watcher-daily` | live | One embeds a bearer token (SEC9); one answers 401 on every run (O2) | **REMOVED from go-live's result (#239):** step 5 unschedules them. They take effect only when the owner runs go-live. |
+| Model gateway: one secret (`MODEL_PROVIDER=anthropic`) moved every Trainee model call to Anthropic | `_shared/model_gateway.ts:25-36` (trunk) | Breaks the owner rule "OpenAI only, no Anthropic API spend" (audit SEC11) | **Removed in #241 (open, unmerged).** The Anthropic branch inside `callModel` remains, reachable only from the finance planner's tests. NEXT, together with the planner. |
+| 20 finance functions: agent-exec, agent-message-inbound, -turn, -worker, agent-payments, agent-proactive, agent-workflows, broker-oauth-callback, -start, cancel-watcher, exec-vault-store, manual-connect, news-feed, plaid, plaid-sync, simplefin-claim, -proxy, stripe-checkout, -credits, -webhook | about 16 still ACTIVE live (audit §5) | Live drift, anon-callable definers (audit SEC2), attack surface | Go-live does not deploy them today; #239 (unmerged) would make the script refuse if that changed (`UPMORE_ONLY_FNS`). **OWNER**: retire the live functions and delete the directories ("whether to retire the Upmore finance leftovers", handoff §8). |
+| 3 legacy finance pg_cron jobs: `upmore-proactive` hourly, `plaid-sync-6h`, `cancel-watcher-daily` | live | One embeds a bearer token (SEC9); one answers 401 on every run (O2) | **OWNER.** They are the only jobs in the live `cron.job` and are not go-live jobs. #239 (unmerged, held) gives go-live an explicit `--unschedule-cron <exact names>` allowlist; by default step 5 removes nothing. |
 | Finance domain modules in `packages/domain` (38-agent-biller-model, 48-money-math, 54-agent-money, 60-agent-money-plans, 68-agent-cancel, 71-alpaca, 73/74/77 broker, 80-money-answers, 84-money-owed, 85-subscription-savings, 93-budgets, 96-year-in-money, 100-subscription-list, 101-money-in, 104-cancelled-charge, and more) | the full `router_core.js` bundle is 7.5 MB, against 2.9 MB for the career-only one | Size, confusion; the gate rebuilds and checks the finance bundle on every PR | **OWNER.** Only the finance handler (`agent-chat/handler.ts`, `flow_router.ts`, `proactive.ts`, `broker_connect.ts`, `manual_connect.ts`) imports `router_core.js`. Retiring finance deletes the full bundle and its build step. |
 | `index.html` (8.1 MB): the Upmore app, mentioning "Upmore" 9,306 times | root | The audit's B7: the web is still Upmore | **OWNER**, and #195 (Trainee web at `/app`) |
 | `scripts/launch/go-live.sh` and `scripts/launch/rollback/agent-chat-v203/` (336 KB) | the finance go-live and its rollback copy, which calls Anthropic directly (`index.ts:37, 705`) | A rollback through it would put Anthropic calls back in production | **OWNER**, with the finance retirement. Only `go-live.sh:133` references it, and `trainee-go-live.sh` never does. |
@@ -95,9 +100,9 @@ Every guard that fails open on one path is a bug on that path.
 
 | Item | Status |
 |---|---|
-| `surgery1.py` and `surgery2.py`: one-time rewrites of the Upmore app | **REMOVED (#240).** No caller outside `docs/`. |
-| `qa_fix_rejects.py`: hard-codes `/home/hatch/...` | **REMOVED (#240)** |
-| `PR-BODY-ATS-LOGOS.md`: an old PR body | **REMOVED (#240)** |
+| `surgery1.py` and `surgery2.py`: one-time rewrites of the Upmore app | **Removed in #240 (open, unmerged).** No caller outside `docs/`. |
+| `qa_fix_rejects.py`: hard-codes `/home/hatch/...` | **Removed in #240 (open, unmerged)** |
+| `PR-BODY-ATS-LOGOS.md`: an old PR body | **Removed in #240 (open, unmerged)** |
 | `PR-BODY.md` | Keep: `tests/career-forms-ci-coverage.test.cjs` reads it |
 | `claude-progress.txt`, `BENCHMARKS.md`, `benchmark_list.json` | Keep: the append-only log of the 2026-10-12 benchmark run, treated like the archive (D-006) |
 
@@ -113,7 +118,7 @@ Every guard that fails open on one path is a bug on that path.
 
 ## 6. Live drift and the stale `main`
 
-- **Production is not trunk** (audit B5): agent-chat v251 is unrecorded, 33 of 65 migrations are live, and 25 functions are deployed, 16 of them finance. #239 stops two kinds of drift at the next go-live: the finance cron jobs, and any future deploy of a finance function. The rest is one trunk sha through the go-live pipeline. **OWNER.**
+- **Production is not trunk** (audit B5): agent-chat v251 is unrecorded, 33 of 65 migrations are live, and 25 functions are deployed, 16 of them finance. #239 (held, unmerged) would add an explicit cron allowlist and a guard against deploying a finance function. The rest is one trunk sha through the go-live pipeline. **OWNER.**
 - **`main`** is 2,311 commits behind trunk and holds 18 commits trunk lacks:
   - `site/` landing-page work (e.g. `site/privacy.html`, 106 lines);
   - the sealed-eval CI recovery workflows (`ci(seal)`).
@@ -128,26 +133,19 @@ Every guard that fails open on one path is a bug on that path.
 
 **Method:** for each PR, check whether its head is on trunk, compare patch-ids (`git cherry`), compare each touched file's blob with trunk, and grep trunk for the substance.
 
-**Closed as superseded, each with an evidence comment:**
-- **#144** (loop writer): WO-094 on trunk does the same (`workers/career-browser/production-sources.cjs:36-38, 97`, `deriveAnswers` on the executor path), and its base is merged.
-- **#147** (CI base repair for `integration/v2-candidate`): the candidate it repaired was merged into trunk (6b6551cf is an ancestor). Trunk CI was reorganised (#189), and 19 of its 20 files changed since.
+**Closed as superseded, each with an evidence comment:** #144 (WO-094 on trunk does the same: `workers/career-browser/production-sources.cjs:36-38, 97`) and #147 (the candidate it repaired is merged: 6b6551cf is an ancestor of trunk). #237 was also closed. No further PR is to be closed until a semantic check shows trunk covers it.
 
-**Left open (still needed or not provably superseded), with why:**
+**Everything else stays open.** Nothing below is superseded until a semantic check (not a file-hash or grep check) shows trunk covers it. Notes from the first pass:
 
-| PR | Why it stays |
+| PR | Note |
 |---|---|
-| #99 WO-082 person scope | Changes to `extension/background.js` and its browser test are not on trunk |
-| #102 WO-083 corrections | `tests/architect/wo-083-corrections.test.ts` and its fix are not on trunk |
-| #107 WO-076 ready-first ("4× the daily limit as candidates") | Not on trunk. It conflicts with NO LIMITS (D-MS-2): it sizes candidates off a daily limit that no longer exists. **Recommend close (OWNER/architect).** |
-| #108 WO-074 standing answers | Not on trunk (`standing_answers.ts`, migration `20261022120200`). MUSE-F-007 names it as the consumer of the fact bank's answers. |
-| #110, #111, #113, #115, #116, #119 (WO-081 ports) | Their tests and fixtures are not on trunk (resume supersession, prompt injection corpus, capability2 holdouts, apply forms, seven portal families, repost/stale) |
-| #114 WO-088 router residuals | Not on trunk; router lane (Q1/Muse) |
-| #128 WO-091d apply states, #129 WO-097 agent API, #137 WO-101 Gmail connect | Not on trunk. #137 overlaps #191 and #196 (Gmail connect, scopes); the architect decides which survives. |
-| #139 go-live deploys every function the product calls | Still needed in part: `career-essay-draft`, `career-email-code`, `extension-sync` and `gmail-oauth` are still not deployed by go-live (`DEPLOY_FNS`). Its `telegram-inbound` and `whatsapp-inbound` half is superseded by `trainee-telegram` and `trainee-whatsapp`. |
-| #140 merge train 2026-10-21 | Its own last comment says HOLD. It duplicates #108, #128, #129, #137 and #139, which are open on their own. **Recommend close once those are decided.** |
-| #142 batch trigger fix | Its migration was **applied live on 2026-10-20** but is not on trunk: this is live drift. It also edits frozen archive files (D-006). Needs an owner or architect decision: bring the migration to trunk without the archive edits. |
-| #146 link liveness, #148 training doc | Not on trunk (Muse; re-verify before use, D-012) |
-| #163 pinned runtime, #167 F-037 reproduction | Drafts; evidence and tests not on trunk |
+| #99 WO-082, #102 WO-083, #108 WO-074, #110, #111, #113, #115, #116, #119 (WO-081 ports), #114 WO-088, #128 WO-091d, #129 WO-097, #141 WO-105, #142, #148, #163, #167 | Their tests and files are not on trunk by name; coverage by other trunk code is **not** ruled out, so each needs a semantic check |
+| #107 WO-076 ready-first ("4x the daily limit as candidates") | May conflict with NO LIMITS (D-MS-2); needs a semantic check before any decision |
+| #137 WO-101 Gmail connect | Overlaps #191 and #196; the architect decides which survives |
+| #139 go-live deploys every function the product calls | `career-essay-draft`, `career-email-code`, `extension-sync` and `gmail-oauth` are still not in `DEPLOY_FNS`; its telegram-inbound / whatsapp-inbound half looks superseded by `trainee-telegram` / `trainee-whatsapp` |
+| #140 merge train 2026-10-21 | Its last comment says HOLD; it bundles #108, #128, #129, #137 and #139. Decide after those |
+| #142 batch trigger fix | Its migration was **applied live on 2026-10-20** but is not on trunk (live drift); it also edits frozen archive files (D-006) |
+| #146 link liveness | **Not superseded**: its liveness tests fail on current trunk |
 
 **Not touched, as instructed, and listed for the owner:**
 - #193 live verification suite;

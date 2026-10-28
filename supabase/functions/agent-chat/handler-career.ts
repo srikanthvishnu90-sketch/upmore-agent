@@ -63,7 +63,7 @@ import { boardFetchFeed, supabasePostingsDb, searchWords } from "../_shared/care
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
-import { feature1Deps } from "../_shared/career_apply_from_chat.ts"; // FEATURE 1
+import { feature1Deps, resumeOnFileReader } from "../_shared/career_apply_from_chat.ts"; // FEATURE 1; FEATURE 16: resumeOnFileReader
 import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { codePending, readSituation } from "../_shared/career_situation.ts";
 import { statusRecordsFrom } from "../_shared/career_capabilities.ts";
@@ -80,12 +80,14 @@ import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
+import { disconnectGoogle, disconnectReply, isGoogleDisconnect } from "../_shared/google_disconnect.ts"; // FEATURE GV
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
 // FEATURE 8: inbox check and follow-ups that can be sent.
 import { careerGrant, followupTurn, gmailReadNow, mailNow, supabaseFollowupStores } from "../_shared/career_inbox_followups.ts";
 import { gmailSender } from "../_shared/career_outreach_gmail.ts";
+import { fileUploadFor } from "../_shared/channel_resume_upload.ts"; // FEATURE 16
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -396,7 +398,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // text yes approves a card only in direct reply to the message that carried it.
       const replyTo = typeof body.reply_to_message_id === "string" || typeof body.reply_to_message_id === "number" ? body.reply_to_message_id : null;
       const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, store: supabaseCardStore(admin), events })
+        // FEATURE 16: OWNER RULE (2026-10-26): no card without a confirmed resume on file (resumeReady).
+        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
         : null;
       // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
       // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
@@ -447,6 +450,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           canSend: async (u) => !!(await sendToken(u)), send: countSend(turnEffects, (u: string, m: any) => sendMail({ fetch, token: sendToken }, u, m)),
           // WO-091c: email goes from people's own Gmail only once the owner turns it on, like outreach.
           sendOn: Deno.env.get("CAREER_EMAIL_SEND") === "on",
+          // OWNER RULE: the same fail-closed resume check as the chat's apply turn and the card.
+          resumeOnFile: resumeOnFileReader(admin, user.id),
         } })
         : null;
       if (draftMeter.calls) {
@@ -601,7 +606,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // action stays code's and the router still answers a model failure. Unset or CAREER_BRAIN=router, it is never
       // taken and the router answers exactly as before. Read lazily, only when the brain test below is reached.
       const staged = stagedRoute({ env: Deno.env, message, ctx: ctx as unknown as Record<string, unknown>, host, structured: !!(careerTask || careerBatch) });
-      if (card) {
+      // FEATURE GV: Google verification (2026-10-26). "disconnect gmail" disconnects, on every channel: each Google grant
+      // revoked at Google, its tokens and row deleted (the mail rows read from that Gmail go with the career row), every
+      // result checked and read back (_shared/google_disconnect.ts). The reply says only what the read-back shows. Before
+      // any other turn: a person's own privacy ask is never a card answer, a question or the router's doorstep.
+      const googleOff = !careerTask && !careerBatch && isGoogleDisconnect(message)
+        ? await disconnectGoogle(admin, user.id, { fetch })
+        : null;
+      // END FEATURE GV
+      if (googleOff) {
+        out = { reply: disconnectReply(googleOff), intent: "career_google_disconnect", resultStatus: googleOff.ok ? (googleOff.had.length || googleOff.mailErased ? "completed" : "nothing") : "failed", contained: false, handler: "google_disconnect" };
+      } else if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
         out = { reply: card.reply, intent: waiting ? CARD_INTENT : "career_apply_card_answer", resultStatus: card.status, contained: false, handler: "cards" };
@@ -758,6 +773,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (held) out = { ...out, reply: held, resultStatus: "not_confirmed" };
         } else {
           const seen = await resumeConfirmationContext((recent.data ?? []) as any[], (ctx as any).profile);
+          // FEATURE 16: a resume sent as a file (Telegram): the upload recorded is the person's file, by its reference and
+          // the sha256 of its bytes (career_resume_uploads), when the message that carried the entries was that file's text.
+          seen.upload = await fileUploadFor(admin, user.id, seen.upload);
+          // END FEATURE 16
           const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.account as any)?.memory?.profile ?? (loaded.snapshot as any)?.stores?.profile ?? null,
             after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, events });
           if (ev.unshown || ev.untraced || ev.refused) console.error(`career evidence: held as drafts: ${ev.unshown} not shown, ${ev.untraced} not in the upload, ${ev.refused} event not recorded`);

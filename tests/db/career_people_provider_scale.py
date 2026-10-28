@@ -147,5 +147,9 @@ ok(f"fair: every light person's first lookup was claimed by claim #{last_first:,
 q("drop procedure public.scale_worker(text, int); drop procedure public.scale_enqueue(uuid, int, int, int); drop table public.scale_claims;"
   "delete from career_provider_jobs; delete from career_provider_lookups; delete from career_provider_cache; delete from career_provider_user_clock;"
   "delete from career_email_formats where domain in ('co7.com', 'co9.com'); delete from career_email_domains where domain in ('co7.com', 'co9.com');"
-  "delete from career_people where user_id::text like '00000000-0000-4000-8000-%'; delete from auth.users where id::text like '00000000-0000-4000-8000-%'")
+  "delete from career_people where user_id::text like '00000000-0000-4000-8000-%';"
+  # The 10,001 people's other rows are gone above; their account rows go without walking every table that references a
+  # person (a cascade check per row over ~100 tables took most of the run). Nothing else of theirs was written.
+  "set session_replication_role = replica; delete from public.profiles where id::text like '00000000-0000-4000-8000-%';"
+  " delete from auth.users where id::text like '00000000-0000-4000-8000-%'; set session_replication_role = origin;")
 ok("scale data removed")

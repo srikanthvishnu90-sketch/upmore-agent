@@ -330,7 +330,7 @@ begin
   ), src as (
     select distinct on (coalesce(s.eff_email, 'id:' || s.provider_id)) s.*,
            case when s.email is not null then 'published' when s.eff_email is not null then 'inferred' else 'none' end as basis,
-           (s.eff_email is not null and exists (select 1 from career_email_bad b where b.addr_hash = career_email_hash(s.eff_email))) as bad
+           false as bad
     from src1 s order by coalesce(s.eff_email, 'id:' || s.provider_id), s.id
   ), src2 as (
     select s.*, case when s.bad then null else s.eff_email end as e,

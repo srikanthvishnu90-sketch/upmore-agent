@@ -11,6 +11,7 @@ import {
 } from "../../supabase/functions/_shared/career_people_provider.ts";
 import { peopleTurn, supabasePeopleStore, TARGETS_INTENT } from "../../supabase/functions/_shared/career_people.ts";
 import { memoryOutreachStore } from "../../supabase/functions/_shared/career_outreach.ts";
+import { memoryBudgetGate, resetLocalBudgetGate } from "../../supabase/functions/_shared/model_budget.ts";
 
 function assert(v: unknown, m?: string): asserts v { nodeAssert.ok(v, m); }
 const eq = (a: unknown, b: unknown, m?: string) => nodeAssert.deepStrictEqual(a, b, m);
@@ -55,6 +56,9 @@ function net(n: Net): typeof fetch {
 const searches = (n: Net) => n.calls.filter((c) => c.startsWith("api.openai.com")).length;
 
 Deno.test({ name: "people discovery on real Postgres: NOT_WIRED, discover, published/known/inferred, dedupe, shared formats, bounce/reply, shared cache, refusal, no limit, exactly once, fairness, forget, erase", sanitizeResources: false, sanitizeOps: false, async fn(t) {
+  // Hundreds of fake searches run here (120 companies x the recipe); the day's model budget is not what this measures
+  // (tests/architect/web-search-budget.test.ts is), so the process-local budget is unlimited for this test and reset after.
+  resetLocalBudgetGate(memoryBudgetGate(Number.MAX_SAFE_INTEGER));
   if (!pgBinDir()) { if (CI) throw new Error("needs Postgres 16 in CI"); console.log("NOT_RUN locally: no Postgres binaries"); return; }
   const pg: Pg = await startPg();
   try {
@@ -266,5 +270,6 @@ Deno.test({ name: "people discovery on real Postgres: NOT_WIRED, discover, publi
     });
   } finally {
     await pg.stop();
+    resetLocalBudgetGate();
   }
 } });

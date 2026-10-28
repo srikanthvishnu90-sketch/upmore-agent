@@ -181,6 +181,7 @@ MIGRATIONS=(
   20261027160100_career_account_contacts.sql
   20261027170000_career_people_scale.sql
   20261027170100_career_people_gmail_sweep.sql
+  20261027200000_career_send_queue.sql
   20261027230000_career_outlook_connector.sql
   20261028120000_career_apply_host_gate.sql
 )
@@ -267,6 +268,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_account_contacts') is not null and exists (select 1 from pg_proc where proname = 'career_account_contacts_put')"
   "to_regprocedure('public.career_people_import_part(uuid,text,text,text,jsonb,integer,integer,boolean,bigint)') is not null and to_regclass('public.agent_flow_state_user') is not null"
   "to_regclass('public.career_people_gmail_sweeps') is not null and exists (select 1 from pg_proc where proname = 'career_people_sweep_claim')"
+  "to_regclass('public.career_send_queue') is not null and exists (select 1 from pg_proc where proname = 'career_send_complete_one') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_send_rail')"
   "to_regclass('public.career_outlook_sends') is not null and exists (select 1 from pg_proc where proname = 'career_outlook_claim') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_outlook_erase')"
   "exists (select 1 from pg_proc where proname = 'career_apply_host_backoff_get' and prosrc like '%scope = ''cloud''%')"
 )
@@ -290,7 +292,10 @@ CHANNEL_PLAIN=(TELEGRAM_BOT_USERNAME WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TEMPLATE_
 # Every function step 4 deploys, in its order: the provenance manifest hashes each, the ledger records each.
 # FEATURE 16: Telegram's login, verified, links a chat to the signed-in person; it takes the person's own session (JWT on).
 JWT_FNS=(trainee-telegram-link)
-DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${JWT_FNS[@]}" "${OAUTH_FNS[@]}")
+# Mass networking (lane M1): the sending rail's sender, started by pg_cron (trainee-career-send) with the proactive
+# secret; it sends nothing until CAREER_SEND_RAIL=on is set (docs/architect/OUTREACH-SEND-2026-10-27.md).
+SEND_FNS=(career-send)
+DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${JWT_FNS[@]}" "${OAUTH_FNS[@]}" "${SEND_FNS[@]}")
 # WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
 STAGE_PATHS=(supabase scripts packages corpus)
 PROV="$REPO/scripts/launch/deploy-provenance.cjs"
@@ -671,7 +676,7 @@ fi
 if [[ -z "$ONLY_SMOKE" && -z "$SKIP_DEPLOY" ]]; then
   CHECK=(supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts
     supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
-    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/outlook-oauth/index.ts)
+    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/outlook-oauth/index.ts supabase/functions/career-send/index.ts)
   run "deno check ${CHECK[*]}" deno check "${CHECK[@]}"
 fi
 ok
@@ -837,6 +842,12 @@ else
   done
   for fn in "${JWT_FNS[@]}"; do
     run "supabase functions deploy $fn --project-ref $REF --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --use-docker
+    if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
+    else ledger_function "$fn"; fi
+  done
+  # pg_cron carries no JWT; career-send checks the proactive secret itself.
+  for fn in "${SEND_FNS[@]}"; do
+    run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt --use-docker
     if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
     else ledger_function "$fn"; fi
   done

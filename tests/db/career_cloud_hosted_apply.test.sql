@@ -556,6 +556,6 @@ select t.ok((select (v->>'accepted')::boolean and (v->>'postings')::int=130 and 
 select t.ok((select sum(cardinality(job_ids))=130 and count(*)=6 and max(cardinality(job_ids))=25 from career_apply_prepare_requests
  where id in (select (jsonb_array_elements_text(v->'requests'))::uuid from rb)),'every one of the 130 is in a part; none is dropped');
 update career_apply_prepare_requests set state='done', finished_at=now() where state='running';
-create temp table pb_all as select * from career_apply_prepare_request_claim(10,10,null,null);
+create temp table pb_all as select * from career_apply_prepare_request_claim(500,10000,null,null);
 select t.ok((select count(*)=6 from pb_all where user_id='00000000-0000-4000-8000-00000000f177'),'no per-person or per-site number: all six parts start');
 rollback;

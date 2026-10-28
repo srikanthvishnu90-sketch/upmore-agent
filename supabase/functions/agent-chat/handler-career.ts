@@ -73,7 +73,7 @@ import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.t
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
 import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
-import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
+import { askFor, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
@@ -679,7 +679,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = f5Prompt
           ? { reply: f5Prompt.reply, intent: f5Prompt.intent, resultStatus: f5Prompt.status, contained: false, handler: "judge_prompt" }
           : host.runTurn(message, ctx);
-        const f5Ask = f5Free && !f5Prompt ? askFromRouter(message, out, (ctx as any).discovery) : null;
+        // askFor: the router's search plus the parameters the message states (level, pay, season, employer, sponsorship), or a
+        // role search the router did not run at all (posting_constraints.ts reads it from the message itself).
+        const f5Said = f5Free && !f5Prompt ? askFor(message, out, (ctx as any).discovery) : null;
+        const f5Ask = f5Said?.ask ?? null;
         if (f5Ask) {
           const f5Meter = newMeter();
           const f5Cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
@@ -689,7 +692,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
               judge: { on: f5JudgeOn, model: (payload) => callModel(f5Cfg, payload, { meter: f5Meter, role: "chat" }), cache: supabaseJudgeCache(admin),
                 n: Number(Deno.env.get("CAREER_JUDGE_N")) || undefined, standing: () => supabaseMemoryStore(admin).standing(user.id) } });
             if (found) {
-              out = { ...out, reply: found.reply, resultStatus: found.status, handler: "search_judge" };
+              out = { ...out, reply: f5Said?.append ? `${out.reply}\n\n${found.reply}` : found.reply, resultStatus: found.status, handler: "search_judge" };
               (ctx as any).discovery = { ...((ctx as any).discovery ?? {}), lastShortlist: found.shortlist, lastSource: found.source };
             }
           } catch (e) { console.error("career search judge: the router's reply stands:", (e as Error)?.message ?? e); }

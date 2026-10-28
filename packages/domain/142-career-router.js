@@ -11168,6 +11168,23 @@ const CareerRouter = (() => {
   // WO-111: "what about the Quill one?", "what's the pay on the Memorial Hermann one?": a role the person names that the board
   // holds is answered from the posting itself (where, posted pay), and checked against what they told us (a pay floor, remote
   // only, nights). Nothing is read from a company file, and no amount is stated that the posting does not state.
+  // WO-111: "what's happening with Plaid?" when the person's account holds work with that employer (an application, a draft, an
+  // interview): answered from the account's own task lines (carried by the host, built by code), before any company file.
+  function handleCarriedStatus(text, ctx) {
+    const t = lc(text);
+    const tasks = (ctx.carry && Array.isArray(ctx.carry.tasks)) ? ctx.carry.tasks : [];
+    if (!tasks.length) return null;
+    // "follow up with them" / "what's the status of that one": the employer this thread was just about.
+    const pronoun = /\b(follow up|follow-up|chase|nudge|status|update)\b[^.]*\b(them|it|that one|that company|there)\b|\b(them|it|that one)\b[^.]*\b(follow up|status|update)\b/.test(t);
+    const focus = frameMarksOf(ctx).focus;
+    const asks = /\b(happening|status|update|going on|any news|news|where (?:are|do) (?:we|things)|how(?:'s| is)|what(?:'s| is) (?:up|going)|did i apply|have i applied|already applied|follow up|follow-up)\b/.test(t);
+    if (!asks) return null;
+    let hit = tasks.filter((x) => x.company && lc(x.company).length >= 3 && t.includes(lc(x.company)));
+    if (!hit.length && pronoun && focus && focus.company) hit = tasks.filter((x) => lc(x.company) === lc(focus.company));
+    if (!hit.length) return null;
+    try { markFrame(ctx, "focus", { company: hit[0].company }); } catch { /* the focus is an aid */ }
+    return { intent: "carried_status", resultStatus: "answered", sends: 0, reply: compose({ headline: `Here is where ${hit[0].company} stands on your account.`, facts: hit.slice(0, 4).map((x) => `${x.line}.`.replace(/\.\.$/, ".")), nextStep: "Tell me if you want to act on it and I will take it from there." }) };
+  }
   function handlePostingFacts(text, ctx) {
     const t = lc(text);
     const asksPay = /\b(pay|paying|salary|comp|compensation|range|rate)\b/.test(t);
@@ -11178,6 +11195,7 @@ const CareerRouter = (() => {
     const hit = pool.find((p) => p.company && lc(p.company).length >= 3 && t.includes(lc(p.company)));
     if (!hit) return null;
     const co = hit.company;
+    try { markFrame(ctx, "focus", { company: co }); } catch { /* the focus is an aid */ }
     const same = pool.filter((p) => lc(p.company) === lc(co));
     const lines = [];
     const rules = standingRulesOf(ctx, ctx.profile);
@@ -11835,6 +11853,8 @@ const CareerRouter = (() => {
     // the apply machinery and the company-intel branch — the apply
     // route reads it as no instruction at all, and intel answered
     // it with the company-file absence and no link.
+    const cst = handleCarriedStatus(text, c);
+    if (cst) return cst;
     const pfacts = handlePostingFacts(text, c);
     if (pfacts) return pfacts;
     const namedLink = handleNamedPostingLink(text, c);

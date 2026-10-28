@@ -214,9 +214,10 @@ export async function readSituation(admin: any, userId: string, now: number): Pr
 
 // WO-110: what the router path carries into a new thread (ctx.carry): the confirmed facts, the standing instructions and the
 // saved alert's roles and places. The router reads it; it is never written back as a fact.
-export interface Carry { facts: KnownFact[]; standing: string[]; alert: { roles: string[]; places: string[]; remote: boolean } | null }
+export interface Carry { facts: KnownFact[]; standing: string[]; alert: { roles: string[]; places: string[]; remote: boolean } | null; tasks: { company: string; line: string }[] }
 export const carryFrom = (s: Situation | null): Carry | null => !s ? null : {
   facts: s.facts, standing: s.goal.constraints,
+  tasks: s.tasks.filter((t) => t.company && t.kind !== "question").map((t) => ({ company: t.company as string, line: taskLine(t).slice(2) })),
   alert: s.goal.roles.length || s.goal.places.length ? { roles: s.goal.roles, places: s.goal.places.filter((p) => p !== "remote"), remote: s.goal.places.includes("remote") } : null,
 };
 

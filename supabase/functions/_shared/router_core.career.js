@@ -8276,9 +8276,24 @@ const CareerOnboarding = (() => {
     if (/what roles|roles.*looking|looking for/.test(q)) return (prefs.roles || []).length ? hit(`You are looking for: ${prefs.roles.join(", ")}.`, "profile preferences.roles (stored)") : miss("target roles");
     if (/where.*(?:live|based)|location/.test(q)) return basics.location ? hit(`You are based in ${basics.location}.`, "profile basics.location (stored)") : miss("location");
     if (/comp floor|pay floor|minimum.*(?:pay|salary|comp)/.test(q)) return prefs.compFloor ? hit(`Your pay floor: ${prefs.compFloor}.`, "profile preferences.compFloor (stored)") : miss("pay floor");
-    if (/gpa/.test(q)) return (p.defaults && p.defaults.gpa) ? hit(`Your GPA on file: ${p.defaults.gpa}.`, "profile defaults.gpa (stored)") : miss("GPA");
+    if (/gpa/.test(q)) {
+      if (p.defaults && p.defaults.gpa) return hit(`Your GPA on file: ${p.defaults.gpa}.`, "profile defaults.gpa (stored)");
+      const g = confirmedEducation(p).map((f) => { const m = /\bGPA\b[:\s]*([0-4]\.\d{1,2})\b/i.exec(eduLine(f)); return m && { gpa: m[1], school: eduSchool(f) }; }).find(Boolean);
+      return g ? hit(`Your GPA on your confirmed resume: ${g.gpa}${g.school ? ` (${g.school})` : ""}.`, "confirmed resume fact: education") : miss("GPA");
+    }
+    if (SCHOOL_ASK.test(q)) {
+      const edu = confirmedEducation(p);
+      if (!edu.length) return { found: false, answer: null, reasked: false, ask: null };
+      return hit(`From your confirmed resume: ${edu.map(eduLine).join("; ")}.`, "confirmed resume fact: education");
+    }
     return { found: false, answer: null, reasked: false, ask: null };
   }
+  const SCHOOL_ASK = /\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b|\bwhat (?:school|college|university) (?:did|do) i (?:go to|attend)\b|\bwhat(?:'?s| is) my (?:school|college|university|alma mater|degree)\b/;
+  function confirmedEducation(p) {
+    return ((p && p.facts) || []).filter((f) => f && f.kind === "education" && f.needs_confirmation !== true && (f.status == null || f.status === "confirmed"));
+  }
+  const eduLine = (f) => String(f.title || f.text || "").split("\n")[0].replace(/\s+/g, " ").trim();
+  const eduSchool = (f) => (eduLine(f).split(/\s+[-–—]\s+|,/)[0] || "").trim();
 
   const SENSITIVE_FIELDS = {
     work_authorization: { label: "work authorization", read: (p) => (p.constraints || {}).workAuthorization },
@@ -8605,7 +8620,7 @@ const CareerOnboarding = (() => {
       const r = answerCurrent(c.profile, text);
       return { intent: "onboarding_answer", done: r.done, answered: r.answered, pending: r.pending || null, reply: r.text };
     }
-    if (c.profile && /^(what'?s|what is) my\b/.test(t)) {
+    if (c.profile && (/^(what'?s|what is) my\b/.test(t) || SCHOOL_ASK.test(t))) {
       const r = answerFromProfile(c.profile, text);
       if (r.found || r.ask) return { intent: "profile_recall", found: r.found, source: r.source || null, reply: r.found ? r.answer : r.ask };
     }
@@ -13132,8 +13147,10 @@ const CareerRouter = (() => {
 
   function locationCaveat(adapted, profile) {
     if (!adapted || adapted.remote === "remote") return null;
+    if (/^\s*(fully\s+)?remote\b/i.test(s(adapted.location))) return null;
     const prefs = (((profile || {}).preferences || {}).locations || []).map((x) => lc(x).split(",")[0].trim());
     const home = lc((((profile || {}).basics || {}).location || "").split("(")[0].split(",")[0].trim());
+    if (!prefs.filter(Boolean).length && !home) return null;
     const city = lc((adapted.location || "").split(",")[0].split("—")[0].trim());
     if (!city || prefs.some((x) => x && (city.includes(x) || x.includes(city))) || (home && city.includes(home))) return null;
     return `the role is in ${adapted.location}, outside the places on your profile, so it means relocating`;
@@ -13145,7 +13162,7 @@ const CareerRouter = (() => {
     if (loc) return loc;
     if (item.missing_required && item.missing_required.length) return `${item.missing_required.join(", ")} named in the posting and not yet on your profile`;
     if (p.deadline) return `apply by ${p.deadline}`;
-    return "no tradeoff stated in the posting";
+    return null;
   }
 
   function rankedShortlist(profile, ctx, opts) {
@@ -13173,7 +13190,7 @@ const CareerRouter = (() => {
     if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch { kept = scored; } }
     let rows = kept.map((it) => {
       const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null, url: postingUrlOf(it.posting) });
-      item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : "closest fit on your profile, with the gaps named in the caveat";
+      item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : (profile && ((profile.facts || []).length) ? "closest to your profile" : "matches your search");
       item.caveat = caveatFor(item, profile);
       return item;
     });
@@ -13202,7 +13219,7 @@ const CareerRouter = (() => {
     const where = item.remote === "remote" ? "remote" : item.remote === "hybrid" ? `hybrid in ${s(item.location).split(",")[0]}` : s(item.location);
     const pay = item.posting.salary && item.posting.salary.raw ? `, ${item.posting.salary.raw}` : "";
     const url = item.url || postingUrlOf(item.posting);
-    return `${item.title} at ${item.company}${url ? ` (${url})` : ""} — ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
+    return `${item.title} at ${item.company}${url ? ` (${url})` : ""} — ${where}${pay}: ${item.reason}${item.caveat ? `; heads-up: ${item.caveat}` : ""}.`;
   }
 
   const FAMILY_LABELS = { PM: "product management (PM)", SWE: "software engineering", "Data/ML": "data and machine learning", Design: "design", Finance: "finance", Consulting: "consulting", Operations: "operations", Marketing: "marketing", Sales: "sales" };
@@ -13246,9 +13263,10 @@ const CareerRouter = (() => {
       excluded, resultStatus: "prepared",
     };
     if (!top.length && dedupedTo === 0 && !ranked.length) {
-      const facts = ["The list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it."];
-      if (fams && fams.length) facts.push(`Your ask is on record exactly as stated — ${fams.map(familyLabel).join(" + ")} — and this search runs first the moment matching roles land on the list.`);
-      const reply = compose({ headline: o.headline || "Nothing to rank yet — the current list is empty.", facts, nextStep: o.nextStep || "Paste a posting you found, or name a company to watch, and we start from something real." });
+      const facts = ["I don't have open roles on my list right now, and I won't make any up."];
+      if (fams && fams.length) facts.push(`I've kept your ask (${fams.map(familyLabel).join(" + ")}) and will run it as soon as matching roles come in.`);
+      const newPerson = !(profile && (profile.facts || []).length);
+      const reply = compose({ headline: o.headline || "Nothing to show yet.", facts, nextStep: o.nextStep || (newPerson ? "Meanwhile, send me your resume — paste it here or attach the file." : "Paste a posting you found, or name a company to watch, and I'll start there.") });
       return Object.assign({ intent: o.intent || "career_discovery", reply, requested_families: fams || [] }, publicFacts);
     }
     if (!top.length && fams && fams.length && family && family.onList > 0) {
@@ -13274,7 +13292,9 @@ const CareerRouter = (() => {
       const reply = compose({ headline: "I found no roles in the current list that pass your profile's hard filters.", facts: excluded.length ? [`${excluded.length} postings were excluded, mostly for: ${excluded[0].reasons[0]}.`] : [], nextStep: "Widen the location or role and I will search again." });
       return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
     }
-    const reply = compose({ headline: o.headline || `Here are the ${top.length} roles most worth applying to, ranked by fit with your profile.`, facts: top.map(roleSentence), nextStep: o.nextStep || "Tell me one to tailor your resume for, and I will do that next." });
+    const profiled = !!(profile && (profile.facts || []).length);
+    const reply = compose({ headline: o.headline || (profiled ? `Here are the ${top.length} roles most worth applying to, ranked by fit with your profile.` : `Here ${top.length === 1 ? "is 1 role" : `are ${top.length} roles`} that match your search.`), facts: top.map(roleSentence),
+      nextStep: o.nextStep || (profiled ? "Tell me one to tailor your resume for, and I will do that next." : "Want me to rank them against your resume? Paste it here or attach the file.") });
     return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
   }
 
@@ -14757,6 +14777,12 @@ const CareerRouter = (() => {
     if (/\b(delete|erase|forget|wipe|remove)\b[^.]*\b(everything|all of it|all my|my (data|info|information|profile|record|details))\b/.test(t) || /^(delete|erase|forget) (everything|it all)[.!]*$/.test(t)) {
       const wmir = threadMirrorForWrite(ctx);
       if (wmir) wmir.eraseConfirm = { at: new Date(nowOf(ctx)).toISOString() };
+      if (/\b(stop|unsubscribe|opt ?out|pause|quiet|no more)\b[^.]*\b(messages?|texts?|alerts?|notifications?|texting|contact)\b|\bstop (?:messaging|texting)\b/.test(t)) {
+        return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({
+          headline: "To stop messages: text \"stop\" — I pause, send no alerts and start nothing new until you text \"resume career work\".",
+          facts: ["To delete your data: say \"yes, erase it\" and I remove your saved career facts and profile, job watches and alerts, application tracker, and the plans and drafts I act on.", "Nothing is deleted until you send that exact yes."],
+          nextStep: "Which would you like?" }) };
+      }
       return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({ headline: "Before anything is deleted — here is exactly what an erase removes.", facts: ["It goes: your saved career facts and profile, your job watches and alerts, your application tracker, and the standing plans, drafts and conversation state I act on.", "It does not rewrite the chat transcript or audit records — that text is excluded from your active context instead, the same line the product's own erase draws."], nextStep: "Say “yes, erase it” if that is what you want. Nothing is deleted until that yes — and a yes to anything else does not count." }) };
     }
     return null;
@@ -14892,6 +14918,10 @@ const CareerRouter = (() => {
       ? "Want me to find roles that fit your resume?"
       : "Want to start by sending me your resume? Paste the text here or attach the file.";
     const say = (text, nextStep) => { const [h, ...rest] = String(text).split(/(?<=[.!?])\s+/); return compose({ headline: h, facts: rest, nextStep }); };
+    if (/\bwhat(?:'s| is)? my name\b|\bwhats my name\b|\bdo you know my name\b/.test(t)) {
+      const named = statedFactsOf(ctx).find((f) => f.kind === "name");
+      return named ? say(`Your name is ${named.value} — that's what you told me.`, "Want me to change it?") : say("You haven't told me your name yet.", "What should I call you?");
+    }
     if (/^(thx|thanks|thank you|thank u|ty|tysm|cool|nice|great|awesome|perfect|lol|lmao|haha|ok|okay|k|kk|got it|sounds good|alright|nvm|never ?mind|nevermind)\b/.test(t)) {
       return say("Anytime.", next);
     }
@@ -15242,6 +15272,10 @@ const CareerRouter = (() => {
     if (ctx.pastedText) input.pastedText = ctx.pastedText;
     if (ctx.linkedinConnectionsCsv) input.linkedinConnectionsCsv = ctx.linkedinConnectionsCsv;
     if (ctx.forwardedEmail) input.forwardedEmail = ctx.forwardedEmail;
+    if (!Object.keys(input).length && /\b(resume|cv)\b/i.test(s(text)) && !/\b(contacts?|names|list|spreadsheet|csv|linkedin)\b/i.test(s(text))) {
+      const reply = compose({ headline: "Paste your resume text right here, or attach the PDF or Word file.", facts: ["I'll read it back to you before anything is used."], nextStep: "Want to send it now?" });
+      return { intent: "career_resume_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
     const Intake = getIntake();
     if (Object.keys(input).length && Intake && Intake.intake) {
       const r = Intake.intake(input, { knownDepartures: ctx.knownDepartures || [] });
@@ -17365,7 +17399,7 @@ const CareerRouter = (() => {
         try { sum0 = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum0 = null; }
         return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } }, sum0 ? { summary: sum0 } : { summary: { total: 0 } });
       }
-      const reply = compose({ headline: "Your tracker holds no applications on record in this session.", facts: ["When you apply through me, every application lands here with its stage, and a stage is spoken only from the record.", "Applications you handled yourself count too — tell me about one and I will add it."], nextStep: "Tell me about any application already out under your own name, and I will log it first." });
+      const reply = compose({ headline: "Your application tracker is empty — no applications on record yet.", facts: ["Once you apply through me, each one shows up here with where it stands. If you applied somewhere on your own, tell me and I'll add it."], nextStep: "Say \"find jobs\" and I'll start a search." });
       let sum = null;
       try { sum = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum = null; }
       return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } }, sum ? { summary: sum } : { summary: { total: 0 } });
@@ -19895,12 +19929,13 @@ const CareerRouter = (() => {
     const profile = ctx && ctx.profile;
     if (!profile) {
       const standing = loadWatchProfileSync(ctx);
-      if (!standing || !standing.scoring_profile) {
+      if ((!standing || !standing.scoring_profile) && !watchRoleFromText(text)) {
         const reply = compose({ headline: "I can set that watch up — I need your profile on file first.", facts: ["A watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing."], nextStep: "Tell me about yourself first — school, class year, the work you have done — and then say the watch again." });
         return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };
       }
     }
-    const role = watchRoleFromText(text);
+    let role = watchRoleFromText(text);
+    if (role && /^(?:new |the |more |any )?(?:ones?|them|it|these|those|that|this|some|stuff|things?|jobs?|roles?|openings?|positions?)$/i.test(s(role.title).trim())) role = null;
     if (role) role.as_asked = s(text).trim();
     if (!role) {
       const reply = compose({ headline: "I need the role named to set that watch.", facts: ["A watch keys on the role as you state it — any title in your own words works, it does not have to be a standard category.", "With no role named there is nothing honest to watch for, so nothing was saved."], nextStep: "Say it like \"watch for\" plus the role — for example, \"watch for barista roles\" — and the watch is set in this turn." });
@@ -19941,7 +19976,7 @@ const CareerRouter = (() => {
       return { intent: "career_watch_create", reply, resultStatus: "blocked", sends: 0 };
     }
     const userWords = role.derived === true && !role.soc;
-    const facts = [`Watching: ${watchLineHuman(interest)}.`, "The watch is saved on your record — it is per-user, not per-thread, so it stands across conversations."];
+    const facts = [`Watching: ${watchLineHuman(interest)}.`, "It's saved to your account, so it stays on in every chat."];
     const homeKnown = !!(wp.scoring_profile && wp.scoring_profile.location);
     if (interest.filters.remote_ok === false) facts.push("Remote postings are left out, as you asked.");
     else if (interest.filters.remote_choice === "stated") facts.push("Remote postings are included, as you asked — those open to where you are.");
@@ -19950,8 +19985,13 @@ const CareerRouter = (() => {
     if (userWords) facts.push("That title is not a standard category, so the watch keys on your own words exactly as you stated them — postings whose titles carry those words are what it can match.");
     facts.push(alertDeliveryLine(ctx));
     if (wp.opt_out && wp.opt_out.global) facts.push("Your job alerts are currently paused, so this watch is recorded but will not remind until you resume alerts.");
-    facts.push("No reminder has been delivered and no application has been submitted.");
-    const reply = compose({ headline: `Watch set: ${role.title}.`, facts, nextStep: "Want another role watched, or the list of what you are watching now?" });
+    const missing = [];
+    if (!resumeOnRecord(ctx)) missing.push("your resume");
+    if (!(interest.filters.locations || []).length && !homeKnown) missing.push("the city you want to work in");
+    const nextStep = missing.length
+      ? `To rank matches for you, send ${missing.join(" and ")} — anything that needs ${missing.length > 1 ? "them" : "it"}, like tailoring or applying, waits until then.`
+      : "Want another role watched, or the list of what you are watching now?";
+    const reply = compose({ headline: `Watch set: ${role.title}.`, facts, nextStep });
     return { intent: "career_watch_create", reply, resultStatus: "prepared", sends: 0, watch_profile: wp, payload: wp, artifact: wp };
   }
   function watchOptOutResult(ctx, wp, mode, note) {
@@ -19985,7 +20025,7 @@ const CareerRouter = (() => {
     const A = getAssign(); if (!A) return null;
     const t = lc(text);
     const isPause = /\b(pause|hold)\b[^.]*\b(alerts?|watch)/.test(t) || /\bpause my (job )?alerts\b/.test(t);
-    const isResume = /\b(resume|restart|unpause|turn back on)\b[^.]*\b(alerts?|watch)/.test(t)
+    const isResume = /\b(resume|restart|unpause|turn back on)\b[^.]*\b(alerts?|watch)/.test(t.replace(/\b(my|your|the|a|this) (resume|cv)\b/g, " "))
       || /\bturn (them|it|everything) back on\b/.test(t);
     const isStopAlerts = /\bstop my (job )?alerts\b|\bstop all my alerts\b|\bturn off my (job )?alerts\b/.test(t);
     const isKeep = /\bkeep them\b|\bkeep my (job )?alerts\b/.test(t);
@@ -20131,7 +20171,7 @@ const CareerRouter = (() => {
     if (frame && /^\s*(ok|okay|alright)?[,.]?\s*pause( it)?[.!]?\s*$/.test(t)) return { op: "pause", timed: false };
     if (wp && /\bturn (them|it|everything|that) back on\b/.test(t)) return { op: "resume" };
     if (/\bturn (my |the )?(job )?alerts back on\b/.test(t)) return { op: "resume" };
-    if (/\b(resume|restart|unpause)\b/.test(t) && alertNoun) return { op: "resume" };
+    if (/\b(resume|restart|unpause)\b/.test(t.replace(/\b(my|your|the|a|this) (resume|cv)\b/g, " ")) && alertNoun) return { op: "resume" };
     if (/\bstop (all )?(my )?(job )?alerts\b/.test(t) || /\bno more alerts\b/.test(t) || /\bturn off my (job )?alerts\b/.test(t)) return { op: "stop" };
     if (frame && /^\s*(ok|okay|alright)?[,.]?\s*stop( it)?[.!]?\s*$/.test(t) && !alertPendingElsewhere(ctx)) return { op: "stop" };
     if (/\b(delete|remove|drop)\s+(all|every)\b/.test(t) && alertNoun) return { op: "remove_all" };
@@ -20147,7 +20187,7 @@ const CareerRouter = (() => {
       if (firms.length) return { op: "change_firms", firms };
     }
     if (/\b(text|tell|email|message|write to)\s+(my|the)\s+(boss|manager|supervisor)\b/.test(t)) return null;
-    const classicCreate = /\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for|about)\b|\bnotify me (when|about|for)\b|\blet me know\b|\btell me when\b|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t);
+    const classicCreate = /\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an? )?(job |new )?alerts?\b|\b(create|add|make|start) (an? )?(job )?alerts?\b|\balert me (when|for|about)\b|\bnotify me (when|about|for)\b|\blet me know\b|\btell me when\b|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t);
     const deliveryM = t.match(/\b(text|message|ping|notify|tell|send|dm)\s+me\b|\blet me know\b|\bheads up\b|\bkeep an eye (out )?on\b|\bi (want to|wanna|would like to) (know|hear|be notified)\b|\bping me\b/);
     const deliveryVerb = !!deliveryM;
     const jobObject = /\b(jobs?|roles?|openings?|positions?|postings?|internships?)\b/.test(t) || /\b(opens? up|goes up|comes up|gets? posted|is posted)\b/.test(t);
@@ -20538,6 +20578,13 @@ const CareerRouter = (() => {
     const raw = s(text).trim();
     const t = lc(raw).replace(/[’]/g, "'");
     if (!t) return null;
+    if (/^(?:hey |so |ok )?(?:what(?:'s| is)?|whats) my name\s*[?.!]*$|^do you (?:know|remember) my name\s*[?.!]*$/.test(t)) {
+      const named = statedFactsOf(ctx).find((f) => f.kind === "name");
+      const reply = named
+        ? compose({ headline: `Your name is ${named.value} — that's what you told me.`, facts: [], nextStep: "Want me to change it?" })
+        : compose({ headline: "You haven't told me your name yet.", facts: [], nextStep: "What should I call you?" });
+      return { intent: "conversation_recall", reply, resultStatus: named ? "completed" : "awaiting_user", sends: 0 };
+    }
     if (/^(?:(?:hi|hey|hello|yo|ok|okay|so|um)[\s,!.]+)*(?:who (?:are you|is this)|what (?:exactly )?(?:are you|is this|is trainee)|what(?:'s| is) this(?: thing| app)?|what do you do|what (?:can|do) (?:you|u|ya) (?:do|help with)(?: for me)?|wh?at can (?:you|u) do|how does (?:this|it) work|what(?:'s| is) up|whats up|wassup|sup)[\s?!.]*$/.test(t)) return greetingResult(ctx);
     if ((/\b(send|sends|sent|submit|submits|submitted|apply|applies|applied|email|emails|emailed|message|messages|messaged|reach out|contact|post)\b/.test(t)
         && /\bwithout (?:asking|checking|telling|me\b|my (?:permission|approval|ok|okay|consent|say[- ]so|yes|go[- ]ahead))|\bon (?:your|its) own\b|\bautomatically\b|\bbehind my back\b|\bbefore i (?:say yes|approve|agree|ok|okay|confirm|see)\b|\b(?:unless|until) i (?:approve|say|confirm|ok|okay|agree)\b/.test(t))
@@ -20548,7 +20595,7 @@ const CareerRouter = (() => {
       const reply = compose({ headline: "Nothing goes out without your approval.", facts, nextStep: "Want me to start by finding roles that fit you?" });
       return { intent: "career_approval_rule", reply, resultStatus: "awaiting_user", sends: 0 };
     }
-    if (/\b(?:have you|did you|have i|did i)\b[^.?]*\b(?:applied|apply|sent)\b|\bapplied (?:anywhere|to anything|for me)\b|\bhow many\b[^.?]*\b(?:applied|applications?)\b|\bwhere am i with\b|\bhow (?:are|is) my (?:job )?applications?\b|\bupdates? on\b[^.?]*\b(?:applied|applications?)\b|\bapplications? (?:going|go through|gone through)\b/.test(t)) {
+    if (/^\s*(?:so |ok |hey )?(?:wh?at'?s|what is) my (?:job search |search )?status\s*[?.!]*\s*$|^\s*(?:my )?status\s*[?.!]*\s*$|^\s*where (?:do|does) (?:things|everything|my search) stand\s*[?.!]*\s*$|^\s*any updates?\s*[?.!]*\s*$|\b(?:have you|did you|have i|did i)\b[^.?]*\b(?:applied|apply|sent)\b|\bapplied (?:anywhere|to anything|for me)\b|\bhow many\b[^.?]*\b(?:applied|applications?)\b|\bwhere am i with\b|\bhow (?:are|is) my (?:job )?applications?\b|\bupdates? on\b[^.?]*\b(?:applied|applications?)\b|\bapplications? (?:going|go through|gone through)\b/.test(t)) {
       const ts = handleTrackStatus(text, ctx);
       if (ts) return ts;
     }
@@ -21089,7 +21136,7 @@ const CareerRouter = (() => {
       const wm = handleWatchManage(text, c);
       if (wm) return wm;
     }
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t)) {
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an? )?(job |new )?alerts?\b|\b(create|add|make|start) (an? )?(job )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
@@ -21111,7 +21158,7 @@ const CareerRouter = (() => {
       const wa = handleWatchAffirm(text, c);
       if (wa) return wa;
     }
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t)) {
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an? )?(job |new )?alerts?\b|\b(create|add|make|start) (an? )?(job )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
@@ -21767,7 +21814,8 @@ const CareerRouter = (() => {
       return handleDiscovery(text, c, {});
     }
     if (/\b(need|want|looking for|searching for)\b[^.]*\b(internships?|jobs?|roles?)\b|\binternships?\b[^.]*\b(help|next summer|summer)\b|\bhelp\b[^.]*\b(internships?|jobs?)\b/.test(t)) {
-      return handleInternship(text, c);
+      if (/\b(internships?|intern|new[- ]grad|summer)\b/.test(t)) return handleInternship(text, c);
+      return handleDiscovery(text, c, {});
     }
     if (/\bfind\b|\bshortlist\b|\broles worth\b/.test(t)) {
       if (/^internships?$/.test(findHeadNoun(t) || "")) return handleInternship(text, c);
@@ -21790,7 +21838,7 @@ const CareerRouter = (() => {
   }
 
   const FACT_CITIES = ["New York", "Chicago", "San Francisco", "Boston", "Houston", "Dallas", "Los Angeles", "Seattle", "Austin", "Miami", "Charlotte", "Denver"];
-  const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role", "sponsorship", "citizenship"]);
+  const FACT_SINGLE_KINDS = new Set(["name", "year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role", "sponsorship", "citizenship"]);
   function recordKeyedFact(ctx, kind, key, value, evidence) {
     if (!value) return false;
     const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
@@ -21923,6 +21971,13 @@ const CareerRouter = (() => {
       const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
       if (clean && statedFactsOf(ctx).some((f) => f.kind === kind && lc(f.value) === lc(clean)) && !restated.some((r) => r.kind === kind)) restated.push({ kind, value: clean });
     };
+    {
+      const nm = unquotedText(raw).match(/^\s*(?:(?:hi|hey|hello|yo)[,!.\s]+)?(?:my name is|my name's|i am called|call me|the name is|name:)\s+([a-z][a-z'\u2019-]+(?:\s+[a-z][a-z'\u2019-]+){0,2})\s*[.!]?\s*$/i);
+      if (nm && !/\?/.test(raw)) {
+        const name = nm[1].split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        if (!/^(not|a|an|the|looking|trying|here)$/i.test(name.split(" ")[0])) push("name", name, nm[0].trim());
+      }
+    }
     const pushMajors = (value, clause) => { const v = _cleanFactVal(value); if (v && !_spanIsFragment(v)) push("majors", v, clause); };
     {
       const u = unquotedText(raw);
@@ -22315,7 +22370,7 @@ const CareerRouter = (() => {
     return { intent: "conversation_recall", reply, resultStatus: status, sends: 0 };
   }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: experienceLine(f), school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { name: `your name is ${f.value}`, year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: experienceLine(f), school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   function profileFromStatedFacts(ctx) {
     const facts = statedFactsOf(ctx);
@@ -22325,7 +22380,7 @@ const CareerRouter = (() => {
     const spons = facts.find((f) => f.kind === "sponsorship");
     return {
       _fromStatedFacts: true,
-      basics: { name: null, email: null, phone: null, location: geo ? geo.value : null, links: {} },
+      basics: { name: (facts.find((f) => f.kind === "name") || {}).value || null, email: null, phone: null, location: geo ? geo.value : null, links: {} },
       preferences: { roles: [], industries: [], locations: geo ? [geo.value] : [], remote: null, companySize: null, compFloor: null, dealBreakers: [], targetCompanies: firm ? [firm.value] : [], excludedCompanies: [] },
       constraints: { graduationDate: null, startDate: null, workAuthorization: spons ? spons.evidence || null : null, needsSponsorship: spons ? spons.value === "needs sponsorship" : null, relocation: null, securityClearance: null },
       defaults: {},
@@ -22364,6 +22419,11 @@ const CareerRouter = (() => {
     if (/\?/.test(s(text))) return null;
     if (s(text).split(/\s+/).length > 22) return null;
     const all = statedFactsOf(ctx);
+    if (added.length === 1 && added[0].kind === "name") {
+      const first = s(added[0].value).split(" ")[0];
+      const reply = compose({ headline: `Nice to meet you, ${first} — I'll use that name with you.`, facts: [], nextStep: resumeOnRecord(ctx) ? "What role should I look for?" : "Want to send me your resume next? Paste it here or attach the file." });
+      return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all };
+    }
     try { const m = threadMirrorForWrite(ctx); if (m) m.affirmRecord = { at: nowOf(ctx) }; } catch {   }
     const reply = compose({ headline: "Recorded — that is on your record now, in your words.", facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });
     return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all };
@@ -22471,7 +22531,7 @@ const CareerRouter = (() => {
       }
       return null;
     }
-    if (/\bwhat\s+do\s+you\s+(remember|know)\b/.test(t) || /\bwhat\s+have\s+you\s+(got|recorded|saved)\b/.test(t) || /\bremind\s+me\b(?!\s+to\s+\w)/.test(t)) {
+    if (/\bwhat\s+do\s+you\s+(remember|know)\b/.test(t) || /\bwhat\s+have\s+you\s+(got|recorded|saved)\b/.test(t) || /\bremind\s+me\b(?![^.?!]*\bto\s+\w)/.test(t)) {
       const named = all.filter((f) => f.value && t.includes(coKey(f.value)) && coKey(f.value).length > 2)
         .map((f) => coKey(f.value));
       const keyed = all.map((f) => f.key).filter(Boolean);
@@ -22480,6 +22540,18 @@ const CareerRouter = (() => {
       const pool = company
         ? all.filter((f) => coKey(f.key) === company || coKey(f.value) === company || (f.evidence && lc(f.evidence).includes(company)))
         : all;
+      if (!pool.length && !company) {
+        let confirmed = [];
+        try { confirmed = ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(ctx && ctx.profile) : []; } catch { confirmed = []; }
+        if (confirmed.length) {
+          const kinds = {};
+          for (const f of confirmed) { const k = s(f && f.kind) || "other"; kinds[k] = (kinds[k] || 0) + 1; }
+          const label = { education: "school", experience: "job", project: "project", leadership: "leadership role", skill: "skill" };
+          const parts = Object.entries(kinds).map(([k, n]) => `${n} ${label[k] || k}${n === 1 ? "" : (label[k] || k).endsWith("s") ? "" : "s"}`);
+          const reply = compose({ headline: `From the resume you confirmed: ${confirmed.length} entries — ${parts.join(", ")}.`, facts: [], nextStep: "Want me to read any of them back, or fix something that's wrong?" });
+          return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+        }
+      }
       if (!pool.length) {
         const reply = compose({ headline: company ? `Nothing is on your record about ${company} yet.` : "Nothing is on your record yet.", facts: ["The record holds only what you state in chat — a target company, a recruiter contact, an interview day, a preference — and nothing is assumed to fill it."], nextStep: "State the fact in your own words and it is recorded in this turn." });
         return { intent: "conversation_recall", reply, resultStatus: "awaiting_user", sends: 0 };
@@ -22557,7 +22629,8 @@ const CareerRouter = (() => {
   }
   function handleStatedFactReadback(text, ctx) {
     const t = lc(text);
-    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone)\b/) || (/\bwhere am i (based|targeting|looking)\b/.test(t) ? [null, "geography"] : null);
+    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone)\b/) || (/\bwhere am i (based|targeting|looking)\b/.test(t) ? [null, "geography"] : null)
+      || (/\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b/.test(t) ? [null, "school"] : null);
     if (!m) return null;
     const kind = { "target firm": "target_firm", "target company": "target_firm", major: "majors", school: "school", city: "geography", location: "geography", geography: "geography", year: "year", "class year": "year", level: "level", tone: "tone" }[m[1]] || m[1];
     const all = statedFactsOf(ctx);
@@ -22590,6 +22663,20 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "Here is the plan, built from what you told me — two moves, in order.", facts: [`What I am working from — your words, on record: ${facts.map(factLine).join("; ")}.`, moveOne, moveTwo], nextStep: "Say go and move one starts now — or correct any fact first and the plan re-aims." });
     return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
   }
+  function workAuthOnRecord(ctx, profile) {
+    const out = [];
+    const WA = /\b(authori[sz]\w*|citizen\w*|sponsor\w*|visa|green card|permanent resident|h-?1b|opt|cpt|ead|work permit)\b/i;
+    const cons = (profile && profile.constraints) || {};
+    if (s(cons.workAuthorization).trim()) out.push(`work authorization — "${s(cons.workAuthorization).trim()}"`);
+    if (cons.needsSponsorship === true || cons.needsSponsorship === false) out.push(cons.needsSponsorship ? "you need visa sponsorship" : "you do not need visa sponsorship");
+    for (const f of (profile && profile.facts) || []) {
+      if (!f || f.kind !== "eligibility" || f.needs_confirmation === true || (f.status != null && f.status !== "confirmed")) continue;
+      const line = s(f.title || f.text || "").split("\n")[0].trim();
+      if (line && WA.test(line)) out.push(`"${line}"`);
+    }
+    for (const f of statedFactsOf(ctx)) if (f && (f.kind === "sponsorship" || f.kind === "citizenship" || /work_?auth/.test(s(f.kind)))) out.push(factLine(f));
+    return [...new Set(out)];
+  }
   function handleEligibilityAsk(text, ctx) {
     const t = lc(text);
     const waQuestion = /\?/.test(s(text)) && /\b(sponsor|sponsorship|visa|work (authorization|permit)|citizenship)\b/.test(t);
@@ -22599,9 +22686,23 @@ const CareerRouter = (() => {
     if (/\b(offer|negotiat|signing bonus|counter)\b/.test(t)) return null;
     if (/\b(is|does|would|can) (he|she|they)\b|\bmy (roommate|friend|brother|sister|classmate|coworker|co-worker|colleague|partner)\b[^.]*\beligib/.test(t)) return null;
     const profile = ctx.profile || null;
-    let posting = ctx.posting || null;
+    const comp = companyFromText(text, ctx);
+    const eligWord = /\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t);
+    const namesPosting = !!comp || /\b(this|that|the|these|those) (role|job|posting|position|opening|internship|one)s?\b/.test(t) || s(text).length > 500;
+    const waRecord = workAuthOnRecord(ctx, profile);
+    if (waQuestion && !eligWord && !namesPosting) {
+      const what = /\b(sponsor|sponsorship|visa)\b/.test(t) ? "whether you need visa sponsorship" : "your work authorization";
+      if (waRecord.length) {
+        const reply = compose({ headline: "From your record — your words, as stated.", facts: waRecord.slice(0, 2).map((x) => `On record: ${x}.`), nextStep: "Correct it in your own words if it has changed, and the record re-aims." });
+        return { intent: "profile_recall", reply, resultStatus: "completed", sends: 0 };
+      }
+      const label = what.charAt(0).toUpperCase() + what.slice(1);
+      const reply = compose({ headline: `${label} is not on your record — you have not told me.`, facts: ["Nothing about your work authorization is assumed: I only use what you tell me."], nextStep: "Do you need visa sponsorship to work in the US, now or later?" });
+      return { intent: "profile_recall", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    const usable = (p) => !!(p && typeof p === "object" && (s(p.company).trim() || s(p.title).trim() || s(p.jd_text).trim() || (Array.isArray(p.requirements) && p.requirements.length)));
+    let posting = usable(ctx.posting) ? ctx.posting : null;
     if (!posting) {
-      const comp = companyFromText(text, ctx);
       if (comp) {
         const pool = postingsFromCtx(ctx);
         posting = pool.find((p) => p.company && lc(p.company) === lc(comp)) || pool.find((p) => p.company && (lc(p.company).includes(lc(comp)) || lc(comp).includes(lc(p.company)))) || null;
@@ -22611,6 +22712,7 @@ const CareerRouter = (() => {
     if (jdText && profile && Tailor) {
       try {
         const jd = Tailor.parseJD(jdText);
+        if (!((jd.mustHaveSkills || []).length || (jd.knockouts || []).length)) throw new Error("no requirement read from the posting text");
         const gaps = Tailor.computeGaps(profile, jd);
         const verdict = Tailor.eligibilityVerdictFor(gaps);
         const failed = gaps.filter((g) => g.reasonClass === "knockout-failed");
@@ -22619,6 +22721,7 @@ const CareerRouter = (() => {
         for (const g of failed.slice(0, 4)) facts.push(`Not met: ${g.requirement} — ${g.reason}`);
         for (const g of required.slice(0, 4)) facts.push(`Required and not evidenced: ${g.requirement}.`);
         if (!failed.length && !required.length) facts.push("Every hard requirement and required skill the posting states is evidenced on your record.");
+        if (waQuestion) facts.push(waRecord.length ? `Work authorization on your record: ${waRecord[0]}.` : "Whether you need visa sponsorship is not on your record — you have not told me.");
         const reply = compose({ headline: `Graded against the posting's own text${posting && posting.company ? ` — ${posting.title || "the role"} at ${posting.company}` : ""}.`, facts, nextStep: "Want the tailored packet for it — the gaps travel with the document, named, never hidden — or another posting graded the same way?" });
         return { intent: "eligibility_check", reply, resultStatus: "prepared", sends: 0, eligibility: { status: verdict.status, gaps } };
       } catch {   }
@@ -23111,7 +23214,8 @@ const CareerRouter = (() => {
     add("tracking", "application tracking", /\bset up\b[^.]*\btrack|\btracking for\b|\btrack(ing)? my applications\b|\bset up tracking\b|\bcheck\b[^.]*\bstatus of my\b[^.]*\bapplications?\b|\bmy tracker\b|\bmy pipeline\b|\bshow (me )?my applications\b|\bwhat applications do i have\b|\blist my applications\b/);
     add("worth", "the market-value read", /\bwhat am i worth\b|\bmarket value\b|\bmy worth now\b/);
     add("log", "the tracker log", /\blog\b[^.]*\b(applied|application)\b|\bi applied to\b/);
-    add("watch", "the watch", /\bset up\b[^.]*\bwatch\b|\bwatch for\b|\bstart watching\b|\balert me\b[^.]*\broles?\b/);
+    add("watch", "the job alert", /\bset up\b[^.]*\bwatch\b|\bwatch for\b|\bstart watching\b|\balert me\b[^.]*\broles?\b|\b(set|create|add|make|start) (up )?(an? )?(job |new )?alerts?\b/);
+    add("tailor", "tailoring your resume", /\btailor\w*\b[^.]*\b(resume|cv)\b|\b(resume|cv)\b[^.]*\btailor\w*\b/);
     add("negotiation", "the negotiation", /\bnegotiat\w*\b/);
     add("prep", "the interview prep", /\bprep\b[^.]*\binterviews?\b|\bprep me\b|\bprep for (the|my|a) interviews?\b|\bprepare me for\b/);
     add("draft", "the draft", /\bdraft\b[^.]*\b(email|opener|note|message|letter)\b/);
@@ -23129,7 +23233,7 @@ const CareerRouter = (() => {
   }
   function runIntentPart(part, text, ctx) {
     try {
-      if (part.key === "find") return handleInternship(text, ctx) || handleDiscovery(text, ctx, {});
+      if (part.key === "find") return (/\b(internships?|intern|new[- ]grad|summer)\b/.test(lc(text)) ? handleInternship(text, ctx) : null) || handleDiscovery(text, ctx, {});
       if (part.key === "networking") return handleCampaignPlan(text, ctx);
       if (part.key === "tracking") {
         const store = trackStoreOf(ctx);
@@ -23231,17 +23335,18 @@ const CareerRouter = (() => {
       if (unserved.length) {
         const INLINE_OK = new Set(["find", "prep", "tracking", "log", "negotiation", "networking", "worth"]);
         const stillQueued = [];
+        const shown = new Set();
         let inlined = 0;
         for (const p of unserved) {
           if (!inlined && INLINE_OK.has(p.key) && !/^(application_packet|doorstep)/.test(res.intent || "")) {
             const pr = runIntentPart(p, s(text), c);
-            if (pr && pr.reply && pr.intent !== "career_fallback") { res.reply = `${res.reply}\n\n${pr.reply}`; recordActiveWork(c, pr, text); inlined += 1; }
+            if (pr && pr.reply && pr.intent !== "career_fallback") { res.reply = `${res.reply}\n\n${pr.reply}`; recordActiveWork(c, pr, text); inlined += 1; shown.add(p.key); }
           }
           stillQueued.push(p);
         }
         if (stillQueued.length) {
           c.intentQueue = stillQueued.map((p) => ({ key: p.key, label: p.label, ask: s(text) }));
-          additions.push(`Also in your message, held in order: ${stillQueued.map((p, i) => `${i + 1}) ${p.label}`).join("; ")} — say "next" and we take the next one, or name the part and we jump to it.`);
+          additions.push(`Also in your message, held in order: ${stillQueued.map((p, i) => `${i + 1}) ${p.label}${shown.has(p.key) ? " (a first look is above)" : ""}`).join("; ")} — say "next" and we take the next one, or name the part and we jump to it.`);
         }
       }
       if (additions.length) res.reply = `${res.reply}\n\n${additions.join("\n")}`;

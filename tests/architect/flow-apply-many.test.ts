@@ -2,7 +2,7 @@
 //   chat     "find analyst jobs in Chicago" -> handleChat -> the router's discovery lists four postings from the knowledge
 //            base (career_kb_postings) and keeps the served list on the thread (discovery.lastShortlist)
 //   chat     "apply to these" -> handleChat (handler-career.ts) -> each listed posting through the same screens as a single
-//            ask: their current employer (a confirmed fact) refuses one, an application there 10 days ago refuses one, the
+//            ask: their current employer (a confirmed fact) refuses one, the very posting applied to 10 days ago refuses one, the
 //            two others go into career_apply_wanted; the reply lists queued and not queued with the reason for each;
 //            nothing is approved, filled or sent
 //   prepare  prepare-ahead.ts prepareAhead draws both; shared facts asked once; the essay asked once PER posting
@@ -108,7 +108,7 @@ Deno.test({
         insert into public.profiles (id) values ('${PERSON}'), ('${OTHER}');
         insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false}'), ('${OTHER}', 'career:account', '{"epoch":0,"version":0,"paused":false}');
         insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, created_at)
-        values ('${PERSON}', 'greenhouse:prior:3', '${PRIOR}', 'https://boards.greenhouse.io/prior/jobs/3', '{}', repeat('a', 64), repeat('a', 64), 'submitted_unconfirmed', now() - interval '10 days');`);
+        values ('${PERSON}', 'greenhouse:prior:10', '${PRIOR}', 'https://boards.greenhouse.io/prior/jobs/10', '{}', repeat('a', 64), repeat('a', 64), 'submitted_unconfirmed', now() - interval '10 days');`);
       const svc = pg.asService(), person = pg.asPerson(PERSON);
       agentChat = await careerHandler(pg, { "tok-person": PERSON, "tok-other": OTHER });
       const chat: Chat = agentChat.chat("tok-person");
@@ -158,7 +158,7 @@ Deno.test({
         assertEquals((await wanted()).map((w: any) => w.key), [JOB2, JOB].sort(), "exactly the two that pass their screens");
         assert(/Queued 2/.test(r.reply) && r.reply.includes(`${ROLE} at ${COMPANY}`) && r.reply.includes(`${ROLE} at ${SIBLING}`), r.reply);
         assert(new RegExp(`${CURRENT}[^\\n]*current employer`, "i").test(r.reply), `the current-employer refusal, with its reason: ${r.reply}`);
-        assert(new RegExp(`${PRIOR}[^\\n]*already applied`, "i").test(r.reply) && /30 days/.test(r.reply), `the 30-day refusal, with its reason: ${r.reply}`);
+        assert(new RegExp(`${PRIOR}[^\\n]*already[^\\n]*same posting`, "i").test(r.reply) && !/30 days/.test(r.reply), `the exact-duplicate refusal, with its reason (D-MS-3: no 30-day rule): ${r.reply}`);
         assert(/nothing (is|was) (sent|submitted)/i.test(r.reply) && /the card that shows it exactly/.test(r.reply) && /one yes to that card approves exactly what it shows/.test(r.reply), r.reply);
         assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}' and company in ('${COMPANY}', '${SIBLING}')`), "0", "nothing approved: no queue row until their tap");
         assertEquals(site.posts.apply.length + site2.posts.sibling.length, 0);

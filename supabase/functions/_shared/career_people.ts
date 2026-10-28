@@ -174,9 +174,9 @@ export function supabasePeopleStore(admin: any): PeopleStore {
       const out: { userId: string; intro: Intro }[] = [];
       let afterAt: string | null = null, afterId: number | null = null;
       for (;;) {
-        const rows = must(await admin.rpc("career_intro_due", { p_now: nowIso, p_after_at: afterAt, p_after_id: afterId, p_limit: PAGE }), "read the due intro reminders") ?? [];
         // deno-lint-ignore no-explicit-any
-        for (const r of rows as any[]) { const { user_id, ...intro } = r; out.push({ userId: String(user_id), intro: intro as Intro }); }
+        const rows: any[] = must(await admin.rpc("career_intro_due", { p_now: nowIso, p_after_at: afterAt, p_after_id: afterId, p_limit: PAGE }), "read the due intro reminders") ?? [];
+        for (const r of rows) { const { user_id, ...intro } = r; out.push({ userId: String(user_id), intro: intro as Intro }); }
         if (rows.length < PAGE) return out;
         afterAt = rows.at(-1).follow_up_at; afterId = rows.at(-1).id;
       }

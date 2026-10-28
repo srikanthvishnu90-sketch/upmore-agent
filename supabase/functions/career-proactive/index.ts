@@ -4,13 +4,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { supabasePostingsDb } from "../_shared/career_ingest.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
-import { careerToken, careerTokenFor, readMailSince, type TokenDeps } from "../_shared/career_mail_gmail.ts";
+import { CAREER_READ_SCOPE, careerToken, careerTokenFor, readMailSince, type TokenDeps } from "../_shared/career_mail_gmail.ts";
 import { mailModelWiring } from "../_shared/career_mail_model.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_brief_store.ts";
 import { supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
 import { handleProactive } from "./handler.ts";
 import { runOutreachReplies, runOutreachSends, supabaseOutreachStore } from "../_shared/career_outreach.ts";
+import { peopleSink, supabasePeopleDeps } from "../_shared/career_people.ts";
 import { gmailSender, gmailThreadReader } from "../_shared/career_outreach_gmail.ts";
 import { runOutreachFollowupsGated } from "../_shared/career_outreach_track.ts";
 
@@ -101,6 +102,23 @@ serve((req) => {
       const replies = await runOutreachReplies({ store, read: gmailThreadReader({ fetch, token }), now, events }).catch(msg);
       return { ...sends, replies, ...(followups ? { followups } : {}) };
     } : undefined,
+    // Introduction reminders (D-033) queue the reminder a person asked for to the outbox at its date; the run record's
+    // count needs 20261027020000_career_intro_reminder_push.sql, so this runs only once the owner turns it on at
+    // deploy, after that migration. The chat reads the same switch for its words (supabasePeopleDeps' introPush, wired in
+    // agent-chat), and both read the same texting-channel check: a person with no texting channel is never queued.
+    introReminders: Deno.env.get("CAREER_INTRO_REMINDERS") === "on" ? (() => {
+      const deps = supabasePeopleDeps(admin, { fetch, token: async () => null, introPush: true });
+      const people = deps.store;
+      return { due: (nowIso: string) => people.dueIntros(nowIso), canText: deps.canText,
+        markReminded: async (userId: string, n: number) => { await people.updateIntro(userId, n, { reminded_at: new Date().toISOString() }); } };
+    })() : undefined,
+    // People finding (follow-up on #222): unfinished Gmail reads ("who do I know at Ramp", job alerts) carried on in leased
+    // batches, read with the career grant's gmail.readonly. Needs 20261027170100_career_people_gmail_sweep.sql, so it runs
+    // only once the owner turns it on at deploy (CAREER_PEOPLE_SWEEP=on); the chat's words read the same switch.
+    peopleSweeps: Deno.env.get("CAREER_PEOPLE_SWEEP") === "on" ? (() => {
+      const deps = supabasePeopleDeps(admin, { fetch, token: careerTokenFor(grant(admin), CAREER_READ_SCOPE), introPush: false, sweepPush: true });
+      return { sweeps: deps.sweeps!, sink: peopleSink(deps.store), gmail: deps.gmail! };
+    })() : undefined,
     // Briefs, interview drafts and the weekly digest (WO-034) need 20261021050000_career_brief_digest.sql, so they run only
     // once the owner turns them on at deploy, after that migration.
     briefs: Deno.env.get("CAREER_BRIEF_DIGEST") === "on" ? {
@@ -159,6 +177,8 @@ serve((req) => {
       // WO-091c: every rail's failure, by rail (the column is 20261022120000_career_control_state.sql's).
       if (r.errors) row.errors = r.errors;
       if (Deno.env.get("CAREER_BRIEF_DIGEST") === "on") Object.assign(row, { briefs: r.briefs ?? 0, brief_ms_max: r.brief_ms_max ?? null, digests: r.digests ?? 0 });
+      if (Deno.env.get("CAREER_INTRO_REMINDERS") === "on") row.intro_reminders = r.intro_reminders ?? 0;
+      if (Deno.env.get("CAREER_PEOPLE_SWEEP") === "on") row.people_sweeps = r.people_sweeps ?? 0;
       const { error } = await admin.from("career_proactive_runs").insert(row);
       if (error) throw new Error(`record run: ${error.message}`);
     },

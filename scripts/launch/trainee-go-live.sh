@@ -173,8 +173,11 @@ MIGRATIONS=(
   20261026230300_career_turn_gate.sql
   20261026230400_career_kb_postings_recency_index.sql
   20261026230500_definer_execute_lockdown.sql
+  20261027010000_career_people.sql
+  20261027020000_career_intro_reminder_push.sql
   20261027160000_career_outreach_followup_claim.sql
   20261027160100_career_account_contacts.sql
+  20261027170000_career_people_scale.sql
   20261027200000_career_send_queue.sql
 )
 MIGRATION_MARK=(
@@ -252,8 +255,11 @@ MIGRATION_MARK=(
   "to_regclass('public.career_turn_gate') is not null and exists (select 1 from pg_proc where proname = 'career_turn_gate_ready')"
   "to_regclass('public.career_kb_postings_posted_at_recent') is not null"
   "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
+  "to_regclass('public.career_intro_requests') is not null"
+  "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_proactive_runs' and column_name = 'intro_reminders')"
   "exists (select 1 from pg_proc where proname = 'career_outreach_followups_claim') and to_regclass('public.career_watch_kv_followups_due') is not null"
   "to_regclass('public.career_account_contacts') is not null and exists (select 1 from pg_proc where proname = 'career_account_contacts_put')"
+  "to_regprocedure('public.career_people_import_part(uuid,text,text,text,jsonb,integer,integer,boolean,bigint)') is not null and to_regclass('public.agent_flow_state_user') is not null"
   "to_regclass('public.career_send_queue') is not null and exists (select 1 from pg_proc where proname = 'career_send_complete_one') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_send_rail')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

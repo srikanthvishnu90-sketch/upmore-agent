@@ -19,6 +19,7 @@
 // application running at the kill stays `driving` until the 15-minute sweep), and records a check as not_submitted.
 // Run: bash tests/flow/run-real-flow.sh tests/architect/mass-submit-pg.test.ts
 import { attachPg, pgBinDir, startPg } from "../flow/pg.ts";
+import { confirmedResumeSql } from "../flow/resume-seed.ts"; // OWNER RULE 2026-10-26: the person has a confirmed resume
 import { engineRunner, prepare } from "../../workers/career-browser/approve-first.ts";
 
 const CI = Deno.env.get("CI") === "true";
@@ -128,7 +129,8 @@ Deno.test({
     try {
       await pg.sql(`insert into auth.users (id, email) values ('${PERSON}', 'mass.tester@example.test');
         insert into public.profiles (id) values ('${PERSON}');
-        insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false}');`);
+        insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false}');
+        ${confirmedResumeSql(PERSON, "%PDF-1.4\n% synthetic mass-test resume\n%%EOF\n")}`);
       const person = pg.asPerson(PERSON);
       const account = (await person.rpc("career_apply_account_own")).data;
       const resume = `${work}/resume.pdf`;

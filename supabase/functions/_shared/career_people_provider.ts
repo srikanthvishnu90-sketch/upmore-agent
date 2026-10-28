@@ -171,8 +171,9 @@ export function hunterProvider(o: { fetch: typeof fetch; apiKey: string }): Peop
         if (!email || !name) continue; // no person without a name, no Hunter row without its address
         let status = String(e?.verification?.status ?? "").toLowerCase() || "unverified";
         let score = confidence(e?.confidence);
-        if (status !== "valid" && !note) {
-          // Email Verifier: Hunter's own check of this one address.
+        if (status === "unverified" && !note) {
+          // Email Verifier: Hunter's own check of an address Domain Search carried no verification for (a status it
+          // already gave, valid or not, is Hunter's word: not paid for twice).
           const v = new URL(`${HUNTER}/email-verifier`);
           v.searchParams.set("email", email);
           v.searchParams.set("api_key", o.apiKey);
@@ -375,7 +376,7 @@ export function parseTargetAsk(message: string): TargetAsk | null {
   m = new RegExp(`${lead}(?:alumni|grads|graduates)\\s+(?:of|from)\\s+(.+?)\\s+(?:at|working\\s+at|who\\s+work\\s+at)\\s+(.+)$`, "i").exec(t)
     ?? new RegExp(`${lead}(.+?)\\s+(?:alumni|grads|graduates)\\s+(?:at|working\\s+at|who\\s+work\\s+at)\\s+(.+)$`, "i").exec(t);
   if (m) return { kind: "alumni", school: cleanCell(m[1], 120), company: cleanCell(m[2], 120) };
-  m = new RegExp(`${lead}(.+?)\\s+(?:at|from)\\s+([\\p{L}\\p{N}][\\p{L}\\p{N} .&'-]{0,80})$`, "iu").exec(t);
+  m = new RegExp(`${lead}(.+?)\\s+(?:at|from)\\s+([\\p{L}\\p{N}][\\p{L}\\p{N} .,&'-]{0,80})$`, "iu").exec(t);
   if (m && !/\b(i|me|my|you|work|working|apply|applying|applied|jobs?|roles?\s+open|send|email|draft|write|message|intro(?:duction)?s?|contacts?|know)\b/i.test(m[1]) && m[1].split(/\s+/).length <= 8) {
     const r = rolesOf(m[1]);
     if (r.titles.length) return { kind: "role_at", ...r, company: cleanCell(m[2], 120) };

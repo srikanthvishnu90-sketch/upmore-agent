@@ -69,7 +69,7 @@ Deno.test("hunter: Domain Search + Email Verifier, documented shapes; only Hunte
   eq(by["grace.hopper@stripe.com"].profile_text, "https://www.linkedin.com/in/gracehopper", "the LinkedIn link kept as text");
   eq(by["grace.hopper@stripe.com"].source_url, "https://stripe.com/blog/post", "the page Hunter found it on is the cited source");
   eq(by["ada.lovelace@stripe.com"].company_key, "stripe");
-  // the verifier ran only on addresses Domain Search had not already marked valid (grace: null; mal's was valid)
+  // the verifier ran only on addresses Domain Search carried no verification for (grace: null); a status Hunter gave is its word
   eq(calls.filter((c) => c.url.pathname === "/v2/email-verifier").map((c) => c.url.searchParams.get("email")), ["grace.hopper@stripe.com"]);
   eq(r.http_calls, calls.length);
   assert(!calls.some((c) => /linkedin/.test(c.url.hostname)), "LinkedIn is never fetched");
@@ -83,7 +83,7 @@ Deno.test("hunter: refusals by the documented codes: 403 rate limit, 429 out of 
     eq(calls.length, 1, "a refusal is never retried in a loop here");
   }
   const { f } = fakeFetch("api.hunter.io", (c) => c.url.pathname === "/v2/domain-search"
-    ? Response.json({ data: { organization: "Ramp", emails: [hunterEmail({ value: "lee@ramp.com", first_name: "Lee", last_name: "Park", verification: { status: "unknown" } })] }, meta: { results: 1 } })
+    ? Response.json({ data: { organization: "Ramp", emails: [hunterEmail({ value: "lee@ramp.com", first_name: "Lee", last_name: "Park", verification: { status: null } })] }, meta: { results: 1 } })
     : new Response(null, { status: 202 }));
   const r = await hunterProvider({ fetch: f, apiKey: KEY }).findPeople({ domain: "ramp.com" });
   assert(r.status === "ok");

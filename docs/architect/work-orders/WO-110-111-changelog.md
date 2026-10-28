@@ -25,8 +25,17 @@ Baseline (trunk + PR 266, router): 1.6 / 2.4 / 2.0 / 4.4 / 4.7 / 3.1 / 1.6 / 3.5
 | Apply-all gate; "what about Denver instead" names a place; delta runs before company intel | Bulk apply re-ran a search; a place was read as a company | T29.2, T03.3 | 3.6 / 3.9 / 5.0 / 4.9 / 4.9 / 4.2 / 4.4 / 4.9 |
 | Say first that the employer already confirmed an application | Nothing told the person they had applied | T18.1 | 3.8 / 3.9 / 5.0 / 4.9 / 4.9 / 4.2 / 4.4 / 4.9 |
 
+| Pause, remove and resume the saved alert from chat (`career_alert_control.ts`); "pause for a week" pauses and says it cannot resume by date | The alert was only reachable from the web | T05, T19 | in the row above |
+| Merged trunk (billing, product audit). Catch-all is trunk's `catchAllReply` after `answerFromRecord`; it never repeats the person's words | Held-out run: my catch-all echoed the whole message, including a login (H22.1), and altered a name | held-out H22.1 (security) | 3.8 / 4.8 / 5.0 / 4.7 / 5.0 / 4.2 / 4.7 / 4.9 |
+| Intent routing before the catch-all: login/password/automation refused with no credential asked; internships; hours; pay; chances; billing wired into the harness | Valid asks fell to a menu because routes were phrase-bound | held-out (a); `wo-111-general` 1, 5, 6 | in the row above |
+| Reference resolution against the last shown list (ordinals, "compare them", "the X one", "that X thing"), run before company intel; unknown names are not repeated | "compare them" and "the second one" hit the company-file dossier or the Trainee menu | held-out (b); `wo-111-general` 2, 3, 4 | in the row above |
+| Limits stated in chat bind the next search (hybrid, no weekends, no evenings or nights, remote); the counts say what was left out | Work mode and shift limits were enforced only from a saved profile | held-out (c); `wo-111-general` 7 | in the row above |
+| No tailor offer without confirmed resume entries; first-person claims ("I have 6 years of Tableau") are recorded | The offer assumed a resume; claims were not captured | held-out (d); `wo-111-general` 8 | natural 4.3 |
+| Role lines use a comma, not an em dash, between link and place | The natural check allows two em dashes per reply | T02.1, T03.1 | natural 4.2 -> 4.3 |
+
+Original 30 after this round (router): 3.8 / 4.8 / 5.0 / 4.7 / 5.0 / 4.3 / 4.7 / 4.9, 10 of 30 clean.
+
 ## What remains (router path)
-Alerts cannot be paused or removed from the router (T05, T19: the saved alert lives in `career_alert_prefs`; needs a host write path).
 Interview prep, cover letters and tailoring do not use confirmed facts (T06.2, T18, T25). The open-questions listing does not know the
 apply questions (T11, T12). "email not connected" after a send whose hash changed (T24.2) is a fixture hash. The `canned` check counts
 any 40-character sentence repeated across three scenarios of one person (the same roles), which is not removable without hiding data.

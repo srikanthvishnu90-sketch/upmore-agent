@@ -37,6 +37,16 @@ select t.ok(career_outlook_send_begin('00000000-0000-4000-8000-0000000c4a01','ou
 select t.ok(career_outlook_send_finish('00000000-0000-4000-8000-0000000c4a01','outreach:k-0002','rate_limited','retry',now()), 'Microsoft said wait');
 select t.ok(career_outlook_send_begin('00000000-0000-4000-8000-0000000c4a01','outreach:k-0002',repeat('a',64),'outreach',repeat('c',64),now()) = 'go', 'a rate-limited key goes again later');
 select t.ok(career_outlook_send_finish('00000000-0000-4000-8000-0000000c4a01','outreach:k-0002','rate_limited','retry',now()), 'and waits again');
+-- Whoever calls the rail: never a recipient who asked to stop, never a bounced address; nothing is recorded as going.
+insert into public.career_outreach_dnc(user_id, email_hash) values ('00000000-0000-4000-8000-0000000c4a01', repeat('e',64));
+select t.ok(career_outlook_send_begin('00000000-0000-4000-8000-0000000c4a01','outreach:k-0003',repeat('a',64),'outreach',repeat('e',64),now()) = 'opted_out', 'an opted-out recipient is refused');
+select t.ok(not exists (select 1 from public.career_outlook_sends where idem_key = 'outreach:k-0003'), 'and no send is recorded for them');
+reset role;
+create table if not exists public.career_send_bad_addresses (email_hash text primary key, reason text not null default 'bounced');
+insert into public.career_send_bad_addresses(email_hash) values (repeat('f',64)) on conflict do nothing;
+set role service_role;
+select t.ok(career_outlook_send_begin('00000000-0000-4000-8000-0000000c4a01','outreach:k-0004',repeat('a',64),'application',repeat('f',64),now()) = 'bounced', 'a bounced address is refused, for any purpose');
+select t.ok(career_outlook_send_begin('00000000-0000-4000-8000-0000000c4a01','outreach:k-0005',repeat('a',64),'outreach',null,now()) = 'invalid', 'a send names its recipient');
 
 -- Leased claims: one worker has the person; another gets nothing until the lease ends; a stranger cannot release it.
 select t.ok((select count(*) from career_outlook_claim('refresh','w1',now(),60,10)) = 1, 'w1 claims the due refresh');

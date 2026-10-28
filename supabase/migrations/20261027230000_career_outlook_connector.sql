@@ -203,11 +203,19 @@ end $$;
 -- Outlook connection (a disconnect stops every pending send).
 create or replace function public.career_outlook_send_begin(p_user uuid, p_key text, p_hash text, p_purpose text, p_recipient_hash text, p_now timestamptz)
 returns text language plpgsql security definer set search_path = public, pg_temp as $$
-declare r public.career_outlook_sends;
+declare r public.career_outlook_sends; bad boolean;
 begin
-  if p_user is null or p_key is null or p_hash is null or p_now is null then return 'invalid'; end if;
+  if p_user is null or p_key is null or p_hash is null or p_now is null or p_recipient_hash is null then return 'invalid'; end if;
   if not exists (select 1 from public.user_oauth_connections c where c.user_id = p_user and c.provider = 'microsoft') then return 'not_connected'; end if;
   if exists (select 1 from public.career_outlook_state s where s.user_id = p_user and s.needs_reconnect_at is not null) then return 'needs_reconnect'; end if;
+  -- Whoever the caller is (outreach, applications by email, any approved email): never a recipient who asked to stop,
+  -- never an address that bounced (the send rail's career_send_bad_addresses, once it exists). Checked before the ledger
+  -- row, so nothing is recorded as going.
+  if exists (select 1 from public.career_outreach_dnc d where d.user_id = p_user and d.email_hash = p_recipient_hash) then return 'opted_out'; end if;
+  if to_regclass('public.career_send_bad_addresses') is not null then
+    execute 'select exists (select 1 from public.career_send_bad_addresses where email_hash = $1)' into bad using p_recipient_hash;
+    if bad then return 'bounced'; end if;
+  end if;
   insert into public.career_outlook_sends (user_id, idem_key, payload_hash, purpose, recipient_hash, status, attempts, created_at, updated_at)
   values (p_user, p_key, p_hash, p_purpose, p_recipient_hash, 'sending', 1, p_now, p_now)
   on conflict (user_id, idem_key) do nothing;

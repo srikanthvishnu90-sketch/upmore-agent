@@ -227,6 +227,8 @@ export type SendStatus =
   | { status: "REFUSED"; detail: string }
   | { status: "CHANGED"; detail: string }
   | { status: "CANCELLED"; detail: string }
+  | { status: "OPTED_OUT" }
+  | { status: "BOUNCED" }
   | { status: "RATE_LIMITED"; retryAfterMs: number }
   | { status: "UNKNOWN"; detail: string };
 export interface SendLedger {
@@ -255,6 +257,8 @@ export async function sendOutlook(d: SendDeps, userId: string, m: OutMail, o: { 
   if (go === "sent") return { status: "already_sent", provider: "outlook" };
   if (go === "changed") return { status: "CHANGED", detail: "the message changed after it was approved" };
   if (go === "cancelled") return { status: "CANCELLED", detail: "Outlook was disconnected before it went" };
+  if (go === "opted_out") return { status: "OPTED_OUT" };
+  if (go === "bounced") return { status: "BOUNCED" };
   if (go === "not_connected") return { status: "NOT_WIRED", reason: "Outlook is not connected" };
   if (go === "needs_reconnect") return { status: "NEEDS_RECONNECT", reason: "Microsoft refused the stored access" };
   if (go !== "go") return { status: "UNKNOWN", detail: `a send under this key may already have gone (${go})` };

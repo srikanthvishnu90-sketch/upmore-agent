@@ -60,6 +60,8 @@ export function sendWords(r: SendStatus): string {
     case "NEEDS_RECONNECT": return RECONNECT_REPLY;
     case "CHANGED": return "That message changed after you approved it, so it wasn't sent. Approve the new text to send it.";
     case "CANCELLED": return "Outlook was disconnected before that message went, so it wasn't sent.";
+    case "OPTED_OUT": return "That person asked not to be contacted, so it wasn't sent, and it never will be.";
+    case "BOUNCED": return "That address bounced before, so it wasn't sent; I never write to a bounced address again.";
     case "RATE_LIMITED": return `Microsoft asked Trainee to wait before sending more from your Outlook; it goes in about ${Math.max(1, Math.ceil(r.retryAfterMs / 60000))} minute(s).`;
     case "REFUSED": return "Microsoft refused that message, so it wasn't sent.";
     case "UNKNOWN": return "I couldn't confirm that message went. It may have, so I won't send it again; check your Outlook Sent Items.";

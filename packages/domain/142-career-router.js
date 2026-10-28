@@ -15496,6 +15496,11 @@ const CareerRouter = (() => {
     }
     // The 140 unmatched fallback and the capability-absent honest
     // replies are exact-text contracts of their own — never appended to.
+    // WO-111: acting on a role at an employer the person has already applied to (the employer confirmed it) says so first.
+    if (res && typeof res.reply === "string" && res.reply && !/^(carried_status|posting_facts|conversation_recall)$/.test(String(res.intent)) && /\b(apply|applying|tailor|cover letter|resume|prep|prepare|follow up)\b/i.test(s(text))) {
+      const done = ((c.carry && c.carry.tasks) || []).find((x) => x.company && lc(s(text)).includes(lc(x.company)) && /employer confirmed it|confirmation [A-Za-z0-9-]+/i.test(x.line));
+      if (done) res.reply = `You already applied: ${done.line}.\n${res.reply}`;
+    }
     if (res && typeof res.reply === "string" && res.reply && res.intent !== "career_fallback" && res.intent !== "honest_unavailable") res.reply = ensureNextStepText(res.reply);
     syncThreadOut(c);
     return res;

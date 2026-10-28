@@ -23446,6 +23446,10 @@ const CareerRouter = (() => {
       }
       if (additions.length) res.reply = `${res.reply}\n\n${additions.join("\n")}`;
     }
+    if (res && typeof res.reply === "string" && res.reply && !/^(carried_status|posting_facts|conversation_recall)$/.test(String(res.intent)) && /\b(apply|applying|tailor|cover letter|resume|prep|prepare|follow up)\b/i.test(s(text))) {
+      const done = ((c.carry && c.carry.tasks) || []).find((x) => x.company && lc(s(text)).includes(lc(x.company)) && /employer confirmed it|confirmation [A-Za-z0-9-]+/i.test(x.line));
+      if (done) res.reply = `You already applied: ${done.line}.\n${res.reply}`;
+    }
     if (res && typeof res.reply === "string" && res.reply && res.intent !== "career_fallback" && res.intent !== "honest_unavailable") res.reply = ensureNextStepText(res.reply);
     syncThreadOut(c);
     return res;

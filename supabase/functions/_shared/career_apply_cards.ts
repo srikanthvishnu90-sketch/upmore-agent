@@ -19,7 +19,7 @@
 //
 // WO-027: each answered line is written to the account's timeline (approved, or the reason it was not sent). A timeline
 // that cannot be written never changes the answer.
-import { type EventStore, recordEvent } from "./agent/timeline.ts";
+import { type EventStore, recordEvents } from "./agent/timeline.ts";
 import { sameCompany } from "./career_mail.ts";
 
 export interface Prepared {
@@ -54,6 +54,8 @@ export interface CardStore {
   // D-MS-1: what became of a card that is no longer open: answered by the person, or closed by a newer card. Absent,
   // a yes to a card no longer open is not this turn's.
   cardState?(userId: string, cardId: string): Promise<"open" | "answered" | "closed" | null>;
+  // SCALE: the employer of each of these prepared applications (a card's items), in one bounded read, for "not Acme".
+  cardCompanies?(userId: string, preparedIds: string[]): Promise<Map<string, string>>;
 }
 
 // D-MS-1 (owner, 2026-10-27): the forms a person answers a card with. Anything else is not an answer and goes to the
@@ -77,12 +79,9 @@ export const MAX_PER_CARD = 8;
 export const YES_WINDOW_MS = 10 * 60_000; // D-031: a text yes counts only this long after the card was shown
 export const CARD_CHAR_BUDGET = 1600; // one pushed card with two or more applications stays under this
 export const CARD_HARD_LIMIT = 4000; // one application alone may go up to the outbox's limit, never cut
-// D-MS-2: the batch shown on "show my applications" is paged into messages of at most PAGE_CHARS for reading; one yes
-// covers every page. MAX_PAGES keeps one reply deliverable whole on a texting channel (channel_inbound.ts MAX_PARTS 30,
-// less room for a note and reminders): a transport bound, said plainly when reached ("N more are ready; they come on
-// the next card"), never a limit on applying.
+// D-MS-2: the batch shown on "show my applications" is paged into messages of at most PAGE_CHARS for reading (one text
+// each); one yes covers every page. There is no page or item ceiling (NO LIMITS, owner 2026-10-27).
 export const PAGE_CHARS = 3800;
-export const MAX_PAGES = 20;
 // Until builder A's D-MS-2 migration lands, the database refuses a card of more than 8 ('invalid card'). Only then is a
 // card of 8 shown, and the reply says how many more are waiting.
 export const DB_CARD_MAX_BEFORE_DMS2 = 8;
@@ -271,7 +270,7 @@ function render(list: Prepared[]) {
 
 // D-MS-1 / D-MS-2: the whole batch on one card, every line of every application verbatim, numbered 1..N, paged into
 // messages of at most PAGE_CHARS; one yes approves all of it. An application too long for a text is left for the app
-// and named. Past MAX_PAGES (or `max`, the database's bound before D-MS-2) the rest wait for the next card, said so.
+// and named. Only `max` (the database's bound before D-MS-2) holds some back for the next card, said so.
 const BATCH_HEAD = (count: number, pages: number) =>
   `${count === 1 ? "1 application is" : `${count} applications are`} ready. Every answer below goes exactly as shown.` +
   (pages > 1 ? ` This card comes in ${pages} messages; one "yes" approves all ${count}.` : "");
@@ -283,7 +282,7 @@ export interface Batch {
   take: Prepared[];
   text: string;
   parts: string[]; // the pages, when more than one message; [] when one holds it
-  more: number; // ready but not on this card (past MAX_PAGES or the database's bound)
+  more: number; // ready but not on this card (only while the database's bound applies)
   skipped: Prepared[]; // too long for a text: left for the app
 }
 export function batchFor(pending: Prepared[], o: { max?: number } = {}): Batch | { tooLong: Prepared } | null {
@@ -315,18 +314,15 @@ export function batchFor(pending: Prepared[], o: { max?: number } = {}): Batch |
     if (buf) pages.push(buf);
     return { take, pages, more };
   };
-  let k = Math.max(1, Math.min(o.max ?? Infinity, fits.length));
-  for (;;) {
-    let guess = 1, p = paginate(k, guess);
-    for (let i = 0; i < 4 && p.pages.length !== guess; i++) {
-      guess = p.pages.length;
-      p = paginate(k, guess);
-    }
-    if (p.pages.length <= MAX_PAGES || k === 1) {
-      return { take: p.take, text: p.pages.join("\n\n"), parts: p.pages.length > 1 ? p.pages : [], more: p.more, skipped };
-    }
-    k = Math.max(1, Math.min(k - 1, Math.floor((k * MAX_PAGES) / p.pages.length)));
+  // NO LIMITS (owner, 2026-10-27 19:55 CDT): every application that fits a text is on this one card, however many pages;
+  // only `max` (the database's own bound, before builder A's D-MS-2 migration) holds some back, and the card says so.
+  const k = Math.max(1, Math.min(o.max ?? Infinity, fits.length));
+  let guess = 1, p = paginate(k, guess);
+  for (let i = 0; i < 4 && p.pages.length !== guess; i++) {
+    guess = p.pages.length;
+    p = paginate(k, guess);
   }
+  return { take: p.take, text: p.pages.join("\n\n"), parts: p.pages.length > 1 ? p.pages : [], more: p.more, skipped };
 }
 
 const RESULT: Record<string, string> = {
@@ -514,7 +510,11 @@ export async function cardTurn(
   const names = r.kind === "yes" || r.kind === "except_only" ? r.exceptNames ?? [] : r.kind === "only" ? r.onlyNames ?? [] : [];
   const byName: number[] = [];
   if (names.length) {
-    const companies = new Map((await o.store.pending(o.userId)).map((p) => [p.id, p.company] as const));
+    // Only the card's own items, one bounded read (cardCompanies); a store without it falls back to the pending list.
+    const ids = card.items.map((i) => i.prepared_id);
+    const companies = o.store.cardCompanies
+      ? await o.store.cardCompanies(o.userId, ids)
+      : new Map((await o.store.pending(o.userId)).map((p) => [p.id, p.company] as const));
     const missing: string[] = [];
     for (const name of names) {
       const hit = card.items.filter((i) => companies.has(i.prepared_id) && sameCompany(companies.get(i.prepared_id), name)).map((i) => i.n);
@@ -562,16 +562,15 @@ export async function cardTurn(
   }
   try {
     const results = await o.store.answer(o.userId, card.id, approve);
-    for (const x of results) {
-      await recordEvent(o.events, {
-        user_id: o.userId,
-        at: o.now,
-        kind: x.result === "queued" ? "application_approved" : "status_change",
-        subject: x.company,
-        detail: { card: card.id, n: x.n, result: x.result },
-        source: "card",
-      });
-    }
+    // SCALE (owner, 2026-10-27): the batch's timeline lines in one write, never one round trip per item.
+    await recordEvents(o.events, results.map((x) => ({
+      user_id: o.userId,
+      at: o.now,
+      kind: x.result === "queued" ? "application_approved" : "status_change",
+      subject: x.company,
+      detail: { card: card.id, n: x.n, result: x.result },
+      source: "card",
+    })));
     const reply = answerText(results, { declined: r.kind === "no" ? "said_no" : "left_out" });
     const parts = pagesOf(reply);
     return { reply, status: "answered", ...(parts.length ? { parts } : {}) };
@@ -647,6 +646,14 @@ export function supabaseCardStore(admin: any): CardStore {
       );
       const m = rows?.[0]?.meta;
       return m?.intent === CARD_INTENT && typeof m?.card_id === "string" ? m.card_id : null;
+    },
+    async cardCompanies(userId, ids) {
+      const out = new Map<string, string>();
+      for (let i = 0; i < ids.length; i += 500) {
+        const rows = must(await admin.from("career_apply_prepared").select("id,company").eq("user_id", userId).in("id", ids.slice(i, i + 500)), "read the card's employers") ?? [];
+        for (const r of rows) out.set(String(r.id), String(r.company ?? ""));
+      }
+      return out;
     },
     async cardState(userId, cardId) {
       if (!/^[0-9a-f-]{36}$/i.test(String(cardId))) return null;

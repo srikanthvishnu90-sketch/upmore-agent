@@ -354,7 +354,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Migrations, RLS and SQL tests on a throwaway Postgres 16, plus the migration ledger
-        run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH bash tests/db/run.sh
+        run: |
+          set -o pipefail
+          PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH bash tests/db/run.sh 2>&1 | tee "$RUNNER_TEMP/db.log"
+      # The failing lines as annotations, readable through the checks API where the raw log is not.
+      - name: Failure lines as annotations
+        if: failure()
+        run: grep -E "ERROR|FAIL|Traceback|Error|^== " "$RUNNER_TEMP/db.log" | grep -v "^  ok " | tail -n 25 | sed 's/^/::error::/'
   send-rail-load:
     name: load (send rail)
     runs-on: ubuntu-24.04

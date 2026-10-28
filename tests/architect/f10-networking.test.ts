@@ -53,12 +53,17 @@ Deno.test("F10 import: a LinkedIn export and a contacts CSV, with coverage fract
   assertMatch(r!.reply, /Connections\.csv: imported 6\/8 rows into your contacts \(left out: 1 duplicate; row 7: no name\)/);
   assertMatch(r!.reply, /4\/6 have an email address; the other 2 can be looked up by firm but not written to, since I never guess an address/);
   assertMatch(r!.reply, /Most contacts: Stripe 4/);
-  assertEquals(contactsOf(state).length, 6);
+  // Architect ruling R1 (2026-10-27): the rows are the account's (career_account_contacts), and no chat keeps a copy
+  // (the per-chat copy had to be capped by the chat state's size). So the count is read from the account, and the chat
+  // state holds none. Was: contactsOf(state).length === 6, then 8.
+  assertEquals((await store.contactsSummary!(U)).total, 6);
+  assertEquals(contactsOf(state).length, 0, "no per-chat copy");
   // No profile URL is kept from the export.
   assert(!JSON.stringify(state).includes("linkedin.com/in/"));
+  assert(!JSON.stringify(await store.contactsAtFirm!(U, "stripe")).includes("linkedin.com/in/"));
   const pasted = await networkingTurn({ message: `add these\n${CONTACTS}`, userId: U, threadId: T, now: NOW, state, store, model: null });
   assertMatch(pasted!.reply, /pasted list 2026-10-25 15:00 UTC: imported 2\/2 rows/);
-  assertEquals(contactsOf(state).length, 8);
+  assertEquals((await store.contactsSummary!(U)).total, 8);
   const bad = await networkingTurn({ message: "my resume", userId: U, threadId: T, now: NOW, state, store, model: null, attachments: [{ name: "resume.pdf", mime: "application/pdf", text: null }] });
   assertEquals(bad!.status, "not_imported");
   assertMatch(bad!.reply, /resume\.pdf: not read/);

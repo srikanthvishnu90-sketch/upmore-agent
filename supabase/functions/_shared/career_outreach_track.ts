@@ -90,7 +90,7 @@ export interface TrackDeps {
   message: string; userId: string; threadId: string; now: number;
   store: OutreachStore; events?: EventStore | null;
   facts: unknown[]; model: ModelFn | null;
-  contactsWithEmail?: (name: string) => string[]; // "Maya Chen at Stripe" lines from the person's own contacts, for the LinkedIn answer
+  contactsWithEmail?: (name: string) => string[] | Promise<string[]>; // "Maya Chen at Stripe" lines from the person's own contacts, for the LinkedIn answer
   // Architect ruling R2: never promise a reminder the system won't deliver. reminderPush is CAREER_OUTREACH_FOLLOWUPS=on
   // (read by the caller, never here); textingChannel is the channel a queued reminder would reach them on, or null (a
   // web-only person: career_outbox_claim never delivers to someone with no channel contact).
@@ -149,7 +149,7 @@ const statusLine = (d: OutreachDraft, f: Followup | undefined, now: number): str
 export async function trackTurn(o: TrackDeps): Promise<TrackResult | null> {
   const ask = trackAsk(o.message);
   if (!ask) return null;
-  if (ask.kind === "linkedin") return linkedinTurn(o);
+  if (ask.kind === "linkedin") return await linkedinTurn(o);
   if (!o.store.history) return null;
   const rows = await o.store.history(o.userId, 500);
   // Nothing on record to track: only the list answers (plainly); every other ask is someone else's (the router's).
@@ -319,14 +319,14 @@ async function followTurn(o: TrackDeps, name: string, rows: OutreachDraft[], fol
   return { reply: parts.join("\n\n"), intent: OUTREACH_INTENT, status: "drafted", parts };
 }
 
-function linkedinTurn(o: TrackDeps): TrackResult {
+async function linkedinTurn(o: TrackDeps): Promise<TrackResult> {
   // Applying on LinkedIn (Easy Apply) is never done for them: the employer's own posting is the way in.
   if (/\b(?:apply|applying|application|easy ?apply|submit)\b/i.test(o.message) && !/\b(?:message|msg|dm|inmail|connect|reach out|endorse)\b/i.test(o.message)) {
     return { reply: `I don't apply on LinkedIn for you (Easy Apply included), and I never sign in to LinkedIn or run anything on it: LinkedIn doesn't allow automated activity on accounts. Nothing was sent or done on LinkedIn. Send me the job's link on the employer's own careers site (or its Greenhouse, Lever or Ashby page) and I'll prepare the application there for your approval.`, intent: LINKEDIN_INTENT, status: "refused" };
   }
   const m = /\b(?:message|msg|dm|inmail|connect with|add|invite|reach out to|endorse|ping)\s+([a-z][a-z.'-]*(?: [a-z][a-z.'-]*)?)\b/i.exec(o.message);
   const name = m && !/^(?:everyone|everybody|people|all|recruiters?|them|him|her|my|the|someone|anyone|a|an|with|to|on|via)$/i.test(m[1].split(" ")[0]) ? m[1].split(" ")[0] : null;
-  const known = name && o.contactsWithEmail ? o.contactsWithEmail(name) : [];
+  const known = name && o.contactsWithEmail ? await Promise.resolve(o.contactsWithEmail(name)).catch(() => [] as string[]) : [];
   const first = known.length ? known[0].split(" ")[0] : name;
   const instead = known.length
     ? `I can write ${first} an email instead, for you to approve: ${known.slice(0, 3).join("; ")} is in your contacts with an address. Say "email ${name} at <firm> about <what you want to ask>".`

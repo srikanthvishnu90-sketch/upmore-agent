@@ -165,6 +165,7 @@ MIGRATIONS=(
   20261026100001_career_apply_want_guard.sql
   20261026120018_career_resume_one_record.sql
   20261026140000_career_apply_receipt_store.sql
+  20261026200011_google_disconnect_erase.sql
   20261026210016_career_resume_required.sql
   20261026210017_career_resume_on_file_one_record.sql
   20261026220016_channel_telegram_login.sql
@@ -173,6 +174,7 @@ MIGRATIONS=(
   20261026230400_career_kb_postings_recency_index.sql
   20261026230500_definer_execute_lockdown.sql
   20261027160000_career_outreach_followup_claim.sql
+  20261027160100_career_account_contacts.sql
   20261027200000_career_send_queue.sql
 )
 MIGRATION_MARK=(
@@ -242,6 +244,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_want_put_for' and prosrc like '%company_cooldown%')"
   "to_regclass('public.career_resume_record') is not null and exists (select 1 from pg_trigger where tgname = 'career_resume_from_event') and exists (select 1 from pg_trigger where tgname = 'career_resume_jobs_guard')"
   "to_regclass('public.career_apply_receipt_files') is not null"
+  "exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_google_erase')"
   "to_regclass('public.career_resume_uploads') is not null and exists (select 1 from pg_trigger where tgname = 'career_apply_jobs_resume_guard') and exists (select 1 from pg_proc where proname = 'career_resume_ok') and exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%no_resume%')"
   "exists (select 1 from pg_proc where proname = 'career_resume_on_file' and prosrc like '%career_resume_rule_on%' and prosrc like '%career_resume_record%')"
   "to_regclass('public.channel_telegram_logins') is not null and exists (select 1 from pg_proc where proname = 'channel_telegram_link_as')"
@@ -250,6 +253,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_kb_postings_posted_at_recent') is not null"
   "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
   "exists (select 1 from pg_proc where proname = 'career_outreach_followups_claim') and to_regclass('public.career_watch_kv_followups_due') is not null"
+  "to_regclass('public.career_account_contacts') is not null and exists (select 1 from pg_proc where proname = 'career_account_contacts_put')"
   "to_regclass('public.career_send_queue') is not null and exists (select 1 from pg_proc where proname = 'career_send_complete_one') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_send_rail')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

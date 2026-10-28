@@ -149,7 +149,8 @@ Deno.test({ name: "FAMILY networking and outreach: a new person, end to end, on 
       const ask = await say(web, "emial Maya Chen at Stripe about a coffee chat, her email is maya.chen@stripe.example");
       eq([ask.intent, ask.resultStatus], ["career_outreach_signature", "needs_signature"], ask.reply);
       assert(/^How do you sign your emails\?/.test(ask.reply), ask.reply);
-      const contacts = JSON.parse(await pg.sql(`select state->'career'->'stores'->'contacts' from public.agent_flow_state where user_id = '${ME}' order by updated_at desc limit 1`));
+      // R1: kept on the account (career_account_contacts), not in the chat's state.
+      const contacts = JSON.parse(await pg.sql(`select coalesce(jsonb_agg(data order by row_key), '[]'::jsonb) from public.career_account_contacts where user_id = '${ME}'`));
       eq(contacts.map((c: any) => [c.name, c.firm, c.email, c.file]), [["Maya Chen", "Stripe", "maya.chen@stripe.example", "what you typed in chat"]], "the typed contact is kept as theirs");
       const before = modelCalls;
       const sig = await say(web, "Jordan Lee\nDePaul University");

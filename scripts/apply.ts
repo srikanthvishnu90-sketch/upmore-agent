@@ -858,6 +858,14 @@ export async function runApply(args: string[]) {
       if (!["GET", "HEAD"].includes(req.method()) && !readQuery && !codeReq && req.url() === destination) {
         postStatus = response.status();
       }
+      // Mass submission (owner, 2026-10-27): the employer's site refusing for load (429, or 503 with Retry-After) on the
+      // page itself, before anything was filled, stops the run as not sent; the worker backs off that host for every
+      // instance and the application is not started again by this run (HOST_RATE_LIMITED, with the seconds it asked for).
+      if (main && !allowSubmit && (response.status() === 429 || (response.status() === 503 && response.headers()["retry-after"]))) {
+        const ra = String(response.headers()["retry-after"] ?? "").trim();
+        const secs = /^\d{1,6}$/.test(ra) ? Number(ra) : Number.isFinite(Date.parse(ra)) ? Math.max(0, Math.round((Date.parse(ra) - Date.now()) / 1000)) : null;
+        evidence.rate_limited = { status: response.status(), retry_after_s: secs };
+      }
       if (uploadReq) uploadEchoes.push((await response.text()).slice(0, 20000));
       if (response.status() >= 300 && response.status() < 400) {
         const targetURL = new URL(response.headers().location || "/", req.url());
@@ -878,6 +886,9 @@ export async function runApply(args: string[]) {
     });
     const opened = await send({ type: "open", url: u.href });
     if (denied || opened.blockedNavigation) throw fail("HOST_REDIRECT_REFUSED");
+    if (evidence.rate_limited) {
+      return write({ state: "not_submitted", reason: "HOST_RATE_LIMITED", status: evidence.rate_limited.status, retry_after_s: evidence.rate_limited.retry_after_s });
+    }
     if (opened.captcha && !(o.handoff && await handOff())) return write({ state: "needs_user", reason: "captcha" });
     const history: any = {}, values: any = {}, planned: any = {};
     for (let step = 0; step < 8; step++) {

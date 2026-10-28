@@ -16,6 +16,7 @@ import { QUARANTINE_VERSION, quarantinedFact, trustedManifest } from "../../exte
 import { applicationApprovalHash } from "../../scripts/apply.ts";
 import { factDependencies } from "../../supabase/functions/_shared/fact_quarantine.ts";
 import { rowQuestionLabel, rowQuestionType } from "../../supabase/functions/_shared/row_answer.ts";
+import { fileJournal, handBack, type Journal, massRun, PacedLimiter, type Pacing, pacingFrom } from "./mass-run.ts";
 
 export interface EngineResult {
   result: {
@@ -335,6 +336,9 @@ export async function runApproved(d: {
   // FEATURE 14 (D-024, G6): the proof's two pictures go to the queue's receipt store while the lease is held, before the
   // finish (career_apply_receipt_attach_own). Optional: without it the pictures stay on this computer, as before.
   attach?: ReceiptAttach;
+  // Mass submission: awaited right before the engine starts (the scheduler's durable journal line). If it throws, the
+  // engine never starts and the application is recorded not_submitted: nothing was sent.
+  beforeEngine?: (job: Job) => Promise<void>;
 }) {
   const done: { id: string; state: string; reason?: string }[] = [];
   for (const job of await d.claim()) {
@@ -353,6 +357,7 @@ export async function runApproved(d: {
       const factsPath = await d.writeFacts(job, factsFromPayload(p));
       // WO-096: this drive is the person's approved application, so the code its employer emails may be read for it.
       const codeEnv = d.emailCode ? await d.emailCode(job) : null;
+      if (d.beforeEngine) await d.beforeEngine(job);
       started = true;
       const run = await d.runEngine([
         "--url",
@@ -371,6 +376,11 @@ export async function runApproved(d: {
       if (!run || !OUTCOMES.has(run.result.state)) {
         state = "unknown_outcome";
         evidence = { reason: "the engine gave no result after it started; not retried" };
+      } else if (handBack(run.result)) {
+        // A verification check or the employer's sign-in wall: the person finishes it at the link; never retried. The
+        // engine stopped before anything was sent.
+        state = "needs_user";
+        evidence = { reason: handBack(run.result), link: job.url, engine_reason: run.result.reason ?? null, evidence_path: run.result.evidence_path ?? null };
       } else {
         state = run.result.state;
         // D-024 (G6): the proof is kept with the record only if it was taken for this application and this approval;
@@ -458,12 +468,14 @@ export function ownQueue(client: RpcClient) {
     if (r.error) {
       // An expired or refused sign-in is not a queue outage: asking again would never work.
       const text = `${r.error.code ?? ""} ${r.error.message ?? ""}`;
+      // A claim the database already closed (its lease swept after 15 minutes, or finished): nothing is left to record.
+      if (/invalid apply (claim|transition)/i.test(text)) throw Error("APPLY_CLAIM_CLOSED");
       throw Error(/PGRST30[0-3]|jwt|not signed in/i.test(text) ? "SIGNED_OUT" : "APPLY_QUEUE_UNAVAILABLE");
     }
     return r.data;
   };
   return {
-    async claim(limit = 1): Promise<Job[]> {
+    async claim(limit: number): Promise<Job[]> {
       const rows = must(await client.rpc("career_apply_claim_own", { p_limit: limit }));
       if (!Array.isArray(rows)) throw Error("APPLY_QUEUE_UNAVAILABLE");
       return rows;
@@ -482,11 +494,16 @@ export function ownQueue(client: RpcClient) {
   };
 }
 
-// The worker on the person's own computer: one application at a time (one browser, and the person may be needed for a
-// verification), until stopped. A queue that cannot be read waits and is asked again; nothing runs without a claim.
-// Recording the outcome is retried, because an application the employer confirmed must not read as unknown over a
-// network blip; if it still cannot be recorded, the drive is left to the database, which marks it unknown after 15
-// minutes and never re-drives it, and the local evidence path is reported. The engine never runs twice for one claim.
+// The worker on the person's own computer (owner D-MS-2, 2026-10-27: no product volume cap, safety pacing only). It
+// claims the person's approved applications in batches (MASS_SUBMIT_CLAIM_BATCH) and runs several at once across
+// different employers (MASS_SUBMIT_CONCURRENCY), each employer host paced (MASS_SUBMIT_HOST_MAX at once,
+// MASS_SUBMIT_HOST_SPACING_MS between starts; mass-run.ts). With a visible browser or a hand-off (--headed, --handoff) the
+// person may be needed at the window, so it runs one at a time. A queue that cannot be read waits and is asked again;
+// nothing runs without a claim. Recording the outcome is retried, because an application the employer confirmed must not
+// read as unknown over a network blip; if it still cannot be recorded, the drive is left to the database, which marks it
+// unknown after 15 minutes and never re-drives it, and the local evidence path is reported. The engine never runs twice
+// for one claim: with a journal (MASS_SUBMIT_JOURNAL_DIR), a run that died leaves each started application recorded
+// unknown on the next start and each claimed-but-unstarted one run under its lease or ended as not sent.
 export async function runLoop(o: {
   queue: ReturnType<typeof ownQueue>;
   resume: { path: string; sha256: string };
@@ -497,57 +514,84 @@ export async function runLoop(o: {
   sleep?: (ms: number) => Promise<void>;
   log?: (line: string) => void;
   emailCode?: EmailCodeEnv;
+  pacing?: Pacing;
+  journal?: Journal<Job>;
+  drain?: boolean;
 }) {
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const log = o.log ?? ((l: string) => console.log(l));
   const ran: { id: string; state: string; reason?: string; recorded: boolean }[] = [];
-  while (!o.stop()) {
-    let claimed: Job[];
-    try {
-      claimed = await o.queue.claim(1);
-    } catch (e: any) {
+  // Recorded, or the database already closed the claim (its 15-minute sweep): either way nothing is left to record.
+  const record = async (id: string, lease: string, state: string, evidence: Record<string, unknown>) => {
+    for (let i = 0; i < 4; i++) {
+      try {
+        await o.queue.finish(id, lease, state, evidence);
+        return true;
+      } catch (e: any) {
+        if (e?.message === "APPLY_CLAIM_CLOSED") return true;
+        if (i < 3) await sleep(2_000 * 2 ** i);
+      }
+    }
+    return false;
+  };
+  const say = (d: { id: string; state: string; reason?: string }, recorded: boolean) => {
+    ran.push({ ...d, recorded });
+    log(
+      `${d.id}: ${d.state}${d.reason ? " (" + d.reason + ")" : ""}` +
+        (recorded ? "" : "; NOT RECORDED: the queue will mark it unknown, the local evidence has the result"),
+    );
+  };
+  await massRun<Job>({
+    claim: (n) => o.queue.claim(n),
+    onClaimError: (e: any) => {
       if (e?.message === "SIGNED_OUT") {
         log("Your sign-in has expired. Sign in again to keep going; nothing else was run.");
-        break;
+        return "stop";
       }
       log("The queue could not be read; asking again shortly. Nothing was run.");
-      await sleep(o.idleMs ?? 30_000);
-      continue;
-    }
-    if (!claimed.length) {
-      await sleep(o.idleMs ?? 30_000);
-      continue;
-    }
-    let recorded = false;
-    const done = await runApproved({
-      claim: async () => claimed,
-      finish: async (id, lease, state, evidence) => {
-        for (let i = 0; i < 4 && !recorded; i++) {
-          try {
-            await o.queue.finish(id, lease, state, evidence);
-            recorded = true;
-          } catch {
-            if (i < 3) await sleep(2_000 * 2 ** i);
-          }
-        }
-      },
-      resumeFor: async () => o.resume,
-      writeFacts: o.writeFacts,
-      runEngine: o.runEngine,
-      emailCode: o.emailCode,
-      // FEATURE 14: the proof's pictures go with the receipt (a queue without the call keeps them on this computer).
-      ...(typeof (o.queue as any).attach === "function"
-        ? { attach: (job: Job, kind: string, sha: string, b64: string) => o.queue.attach(job.id, job.lease_token, kind, sha, b64) }
-        : {}),
-    });
-    for (const d of done) {
-      ran.push({ ...d, recorded });
-      log(
-        `${d.id}: ${d.state}${d.reason ? " (" + d.reason + ")" : ""}` +
-          (recorded ? "" : "; NOT RECORDED: the queue will mark it unknown, the local evidence has the result"),
-      );
-    }
-  }
+      return "wait";
+    },
+    run: async (job, onStart) => {
+      let recorded = false;
+      const [d] = await runApproved({
+        claim: async () => [job],
+        finish: async (id, lease, state, evidence) => { recorded = await record(id, lease, state, evidence); },
+        resumeFor: async () => o.resume,
+        writeFacts: o.writeFacts,
+        runEngine: o.runEngine,
+        emailCode: o.emailCode,
+        beforeEngine: () => onStart(),
+        // FEATURE 14: the proof's pictures go with the receipt (a queue without the call keeps them on this computer).
+        ...(typeof (o.queue as any).attach === "function"
+          ? { attach: (j: Job, kind: string, sha: string, b64: string) => o.queue.attach(j.id, j.lease_token, kind, sha, b64) }
+          : {}),
+      });
+      say(d, recorded);
+      return { state: d.state, reason: d.reason ?? null, recorded };
+    },
+    // Claimed and never started: nothing was sent.
+    unstarted: async (job, why) => {
+      const recorded = await record(job.id, job.lease_token, "not_submitted", { reason: why });
+      say({ id: job.id, state: "not_submitted", reason: why }, recorded);
+      return { state: "not_submitted", reason: why, recorded };
+    },
+    // Started by a run that died: it may have been sent, so it is unknown and never driven again.
+    orphaned: async (job) => {
+      const reason = "the worker stopped while this application ran; not retried";
+      const recorded = await record(job.id, job.lease_token, "unknown_outcome", { reason });
+      say({ id: job.id, state: "unknown_outcome", reason }, recorded);
+      return { state: "unknown_outcome", reason, recorded };
+    },
+    // The command line passes the owner's pacing (MASS_SUBMIT_*: batches, several at once); a caller that gives none
+    // keeps the earlier serial behaviour (claim one, run one, unpaced).
+    pacing: o.pacing ?? pacingFrom(() => undefined, { concurrency: 1, claimBatch: 1, hostMax: 1, hostSpacingMs: 0 }),
+    stop: o.stop,
+    journal: o.journal,
+    drain: o.drain,
+    idleMs: o.idleMs ?? 30_000,
+    sleep,
+    log,
+  });
   return ran;
 }
 
@@ -555,13 +599,15 @@ export async function runLoop(o: {
 // evidence file. No result line is null (the caller decides what that means). The person is in the loop for anything
 // that is theirs (a verification at the click, a code the employer emails): the engine's lines reach them as they are
 // printed and their Enter reaches the engine.
-export function engineRunner(o: { root: string; extra?: string[]; deno?: string }): RunEngine {
+// `isolate`: the engine's whole environment (the server's preparation: no database key or other secret reaches the engine,
+// Chromium or a page); absent, the engine inherits this process's environment (the person's own computer).
+export function engineRunner(o: { root: string; extra?: string[]; deno?: string; isolate?: Record<string, string> }): RunEngine {
   return async (args, env) => {
     const evidenceDir = await Deno.makeTempDir({ prefix: "trainee-evidence-" });
     await Deno.remove(evidenceDir);
     const child = new Deno.Command(o.deno || Deno.execPath(), {
       args: ["run", "-A", o.root + "/scripts/apply.ts", ...args, ...(o.extra || []), "--evidence-dir", evidenceDir],
-      ...(env ? { env } : {}),
+      ...(o.isolate ? { clearEnv: true, env: { ...o.isolate, ...(env ?? {}) } } : env ? { env } : {}),
       stdin: "inherit",
       stdout: "piped",
       stderr: "piped",
@@ -775,10 +821,20 @@ if (import.meta.main) {
     let stopping = false;
     Deno.addSignalListener("SIGINT", () => {
       stopping = true;
-      console.log("Stopping after the current application.");
+      console.log("Stopping after the applications running now; nothing new starts.");
     });
-    console.log("Running your approved applications one at a time. Ctrl+C stops after the current one.");
+    // A visible browser or a hand-off may need the person at the window: one at a time. Otherwise as many at once as this
+    // computer holds; a site slows only when it refuses (mass-run.ts; MASS_SUBMIT_* only if the owner sets a number).
+    const attended = extra.some((a) => a === "--headed" || a === "--handoff" || a === "--person-submits");
+    const pacing = pacingFrom((k) => Deno.env.get(k), attended ? { concurrency: 1 } : {});
+    if (attended) pacing.concurrency = 1;
+    console.log(attended
+      ? "Running your approved applications one at a time (you may be needed at the window). Ctrl+C stops after the current one."
+      : `Running your approved applications, up to ${pacing.concurrency} at once (what this computer can hold); a site that turns us away is given time before we try it again. Ctrl+C stops after the ones running.`);
+    const journalDir = Deno.env.get("MASS_SUBMIT_JOURNAL_DIR") || `${Deno.env.get("HOME") || dir}/.local/state/upmore/apply-journal`;
     await runLoop({
+      pacing,
+      journal: fileJournal<Job>(journalDir),
       queue: ownQueue(client),
       resume: { path: resume, sha256 },
       writeFacts: async (job, facts) => {
@@ -815,8 +871,9 @@ if (import.meta.main) {
         (await Deno.readTextFile(urlsFile)).split("\n").map((l) => l.trim()).filter((l) => /^https:\/\/\S+$/.test(l)),
       ),
     ];
-    if (!urls.length || urls.length > 50) {
-      console.error("The file must hold 1 to 50 https job links, one a line.");
+    // D-MS-2: no product number. The file's size is the person's own choice; the employers' sites are paced below.
+    if (!urls.length) {
+      console.error("The file must hold at least one https job link, one a line.");
       Deno.exit(2);
     }
     const client = await signedInClient("prepare-batch");
@@ -843,8 +900,13 @@ if (import.meta.main) {
     await Deno.writeTextFile(factsPath, JSON.stringify(merged), { mode: 0o600 });
     const answered = new Set(rows.map((r) => r.key));
     let ready = 0, asked = 0;
+    // Several dry runs at once across employers, each employer's site paced (MASS_SUBMIT_*; mass-run.ts). Nothing is sent.
+    const limiter = new PacedLimiter(pacingFrom((k) => Deno.env.get(k)));
+    // One person's question store, written one at a time so "asked once" holds across the runs in parallel.
+    let asking: Promise<unknown> = Promise.resolve();
     try {
-      for (const url of urls) {
+      await Promise.all(urls.map((url) => limiter.run(url, async () => {
+        // One posting that fails never stops the others: it is named, and nothing was sent for it.
         const r = await prepare({
           url,
           factsPath,
@@ -853,17 +915,19 @@ if (import.meta.main) {
           now: Date.now(),
           runEngine: engineRunner({ root, extra }),
           resumeTag: tag,
-        });
+        }).catch((e) => ({ ready: false as const, result: { state: "not_submitted", reason: String(e?.message ?? e).slice(0, 200) } as any }));
         if (!r.ready) {
           const q = (r.result as any).fields?.length ? `: ${(r.result as any).fields.join("; ")}` : "";
           console.log(`NOT READY ${url} (${r.result.reason ?? r.result.state})${q}`);
           const ask = r.result.reason === "needs_answers" ? questionsToStore(r.result, { facts: trusted, answered }) : null;
           if (ask?.questions.length) {
-            const put = await client.rpc("career_apply_questions_put_own", { p_job_id: ask.posting, p_questions: ask.questions });
-            if (put.error) console.log(`  questions not stored (${put.error.message})`);
-            else asked += ask.questions.length;
+            await (asking = asking.then(async () => {
+              const put = await client.rpc("career_apply_questions_put_own", { p_job_id: ask.posting, p_questions: ask.questions });
+              if (put.error) console.log(`  questions not stored (${put.error.message})`);
+              else asked += ask.questions.length;
+            }));
           }
-          continue;
+          return;
         }
         const saved = await client.rpc("career_apply_prepare_own", { p_payload: r.payload, p_card_lines: r.card });
         if (saved.error) console.log(`NOT STORED ${url} (${saved.error.message})`);
@@ -871,7 +935,7 @@ if (import.meta.main) {
           ready++;
           console.log(`READY ${url} (${r.payload.company})`);
         }
-      }
+      })));
     } finally {
       await Deno.remove(factsDir, { recursive: true }).catch(() => {});
     }

@@ -20,7 +20,7 @@ import { companyKey } from "./career_people_import.ts";
 import { batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type KeyedContact, type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
-import { trackTurn } from "./career_outreach_track.ts";
+import { siteAsk, trackTurn } from "./career_outreach_track.ts";
 
 export const IMPORT_INTENT = "career_contacts_import";
 export const AT_INTENT = "career_contacts_at";
@@ -72,8 +72,9 @@ export function parseNetworkingAsk(message: string): Ask | null {
   }
   const verb = new RegExp(`^(?:email|e-mail|emial|emal|eamil|message|reach out to|intro(?:duce)? me to|write(?: an?)?(?: (?:email|note|intro|message))? to|send(?: an?)?(?: (?:email|intro|note|message))? to|draft(?: me)?(?: an?| some| ${NUMW})?(?: cold| short| quick| networking)?(?: (?:emails?|intros?|introductions?|notes?|messages?|outreach(?: emails?)?))(?: to| for)?) (.+)$`, "i").exec(t);
   if (!verb) return null;
-  // Anything routed through LinkedIn is never a draft, and "via LinkedIn" is never part of a name (trackTurn refuses it).
-  if (/\blinked ?in\b|\beasy ?apply\b/i.test(t)) return null;
+  // Anything routed through LinkedIn, Indeed or Handshake is never a draft, and "via LinkedIn" is never part of a name
+  // (trackTurn refuses it).
+  if (/\blinked ?in\b|\beasy ?apply\b/i.test(t) || siteAsk(t)) return null;
   const verbCount = numberOf(verb[1]);
   let rest = verb[2].trim(), topic: string | null = null;
   const tm = /\s+(?:(?:about|regarding|re|asking about|to ask about)(?=\s)|re:|for (?:an?|the|my)(?=\s))\s*(.+)$/i.exec(rest);
@@ -278,6 +279,21 @@ function epochOf(o: NetworkingDeps): Promise<number | null> {
   return p;
 }
 
+const tracked_ = (o: NetworkingDeps) => trackTurn({ message: o.message, userId: o.userId, threadId: o.threadId, now: o.now, store: o.store, events: o.events,
+  facts: (((o.state.profile as any)?.facts ?? []) as unknown[]), model: o.model,
+  reminderPush: o.reminderPush === true, textingChannel: o.textingChannel,
+  contactsWithEmail: async (name) => (await bookOf(o).named(plain(name))).filter((r) => r.email && plain(r.name).split(" ")[0] === plain(name)).map((r) => `${r.name}${r.firm ? ` at ${r.firm}` : ""}`) });
+
+// LinkedIn, Indeed and Handshake: an ask to act on one of them (or a link to one) declined plainly, naming the site, with
+// what Trainee can do instead (career_outreach_track.ts siteAsk). The chat runs this before every apply, link-read and
+// batch turn, so nothing is queued, read or left waiting for a "yes". Null when the message is not such an ask, and for a
+// page sent to find people on ("find people at Ramp on <linkedin link>"): the people turn refuses that one unopened itself
+// (career_people.ts blocked_site), and no apply or batch turn takes it.
+export async function siteRefusedTurn(o: NetworkingDeps): Promise<NetworkingResult | null> {
+  if (!siteAsk(o.message) || parsePeopleAsk(o.message)?.kind === "page") return null;
+  return await tracked_(o);
+}
+
 export async function networkingTurn(o: NetworkingDeps): Promise<NetworkingResult | null> {
   epochOf(o); // the epoch as the turn starts
   // A chat state saved before contacts moved to the account: moved there once, minus anyone forgotten, then dropped.
@@ -364,10 +380,7 @@ async function networkingTurnInner(o: NetworkingDeps): Promise<NetworkingResult 
   if (fg) return await forgetTurn(o, fg);
   // FAMILY NETWORKING: after the draft: marked sent by the person, replies, follow-up reminders, the list of who they
   // reached out to, a follow-up drafted, and LinkedIn automation refused (career_outreach_track.ts).
-  const tracked = await trackTurn({ message: o.message, userId: o.userId, threadId: o.threadId, now: o.now, store: o.store, events: o.events,
-    facts: (((o.state.profile as any)?.facts ?? []) as unknown[]), model: o.model,
-    reminderPush: o.reminderPush === true, textingChannel: o.textingChannel,
-    contactsWithEmail: async (name) => (await bookOf(o).named(plain(name))).filter((r) => r.email && plain(r.name).split(" ")[0] === plain(name)).map((r) => `${r.name}${r.firm ? ` at ${r.firm}` : ""}`) });
+  const tracked = await tracked_(o);
   if (tracked) return tracked;
   const typed = typedAddress(o.message);
   let ask = parseNetworkingAsk(typed.text);

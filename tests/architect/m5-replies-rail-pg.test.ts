@@ -170,6 +170,8 @@ Deno.test({ name: "M5 on Postgres: replies, follow-ups and calls through the sen
       const q = await rows(db, `select * from public.career_send_queue where user_id = '${P}' and kind = 'general'`);
       eq(q.map((x) => [x.source_id, x.approval_hash, x.recipient_email, x.state]), [[first.id, first.hash, "avery@beta.example", "queued"]]);
       firstQueue = q[0];
+      const [root] = await rows(db, `select id from public.career_send_queue where user_id = '${P}' and kind = 'outreach'`);
+      eq(firstQueue.follow_up_of, root.id, "a step of the sequence that began with the outreach email (the rail keeps it in order and stops it on a reply)");
       const [a] = await rows(db, `select status, provider_ref from public.career_outreach_actions where id = '${first.id}'`);
       eq([a.status, a.provider_ref], ["done", firstQueue.id]);
       eq((await thread(P, "avery@beta.example")).followups_sent, 1);

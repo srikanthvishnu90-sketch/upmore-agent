@@ -77,7 +77,9 @@ export type SendOut = { status: "sent"; id: string; thread_id: string } | { stat
   | { status: "REFUSED"; detail: string } | { status: "ERROR"; detail: string };
 // One approved message, bound to the action that approved it: the action's id is the rail's source id and its approved
 // hash is the rail's approval hash, so the rail re-hashes the exact text and takes it at most once.
-export interface ReplyRail { send(userId: string, provider: Provider, m: { to: string; subject: string; text: string; thread: string | null }, approval: { sourceId: string; approvalHash: string }): Promise<SendOut> }
+// followUpOf: for a follow-up, the rail's row of the first email of this conversation, so the rail keeps the steps in order
+// and drops the rest of the sequence on its own when it sees a reply, an opt-out or a bounce.
+export interface ReplyRail { send(userId: string, provider: Provider, m: { to: string; subject: string; text: string; thread: string | null }, approval: { sourceId: string; approvalHash: string; followUpOf?: string | null }): Promise<SendOut> }
 
 export interface RepliesStore {
   adopt(limit: number): Promise<number>;
@@ -109,6 +111,9 @@ export interface RepliesStore {
   wantingCall(limit: number): Promise<ThreadRow[]>;
   mailboxes(userId: string): Promise<{ provider: Provider; last_error: string | null; last_ok_at: string | null }[]>; // threads that want a call and have no scheduling reply yet, any person
   lastAssistantIntent(chatThreadId: string): Promise<string | null>;
+  // The sending rail's row of the outreach email this conversation began with (career_send_queue, kind outreach), if the
+  // rail sent it: follow-ups name it so the rail keeps the sequence in order and stops it on a reply.
+  railRoot(userId: string, draftId: string): Promise<string | null>;
 }
 export interface Outbox { enqueue(userId: string, m: { key: string; kind: "status" | "followup"; text: string; at: number }): Promise<boolean> }
 
@@ -437,18 +442,20 @@ export function outlookMailbox(port: OutlookMailPort | null): MailboxReader | un
     thread: (userId, id) => port.outlookThread(userId, id),
   };
 }
-// Every approved email of this lane leaves through the sending rail (M1, career_send_rail.ts): queued as kind "general"
-// with the action's id as its source and the action's approved hash as its approval, so the rail re-hashes the exact text,
-// refuses an opted-out or bounced address, takes it at most once, checks Sent before any retry, and backs off only when
-// Gmail refuses. Outlook threads go through #226's send when it is passed in; otherwise NOT_WIRED, plainly.
-export function sendRailReplyRail(d: Rpc, outlook?: ReplyRail): ReplyRail {
+// Every approved email of this lane leaves through the sending rail (M1, career_send_rail.ts), from the mailbox the
+// conversation is on (Gmail or Outlook): queued as kind "general" with the action's id as its source and the action's
+// approved hash as its approval, so the rail re-hashes the exact text, refuses an opted-out or bounced address, takes it at
+// most once, checks Sent before any retry, and backs off only when the provider refuses. A mailbox that is not connected
+// for sending is NOT_WIRED, plainly.
+export function sendRailReplyRail(d: Rpc): ReplyRail {
   return {
     async send(userId, provider, m, approval) {
-      if (provider === "outlook") return outlook ? outlook.send(userId, provider, m, approval) : { status: "NOT_WIRED", reason: "sending from Outlook is not connected in Trainee yet" };
-      const [r] = await queueApproved(d, userId, [{ kind: "general", sourceId: approval.sourceId, approvalHash: approval.approvalHash, to: m.to, subject: m.subject, text: m.text }]);
+      const [r] = await queueApproved(d, userId, [{ kind: "general", provider, sourceId: approval.sourceId, approvalHash: approval.approvalHash, to: m.to, subject: m.subject, text: m.text,
+        ...(approval.followUpOf ? { followUpOf: approval.followUpOf } : {}) }]);
       if (r?.status === "queued" || r?.status === "already_queued") return { status: "queued", id: String(r.id ?? ""), thread_id: "" };
-      if (r?.reason === "not_connected" || r?.reason === "not_wired") return { status: "NOT_WIRED", reason: "Gmail is not connected for sending" };
+      if (r?.reason === "not_connected" || r?.reason === "not_wired") return { status: "NOT_WIRED", reason: `${provider === "outlook" ? "Outlook" : "Gmail"} is not connected for sending` };
       if (r?.reason === "opted_out" || r?.reason === "bad_address") return { status: "REFUSED", detail: "do_not_contact" };
+      if (r?.reason === "replied" || r?.reason === "follow_up_refused") return { status: "REFUSED", detail: "replied" };
       if (r?.reason === "changed") return { status: "REFUSED", detail: "changed" };
       return { status: "ERROR", detail: `send rail: ${r?.reason ?? "no answer"}` };
     },
@@ -627,7 +634,8 @@ export async function runOutreachActions(o: { store: RepliesStore; rail: ReplyRa
       else { await o.store.finishAction(a.id, o.worker, "failed", null, null, `error: ${r.detail}`); stats.failed++; }
       continue;
     }
-    const r = await o.rail.send(a.user_id, t!.provider, { to: p.to, subject: p.subject, text: p.text, thread: p.thread ?? t!.provider_thread }, { sourceId: a.id, approvalHash: String(a.approved_hash) })
+    const root = a.kind === "followup" && t!.draft_id ? await o.store.railRoot(a.user_id, t!.draft_id).catch(() => null) : null;
+    const r = await o.rail.send(a.user_id, t!.provider, { to: p.to, subject: p.subject, text: p.text, thread: p.thread ?? t!.provider_thread }, { sourceId: a.id, approvalHash: String(a.approved_hash), followUpOf: root })
       .catch((e) => ({ status: "ERROR", detail: String(e) }) as SendOut);
     if (r.status === "sent" || r.status === "queued") {
       await o.store.finishAction(a.id, o.worker, "done", r.id, null, r.status === "queued" ? "queued on the sending rail" : "sent");
@@ -964,6 +972,7 @@ export function memoryRepliesStore() {
     async mailboxes(u: string) { return copy(sync.filter((x) => x.user_id === u).map((x) => ({ provider: x.provider, last_error: x.last_error ?? null, last_ok_at: null }))); },
     async wantingCall(limit: number) { return copy(threads.filter((t) => t.status === "wants_call" && !actions.some((a) => a.thread_id === t.id && a.kind === "schedule_reply" && ["shown", "approved", "running", "done"].includes(a.status))).slice(0, limit)); },
     async lastAssistantIntent(id: string) { return intents[id] ?? null; },
+    async railRoot() { return null; },
   };
   return self;
 }
@@ -1022,6 +1031,10 @@ export function supabaseRepliesStore(admin: any): RepliesStore {
     },
     mailboxes: async (u) => must(await admin.from("career_outreach_sync").select("provider,last_error,last_ok_at").eq("user_id", u), "read your mailboxes") ?? [],
     wantingCall: async (limit) => (await rpc("career_outreach_wanting_call", { p_limit: limit }, "read who wants a call")) ?? [],
+    async railRoot(u, draftId) {
+      const r = must(await admin.from("career_send_queue").select("id").eq("user_id", u).eq("kind", "outreach").eq("source_id", draftId).in("state", ["queued", "sending", "sent"]).limit(1), "read the rail's first email");
+      return r?.[0]?.id ?? null;
+    },
     async lastAssistantIntent(id) {
       const rows = must(await admin.from("agent_messages").select("meta").eq("thread_id", id).eq("role", "assistant").order("id", { ascending: false }).limit(1), "read the last reply");
       return rows?.[0]?.meta?.intent ?? null;
@@ -1051,7 +1064,7 @@ export async function runRepliesLane(o: {
   readers.outlook = outlookMessagesMailbox(o.admin); // #226's inbox delta rows; NOT_WIRED when Outlook is not connected
   const ports = o.outlook?.graph ? outlookPortsFrom226(o.outlook.graph) : null;
   const calendars = { gmail: googleCalendar({ fetch: o.fetch, token: o.token }), outlook: outlookCalendar(ports?.calendar ?? null) };
-  const rail = sendRailReplyRail({ rpc: (name, args) => o.admin.rpc(name, args) }, ports?.rail);
+  const rail = sendRailReplyRail({ rpc: (name, args) => o.admin.rpc(name, args) });
   const out: Record<string, unknown> = {};
   const step = async (name: string, f: () => Promise<unknown>) => { try { out[name] = await f(); } catch (e) { out[name] = { error: (e instanceof Error ? e.message : String(e)).slice(0, 300) }; } };
   await step("sync", () => runReplySync({ store, readers, model: o.model, now: o.now, worker, tz }));
@@ -1112,19 +1125,18 @@ export function outlookMessagesMailbox(admin: any): MailboxReader {
     },
   };
 }
-// #226's calendar and send functions (outlook_graph.ts freeBusy / createEvent / eventHashOf / sendOutlook), bound to their
-// deps by the caller, in this lane's ports. The invite #226 creates is checked by #226 against the hash of the exact event
-// (eventHashOf), which is built here from the payload the person approved (whose own hash the worker checked first).
+// #226's calendar functions (outlook_graph.ts freeBusy / createEvent / eventHashOf), bound to their deps by the caller, in
+// this lane's port; Outlook mail goes through the sending rail like Gmail. The invite #226 creates is checked by #226 against the hash
+// of the exact event (eventHashOf), built here from the payload the person approved (whose own hash the worker checked first).
 export interface Graph226 {
   freeBusy(userId: string, w: { start: string; end: string; timeZone?: string }): Promise<any>;
   createEvent(userId: string, e: { subject: string; start: string; end: string; timeZone?: string; attendees: string[]; body?: string; online?: boolean; idemKey: string }, approvedHash: string): Promise<any>;
   eventHashOf(e: { subject: string; start: string; end: string; attendees: string[]; body?: string; online?: boolean; idemKey: string }): Promise<string>;
-  send?(userId: string, m: { to: string; subject: string; text: string }, o: { idemKey: string; purpose: "followup" | "general" | "outreach" | "application" }): Promise<any>;
 }
 const graphRefusal = (r: any): { status: "NOT_WIRED"; reason: string } | { status: "RATE_LIMITED"; detail: string } | { status: "ERROR"; detail: string } =>
   r?.status === "NOT_WIRED" || r?.status === "NEEDS_RECONNECT" ? { status: "NOT_WIRED", reason: String(r.reason ?? "Outlook is not connected") }
   : r?.status === "RATE_LIMITED" ? { status: "RATE_LIMITED", detail: `retry after ${r.retryAfterMs ?? "?"}ms` } : { status: "ERROR", detail: String(r?.detail ?? r?.status ?? "unknown") };
-export function outlookPortsFrom226(g: Graph226): { calendar: OutlookCalendarPort; rail: ReplyRail | undefined } {
+export function outlookPortsFrom226(g: Graph226): { calendar: OutlookCalendarPort } {
   const calendar: OutlookCalendarPort = {
     async outlookFreeBusy(userId, start, end, tz) {
       const r = await g.freeBusy(userId, { start, end, timeZone: tz });
@@ -1136,14 +1148,5 @@ export function outlookPortsFrom226(g: Graph226): { calendar: OutlookCalendarPor
       return r?.status === "created" ? { status: "ok", id: String(r.id), link: r.joinUrl ?? null, html: null } : graphRefusal(r);
     },
   };
-  const rail: ReplyRail | undefined = g.send ? {
-    async send(userId, _provider, m, approval) {
-      // #226 sends only what hashes to the approval it is given; the idempotency key is the action and its approved hash.
-      const r = await g.send!(userId, { to: m.to, subject: m.subject, text: m.text }, { idemKey: await sha256(`${approval.sourceId}:${approval.approvalHash}`), purpose: "followup" });
-      if (r?.status === "sent") return { status: "sent", id: String(r.id ?? ""), thread_id: String(r.thread_id ?? m.thread ?? "") };
-      if (r?.status === "already_sent") return { status: "sent", id: "already_sent", thread_id: String(m.thread ?? "") };
-      return graphRefusal(r);
-    },
-  } : undefined;
-  return { calendar, rail };
+  return { calendar };
 }

@@ -91,6 +91,7 @@ function fakeRailRpc(g: ReturnType<typeof fakeGoogle>, stopped: (to: string) => 
     if (name !== "career_send_enqueue") return { data: null, error: { message: `unexpected ${name}` } };
     const out = [];
     for (const it of args.p.items) {
+      if (it.provider === "outlook") { out.push({ source_id: it.source_id, status: "refused", reason: "not_connected" }); continue; } // no Microsoft connection here
       if (await stopped(it.to)) { out.push({ source_id: it.source_id, status: "refused", reason: "opted_out" }); continue; }
       if (handoffs.some((h) => h.source_id === it.source_id && h.approval_hash === it.approval_hash)) { out.push({ source_id: it.source_id, status: "already_queued", id: `q-${it.source_id}` }); continue; }
       handoffs.push({ kind: it.kind, source_id: it.source_id, approval_hash: it.approval_hash, to: it.to, subject: it.subject, body: it.body });
@@ -524,7 +525,7 @@ Deno.test("M5/Q1 \"what's happened with my outreach\", \"who replied\", \"who wa
   assert(/1 of 2 replied/.test(rep.reply), rep.reply);
 });
 
-Deno.test("M5/Q2 every approved email goes through the sending rail by its exact hash; a changed text, a list, an opt-out never queue; Outlook without #226 is NOT_WIRED", async () => {
+Deno.test("M5/Q2 every approved email goes through the sending rail by its exact hash; a changed text, a list, an opt-out never queue; a mailbox not connected for sending is NOT_WIRED", async () => {
   const g = fakeGoogle(), dnc = new Set(["stopped@b.example"]);
   const db = fakeRailRpc(g, async (to) => dnc.has(to));
   const rail: ReplyRail = sendRailReplyRail(db);

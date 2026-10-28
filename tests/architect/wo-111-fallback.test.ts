@@ -25,14 +25,15 @@ Deno.test("WO-111/3 an unmatched career turn gets one plain sentence that names 
   const w = await world("stripe-analyst");
   const r = await worldTurn(w, { brain: "router", threadId: "A", message: "what should I put for the salary one?", now: w.now });
   need(!/here is what i can do|i did not catch/i.test(r.reply), r.reply);
-  need(/salary one/.test(r.reply) && /changed nothing/.test(r.reply), r.reply);
+  need(!/salary one/.test(r.reply), `the reply echoed the person's words: ${r.reply}`);
+  need((r.reply.match(/\?/g) || []).length === 1 && /(find|track|prep)/i.test(r.reply), r.reply);
 });
 
 Deno.test("WO-111/4 remote only and a pay floor are honored in a search", async () => {
   const w = await world("teacher-to-ops");
   const r = await worldTurn(w, { brain: "router", threadId: "A", message: "find me jobs", now: w.now });
   need(!/Harbor|Austin|Quill/.test(r.reply), `a role that breaks remote-only or the floor was shown: ${r.reply}`);
-  need(/Lumen/.test(r.reply) && /left out 2 roles/.test(r.reply), r.reply);
+  need(/Lumen/.test(r.reply) && /left out 2 that break/.test(r.reply), r.reply);
 });
 
 Deno.test("WO-111/5 the outreach parser takes a draft named by firm or person, and 'send it'", () => {
@@ -41,7 +42,7 @@ Deno.test("WO-111/5 the outreach parser takes a draft named by firm or person, a
     need(r?.kind === "one" && r.who.includes(who), `${said} -> ${JSON.stringify(r)}`);
   }
   need((parseOutreachReply("send the Plaid email") as any).send === true && (parseOutreachReply("show the Plaid email") as any).send === false, "send and show are not told apart");
-  for (const said of ["send it", "ok send it", "yes send it"]) need((parseOutreachReply(said) as any)?.kind === "it", said);
+  for (const said of ["send it", "ok send it", "yes send it"]) need((parseOutreachReply(said) as any)?.it === true, said);
   need((parseOutreachReply("send 1-3") as any)?.kind === "send", "numbered sends changed");
 });
 

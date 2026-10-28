@@ -423,7 +423,7 @@ export function classifyIncoming(m: ThreadMail, recipient: string): "bounce" | "
   return OPT_OUT.test(m.snippet) || OPT_OUT.test(m.subject.replace(/^\s*re:\s*/i, "")) ? "stop" : "reply";
 }
 // pause: mailbox protection after a bounce (career_send_record): the account's last `window` sends, at least `bounces`
-// bounced and at least `rate` of them. Defaults 50, 5, 0.1; CAREER_SEND_BOUNCE_WINDOW / _BOUNCES / _RATE in career-send.
+// bounced and at least `rate` of them. Defaults 50, 5, 0.1; CAREER_SEND_BOUNCE_WINDOW / _COUNT / _RATE in career-send.
 export interface PauseRule { window?: number; bounces?: number; rate?: number }
 export async function runReplyCheck(d: WorkerDeps, o: { limit?: number; recheckSeconds?: number; pause?: PauseRule } = {}) {
   const stats = { checked: 0, bounces: 0, stops: 0, replies: 0, not_wired: 0, errors: 0, error: null as string | null };

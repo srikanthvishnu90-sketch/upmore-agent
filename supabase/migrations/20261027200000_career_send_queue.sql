@@ -286,6 +286,10 @@ begin
           continue;
         elsif root <> 'sent' then
           continue;
+        -- One step of a sequence at a time, in order: an earlier follow-up still waiting or in flight goes first.
+        elsif exists (select 1 from public.career_send_queue p where p.follow_up_of = q.follow_up_of and p.id <> q.id
+            and p.state in ('queued', 'sending') and (p.next_at, p.created_at, p.id) < (q.next_at, q.created_at, q.id)) then
+          continue;
         end if;
       end if;
       if q.kind = 'outreach' then
@@ -603,3 +607,28 @@ revoke all on function public.career_send_on_google() from public, anon, authent
 drop trigger if exists user_oauth_connections_send_rail on public.user_oauth_connections;
 create trigger user_oauth_connections_send_rail after insert or update or delete on public.user_oauth_connections
   for each row execute function public.career_send_on_google();
+
+-- ---------------------------------------------------------------------------------------------- NO LIMITS on the older path
+-- The owner (2026-10-27 19:55 CDT): "no person limit, never set a limit". The older one-at-a-time outreach claim
+-- (20261022120000_career_control_state.sql) held a daily number (20, up to 30), a first-week warm-up (10), 90-second
+-- spacing and 3 emails per address per 30 days across everyone (removed by the owner at 20:40). Redefined here with the
+-- same signature and every non-volume rule kept: the exact approval's hash, its 7-day life, a paused/STOPped/erased
+-- account sends nothing, do-not-contact across every user. p_day_start stays for callers and is no longer read.
+create or replace function public.career_outreach_claim(p_user uuid, p_draft uuid, p_hash text, p_now timestamptz, p_day_start timestamptz)
+returns text language plpgsql security definer set search_path = public, pg_temp as $$
+declare d public.career_outreach_drafts;
+begin
+ if p_user is null or p_draft is null or p_hash is null or p_now is null then raise exception 'invalid outreach claim'; end if;
+ perform pg_advisory_xact_lock(hashtextextended('career_outreach:' || p_user::text, 0));
+ select * into d from public.career_outreach_drafts where id = p_draft and user_id = p_user for update;
+ if not found or d.status <> 'approved' or d.approved_hash is null then return 'not_approved'; end if;
+ if d.approved_hash <> p_hash or d.hash <> p_hash then return 'changed'; end if;
+ if greatest(d.approved_at, d.created_at) < p_now - interval '7 days' then return 'expired'; end if;
+ if public.career_user_quiet(p_user) then return 'paused'; end if;
+ if exists (select 1 from public.career_outreach_dnc
+   where email_hash = encode(sha256(convert_to(lower(d.recipient_email), 'UTF8')), 'hex')) then return 'do_not_contact'; end if;
+ update public.career_outreach_drafts set status = 'sending', sent_at = p_now, updated_at = now() where id = d.id;
+ return 'ok';
+end $$;
+revoke all on function public.career_outreach_claim(uuid, uuid, text, timestamptz, timestamptz) from public, anon, authenticated;
+grant execute on function public.career_outreach_claim(uuid, uuid, text, timestamptz, timestamptz) to service_role;

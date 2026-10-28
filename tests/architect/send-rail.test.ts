@@ -217,6 +217,29 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       eq((await queueApproved(rpc, u, [await fuOf(at("replies"))]))[0].reason, "replied", "nothing more to someone who answered");
     });
 
+    await t.step("a sequence goes one step at a time: follow-ups due together are never claimed together, and go in order", async () => {
+      const u = uid(22);
+      await person(db, u);
+      await queueApprovedOutreach(outreachDeps, u, await approvedDrafts(db, u, [at("steps")]));
+      const gmail = new FakeGmail();
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-steps" });
+      const first = (await rows(db, `select id from public.career_send_queue where user_id = '${u}'`))[0].id;
+      const fu = async (n: number) => { const x = { to: at("steps"), subject: `Step ${n}`, text: `Following up, step ${n}.` }; return { kind: "general" as const, sourceId: crypto.randomUUID(), approvalHash: await payloadHash(x), ...x, followUpOf: first }; };
+      // Three approved in one call, all due now (no sendAt): the same next_at and created_at.
+      eq((await queueApproved(rpc, u, [await fu(1), await fu(2), await fu(3)])).map((r) => r.status), ["queued", "queued", "queued"]);
+      const { data, error } = await rpc.rpc("career_send_claim", { p: { worker: "w-steps-claim", accounts: 50, per_account: 50, lease_seconds: 60 } });
+      ok(!error, error?.message);
+      const mine = (data.accounts as any[]).filter((a) => a.user_id === u).flatMap((a) => a.items);
+      eq(mine.length, 1, `one step of the sequence per claim, never the whole sequence at once: ${mine.map((i: any) => i.subject)}`);
+      // Hand back everything that claim took (from any account), as if it had never run.
+      await db.sql.query(`update public.career_send_queue set state = 'queued', lease_owner = null, lease_until = null, attempts = greatest(0, attempts - 1),
+          first_claimed_at = case when attempts <= 1 then null else first_claimed_at end where state = 'sending' and lease_owner = 'w-steps-claim';
+        update public.career_send_accounts set lease_owner = null, lease_until = null where lease_owner = 'w-steps-claim'`);
+      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-steps-2" });
+      eq(gmail.to(at("steps")).map((m) => m.subject).slice(1).length, 3, "all three go, each once");
+      eq(new Set(gmail.to(at("steps")).map((m) => m.subject)).size, 4);
+    });
+
     await t.step("an inferred address is sent after approval, labelled; its bounce marks it bad forever, for anyone, and tells the format learner", async () => {
       const u = uid(9), other = uid(10);
       await person(db, u); await person(db, other);

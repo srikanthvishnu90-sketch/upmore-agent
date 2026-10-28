@@ -344,7 +344,12 @@ export async function runApproved(d: {
     try {
       const p = job.payload;
       await assertApprovedPayload(p, job);
+      // OWNER RULE (2026-10-26, "never submit applications without a real resume"): the approved payload binds a resume
+      // (its sha256) and a resume file is handed over for it; otherwise the engine never starts. The engine checks the
+      // file's bytes against the approved hash before it fills anything (the trusted manifest's resume).
+      if (!/^[a-f0-9]{64}$/.test(String(p?.resume_sha256 ?? ""))) throw Error("NO_RESUME");
       const resume = await d.resumeFor(job);
+      if (!resume || typeof resume.path !== "string" || !resume.path) throw Error("NO_RESUME");
       if (resume.sha256 !== p.resume_sha256) throw Error("RESUME_CHANGED");
       const factsPath = await d.writeFacts(job, factsFromPayload(p));
       // WO-096: this drive is the person's approved application, so the code its employer emails may be read for it.

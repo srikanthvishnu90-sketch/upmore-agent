@@ -18,7 +18,7 @@ import { hostEnv, supabaseVoiceLinks, type VoiceLinks } from "./career_voice_lin
 // FEATURE 11: posting-bound mocks, grading against the answer key and the posting, weak spots kept and drilled.
 import {
   type BoundPosting, debriefTail, drillQuestions, type Fit, fitLine, fitOf, isDrillAsk, isWeakListAsk, judgedFit, mockEvent, type MockPrep,
-  pastedJd, postingPlan, requirementsOf, supabaseMockPrep, weakListText, weakSpots,
+  pastedJd, postingPlan, requirementsOf, supabaseMockPrep, weakListText, weakSpots, type ModelCall,
 } from "./career_mock_prep.ts";
 
 export const MOCK_INTENT = "career_mock"; // the mock asked a question and waits for the answer
@@ -855,7 +855,8 @@ export function validState(v: any): v is MockState {
   return !!v && v.v === 1 && Array.isArray(v.questions) && Array.isArray(v.answers) && typeof v.last_at === "number" &&
     typeof v.started_at === "number" && (v.status === "running" || v.status === "ended");
 }
-export function supabaseMockStore(admin: any): MockStore {
+// callModel: the model call the judge makes (the chat passes its daily-capped call, career_spend_cap.ts).
+export function supabaseMockStore(admin: any, o: { callModel?: ModelCall } = {}): MockStore {
   const cards = supabaseCardStore(admin);
   return {
     async get(userId, threadId) {
@@ -874,7 +875,7 @@ export function supabaseMockStore(admin: any): MockStore {
     lastAssistantIntent: (threadId) => cards.lastAssistantIntent(threadId),
     voice: supabaseVoiceLinks(admin, hostEnv()),
     // FEATURE 11: the posting on file, the weak spots (career_events, kind mock_done), the judge (CAREER_MOCK_JUDGE=on).
-    prep: supabaseMockPrep(admin, { get: (k: string) => (typeof Deno !== "undefined" ? Deno.env.get(k) : undefined) }),
+    prep: supabaseMockPrep(admin, { get: (k: string) => (typeof Deno !== "undefined" ? Deno.env.get(k) : undefined) }, o.callModel ? { callModel: o.callModel } : undefined),
   };
 }
 

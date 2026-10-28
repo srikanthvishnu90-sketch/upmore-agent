@@ -42,10 +42,14 @@ const ONE = [
   /^ (?:where is|where'?s|how is|how'?s) my application (?:to|for|at|with) (.+?) $/,
   /^ did (?:the|my) (.+?) application (?:go through|get sent|get submitted|submit) $/,
 ];
-// The question, if this text is one: every application, or the ones to one employer (named as the person typed it).
-export function statusAsk(message: string): { company: string | null } | null {
+// FEATURE 16: "did it go through?", "did that get sent?", "has it been submitted yet": the person's latest application.
+const LATEST = /^ (?:so |and |ok |okay )?(?:did|has|have|was) (?:it|that|this|that one|that application|my application|the application) (?:go through|gone through|get sent|been sent|get submitted|been submitted|sent|submitted|send|submit|work|land)(?: yet)? $/;
+// The question, if this text is one: every application, or the ones to one employer (named as the person typed it), or
+// the latest one ("did it go through?").
+export function statusAsk(message: string): { company: string | null; latest?: true } | null {
   const t = plain(message);
   if (ALL.test(t)) return { company: null };
+  if (LATEST.test(t)) return { company: null, latest: true };
   for (const re of ONE) {
     const m = re.exec(t);
     if (!m) continue;
@@ -87,6 +91,11 @@ export function statusReply(message: string, rows: AppRow[] | null, now: number)
   const ask = statusAsk(message);
   if (!ask) return null;
   if (!rows) return { reply: "I couldn't read your applications just now, so I can't say whether any were sent. Ask me again in a minute.", status: "unreadable", intent: STATUS_INTENT };
+  if (ask.latest) {
+    const last = [...rows].sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))[0];
+    if (!last) return { reply: "I have no application on record for you, so nothing was sent through Trainee.", status: "none", intent: STATUS_INTENT };
+    return { reply: statusLine(last), status: "shown", intent: STATUS_INTENT };
+  }
   if (ask.company) {
     const mine = rows.filter((a) => sameCompany(a.company, ask.company));
     if (!mine.length) {

@@ -18,6 +18,7 @@ export interface Prepared {
   company: string;
   card_lines: string[];
   created_at?: string;
+  resume_sha256?: string | null; // the payload's resume hash, when the store reads it (OWNER RULE 2026-10-26)
 }
 export interface Card {
   id: string;
@@ -116,6 +117,7 @@ const RESULT: Record<string, string> = {
   company_cooldown: "not sent: you applied to them in the last 30 days",
   duplicate: "not sent: you already applied to this posting",
   stale: "not sent: your details changed after it was prepared; prepare it again",
+  no_resume: "not sent: there is no confirmed resume on file to send with it",
   changed: "not sent: it changed after the card was shown",
   pace_unreadable: "not sent: your saved daily pace could not be read; say \"set my daily pace to N\" or \"no daily pace\"",
   refused: "not sent: the queue refused it",
@@ -131,6 +133,12 @@ export function answerText(results: CardResult[]): string {
   return [head, ...lines].join("\n");
 }
 
+// OWNER RULE (2026-10-26): a card shows only applications that send a resume (the payload binds its sha256), and none
+// at all while the person has no confirmed resume.
+export const CARD_NO_RESUME = `I have no confirmed resume on file, so there is no application to show or approve. Send me your resume first: attach it as a PDF or Word file, or paste it here, then say it's yours.`;
+export const CARD_RESUME_UNREAD = `I couldn't check your resume on file just now, so no card was shown and nothing was approved. Say "show my applications" again in a minute.`;
+// Fail closed: a prepared application whose resume hash was not read (or is not a sha256) is never on a card.
+export const sendsResume = (p: Prepared) => /^[a-f0-9]{64}$/.test(String(p.resume_sha256 ?? ""));
 // One turn, before any brain. Returns null when the text is not about a card, so the turn goes on as before.
 export const CARD_OUTDATED = `That card is out of date: a newer card was shown since, so nothing was approved. Say "show my applications" for the current one.`;
 // SERIAL-1461 / 1480: what a yes with no usable reply id is told, by where it was typed. The app: it can reply to the card
@@ -145,12 +153,24 @@ export function needsReplyTextFor(channel: string | null | undefined): string {
   return channel === "telegram" || channel === "whatsapp" ? NEEDS_REPLY_CHANNEL : channel === "imessage" ? NEEDS_TAP_IMESSAGE : NEEDS_REPLY;
 }
 export async function cardTurn(
-  o: { message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null; replyTo?: string | number | null },
+  o: {
+    message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null; replyTo?: string | number | null;
+    // OWNER RULE (2026-10-26, "never submit applications without a real resume"): whether the person has a confirmed
+    // resume on file (career_resume_on_file). false: no card is shown and none is opened; absent: not asked.
+    resumeReady?: () => Promise<boolean | null>;
+  },
 ): Promise<{ reply: string; status: string; card_id?: string } | null> {
   const r = parseCardReply(o.message);
   if (!r) return null;
   if (r.kind === "show") {
-    const c = cardFor(await o.store.pending(o.userId));
+    // Fail closed (review of PR #194): only a confirmed "yes, on file" shows a card; "no" asks for the resume, and a check
+    // that could not be made shows nothing and says so.
+    if (o.resumeReady) {
+      const ready = await o.resumeReady().catch(() => null);
+      if (ready === false) return { reply: CARD_NO_RESUME, status: "no_resume" };
+      if (ready !== true) return { reply: CARD_RESUME_UNREAD, status: "resume_unreadable" };
+    }
+    const c = cardFor((await o.store.pending(o.userId)).filter(sendsResume));
     if (!c) {
       return {
         reply: 'Nothing is ready for you to approve yet. Send me a job link with "apply me to" and I\'ll prepare it and send its card here; "where are my applications" says what is being prepared.',
@@ -258,7 +278,7 @@ export function supabaseCardStore(admin: any): CardStore {
   return {
     async pending(userId) {
       return must(
-        await admin.from("career_apply_prepared").select("id,company,card_lines,created_at").eq("user_id", userId)
+        await admin.from("career_apply_prepared").select("id,company,card_lines,created_at,resume_sha256:payload->>resume_sha256").eq("user_id", userId)
           .in("state", ["ready", "shown"]).order("created_at", { ascending: true }).limit(30),
         "read prepared applications",
       ) ?? [];

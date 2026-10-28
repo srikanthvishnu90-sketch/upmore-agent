@@ -14318,7 +14318,9 @@ const CareerRouter = (() => {
   // record itself (factLine), or the honest absence — never a guess.
   function handleStatedFactReadback(text, ctx) {
     const t = lc(text);
-    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone)\b/) || (/\bwhere am i (based|targeting|looking)\b/.test(t) ? [null, "geography"] : null);
+    // "where did I go to school?" is the school ask too (a confirmed resume answers it first, in 130's profile recall).
+    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone)\b/) || (/\bwhere am i (based|targeting|looking)\b/.test(t) ? [null, "geography"] : null)
+      || (/\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b/.test(t) ? [null, "school"] : null);
     if (!m) return null;
     const kind = { "target firm": "target_firm", "target company": "target_firm", major: "majors", school: "school", city: "geography", location: "geography", geography: "geography", year: "year", "class year": "year", level: "level", tone: "tone" }[m[1]] || m[1];
     const all = statedFactsOf(ctx);
@@ -14375,6 +14377,25 @@ const CareerRouter = (() => {
   // specific fact the named requirement turns on, with the record's
   // own state for that fact — and offers the closest path. A verdict
   // is never invented to fill the gap.
+  // What the record says about work authorization / sponsorship, as
+  // lines in the record's own words: the saved answer (130's visa
+  // question or a chat correction), a confirmed resume entry, or a
+  // stated fact. Empty when the person never said it — nothing is
+  // inferred from a school, a city, or a name.
+  function workAuthOnRecord(ctx, profile) {
+    const out = [];
+    const WA = /\b(authori[sz]\w*|citizen\w*|sponsor\w*|visa|green card|permanent resident|h-?1b|opt|cpt|ead|work permit)\b/i;
+    const cons = (profile && profile.constraints) || {};
+    if (s(cons.workAuthorization).trim()) out.push(`work authorization — "${s(cons.workAuthorization).trim()}"`);
+    if (cons.needsSponsorship === true || cons.needsSponsorship === false) out.push(cons.needsSponsorship ? "you need visa sponsorship" : "you do not need visa sponsorship");
+    for (const f of (profile && profile.facts) || []) {
+      if (!f || f.kind !== "eligibility" || f.needs_confirmation === true || (f.status != null && f.status !== "confirmed")) continue;
+      const line = s(f.title || f.text || "").split("\n")[0].trim();
+      if (line && WA.test(line)) out.push(`"${line}"`);
+    }
+    for (const f of statedFactsOf(ctx)) if (f && (f.kind === "sponsorship" || f.kind === "citizenship" || /work_?auth/.test(s(f.kind)))) out.push(factLine(f));
+    return [...new Set(out)];
+  }
   function handleEligibilityAsk(text, ctx) {
     const t = lc(text);
     // A work-authorization QUESTION ("do i need sponsorship for
@@ -14388,15 +14409,39 @@ const CareerRouter = (() => {
     if (/\b(offer|negotiat|signing bonus|counter)\b/.test(t)) return null; // negotiation owns its eligibility-flavored turns
     if (/\b(is|does|would|can) (he|she|they)\b|\bmy (roommate|friend|brother|sister|classmate|coworker|co-worker|colleague|partner)\b[^.]*\beligib/.test(t)) return null; // someone else's eligibility is not graded from this record
     const profile = ctx.profile || null;
+    // D-007 (chat journey 2026-10-28): a work-authorization question
+    // about the PERSON ("do I need visa sponsorship?") with no posting
+    // named in the turn is a question about their record, not a
+    // grading ask. It is answered from what they stated, or said to
+    // be not on record and asked of them — never graded against a
+    // posting nobody named, never a verdict.
+    const comp = companyFromText(text, ctx);
+    const eligWord = /\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t);
+    const namesPosting = !!comp || /\b(this|that|the|these|those) (role|job|posting|position|opening|internship|one)s?\b/.test(t) || s(text).length > 500;
+    const waRecord = workAuthOnRecord(ctx, profile);
+    if (waQuestion && !eligWord && !namesPosting) {
+      const what = /\b(sponsor|sponsorship|visa)\b/.test(t) ? "whether you need visa sponsorship" : "your work authorization";
+      if (waRecord.length) {
+        const reply = compose({ headline: "From your record — your words, as stated.", facts: waRecord.slice(0, 2).map((x) => `On record: ${x}.`), nextStep: "Correct it in your own words if it has changed, and the record re-aims." });
+        return { intent: "profile_recall", reply, resultStatus: "completed", sends: 0 };
+      }
+      const label = what.charAt(0).toUpperCase() + what.slice(1);
+      const reply = compose({ headline: `${label} is not on your record — you have not told me.`, facts: ["Nothing about your work authorization is assumed: I only use what you tell me."], nextStep: "Do you need visa sponsorship to work in the US, now or later?" });
+      return { intent: "profile_recall", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
     // Resolve a posting the user actually put in reach — never an
     // arbitrary top-ranked one (a verdict over the wrong posting is
     // worse than no verdict). Resolution reads the board pool
     // directly, NOT rankedShortlist: rankedShortlist's preCheck
     // EXCLUDES a posting whose hard credential the record lacks —
     // exactly the postings an eligibility ask most needs graded.
-    let posting = ctx.posting || null;
+    // A HOLLOW staged posting (no company, title, text or
+    // requirements — e.g. a GitHub link in a pasted resume staged by
+    // stagePostingFromLink) is no posting: grading its synthesized
+    // "null at null" text evidenced nothing and spoke a verdict.
+    const usable = (p) => !!(p && typeof p === "object" && (s(p.company).trim() || s(p.title).trim() || s(p.jd_text).trim() || (Array.isArray(p.requirements) && p.requirements.length)));
+    let posting = usable(ctx.posting) ? ctx.posting : null;
     if (!posting) {
-      const comp = companyFromText(text, ctx);
       if (comp) {
         const pool = postingsFromCtx(ctx);
         posting = pool.find((p) => p.company && lc(p.company) === lc(comp)) || pool.find((p) => p.company && (lc(p.company).includes(lc(comp)) || lc(comp).includes(lc(p.company)))) || null;
@@ -14410,6 +14455,10 @@ const CareerRouter = (() => {
     if (jdText && profile && Tailor) {
       try {
         const jd = Tailor.parseJD(jdText);
+        // A text with no required skill and no hard requirement read
+        // from it grades nothing: "evidences every hard requirement"
+        // over zero requirements is an invented verdict (D-007).
+        if (!((jd.mustHaveSkills || []).length || (jd.knockouts || []).length)) throw new Error("no requirement read from the posting text");
         const gaps = Tailor.computeGaps(profile, jd);
         const verdict = Tailor.eligibilityVerdictFor(gaps);
         const failed = gaps.filter((g) => g.reasonClass === "knockout-failed");
@@ -14418,6 +14467,7 @@ const CareerRouter = (() => {
         for (const g of failed.slice(0, 4)) facts.push(`Not met: ${g.requirement} — ${g.reason}`);
         for (const g of required.slice(0, 4)) facts.push(`Required and not evidenced: ${g.requirement}.`);
         if (!failed.length && !required.length) facts.push("Every hard requirement and required skill the posting states is evidenced on your record.");
+        if (waQuestion) facts.push(waRecord.length ? `Work authorization on your record: ${waRecord[0]}.` : "Whether you need visa sponsorship is not on your record — you have not told me.");
         const reply = compose({ headline: `Graded against the posting's own text${posting && posting.company ? ` — ${posting.title || "the role"} at ${posting.company}` : ""}.`, facts, nextStep: "Want the tailored packet for it — the gaps travel with the document, named, never hidden — or another posting graded the same way?" });
         return { intent: "eligibility_check", reply, resultStatus: "prepared", sends: 0, eligibility: { status: verdict.status, gaps } };
       } catch { /* grading failed mechanically — fall through to the honest deflection, never a guessed verdict */ }

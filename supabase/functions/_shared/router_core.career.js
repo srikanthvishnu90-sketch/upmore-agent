@@ -8276,9 +8276,24 @@ const CareerOnboarding = (() => {
     if (/what roles|roles.*looking|looking for/.test(q)) return (prefs.roles || []).length ? hit(`You are looking for: ${prefs.roles.join(", ")}.`, "profile preferences.roles (stored)") : miss("target roles");
     if (/where.*(?:live|based)|location/.test(q)) return basics.location ? hit(`You are based in ${basics.location}.`, "profile basics.location (stored)") : miss("location");
     if (/comp floor|pay floor|minimum.*(?:pay|salary|comp)/.test(q)) return prefs.compFloor ? hit(`Your pay floor: ${prefs.compFloor}.`, "profile preferences.compFloor (stored)") : miss("pay floor");
-    if (/gpa/.test(q)) return (p.defaults && p.defaults.gpa) ? hit(`Your GPA on file: ${p.defaults.gpa}.`, "profile defaults.gpa (stored)") : miss("GPA");
+    if (/gpa/.test(q)) {
+      if (p.defaults && p.defaults.gpa) return hit(`Your GPA on file: ${p.defaults.gpa}.`, "profile defaults.gpa (stored)");
+      const g = confirmedEducation(p).map((f) => { const m = /\bGPA\b[:\s]*([0-4]\.\d{1,2})\b/i.exec(eduLine(f)); return m && { gpa: m[1], school: eduSchool(f) }; }).find(Boolean);
+      return g ? hit(`Your GPA on your confirmed resume: ${g.gpa}${g.school ? ` (${g.school})` : ""}.`, "confirmed resume fact: education") : miss("GPA");
+    }
+    if (SCHOOL_ASK.test(q)) {
+      const edu = confirmedEducation(p);
+      if (!edu.length) return { found: false, answer: null, reasked: false, ask: null };
+      return hit(`From your confirmed resume: ${edu.map(eduLine).join("; ")}.`, "confirmed resume fact: education");
+    }
     return { found: false, answer: null, reasked: false, ask: null };
   }
+  const SCHOOL_ASK = /\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b|\bwhat (?:school|college|university) (?:did|do) i (?:go to|attend)\b|\bwhat(?:'?s| is) my (?:school|college|university|alma mater|degree)\b/;
+  function confirmedEducation(p) {
+    return ((p && p.facts) || []).filter((f) => f && f.kind === "education" && f.needs_confirmation !== true && (f.status == null || f.status === "confirmed"));
+  }
+  const eduLine = (f) => String(f.title || f.text || "").split("\n")[0].replace(/\s+/g, " ").trim();
+  const eduSchool = (f) => (eduLine(f).split(/\s+[-–—]\s+|,/)[0] || "").trim();
 
   const SENSITIVE_FIELDS = {
     work_authorization: { label: "work authorization", read: (p) => (p.constraints || {}).workAuthorization },
@@ -8605,7 +8620,7 @@ const CareerOnboarding = (() => {
       const r = answerCurrent(c.profile, text);
       return { intent: "onboarding_answer", done: r.done, answered: r.answered, pending: r.pending || null, reply: r.text };
     }
-    if (c.profile && /^(what'?s|what is) my\b/.test(t)) {
+    if (c.profile && (/^(what'?s|what is) my\b/.test(t) || SCHOOL_ASK.test(t))) {
       const r = answerFromProfile(c.profile, text);
       if (r.found || r.ask) return { intent: "profile_recall", found: r.found, source: r.source || null, reply: r.found ? r.answer : r.ask };
     }
@@ -22614,7 +22629,8 @@ const CareerRouter = (() => {
   }
   function handleStatedFactReadback(text, ctx) {
     const t = lc(text);
-    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone)\b/) || (/\bwhere am i (based|targeting|looking)\b/.test(t) ? [null, "geography"] : null);
+    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone)\b/) || (/\bwhere am i (based|targeting|looking)\b/.test(t) ? [null, "geography"] : null)
+      || (/\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b/.test(t) ? [null, "school"] : null);
     if (!m) return null;
     const kind = { "target firm": "target_firm", "target company": "target_firm", major: "majors", school: "school", city: "geography", location: "geography", geography: "geography", year: "year", "class year": "year", level: "level", tone: "tone" }[m[1]] || m[1];
     const all = statedFactsOf(ctx);
@@ -22647,6 +22663,20 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "Here is the plan, built from what you told me — two moves, in order.", facts: [`What I am working from — your words, on record: ${facts.map(factLine).join("; ")}.`, moveOne, moveTwo], nextStep: "Say go and move one starts now — or correct any fact first and the plan re-aims." });
     return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
   }
+  function workAuthOnRecord(ctx, profile) {
+    const out = [];
+    const WA = /\b(authori[sz]\w*|citizen\w*|sponsor\w*|visa|green card|permanent resident|h-?1b|opt|cpt|ead|work permit)\b/i;
+    const cons = (profile && profile.constraints) || {};
+    if (s(cons.workAuthorization).trim()) out.push(`work authorization — "${s(cons.workAuthorization).trim()}"`);
+    if (cons.needsSponsorship === true || cons.needsSponsorship === false) out.push(cons.needsSponsorship ? "you need visa sponsorship" : "you do not need visa sponsorship");
+    for (const f of (profile && profile.facts) || []) {
+      if (!f || f.kind !== "eligibility" || f.needs_confirmation === true || (f.status != null && f.status !== "confirmed")) continue;
+      const line = s(f.title || f.text || "").split("\n")[0].trim();
+      if (line && WA.test(line)) out.push(`"${line}"`);
+    }
+    for (const f of statedFactsOf(ctx)) if (f && (f.kind === "sponsorship" || f.kind === "citizenship" || /work_?auth/.test(s(f.kind)))) out.push(factLine(f));
+    return [...new Set(out)];
+  }
   function handleEligibilityAsk(text, ctx) {
     const t = lc(text);
     const waQuestion = /\?/.test(s(text)) && /\b(sponsor|sponsorship|visa|work (authorization|permit)|citizenship)\b/.test(t);
@@ -22656,9 +22686,23 @@ const CareerRouter = (() => {
     if (/\b(offer|negotiat|signing bonus|counter)\b/.test(t)) return null;
     if (/\b(is|does|would|can) (he|she|they)\b|\bmy (roommate|friend|brother|sister|classmate|coworker|co-worker|colleague|partner)\b[^.]*\beligib/.test(t)) return null;
     const profile = ctx.profile || null;
-    let posting = ctx.posting || null;
+    const comp = companyFromText(text, ctx);
+    const eligWord = /\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t);
+    const namesPosting = !!comp || /\b(this|that|the|these|those) (role|job|posting|position|opening|internship|one)s?\b/.test(t) || s(text).length > 500;
+    const waRecord = workAuthOnRecord(ctx, profile);
+    if (waQuestion && !eligWord && !namesPosting) {
+      const what = /\b(sponsor|sponsorship|visa)\b/.test(t) ? "whether you need visa sponsorship" : "your work authorization";
+      if (waRecord.length) {
+        const reply = compose({ headline: "From your record — your words, as stated.", facts: waRecord.slice(0, 2).map((x) => `On record: ${x}.`), nextStep: "Correct it in your own words if it has changed, and the record re-aims." });
+        return { intent: "profile_recall", reply, resultStatus: "completed", sends: 0 };
+      }
+      const label = what.charAt(0).toUpperCase() + what.slice(1);
+      const reply = compose({ headline: `${label} is not on your record — you have not told me.`, facts: ["Nothing about your work authorization is assumed: I only use what you tell me."], nextStep: "Do you need visa sponsorship to work in the US, now or later?" });
+      return { intent: "profile_recall", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    const usable = (p) => !!(p && typeof p === "object" && (s(p.company).trim() || s(p.title).trim() || s(p.jd_text).trim() || (Array.isArray(p.requirements) && p.requirements.length)));
+    let posting = usable(ctx.posting) ? ctx.posting : null;
     if (!posting) {
-      const comp = companyFromText(text, ctx);
       if (comp) {
         const pool = postingsFromCtx(ctx);
         posting = pool.find((p) => p.company && lc(p.company) === lc(comp)) || pool.find((p) => p.company && (lc(p.company).includes(lc(comp)) || lc(comp).includes(lc(p.company)))) || null;
@@ -22668,6 +22712,7 @@ const CareerRouter = (() => {
     if (jdText && profile && Tailor) {
       try {
         const jd = Tailor.parseJD(jdText);
+        if (!((jd.mustHaveSkills || []).length || (jd.knockouts || []).length)) throw new Error("no requirement read from the posting text");
         const gaps = Tailor.computeGaps(profile, jd);
         const verdict = Tailor.eligibilityVerdictFor(gaps);
         const failed = gaps.filter((g) => g.reasonClass === "knockout-failed");
@@ -22676,6 +22721,7 @@ const CareerRouter = (() => {
         for (const g of failed.slice(0, 4)) facts.push(`Not met: ${g.requirement} — ${g.reason}`);
         for (const g of required.slice(0, 4)) facts.push(`Required and not evidenced: ${g.requirement}.`);
         if (!failed.length && !required.length) facts.push("Every hard requirement and required skill the posting states is evidenced on your record.");
+        if (waQuestion) facts.push(waRecord.length ? `Work authorization on your record: ${waRecord[0]}.` : "Whether you need visa sponsorship is not on your record — you have not told me.");
         const reply = compose({ headline: `Graded against the posting's own text${posting && posting.company ? ` — ${posting.title || "the role"} at ${posting.company}` : ""}.`, facts, nextStep: "Want the tailored packet for it — the gaps travel with the document, named, never hidden — or another posting graded the same way?" });
         return { intent: "eligibility_check", reply, resultStatus: "prepared", sends: 0, eligibility: { status: verdict.status, gaps } };
       } catch {   }

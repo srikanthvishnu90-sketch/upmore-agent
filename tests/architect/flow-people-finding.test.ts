@@ -7,7 +7,7 @@
 import assertNode from "node:assert/strict";
 import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
 import { careerHandler, type Chat, SERVICE_KEY, SUPABASE_URL, supabaseParity } from "../flow/handler.ts";
-import { HANDSHAKE_HTML, INDEED_HTML, zipOf } from "./people-finding-fixtures.ts";
+import { fakeNet, HANDSHAKE_HTML, http, INDEED_HTML, zipOf } from "./people-finding-fixtures.ts";
 const MAX_INFLATE = 20_000_000; // career_people_import.ts MAX_INFLATE: one ZIP entry inflates to at most this
 
 function assert(v: unknown, m?: string): asserts v { assertNode.ok(v, m); }
@@ -88,14 +88,23 @@ Deno.test({ name: "people finding and intros at the real handler: import, who, a
       outside.push(`${req.method} ${u.host}${u.pathname}${u.search}`);
       if (u.host === "api.openai.com") return fakeOpenAI(await req.json());
       if (u.host === "gmail.googleapis.com") return fakeGmail(u);
-      if (u.host === "rampfixture.com" && u.pathname === "/robots.txt") return new Response("User-agent: *\nDisallow: /private\n");
-      if (u.host === "rampfixture.com" && u.pathname === "/team") return new Response(TEAM, { headers: { "content-type": "text/html" } });
       return new Response("not faked", { status: 599 });
     }) as typeof fetch;
     // DNS, faked like every other outside service: the one company site answers with a public address; any other name
     // doesn't resolve (the page reader checks every address a name resolves to before it fetches).
-    const realDns = Deno.resolveDns;
-    restoreDns = () => { (Deno as any).resolveDns = realDns; };
+    const realDns = Deno.resolveDns, realConnect = Deno.connect, realStartTls = Deno.startTls;
+    restoreDns = () => { Object.assign(Deno as any, { resolveDns: realDns, connect: realConnect, startTls: realStartTls }); };
+    // The company site, at the TCP and TLS layer the page reader really uses (pinnedGet): what it connects to and the name
+    // it does TLS for are recorded; the requests are answered from fixtures.
+    const site = fakeNet(({ ip, sni, request }) => {
+      const path = /^GET (\S+) HTTP\/1\.1/.exec(request)?.[1] ?? "";
+      outside.push(`GET ${sni}${path}`);
+      if (ip !== "93.184.215.14" || sni !== "rampfixture.com") return http(421, { "content-length": "0" }, "");
+      if (path === "/robots.txt") return http(200, { "content-type": "text/plain", "content-length": "33" }, "User-agent: *\nDisallow: /private\n");
+      if (path === "/team") return http(200, { "content-type": "text/html", "transfer-encoding": "chunked" }, `${new TextEncoder().encode(TEAM).length.toString(16)}\r\n${TEAM}\r\n0\r\n\r\n`);
+      return http(404, { "content-length": "0" }, "");
+    });
+    Object.assign(Deno as any, { connect: (o: { hostname: string; port: number }) => site.connect(o), startTls: (c: any, o: { hostname: string }) => site.startTls(c, o) });
     (Deno as any).resolveDns = async (host: string, type: string) => {
       outside.push(`DNS ${host}/${type}`);
       if (host === "rampfixture.com") return type === "A" ? ["93.184.215.14"] : [];
@@ -388,6 +397,8 @@ Deno.test({ name: "people finding and intros at the real handler: import, who, a
     await t.step("the network: only the fakes; never LinkedIn, Indeed or Handshake; never a send", () => {
       const hosts = [...new Set(outside.filter((c) => !c.startsWith("DNS ")).map((c) => c.split(" ")[1].split("/")[0]))].sort();
       eq([...new Set(outside.filter((c) => c.startsWith("DNS ")).map((c) => c.split(" ")[1].split("/")[0]))], ["rampfixture.com"], "only the page's own name was resolved");
+      eq([...new Set(site.log.connect)], ["93.184.215.14"], "the page reader connected only to the address it checked (pinned)");
+      eq([...new Set(site.log.sni)], ["rampfixture.com"], "and did TLS for the page's own name");
       eq(hosts, ["api.openai.com", "gmail.googleapis.com", "rampfixture.com"], outside.join("\n"));
       assert(!outside.some((c) => /\/send|messages\/send/.test(c)), "nothing sent");
     });

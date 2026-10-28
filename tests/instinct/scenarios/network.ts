@@ -215,6 +215,7 @@ async function networking(w: World, ws: Workers, card: Scorecard, ch: Channel, n
       let approved = after.filter((d: any) => d.status === "approved" || d.status === "sent");
       const yesWorked = approved.length > 0;
       if (!yesWorked) {
+        await p.say("show my drafts");
         const t2 = await p.say("send all");
         run.note(`${ch}: "yes" approved nothing ("${t.text.split("\n")[0].slice(0, 100)}"); the person said "send all" ("${t2.text.split("\n")[0].slice(0, 100)}")`);
         after = await drafts();

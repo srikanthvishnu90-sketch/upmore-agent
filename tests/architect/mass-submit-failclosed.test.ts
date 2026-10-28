@@ -47,6 +47,13 @@ Deno.test("D-MS-1 fail-closed/2 on a card of NE Group, IT and Wait (and kin), th
     assert(r === null || /nothing was approved|holding|Nothing was sent|Got it: not/i.test(r.reply), `"${m}": ${r?.reply}`);
     eq(w.cards[0].state, "open", `"${m}": the card still waits`);
   }
+  // The reviewer's texts are answers to the card: the person is told in plain words that nothing was approved.
+  for (const m of ["approve none", "send it later", "yes but wait", "yes except none", "only none", "send to acme"]) {
+    const w = db({ companies: ["NE Group", "IT", "Wait", "Acme Robotics"] });
+    await w.say("show my applications");
+    const r = await w.say(m);
+    assert(r && ["unclear", "hold"].includes(r.status) && /nothing was approved/i.test(r.reply), `"${m}": ${r?.status} ${r?.reply}`);
+  }
   const w = db({ companies: ["NE Group", "IT", "Wait"] });
   await w.say("show my applications");
   await w.say("yes but wait");

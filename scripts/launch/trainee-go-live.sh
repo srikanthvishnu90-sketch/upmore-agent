@@ -192,6 +192,7 @@ MIGRATIONS=(
   20261026230500_definer_execute_lockdown.sql
   20261027140000_career_apply_host_backoff.sql
   20261027141000_career_apply_mass_submit.sql
+  20261028120000_career_apply_host_gate.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -271,6 +272,7 @@ MIGRATION_MARK=(
   "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
   "to_regclass('public.career_apply_host_backoff') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_mass_submit_install') and to_regclass('public.career_apply_claim_turns') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_apply_host_backoff_get' and prosrc like '%scope = ''cloud''%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

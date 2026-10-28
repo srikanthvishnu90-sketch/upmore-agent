@@ -46,7 +46,7 @@ export const PASTE_HOW = "Attaching a file isn't available in this chat yet, so 
 export const EXPORT_STEPS = `I find people through your own network, and LinkedIn only lets you download it (I never open LinkedIn for you): 1) on LinkedIn: Me, Settings & Privacy, Data privacy, Get a copy of your data, Connections, Request archive; 2) open the download link LinkedIn emails you (the link lasts 72 hours) and save the file; 3) send me Connections.csv here. ${PASTE_HOW}`;
 export const EXPORT_AGAIN = `Send me your LinkedIn Connections.csv (the steps are in my earlier message: LinkedIn, Settings & Privacy, Data privacy, Get a copy of your data, Connections). ${PASTE_HOW}`;
 
-export type Source = "linkedin_export" | "gmail" | "company_page";
+export type Source = "linkedin_export" | "gmail" | "company_page" | "provider";
 export type SourceKind = "own_export" | "own_gmail" | "company_page" | "person_typed";
 export interface PersonRec {
   id: number | null; source: Source | "thread_list"; name: string | null; email: string | null; company: string; company_key: string;
@@ -639,7 +639,8 @@ async function forgetTurn(o: PeopleTurnIn, d: PeopleDeps, what: Extract<Ask, { k
   const parts: string[] = [];
   let n = 0;
   if (what === "linkedin" || what === "all") {
-    const sources: Source[] = what === "all" ? ["linkedin_export", "gmail", "company_page"] : ["linkedin_export"];
+    // "provider": people a data provider found for them (career_people_provider.ts, D-MN-3) go with "forget my contacts" too.
+    const sources: Source[] = what === "all" ? ["linkedin_export", "gmail", "company_page", "provider"] : ["linkedin_export"];
     const gone = await d.store.forget(o.userId, sources);
     // Every copy, in every chat of theirs: the other chats first (read back there), then this one's working state.
     const drop = what === "all" ? () => true : (r: ContactRow) => fromExport(r);

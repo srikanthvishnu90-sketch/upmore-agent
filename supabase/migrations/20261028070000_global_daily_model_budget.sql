@@ -23,6 +23,16 @@
 --
 -- Every function is SECURITY INVOKER and service_role only: tables are RLS-on with no policy. A function that errors raises;
 -- the caller then makes no paid call (fail closed). The first refusal of each kind on a Chicago date writes one founder_alerts row.
+-- founder_alerts is created by 20260927_000006 (the same columns); this is a no-op wherever that has run, and keeps this file
+-- applying on a schema that has not (the migration rehearsal's live-shaped base).
+create table if not exists public.founder_alerts (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null,
+  user_id uuid null,
+  detail jsonb not null default '{}',
+  created_at timestamptz not null default now()
+);
+alter table public.founder_alerts enable row level security;
 create table if not exists public.model_budget_settings (
   key text primary key,
   value text not null,

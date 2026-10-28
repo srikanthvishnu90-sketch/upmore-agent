@@ -19,11 +19,11 @@
 // copied verbatim from handler.ts (auth, bridge override, profile upsert,
 // rate limiting, input parsing, thread ownership, the PRODUCT_MODE career
 // branch, the redaction-note prefix). The only handler.ts machinery not
-// carried over is the model-cost meter block in the wrapper: career turns
-// make zero model calls (the chain is deterministic code), so in
-// handler.ts that block is unreachable on every career turn — meter.calls
-// stays 0 and no agent_turn_costs row is ever written for a career turn.
-// Dropping it here changes no observable career behavior.
+// carried over is the model-cost meter block in the wrapper. Career turns do
+// call the model (the brain, drafts, the search judge), so since 2026-10-28
+// every turn here leaves an agent_turn_costs row through turnLedger
+// (_shared/model_gateway.ts): the calls it made, zero when it made none, or
+// "unrecorded" when the sink failed. A missing row is never a zero.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { redactionNote } from "../_shared/identity_redact.ts";
@@ -35,7 +35,7 @@ import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor,
 import { CareerHost } from "../_shared/career_host.js";
 import { CareerPool } from "../_shared/career_pool.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
-import { callModel as callModelUncapped, modelConfig, newMeter } from "../_shared/model_gateway.ts";
+import { callModel as callModelUncapped, modelConfig, newMeter, turnLedger } from "../_shared/model_gateway.ts";
 // LAUNCH READINESS (2026-10-26): the daily model ceiling, the per-person turn order, the pool read only when used.
 import { spendCap, spendLimitsFromEnv, supabaseDailySpend } from "../_shared/career_spend_cap.ts";
 import { enterTurnGate, type TurnGate } from "../_shared/career_turn_gate.ts";
@@ -104,10 +104,6 @@ async function careerGrantHas(admin: any, userId: string, scope: string): Promis
   if (error || !data) return false;
   const scopes = Array.isArray(data.scopes) ? data.scopes : String(data.scopes ?? "").split(/[\s,]+/);
   return scopes.includes(scope);
-}
-async function recordTurnCost(admin: any, userId: string, threadId: string, meter: ReturnType<typeof newMeter>) {
-  const { error } = await admin.from("agent_turn_costs").insert({ user_id: userId, thread_id: threadId, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
-  if (error) console.error("outreach turn cost not recorded:", error.message);
 }
 
 // WO-106 (F5): the reply to a batch ask the router would have "handed to the browser worker": what happened, nothing more.
@@ -327,6 +323,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // callModel is shadowed here on purpose, so no call site below can reach the gateway around the ceiling.
     const spend = spendCap({ read: supabaseDailySpend(admin, user.id), limits: spendLimitsFromEnv(Deno.env), call: callModelUncapped });
     const callModel = spend.call;
+    // 2026-10-28: this turn's cost row, always (see turnLedger): calls made, zero, or unrecorded. Written in finally, below.
+    const ledger = turnLedger(admin, user.id, tid);
     // The mock-interview judge's model call goes through the same ceiling (shadowed like callModel).
     const supabaseMockStore = (a: any) => supabaseMockStoreUncapped(a, { callModel });
     // LAUNCH READINESS R1: this person's turns run one at a time, in arrival order (_shared/career_turn_gate.ts). The
@@ -350,7 +348,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       gate = await enterTurnGate(admin, user.id, turnKey, { thread: tid });
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       turnEffects.on = true;
-      if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
+      if (loaded.replay) { ledger.skip(); flowCtx.note = null; return json(cors, loaded.replay, 200); }
       // LAUNCH READINESS X3: the pool is read only on a turn that reaches the router and whose message the router answers
       // with postings (agent-chat/career_pool_need.ts); ensurePool() below reads it once, then puts it on the turn.
       let postings: any[] = [];
@@ -444,7 +442,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // WO-030: "draft 2" drafts a written answer from the person's confirmed facts through the same gateway and model the
       // brain uses (the model only writes; code checks the employer's AI policy, every fact and the length), and only
       // "use 2" saves it.
-      const draftMeter = newMeter();
+      const draftMeter = ledger.track(newMeter());
       const draftCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
       const asked = !card && !mock && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin), situation,
@@ -491,15 +489,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           resumeOnFile: resumeOnFileReader(admin, user.id),
         } })
         : null;
-      if (draftMeter.calls) {
-        const m = draftMeter;
-        const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: m.provider, models: m.models, calls: m.calls, failed: m.failed, input_tokens: m.input_tokens, output_tokens: m.output_tokens, cached_tokens: m.cached_tokens, usd_micros: m.usd_micros, unpriced: m.unpriced });
-        if (costErr) console.error("essay draft cost not recorded:", costErr.message);
-      }
+      await ledger.record(draftMeter);
       // WO-033: the outreach batch and the one text that answers it ("send all", "send 1-7,9", "redo 3", "skip 4", "edit 3:
       // ..."), code's like the card, only while the batch is this thread's last word. The approval binds each exact
       // message; sending is the scheduled run's. A store that cannot be read sends the text on to the brain, never a guess.
-      const outreachStore = supabaseOutreachStore(admin), outreachMeter = newMeter();
+      const outreachStore = supabaseOutreachStore(admin), outreachMeter = ledger.track(newMeter());
       const outreachModel = (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { meter: outreachMeter, role: "chat" });
       const outreachAns = !card && !mock && !asked && !which && !emailed && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await outreachTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: outreachStore, events, tz: undefined,
@@ -514,7 +508,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
             } } : {}) })
           .catch((e) => { console.error("outreach turn:", e?.message ?? e); return null; })
         : null;
-      if (outreachMeter.calls) await recordTurnCost(admin, user.id, tid, outreachMeter);
+      await ledger.record(outreachMeter);
       // MASS NETWORKING M5: "send all" / "send 1,3" / "send none" while follow-ups, scheduling replies or a calendar invite
       // are this thread's last word (each approved only by its exact payload's hash), "follow up after 5 days", and
       // "what's happened with my outreach" / "who replied" / "who wants to talk", read from the tracked conversations.
@@ -640,7 +634,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // from confirmed facts (draftFor) onto the outreach batch that outreachTurn answers, one approval per exact message.
       // Only addresses in the person's own contacts; the model writes only with CAREER_NETWORKING_DRAFT=on (metered).
       // Nothing is sent here: sending stays career-proactive's, behind CAREER_OUTREACH_SEND.
-      const netMeter = newMeter();
+      const netMeter = ledger.track(newMeter());
       const networking = !billing && !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !receiptAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await networkingTurn({ message, userId: user.id, threadId: tid, now: Date.now(), state: ctx as unknown as Record<string, unknown>, store: outreachStore, events,
             attachments: Array.isArray(body.attachments) ? (body.attachments as any[]).filter((a) => a && typeof a === "object").map((a) => ({ name: String(a.name ?? "contacts.csv"), mime: typeof a.mime === "string" ? a.mime : "", text: typeof a.text === "string" ? a.text : null })) : [],
@@ -662,7 +656,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
             people: supabasePeopleDeps(admin, { fetch, token: careerTokenFor(f08Grant, PEOPLE_READ_SCOPE), introPush: Deno.env.get("CAREER_INTRO_REMINDERS") === "on", env: (k) => Deno.env.get(k) }) })
           .catch((e) => { console.error("networking turn:", e?.message ?? e); return null; })
         : null;
-      if (netMeter.calls) await recordTurnCost(admin, user.id, tid, netMeter);
+      await ledger.record(netMeter);
       // END FEATURE 10
       // FEATURE 12: offers and negotiation backed by market numbers (career_offer_chat.ts). "I got an offer from X for $Y
       // as a Z in City", "is $95k good for a data analyst in Chicago", "compare my two offers", "help me negotiate": the
@@ -780,7 +774,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       } else if (outreachStatus) {
         out = { reply: outreachStatus.reply, intent: outreachStatus.intent, resultStatus: outreachStatus.status, contained: false, handler: "outreach_status" };
       } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || staged.toBrain()) && !host.isHostControlled(message, ctx)) {
-        const meter = newMeter();
+        const meter = ledger.track(newMeter());
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         // WO-027 (B5): the last 40 messages after the latest erase; one more row says whether the thread is longer.
         const hist = await admin.from("agent_messages").select("role,content,meta").eq("thread_id", tid).order("id", { ascending: false }).limit(HISTORY_WINDOW + 1);
@@ -817,10 +811,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           // FEATURE 13: the staged brain answers with the actions that have a code-first owner withheld.
           toolPolicy: staged.chosen ? STAGED_TOOL_POLICY : null,
           known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory });
-        if (meter.calls) {
-          const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
-          if (costErr) console.error("agent turn cost not recorded:", costErr.message);
-        }
+        await ledger.record(meter);
         if (turn.stopped === "model_error" && !turn.tool_calls.some((t) => t.ok && t.effect === "write_own")) {
           console.error("agent brain: model unavailable, answering with the router");
           await ensurePool();
@@ -846,7 +837,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           : host.runTurn(message, ctx);
         const f5Ask = f5Free && !f5Prompt ? askFromRouter(message, out, (ctx as any).discovery) : null;
         if (f5Ask) {
-          const f5Meter = newMeter();
+          const f5Meter = ledger.track(newMeter());
           const f5Cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
           try {
             const found = await searchJudgeTurn({ message, ask: f5Ask, userId: user.id, now: Date.now(), profile: (ctx as any).profile ?? null,
@@ -858,7 +849,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
               (ctx as any).discovery = { ...((ctx as any).discovery ?? {}), lastShortlist: found.shortlist, lastSource: found.source };
             }
           } catch (e) { console.error("career search judge: the router's reply stands:", (e as Error)?.message ?? e); }
-          if (f5Meter.calls) await recordTurnCost(admin, user.id, tid, f5Meter);
+          await ledger.record(f5Meter);
         }
         // FEATURE 5 (end)
       }
@@ -903,7 +894,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // fact it cites; the PDF is re-rendered and the reply says what changed and why. CAREER_TAILOR_REWRITE=on only;
       // off, or a model failure, leaves today's resume. One metered call.
       if (out.handler !== "agent" && out.intent === "career_tailor" && (out as any).result?.tailorDoc) {
-        const rwMeter = newMeter();
+        const rwMeter = ledger.track(newMeter());
         const rwCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         const voiceSamples = (ctx as any).outreach?.voiceSamples ?? null;
         const rw = await tailorRewriteTurn({ out: out as any, profile: (ctx as any).profile ?? null, on: rewriteOn(Deno.env),
@@ -911,7 +902,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           voice: Array.isArray(voiceSamples) && voiceSamples.length ? CareerWriting.extractVoiceProfile(voiceSamples) : null })
           .catch((e) => { console.error("tailor rewrite:", e?.message ?? e); return null; });
         if (rw?.summary) { out = rw.out as typeof out; agentMeta = { ...(agentMeta || {}), tailor_rewrite: rw.summary }; }
-        if (rwMeter.calls) await recordTurnCost(admin, user.id, tid, rwMeter);
+        await ledger.record(rwMeter);
       }
       // END FEATURE 4
       // FEATURE 9: account memory. After a router turn, the facts the person stated in this message get their provenance
@@ -962,7 +953,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // with its boilerplate and internal sentences taken out. CAREER_REPLY_WRITER=on only; turns that show an exact
       // payload the person approves are never rewritten. Nothing upstream changes.
       if (replyWriterOn(Deno.env) && writable(out, agentMeta, { structured: !!(careerTask || careerBatch) })) {
-        const wMeter = newMeter();
+        const wMeter = ledger.track(newMeter());
         const wCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         const written = await writeReply({ on: true, message, channel: writerChannel((body as any)?.channel),
           facts: factsForTurn({ reply: out.reply, intent: out.intent, resultStatus: out.resultStatus ?? null, effects: turnEffects, situation }),
@@ -972,7 +963,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (written.text !== out.reply) out = { ...out, reply: written.text };
           agentMeta = { ...(agentMeta || {}), reply_writer: { source: written.source, rejected: written.rejected.slice(0, 8) } };
         }
-        if (wMeter.calls) await recordTurnCost(admin, user.id, tid, wMeter);
+        await ledger.record(wMeter);
       }
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       // CHANNEL-DOC-1: documents the turn produced (the tailored
@@ -1022,6 +1013,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       return json(cors, { error: code, reply: conflict ? refusedSaveReply(code, turnEffects) : UNSAVED_REPLY, action: null, turn_key: turnKey,
         turn_effects: turnEffects.writes.size > 0 || turnEffects.queued > 0 || turnEffects.sent > 0 || turnEffects.sendUnknown > 0 }, conflict ? 409 : 503);
     } finally {
+      await ledger.finish().catch((e) => console.error("turn cost ledger:", e?.message ?? e));
       await gate?.leave();
     }
   } catch (e) {

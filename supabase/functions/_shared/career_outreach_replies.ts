@@ -730,6 +730,8 @@ export async function repliesTurn(o: { message: string; userId: string; chatThre
   if (s) {
     const threads = await o.store.threadsOf(o.userId, 500);
     const waiting = (await o.store.latestBatch(o.userId)).filter((a) => a.status === "shown").length;
+    // Nothing sent through the rail yet: the outreach tracker answers (it also knows what the person sent themselves).
+    if (!threads.length && !waiting) return null;
     const mailboxes = await o.store.mailboxes(o.userId).catch(() => []);
     return { reply: summaryText(threads, s, { tz, waiting, mailboxes }), intent: "career_outreach_summary", status: s };
   }

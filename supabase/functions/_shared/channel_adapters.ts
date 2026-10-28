@@ -45,7 +45,8 @@ export interface InboundMessage {
   contact: string; address: string;
   aliases?: string[]; // other contact keys of the same sender (WhatsApp: the business-scoped id when the key is the wa_id)
   alias?: string | null; // the alias to record on the contact row
-  phone?: string | null; // +E.164 when the platform gives it (iMessage, WhatsApp wa_id); Telegram never does
+  phone?: string | null; // +E.164 when the platform gives it (iMessage, WhatsApp wa_id); Telegram only from the person's own shared contact
+  sharedPhone?: "own" | "other"; // Telegram contact share: own (contact.user_id is the sender) or somebody else's card
   text: string;
   command?: "start" | "stop" | "help" | null; // a platform command (Telegram /start, /stop, /help)
   startPayload?: string | null; // Telegram /start <payload> (a link nonce)
@@ -64,7 +65,9 @@ export interface InboundMessage {
 // FEATURE 16: buttons under a sent message (Telegram's inline keyboard), rows of { text, data } (a tap comes back as a
 // callback with data, at most 64 bytes) or { text, loginUrl } (Telegram's login: it opens the page signed in as the user).
 export interface Button { text: string; data?: string; loginUrl?: string }
-export interface SendOptions { buttons?: Button[][] }
+// shareContact: a one-tap "Share my phone number" button (Telegram's request_contact; the label); removeKeyboard: take that
+// button away again once the number arrived.
+export interface SendOptions { buttons?: Button[][]; shareContact?: string; removeKeyboard?: boolean }
 // A WhatsApp status callback: a message we sent failed after Meta accepted it. hold: it failed for the window (131047)
 // or the per-user marketing limit (131049), so it goes back in the queue for the person's next message.
 export interface StatusEvent { providerMessageId: string; code: number | null; hold: boolean; error: string }
@@ -101,6 +104,9 @@ export interface ChannelAdapter extends DeliveryAdapter {
   // FEATURE 16 (Telegram): download a file the person sent, by the id its update gave; and answer a button tap once.
   fetchFile?(fileId: string, maxBytes: number): Promise<{ ok: true; bytes: Uint8Array } | { ok: false; error: string }>;
   answerCallback?(callbackId: string, text: string): Promise<boolean>;
+  // JOB CARDS: a photo (public URL) with a caption and buttons; an edit of a sent message's text (or a photo's caption).
+  sendPhoto?(address: string, p: { photoUrl: string; caption: string; buttons?: Button[][] }): Promise<SendResult>;
+  editMessage?(address: string, messageId: string, e: { text: string; buttons?: Button[][]; caption?: boolean }): Promise<SendResult>;
   // FEATURE 16: a document (the tailored resume PDF) as a file in the chat.
   sendDocument?(address: string, doc: { bytes: Uint8Array; filename: string; mime: string }): Promise<SendResult>;
   // V1 TEXTING VOICE (channel_voice.ts): the platform's typing indicator while Trainee works, shown once (the platform

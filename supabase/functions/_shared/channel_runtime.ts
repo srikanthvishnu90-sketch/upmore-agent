@@ -46,7 +46,9 @@ export function chatThroughAgent(url: string, key: string, o: { retryDelayMs?: n
     const artifacts = Array.isArray(body.artifacts)
       ? (body.artifacts as any[]).filter((a) => a && typeof a.ref === "string" && a.ref).map((a) => ({ ref: String(a.ref), filename: String(a.filename ?? "document.pdf"), mime: String(a.mime ?? "application/pdf") }))
       : [];
-    return { status: res.status, reply: String(body.reply ?? ""), threadId: typeof body.thread_id === "string" ? body.thread_id : null, ...(parts ? { parts } : {}), ...(cardId ? { cardId } : {}), ...(resultStatus ? { resultStatus } : {}), ...(artifacts.length ? { artifacts } : {}) };
+    // JOB CARDS: the postings the turn's search found (agent-chat puts them on the response), sent as cards after the reply.
+    const postings = Array.isArray(body.postings) ? (body.postings as unknown[]).filter((p) => p && typeof p === "object").slice(0, 200) : [];
+    return { status: res.status, reply: String(body.reply ?? ""), threadId: typeof body.thread_id === "string" ? body.thread_id : null, ...(parts ? { parts } : {}), ...(cardId ? { cardId } : {}), ...(resultStatus ? { resultStatus } : {}), ...(artifacts.length ? { artifacts } : {}), ...(postings.length ? { postings } : {}) };
   };
 }
 

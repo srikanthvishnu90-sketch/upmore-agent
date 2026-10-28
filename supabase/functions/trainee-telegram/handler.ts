@@ -11,6 +11,8 @@ import { ingestResumeFile, supabaseUploadRecorder } from "../_shared/channel_res
 import { supabaseTapStore, tapCard } from "../_shared/channel_card_tap.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { fetchArtifactBytes } from "../_shared/channel_artifacts.ts";
+import { type JobDeps, type JobSender, sendJobCards, supabaseJobStore, tapJob } from "../_shared/telegram_jobs.ts";
+import { supabaseCardStore } from "../_shared/career_apply_cards.ts";
 
 export interface ProviderWebhookDeps {
   env: { get(k: string): string | undefined };
@@ -22,6 +24,14 @@ export interface ProviderWebhookDeps {
   // deno-lint-ignore no-explicit-any
   admin?: any; // FEATURE 16: the service client, for the resume file and the card's buttons
 }
+// The adapter's sends, bound to one chat, as the job cards use them.
+export function jobSenderFor(adapter: ChannelAdapter, address: string): JobSender {
+  return {
+    photo: async (a) => adapter.sendPhoto ? await adapter.sendPhoto(address, a) : { ok: false },
+    text: async (a) => { const r = await adapter.send(address, [a.text], { buttons: a.buttons }); return { ok: r.ok, id: r.ok ? r.id : null }; },
+    ...(adapter.editMessage ? { edit: async (a: { messageId: string; text: string; buttons?: any; caption?: boolean }) => await adapter.editMessage!(address, a.messageId, a) } : {}),
+  };
+}
 export function webhookDeps(adapter: ChannelAdapter, d: ProviderWebhookDeps): CoreDeps {
   const admin = d.admin;
   return {
@@ -32,6 +42,15 @@ export function webhookDeps(adapter: ChannelAdapter, d: ProviderWebhookDeps): Co
         await ingestResumeFile({ userId: a.userId, channel: "telegram", doc: a.doc, fetchFile: (id, max) => adapter.fetchFile!(id, max), record: supabaseUploadRecorder(admin) }),
     } : {}),
     ...(admin ? { cardTap: async (a: { userId: string; data: string; now: number }) => await tapCard({ ...a, store: supabaseTapStore(admin), events: supabaseEventStore(admin) }) } : {}),
+    ...(admin ? (() => {
+      const jd = (): JobDeps => ({ store: supabaseJobStore(admin), cards: supabaseCardStore(admin), tap: supabaseTapStore(admin), now: d.now, env: d.env, events: supabaseEventStore(admin) });
+      return {
+        jobTap: async (a: { userId: string; data: string; messageId: string | null; contact: string }) =>
+          await tapJob({ userId: a.userId, data: a.data, messageId: a.messageId, deps: jd(), send: jobSenderFor(adapter, addressOf(a.contact)) }),
+        showPostings: async (a: { userId: string; contact: string; hits: unknown[] }) =>
+          await sendJobCards({ userId: a.userId, hits: a.hits as any[], deps: jd(), send: jobSenderFor(adapter, addressOf(a.contact)) }),
+      };
+    })() : {}),
     ...(adapter.answerCallback ? { answerCallback: (id: string, text: string) => adapter.answerCallback!(id, text) } : {}),
     ...(admin && adapter.sendDocument ? {
       sendArtifacts: async (a: { userId: string; threadId: string | null; contact: string; artifacts: { ref: string }[] }) => {

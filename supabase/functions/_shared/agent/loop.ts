@@ -33,6 +33,8 @@ export interface TurnResult {
   pending_approvals: { tool: string; input: unknown; summary: string }[];
   stopped: "final" | "max_steps" | "model_error" | "incomplete_reply";
   show?: { intent: string; text: string; parts?: string[] };
+  // JOB CARDS: the postings the turn's last successful search_jobs returned, for channels that show them as cards.
+  postings?: unknown[];
 }
 
 export const MAX_STEPS_REPLY = "I couldn't finish that in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do first.";
@@ -223,6 +225,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const byName = new Map(o.tools.map((t) => [t.name, t]));
   const toolDefs = o.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
   const messages: any[] = [...o.history, { role: "user", content: [{ type: "text", text: o.message }] }];
+  let found: unknown[] = [];
   const tool_calls: TurnResult["tool_calls"] = [], pending_approvals: TurnResult["pending_approvals"] = [];
   const last = [...o.history].reverse().find((m) => m && m.role === "assistant");
   const before = !last ? "" : typeof last.content === "string" ? last.content
@@ -243,7 +246,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   // WO-106 (eval E010, 2026-10-21: the whole reply was "Tell me if that's off."): what the model wrote beside a tool call
   // (the answer, then add_profile_fact) is kept; when the last message is only a short trailer, the answer goes first.
   const earlier: string[] = [];
-  const incomplete = (): TurnResult => ({ reply: saved() ? INCOMPLETE_AFTER_SAVE_REPLY : INCOMPLETE_REPLY, steps, tool_calls, pending_approvals, stopped: "incomplete_reply" });
+  const incomplete = (): TurnResult => ({ reply: saved() ? INCOMPLETE_AFTER_SAVE_REPLY : INCOMPLETE_REPLY, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "incomplete_reply" });
   while (steps < max) {
     steps++;
     let res;
@@ -252,8 +255,8 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     try { res = await o.model({ system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask || repairing ? { tool_choice: { type: "none" } } : {}) }); }
     catch {
       const show = o.ctx.turn?.show; // what the person must read was already made: it is the reply
-      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
-      return { reply: saved() ? MODEL_ERROR_AFTER_SAVE_REPLY : MODEL_ERROR_REPLY, steps, tool_calls, pending_approvals, stopped: "model_error" };
+      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final", show };
+      return { reply: saved() ? MODEL_ERROR_AFTER_SAVE_REPLY : MODEL_ERROR_REPLY, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "model_error" };
     }
     const content = Array.isArray(res && res.content) ? res.content : [];
     const uses = content.filter((b: any) => b && b.type === "tool_use");
@@ -265,7 +268,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     // text-only repair as a filtered-away answer, inside the remaining step budget.
     if (res?.stop_reason === "max_tokens") {
       const show = o.ctx.turn?.show;
-      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final", show };
       if (repairing || steps >= max) return incomplete();
       repairing = true;
       repairNote = "Your previous response reached its token limit before completing. Produce a concise complete answer. " + COMPLETENESS_REPAIR;
@@ -274,7 +277,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     if (!uses.length) {
       let reply = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
       const show = o.ctx.turn?.show;
-      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final", show };
       // A model may write its answer beside a tool call, then finish with only a closing question. Recover that body
       // without a length heuristic; the assembled reply still passes every truth filter below. A substantive final
       // answer always supersedes earlier text. Once a repair starts, rejected earlier text must not be reintroduced.
@@ -313,7 +316,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       const stillWaiver = waiverSolicits(reply, standingRefusal, o.message);
       if (claims.length || stillMoney.length || stillWaiver.length) {
         out = rebuild(pieces(reply), new Set([...claims.map((c) => c.index), ...stillMoney.map((m) => m.index), ...stillWaiver]));
-        if (!/[A-Za-z0-9]/.test(out) && ((stillWaiver.length && !claims.length) || !ANSWER_REQUEST.test(o.message))) return { reply: stillWaiver.length && !claims.length ? STANDING_REFUSED : CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
+        if (!/[A-Za-z0-9]/.test(out) && ((stillWaiver.length && !claims.length) || !ANSWER_REQUEST.test(o.message))) return { reply: stillWaiver.length && !claims.length ? STANDING_REFUSED : CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final" };
         // WO-061 (H018 p1): after a waiver strip the refusal must still be there; if the person asked to waive their yes
         // and nothing left says it is still needed, code says it first.
         if (stillWaiver.length && standingRefusal(o.message) && !/\b(your yes|your approval|without (asking|approval|your)|needs? (your|their) (yes|ok|okay|approval)|not kept|can'?t keep|won'?t (share|send|apply|skip))\b/i.test(out)) out = `${STANDING_REFUSED}\n\n${out}`;
@@ -330,7 +333,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
         if (!out.trim()) repairNote = "Your last answer was empty. " + COMPLETENESS_REPAIR;
         continue;
       }
-      return { reply: out, steps, tool_calls, pending_approvals, stopped: "final" };
+      return { reply: out, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final" };
     }
     const pre = content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("").trim();
     if (pre) earlier.push(pre);
@@ -354,11 +357,12 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
         tool_calls.push({ name: t.name, ok: true, effect: t.effect });
         results.push({ type: "tool_result", tool_use_id: u.id, content: resultText(out) });
         seen.push(resultText(out));
+        if (u.name === "search_jobs" && out && Array.isArray((out as any).postings)) found = (out as any).postings.slice(0, 50);
       } catch (e) { if (e instanceof AskPerson) ask = true; fail(t.effect, e instanceof Error ? e.message : String(e), e); }
     }
     messages.push({ role: "user", content: results });
   }
   const show = o.ctx.turn?.show;
-  if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
-  return { reply: saved() ? MAX_STEPS_AFTER_SAVE_REPLY : MAX_STEPS_REPLY, steps, tool_calls, pending_approvals, stopped: "max_steps" };
+  if (show) return { reply: show.text, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final", show };
+  return { reply: saved() ? MAX_STEPS_AFTER_SAVE_REPLY : MAX_STEPS_REPLY, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "max_steps" };
 }

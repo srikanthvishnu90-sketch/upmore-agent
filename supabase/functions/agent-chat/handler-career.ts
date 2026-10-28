@@ -397,6 +397,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
       let agentMeta: Record<string, unknown> | null = null;
+      let turnPostings: unknown[] = []; // JOB CARDS: what the turn's search found, for channels that show cards
       const events = supabaseEventStore(admin);
       // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
       // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
@@ -818,6 +819,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           out = host.runTurn(message, ctx);
         } else {
           // A batch of outreach drafts is shown by code, and its intent makes the next text an answer to it.
+          turnPostings = Array.isArray(turn.postings) ? turn.postings : [];
           out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent", ...(turn.show?.parts ? { parts: turn.show.parts } : {}) };
           agentMeta = { brain: staged.chosen ? "staged" : "agent", ...(staged.chosen ? { router_intent: staged.decision?.intent ?? null } : {}), tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
         }
@@ -994,7 +996,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const visibleReply = [reply, ...reminderLines].join("\n");
       // The same reply as separate messages for a texting channel: the note, each part whole, then the reminders.
       const parts = out.parts ? [...(flowCtx.note ? [flowCtx.note] : []), ...out.parts, ...(artifactNote ? [artifactNote] : []), ...reminderLines] : null;
-      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), ...(artifactsField ? { artifacts: artifactsField } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), ...(artifactsField ? { artifacts: artifactsField } : {}), ...(turnPostings.length ? { postings: turnPostings } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
       const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent, batchIntent });
       // WO-028: "forget everything" also removes the tailored resumes (they carry the person's name and email); best
       // effort, after the erase is recorded, like the rest of the erase's side effects.

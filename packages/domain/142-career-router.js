@@ -2988,11 +2988,8 @@ const CareerRouter = (() => {
     const facts = [];
     if (ENTITLEMENT.test(t)) facts.push("On that topic the specifics depend on where you live — deadlines and amounts are set by your state, and your state agency for it is the source for them, not me.");
     const quoted = raw.length > 80 ? `${raw.slice(0, 77).trim()}...` : raw;
-    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: compose({
-      headline: `I could not match \u201c${quoted.replace(/[\u201c\u201d"]/g, "")}\u201d to anything I can act on from here, and I changed nothing.`,
-      facts,
-      nextStep: `If \u201c${quoted.replace(/[\u201c\u201d"]/g, "")}\u201d is about a particular role or company, name it and I will take it from there.`,
-    }) };
+    const said = quoted.replace(/[\u201c\u201d"]/g, "");
+    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: [`I could not match \u201c${said}\u201d to anything I can act on from here, and I changed nothing.`, ...facts, "If it is about a particular role or company, name it and I will take it from there."].join(" ") };
   }
   // A question about the person's own record ("how many years of ICU experience do I have?", "what degree do I have?"),
   // answered by quoting the confirmed facts that match its words. Null when the question is not about them or no fact
@@ -11141,6 +11138,31 @@ const CareerRouter = (() => {
   // This route serves the posting FIRST; the company-file-absence
   // note, when there is no file, rides after it — never instead of
   // it. Nothing resolves → null: the standing owners keep the turn.
+  // WO-111: "what about the Quill one?", "what's the pay on the Memorial Hermann one?": a role the person names that the board
+  // holds is answered from the posting itself (where, posted pay), and checked against what they told us (a pay floor, remote
+  // only, nights). Nothing is read from a company file, and no amount is stated that the posting does not state.
+  function handlePostingFacts(text, ctx) {
+    const t = lc(text);
+    const asksPay = /\b(pay|paying|salary|comp|compensation|range|rate)\b/.test(t);
+    const one = /\b(?:the|that|this)\s+[a-z0-9][a-z0-9 .&']{1,30}?\s+(?:one|role|job|position|posting)\b/.test(t) || /\bwhat about (?:the )?[a-z0-9]/.test(t);
+    if (!asksPay && !one) return null;
+    if (/\b(tailor|apply|cover letter|resume|interview|follow up|remind|draft|send|questions)\b/.test(t)) return null;
+    const pool = postingsFromCtx(ctx);
+    const hit = pool.find((p) => p.company && lc(p.company).length >= 3 && t.includes(lc(p.company)));
+    if (!hit) return null;
+    const co = hit.company;
+    const same = pool.filter((p) => lc(p.company) === lc(co));
+    const lines = [];
+    const rules = standingRulesOf(ctx, ctx.profile);
+    for (const p of same.slice(0, 2)) {
+      const m = /\$\s?\d[\d,]*(?:\.\d+)?\s*[-–]\s*\$?\d[\d,]*(?:\.\d+)?(?:\s*(?:per|an|a|\/)\s*(?:hour|hr|year|yr))?/i.exec(`${s(p.salary && p.salary.raw)} ${s(p.jd_text)}`);
+      const where = p.remote === "remote" ? "remote" : s(p.location);
+      lines.push(`${p.title} at ${co}, ${where || "location not stated"}: ${m ? `the posting states ${m[0].trim()}` : "the posting states no pay"}.`);
+      const br = ruleBreak({ title: p.title, remote: p.remote, posting: p }, rules);
+      if (br) lines.push(br.kind === "floor" ? `That is below the ${br.label.replace("pay of at least ", "")} minimum you set.` : br.kind === "remote" ? "It is not remote, and you said remote only." : `It does not fit what you told me (${br.label}).`);
+    }
+    return { intent: "posting_facts", resultStatus: "answered", sends: 0, reply: compose({ headline: `From the ${co} posting itself.`, facts: lines, nextStep: `Want me to tailor your resume for the ${co} role, or look at others?` }) };
+  }
   function handleNamedPostingLink(text, ctx) {
     const t = lc(text);
     if (!/\bgive me the link\b|\bthe link\b|\bapply link\b|\bwhere (can|do|should) i apply\b|\blink to\b/.test(t)) return null;
@@ -11624,13 +11646,18 @@ const CareerRouter = (() => {
     // stays with the ordinal branch below).
     const firstM = t.match(/\bapply to (?:the )?first (\d{1,2}|two|three|four|five)\b/);
     const allM = /\bapply to (?:all of (?:them|those)|them all)\b/.test(t);
-    if (!ordM && !topM && !allM && !firstM) return null;
+    // "apply to the Stripe one": a role of the last list named by its company.
+    const compM = t.match(/\bapply to (?:the )?([a-z0-9][a-z0-9 .&']{1,30}?) (?:one|role|job|position|posting)\b/);
+    if (!ordM && !topM && !allM && !firstM && !compM) return null;
     const disc = c.discovery || {};
     const list = Array.isArray(disc.lastShortlist) ? disc.lastShortlist : [];
     if (!list.length) return null;
+    const compEntry = !ordM && !topM && !allM && !firstM && compM ? list.find((e) => e.company && (lc(e.company).includes(compM[1].trim()) || compM[1].trim().includes(lc(e.company)))) : null;
+    if (!ordM && !topM && !allM && !firstM && !compEntry) return null;
     const WORD_N = { one: 1, two: 2, three: 3, four: 4, five: 5 };
     let slice = null;
-    if (ordM) { const idx = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 }[ordM[1]]; slice = list.slice(idx - 1, idx); }
+    if (compEntry) slice = [compEntry];
+    else if (ordM) { const idx = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 }[ordM[1]]; slice = list.slice(idx - 1, idx); }
     else if (topM) { const n = /^\d+$/.test(topM[1]) ? Number(topM[1]) : WORD_N[topM[1]]; slice = list.slice(0, n); }
     else if (firstM) { const n = /^\d+$/.test(firstM[1]) ? Number(firstM[1]) : WORD_N[firstM[1]]; slice = list.slice(0, n); }
     else slice = list.slice();
@@ -11781,6 +11808,8 @@ const CareerRouter = (() => {
     // the apply machinery and the company-intel branch — the apply
     // route reads it as no instruction at all, and intel answered
     // it with the company-file absence and no link.
+    const pfacts = handlePostingFacts(text, c);
+    if (pfacts) return pfacts;
     const namedLink = handleNamedPostingLink(text, c);
     if (namedLink) return namedLink;
     // LANE A v2: a SINGLE named-role apply (by name / link / pasted

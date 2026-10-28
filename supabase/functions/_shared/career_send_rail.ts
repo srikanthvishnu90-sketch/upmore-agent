@@ -33,7 +33,7 @@ export const GMAIL_READ_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 export const SEND_RAIL_SCOPES = [GMAIL_SEND_SCOPE, GMAIL_READ_SCOPE] as const;
 
 export type Kind = "outreach" | "application" | "general";
-export interface Rpc { rpc(name: string, args: { p: unknown }): Promise<{ data: any; error: { message: string } | null }> }
+export interface Rpc { rpc(name: string, args: { p: unknown }): PromiseLike<{ data: any; error: { message: string } | null }> }
 const call = async (d: Rpc, name: string, p: unknown) => {
   const r = await d.rpc(name, { p });
   if (r.error) throw new Error(`${name}: ${r.error.message}`);

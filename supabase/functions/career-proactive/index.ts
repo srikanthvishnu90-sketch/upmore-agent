@@ -12,6 +12,8 @@ import { supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
 import { handleProactive } from "./handler.ts";
 import { runOutreachReplies, runOutreachSends, supabaseOutreachStore } from "../_shared/career_outreach.ts";
 import { gmailSender, gmailThreadReader } from "../_shared/career_outreach_gmail.ts";
+import { runRepliesLane } from "../_shared/career_outreach_replies.ts";
+import { callModel, modelConfig } from "../_shared/model_gateway.ts";
 
 // The career Google grant (vault oauth_google_career_<uid>), read the same way by mail tracking and outreach.
 const grant = (admin: any): TokenDeps => ({
@@ -89,6 +91,16 @@ serve((req) => {
       const sends = await runOutreachSends({ store, sender: gmailSender({ fetch, token }), now, tz, events }).catch(msg);
       const replies = await runOutreachReplies({ store, read: gmailThreadReader({ fetch, token }), now, events }).catch(msg);
       return { ...sends, replies };
+    } : undefined,
+    // MASS NETWORKING M5: replies on sent outreach (Gmail; Outlook once M4's ports are passed), follow-ups after the
+    // person's own interval, and calls from their calendar, every send and event only from an approved exact payload. On
+    // only when the owner turns it on (CAREER_OUTREACH_REPLIES=on); the model reads replies and drafts only with
+    // CAREER_OUTREACH_REPLIES_MODEL=on (OpenAI through the gateway; no other spend).
+    replies: Deno.env.get("CAREER_OUTREACH_REPLIES") === "on" ? async (now) => {
+      const deps = grant(admin);
+      const model = Deno.env.get("CAREER_OUTREACH_REPLIES_MODEL") === "on"
+        ? (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { role: "chat" }) : null;
+      return await runRepliesLane({ admin, fetch, token: (u, scope) => careerTokenFor(deps, scope)(u), outbox: supabaseAlertStore(admin), model, now });
     } : undefined,
     // Briefs, interview drafts and the weekly digest (WO-034) need 20261021050000_career_brief_digest.sql, so they run only
     // once the owner turns them on at deploy, after that migration.

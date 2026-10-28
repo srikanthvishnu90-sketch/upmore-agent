@@ -47,6 +47,8 @@ export interface ProactiveDeps {
   // WO-033: approved outreach, one send per person per run, and the replies on threads already sent. Absent: none.
   // A failure here is reported in the run's answer and never stops the alerts.
   outreach?: (now: number) => Promise<Record<string, unknown>>;
+  // MASS NETWORKING M5: replies understood, follow-ups and calls (career_outreach_replies.ts runRepliesLane). Absent: none.
+  replies?: (now: number) => Promise<Record<string, unknown>>;
   // WO-091c: who among these people is paused, opted out or erased (career_quiet_users). Absent: nobody is.
   quiet?: (userIds: string[]) => Promise<Set<string>>;
   // The watch records of people whose alerts were set by text (career_watch_kv, career:watch-profile:<user>), by user.
@@ -128,9 +130,11 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
     const q = d.questions;
     await step("questions", () => runQuestions({ now: started, open: async () => awake(await q.open(), (r) => r.user_id), push: q.push }), (n) => { stats.questions = n; });
   }
-  const sent: { outreach?: Record<string, unknown> } = {};
+  const sent: { outreach?: Record<string, unknown>; replies?: Record<string, unknown> } = {};
   if (d.outreach) await step("outreach", () => d.outreach!(started), (r) => { sent.outreach = r; });
   if (errors.outreach) sent.outreach = { error: errors.outreach };
+  if (d.replies) await step("replies", () => d.replies!(started), (r) => { sent.replies = r; });
+  if (errors.replies) sent.replies = { error: errors.replies };
   const ms = d.now() - started;
   const failed = Object.keys(errors);
   const error = failed.length ? errors[failed[0]] : null;

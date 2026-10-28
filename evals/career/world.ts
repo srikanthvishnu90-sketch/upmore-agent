@@ -17,6 +17,7 @@ import { DEFAULT_PREFS } from "../../supabase/functions/_shared/career_alerts.ts
 import { memoryWantStore } from "../../supabase/functions/_shared/career_apply_want.ts";
 import { CARD_INTENT, cardTurn } from "../../supabase/functions/_shared/career_apply_cards.ts";
 import { QUESTIONS_INTENT, questionsTurn } from "../../supabase/functions/_shared/career_apply_questions.ts";
+import { alertControlTurn } from "../../supabase/functions/_shared/career_alert_control.ts";
 import { memoryOutreachStore, outreachTurn } from "../../supabase/functions/_shared/career_outreach.ts";
 import { memoryEventStore } from "../../supabase/functions/_shared/agent/timeline.ts";
 import { appsFromQueue, appsFromTracker } from "../../supabase/functions/_shared/career_mail_store.ts";
@@ -131,12 +132,14 @@ export async function worldTurn(w: World, o: { brain: "agent" | "router"; thread
   if (situation && C) ctx.statusRecords = C.statusRecordsFrom(situation.capabilities);
   const controlled = w.H.isHostControlled(message, ctx);
   let out: { reply: string; intent: string | null; handler: string }, seen: Seen | null = null;
-  const card = !controlled ? await cardTurn({ message, userId: USER, threadId: o.threadId, now, store: w.cardStore as any }) : null;
-  const asked = !card && !controlled ? await questionsTurn({ message, userId: USER, threadId: o.threadId, now, store: w.questionStore as any, situation } as any) : null;
+  const alertAns = !controlled ? await alertControlTurn({ message, userId: USER, store: w.alerts }).catch(() => null) : null;
+  const card = !controlled && !alertAns ? await cardTurn({ message, userId: USER, threadId: o.threadId, now, store: w.cardStore as any }) : null;
+  const asked = !alertAns && !card && !controlled ? await questionsTurn({ message, userId: USER, threadId: o.threadId, now, store: w.questionStore as any, situation } as any) : null;
   const gmailOn = situation ? situation.capabilities.some((c: any) => c.id === "gmail_send" && c.status === "on") : false;
-  const outAns = !card && !asked && !controlled
+  const outAns = !alertAns && !card && !asked && !controlled
     ? await outreachTurn({ message, userId: USER, threadId: o.threadId, now, store: w.outreach, gmailConnected: async () => gmailOn, connectAsk: missingIntegration("gmail") }).catch(() => null) : null;
-  if (card) out = { reply: card.reply, intent: ["shown", "not_on_card", "change"].includes(card.status) ? CARD_INTENT : "career_apply_card_answer", handler: "code:cards" };
+  if (alertAns) out = { reply: alertAns.reply, intent: alertAns.intent, handler: "code:alerts" };
+  else if (card) out = { reply: card.reply, intent: ["shown", "not_on_card", "change"].includes(card.status) ? CARD_INTENT : "career_apply_card_answer", handler: "code:cards" };
   else if (asked) out = { reply: asked.reply, intent: ["shown", "partial"].includes(asked.status) ? QUESTIONS_INTENT : "career_apply_questions_answer", handler: "code:questions" };
   else if (outAns) out = { reply: outAns.reply, intent: outAns.intent, handler: "code:outreach" };
   else if (o.brain === "agent" && !controlled) {

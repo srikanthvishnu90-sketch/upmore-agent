@@ -55,6 +55,7 @@ import { accountMemoryAfterTurn, statedFactsBefore } from "../_shared/career_acc
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
 import { boardFetchFeed, supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts"; // FEATURE E2E: boardFetchFeed
+import { alertControlTurn } from "../_shared/career_alert_control.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
@@ -518,7 +519,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           } }).catch((e) => { console.error("follow-up turn:", e?.message ?? e); return null; })
         : null;
       const stood = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await standingTurn({ message, userId: user.id, now: Date.now(), read: supabaseStanding(admin) }).catch((e) => { console.error("standing turn:", e?.message ?? e); return null; })
+        ? (await standingTurn({ message, userId: user.id, now: Date.now(), read: supabaseStanding(admin) }).catch((e) => { console.error("standing turn:", e?.message ?? e); return null; }))
+          ?? (await alertControlTurn({ message, userId: user.id, store: supabaseAlertStore(admin) }).catch((e) => { console.error("alert control:", e?.message ?? e); return null; })) // WO-111: stop, pause or resume the saved alert
         : null;
       const status = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })

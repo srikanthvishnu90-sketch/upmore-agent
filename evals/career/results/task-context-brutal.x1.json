@@ -1,0 +1,516 @@
+{
+ "label": "x1",
+ "brain": "router",
+ "commit": "94c20faf4",
+ "run_at": "2026-10-28T23:23:02.336Z",
+ "score": {
+  "dims": {
+   "context": {
+    "score": null,
+    "passed": 0,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "completion": {
+    "score": 5,
+    "passed": 4,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "params": {
+    "score": null,
+    "passed": 0,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "question": {
+    "score": 5,
+    "passed": 4,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "factlock": {
+    "score": null,
+    "passed": 0,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "natural": {
+    "score": 4.6,
+    "passed": 11,
+    "failed": 1,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "memory": {
+    "score": 5,
+    "passed": 2,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "effects": {
+    "score": 5,
+    "passed": 2,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   }
+  },
+  "task": null,
+  "context": null,
+  "overall": null,
+  "scenarios": {
+   "passed": 1,
+   "total": 2
+  }
+ },
+ "errors": {},
+ "worst": [
+  {
+   "scenario": "T05",
+   "turn": 1,
+   "d": "natural",
+   "t": "grammar",
+   "why": "correct grammar, no leaked internal tokens or run-ons",
+   "ok": false,
+   "detail": "double space",
+   "hard": false,
+   "reply": "Removed your job alert for data analyst in chicago or remote. You will get no more alerts from it. Say \"watch for\" and a role if you want a new one.",
+   "user": "cancel my job alert"
+  }
+ ],
+ "unmeasured": [],
+ "runs": [
+  {
+   "id": "T05",
+   "replies": [
+    "Removed your job alert for data analyst in chicago or remote. You will get no more alerts from it. Say \"watch for\" and a role if you want a new one."
+   ],
+   "state": [
+    {
+     "alert": null,
+     "alert_keywords": [],
+     "alert_locations": [],
+     "drafts": [
+      {
+       "firm": "Plaid",
+       "status": "shown",
+       "sent_at": null,
+       "approved_hash": null
+      }
+     ],
+     "sent_drafts": [],
+     "jobs": [
+      {
+       "company": "Notion",
+       "state": "confirmed"
+      },
+      {
+       "company": "Plaid",
+       "state": "needs_user"
+      },
+      {
+       "company": "Ramp",
+       "state": "failed"
+      },
+      {
+       "company": "Brex",
+       "state": "queued"
+      }
+     ],
+     "submitted_jobs": [
+      "Notion"
+     ],
+     "wanted": [
+      "Airtable"
+     ],
+     "prepared": [
+      {
+       "company": "Figma",
+       "state": "ready"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "T19",
+   "replies": [
+    "Paused your job alert for icu nurse or critical care in houston. The search is kept as it was; say turn them back on and it resumes.",
+    "Your job alert is back on, the same search as before: icu nurse or critical care in houston."
+   ],
+   "state": [
+    {
+     "alert": {
+      "on": false,
+      "keywords": [
+       "icu nurse",
+       "critical care"
+      ],
+      "locations": [
+       "houston"
+      ],
+      "remote_ok": false,
+      "report_hour": 8,
+      "quiet_start": 22,
+      "quiet_end": 7,
+      "max_instant_per_day": 3
+     },
+     "alert_keywords": [
+      "icu nurse",
+      "critical care"
+     ],
+     "alert_locations": [
+      "houston"
+     ],
+     "drafts": [],
+     "sent_drafts": [],
+     "jobs": [
+      {
+       "company": "Houston Methodist",
+       "state": "confirmed"
+      }
+     ],
+     "submitted_jobs": [
+      "Houston Methodist"
+     ],
+     "wanted": [],
+     "prepared": []
+    },
+    {
+     "alert": {
+      "on": true,
+      "keywords": [
+       "icu nurse",
+       "critical care"
+      ],
+      "locations": [
+       "houston"
+      ],
+      "remote_ok": false,
+      "report_hour": 8,
+      "quiet_start": 22,
+      "quiet_end": 7,
+      "max_instant_per_day": 3
+     },
+     "alert_keywords": [
+      "icu nurse",
+      "critical care"
+     ],
+     "alert_locations": [
+      "houston"
+     ],
+     "drafts": [],
+     "sent_drafts": [],
+     "jobs": [
+      {
+       "company": "Houston Methodist",
+       "state": "confirmed"
+      }
+     ],
+     "submitted_jobs": [
+      "Houston Methodist"
+     ],
+     "wanted": [],
+     "prepared": []
+    }
+   ]
+  }
+ ],
+ "results": [
+  {
+   "scenario": "T05",
+   "turn": 1,
+   "d": "completion",
+   "t": "state",
+   "why": "the alert is actually removed",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Removed your job alert for data analyst in chicago or remote. You will get no more alerts from it. Say \"watch for\" and a role if you want a new one.",
+   "user": "cancel my job alert"
+  },
+  {
+   "scenario": "T05",
+   "turn": 1,
+   "d": "effects",
+   "t": "no_claim",
+   "why": "does not say it cancelled unless it did",
+   "ok": true,
+   "detail": "",
+   "hard": true,
+   "reply": "Removed your job alert for data analyst in chicago or remote. You will get no more alerts from it. Say \"watch for\" and a role if you want a new one.",
+   "user": "cancel my job alert"
+  },
+  {
+   "scenario": "T05",
+   "turn": 1,
+   "d": "completion",
+   "t": "has_any",
+   "why": "says what happened",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Removed your job alert for data analyst in chicago or remote. You will get no more alerts from it. Say \"watch for\" and a role if you want a new one.",
+   "user": "cancel my job alert"
+  },
+  {
+   "scenario": "T05",
+   "turn": 1,
+   "d": "question",
+   "t": "no_ask_about",
+   "why": "does not ask which alert when she has one",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Removed your job alert for data analyst in chicago or remote. You will get no more alerts from it. Say \"watch for\" and a role if you want a new one.",
+   "user": "cancel my job alert"
+  },
+  {
+   "scenario": "T05",
+   "turn": 1,
+   "d": "question",
+   "t": "questions_max",
+   "why": "at most one question",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Removed your job alert for data analyst in chicago or remote. You will get no more alerts from it. Say \"watch for\" and a role if you want a new one.",
+   "user": "cancel my job alert"
+  },
+  {
+   "scenario": "T05",
+   "turn": 1,
+   "d": "natural",
+   "t": "grammar",
+   "why": "correct grammar, no leaked internal tokens or run-ons",
+   "ok": false,
+   "detail": "double space",
+   "hard": false,
+   "reply": "Removed your job alert for data analyst in chicago or remote. You will get no more alerts from it. Say \"watch for\" and a role if you want a new one.",
+   "user": "cancel my job alert"
+  },
+  {
+   "scenario": "T05",
+   "turn": 1,
+   "d": "natural",
+   "t": "canned",
+   "why": "no canned filler that says nothing about this person",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Removed your job alert for data analyst in chicago or remote. You will get no more alerts from it. Say \"watch for\" and a role if you want a new one.",
+   "user": "cancel my job alert"
+  },
+  {
+   "scenario": "T05",
+   "turn": 1,
+   "d": "natural",
+   "t": "jargon",
+   "why": "plain words, no system jargon",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Removed your job alert for data analyst in chicago or remote. You will get no more alerts from it. Say \"watch for\" and a role if you want a new one.",
+   "user": "cancel my job alert"
+  },
+  {
+   "scenario": "T05",
+   "turn": 1,
+   "d": "natural",
+   "t": "not_repeat",
+   "why": "does not repeat an earlier reply word for word",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Removed your job alert for data analyst in chicago or remote. You will get no more alerts from it. Say \"watch for\" and a role if you want a new one.",
+   "user": "cancel my job alert"
+  },
+  {
+   "scenario": "T19",
+   "turn": 1,
+   "d": "completion",
+   "t": "state",
+   "why": "the alert is paused, not deleted",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Paused your job alert for icu nurse or critical care in houston. The search is kept as it was; say turn them back on and it resumes.",
+   "user": "pause my alerts"
+  },
+  {
+   "scenario": "T19",
+   "turn": 1,
+   "d": "effects",
+   "t": "no_claim",
+   "why": "does not say paused unless it is",
+   "ok": true,
+   "detail": "",
+   "hard": true,
+   "reply": "Paused your job alert for icu nurse or critical care in houston. The search is kept as it was; say turn them back on and it resumes.",
+   "user": "pause my alerts"
+  },
+  {
+   "scenario": "T19",
+   "turn": 1,
+   "d": "question",
+   "t": "questions_max",
+   "why": "at most one question",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Paused your job alert for icu nurse or critical care in houston. The search is kept as it was; say turn them back on and it resumes.",
+   "user": "pause my alerts"
+  },
+  {
+   "scenario": "T19",
+   "turn": 1,
+   "d": "natural",
+   "t": "grammar",
+   "why": "correct grammar, no leaked internal tokens or run-ons",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Paused your job alert for icu nurse or critical care in houston. The search is kept as it was; say turn them back on and it resumes.",
+   "user": "pause my alerts"
+  },
+  {
+   "scenario": "T19",
+   "turn": 1,
+   "d": "natural",
+   "t": "canned",
+   "why": "no canned filler that says nothing about this person",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Paused your job alert for icu nurse or critical care in houston. The search is kept as it was; say turn them back on and it resumes.",
+   "user": "pause my alerts"
+  },
+  {
+   "scenario": "T19",
+   "turn": 1,
+   "d": "natural",
+   "t": "jargon",
+   "why": "plain words, no system jargon",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Paused your job alert for icu nurse or critical care in houston. The search is kept as it was; say turn them back on and it resumes.",
+   "user": "pause my alerts"
+  },
+  {
+   "scenario": "T19",
+   "turn": 1,
+   "d": "natural",
+   "t": "not_repeat",
+   "why": "does not repeat an earlier reply word for word",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Paused your job alert for icu nurse or critical care in houston. The search is kept as it was; say turn them back on and it resumes.",
+   "user": "pause my alerts"
+  },
+  {
+   "scenario": "T19",
+   "turn": 2,
+   "d": "completion",
+   "t": "state",
+   "why": "the alert is on again",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Your job alert is back on, the same search as before: icu nurse or critical care in houston.",
+   "user": "ok turn them back on"
+  },
+  {
+   "scenario": "T19",
+   "turn": 2,
+   "d": "memory",
+   "t": "state",
+   "why": "the same ICU search came back, not a blank one",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Your job alert is back on, the same search as before: icu nurse or critical care in houston.",
+   "user": "ok turn them back on"
+  },
+  {
+   "scenario": "T19",
+   "turn": 2,
+   "d": "memory",
+   "t": "has_any",
+   "why": "says the same search is back (ICU, Houston)",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Your job alert is back on, the same search as before: icu nurse or critical care in houston.",
+   "user": "ok turn them back on"
+  },
+  {
+   "scenario": "T19",
+   "turn": 2,
+   "d": "question",
+   "t": "questions_max",
+   "why": "at most one question",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Your job alert is back on, the same search as before: icu nurse or critical care in houston.",
+   "user": "ok turn them back on"
+  },
+  {
+   "scenario": "T19",
+   "turn": 2,
+   "d": "natural",
+   "t": "grammar",
+   "why": "correct grammar, no leaked internal tokens or run-ons",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Your job alert is back on, the same search as before: icu nurse or critical care in houston.",
+   "user": "ok turn them back on"
+  },
+  {
+   "scenario": "T19",
+   "turn": 2,
+   "d": "natural",
+   "t": "canned",
+   "why": "no canned filler that says nothing about this person",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Your job alert is back on, the same search as before: icu nurse or critical care in houston.",
+   "user": "ok turn them back on"
+  },
+  {
+   "scenario": "T19",
+   "turn": 2,
+   "d": "natural",
+   "t": "jargon",
+   "why": "plain words, no system jargon",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Your job alert is back on, the same search as before: icu nurse or critical care in houston.",
+   "user": "ok turn them back on"
+  },
+  {
+   "scenario": "T19",
+   "turn": 2,
+   "d": "natural",
+   "t": "not_repeat",
+   "why": "does not repeat an earlier reply word for word",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "Your job alert is back on, the same search as before: icu nurse or critical care in houston.",
+   "user": "ok turn them back on"
+  }
+ ]
+}

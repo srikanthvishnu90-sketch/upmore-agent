@@ -499,6 +499,10 @@ echo "== career_apply_host_backoff.test.sql (no pace of Trainee's own; a portal'
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027230000_career_outlook_connector.sql"
 echo "== career_outlook_connector.test.sql (links once and bound; leased claims; sends once; disconnect erases, cancels, burns; no anon access)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outlook_connector.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# Task 3 (20261028110000): the connector framework. The ledger above applied it once; it must apply cleanly twice more
+# (its behavior is tested on a real Postgres by tests/architect/connector-framework.test.ts and connector-guards.test.ts).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261028110000_career_connector_framework.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261028110000_career_connector_framework.sql"
 echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 if [[ -f "$BRIDGE_PATH" ]]; then

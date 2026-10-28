@@ -571,6 +571,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
             previousAsk: async () => {
               const r = await admin.from("agent_messages").select("content").eq("thread_id", tid).eq("role", "user").order("id", { ascending: false }).limit(1);
               return r.error ? null : (r.data?.[0]?.content ?? null);
+            },
+            // R2: a follow-up reminder is promised as a text only when the scheduled push is on AND the person has a
+            // channel it can reach (career_outbox_claim delivers only through channel_target).
+            reminderPush: Deno.env.get("CAREER_OUTREACH_FOLLOWUPS") === "on",
+            textingChannel: async () => {
+              const r = await admin.from("channel_contacts").select("channel").eq("user_id", user.id).eq("opted_out", false).order("home", { ascending: false }).limit(1);
+              if (r.error) throw new Error(`read your texting channel: ${r.error.message}`);
+              return r.data?.[0]?.channel ?? null;
             } })
           .catch((e) => { console.error("networking turn:", e?.message ?? e); return null; })
         : null;

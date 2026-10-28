@@ -187,7 +187,9 @@ Deno.test({ name: "FAMILY networking and outreach: a new person, end to end, on 
       assert(/Nothing has gone out\. Nothing can go out until your Gmail is connected for sending, and sending from your own address isn't available in Trainee yet\./.test(ok.reply), ok.reply);
       assert(!/They go from your Gmail one at a time/.test(ok.reply), "no promise of a send that can't happen");
       assert(/1\. Copy draft 1 exactly as shown above into a new email to maya\.chen@stripe\.example\./.test(ok.reply), ok.reply);
-      assert(/say "sent 1" and I'll mark it sent and remind you to follow up in 7 days/.test(ok.reply), ok.reply);
+      // R2: the ladder promises no reminder of its own; what "sent 1" sets is said, truthfully, when they say it (step 7).
+      assert(/say "sent 1" and I'll mark it sent and set a follow-up for 7 days later if there's no reply/.test(ok.reply), ok.reply);
+      assert(!/remind you/.test(ok.reply), `no reminder promised here: ${ok.reply}`);
       const link = /mailto:[^\s]+/.exec(ok.reply)?.[0];
       assert(link, ok.reply);
       const u = new URL(link!);
@@ -231,7 +233,9 @@ Deno.test({ name: "FAMILY networking and outreach: a new person, end to end, on 
       const sent = await say(web, "ok i sent 1 from my gmail");
       eq([sent.intent, sent.resultStatus], ["career_outreach_track", "marked_sent"], sent.reply);
       assert(/^Marked sent by you: 1 Maya Chen \(Stripe\), today\. Trainee sent nothing itself and will never send it again\./.test(sent.reply), sent.reply);
-      assert(/I'll remind you on \w{3}, \w{3} \d{1,2} to follow up if there's no reply by then\./.test(sent.reply), sent.reply);
+      // R2, flag off (CAREER_OUTREACH_FOLLOWUPS unset here): no reminder is promised; where the follow-up shows is said.
+      assert(/I won't message you a reminder: follow-up reminders aren't switched on yet\. From \w{3}, \w{3} \d{1,2}, "who have I reached out to" shows this follow-up as due\./.test(sent.reply), sent.reply);
+      assert(!/I'll (?:text you|remind you)/.test(sent.reply), sent.reply);
       const r = (await rows()).find((x: any) => x.id === maya.id);
       eq([r.status, r.result], ["sent", "sent_by_you"]);
       sentAt = Date.parse(r.sent_at);
@@ -248,9 +252,17 @@ Deno.test({ name: "FAMILY networking and outreach: a new person, end to end, on 
 
     await t.step("8. 'remind me in 3 days'; the scheduled reminder run queues it once, only when due, and never twice", async () => {
       task = "reminder fire";
+      // R2, flag on but no texting channel linked (a web-only person): the reminder is set, and no text is promised.
+      Deno.env.set("CAREER_OUTREACH_FOLLOWUPS", "on");
+      const webOnly = await say(web, "remind me to follow up with maya in 3 days");
+      eq([webOnly.intent, webOnly.resultStatus], ["career_outreach_track", "reminder_set"], webOnly.reply);
+      assert(/^Follow-up with Maya Chen \(Stripe\) set for \w{3}, \w{3} \d{1,2}\. I won't message you a reminder: no texting channel \(iMessage\/SMS, WhatsApp or Telegram\) is linked to your account\./.test(webOnly.reply), webOnly.reply);
+      // R2, flag on and a channel linked: the text is promised, on that channel; the outbox row below is the proof it comes.
+      await pg.sql(`insert into public.channel_contacts (contact, user_id) values ('tg:4242', '${ME}')`);
       const r = await say(web, "remind me to follow up with maya in 3 days");
       eq([r.intent, r.resultStatus], ["career_outreach_track", "reminder_set"], r.reply);
-      assert(/^I'll remind you on \w{3}, \w{3} \d{1,2} to follow up with Maya Chen \(Stripe\), unless you tell me Maya replied first\./.test(r.reply), r.reply);
+      assert(/^I'll text you a reminder on \w{3}, \w{3} \d{1,2} to follow up with Maya Chen \(Stripe\), unless you tell me Maya replied first\./.test(r.reply), r.reply);
+      Deno.env.delete("CAREER_OUTREACH_FOLLOWUPS");
       const f = await followups();
       eq(f.length, 1);
       const due = Date.parse(f[0].due_at);

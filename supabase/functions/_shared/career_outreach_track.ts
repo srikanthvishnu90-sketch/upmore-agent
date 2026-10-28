@@ -80,8 +80,10 @@ export function trackAsk(message: string): TrackAsk | null {
   if (m && nameOk(m[1])) return { kind: "follow", name: m[1] };
   return null;
 }
-const LINKEDIN = /\blinked ?in\b/;
-const LI_ACT = /\b(?:message|msg|dm|inmail|in-mail|connect|link (?:my|your|to)|hook up|add (?:her|him|them|everyone|people|[a-z]+) on|invite|send (?:an? |the |my |some )?(?:connection(?: request)?s?|invites?|invitations?|messages?|notes?|dms?|inmails?|requests?)|connection requests?|reach out to\b.*\bon|scrape|crawl|automate|auto-?(?:connect|message|apply|send)|pull (?:people|profiles|contacts|emails)|find (?:people|profiles|recruiters|alumni|emails?)|search|look up|log ?in|sign ?in)\b/;
+const LINKEDIN = /\blinked ?in\b|\beasy ?apply\b|\bin-?mails?\b/;
+// Any ACTION on LinkedIn: messaging, connecting, endorsing, posting, commenting, following, applying (Easy Apply), and
+// any ask routed "via / on / through LinkedIn". Their own export stays theirs (LI_OWN).
+const LI_ACT = /\b(?:message|msg|dm|inmail|in-mail|connect|link (?:my|your|to)|hook up|add (?:her|him|them|everyone|people|[a-z]+) on|invite|send (?:an? |the |my |some )?(?:connection(?: request)?s?|invites?|invitations?|messages?|notes?|dms?|inmails?|requests?)|connection requests?|reach out|ping|scrape|crawl|automate|auto-?(?:connect|message|apply|send)|pull (?:people|profiles|contacts|emails)|find (?:people|profiles|recruiters|alumni|emails?)|search|look up|log ?in|sign ?in|endorse|endorsements?|recommend (?:me|her|him|them)|write (?:me |her |him )?(?:a )?recommendation|post|publish|share|comment|like (?:her|his|their|the|a|my) post|follow(?! ?-?up)|apply|easy ?apply|submit)\b|\b(?:via|through|thru|over|using) linked ?in\b|\beasy ?apply\b/;
 const LI_OWN = /\b(?:connections\.csv|export|download|copy of (?:my|your) data|get a copy|here (?:are|is)|these are|attached|my linkedin profile|my profile (?:link|url))\b/;
 
 export interface TrackDeps {
@@ -89,6 +91,20 @@ export interface TrackDeps {
   store: OutreachStore; events?: EventStore | null;
   facts: unknown[]; model: ModelFn | null;
   contactsWithEmail?: (name: string) => string[]; // "Maya Chen at Stripe" lines from the person's own contacts, for the LinkedIn answer
+  // Architect ruling R2: never promise a reminder the system won't deliver. reminderPush is CAREER_OUTREACH_FOLLOWUPS=on
+  // (read by the caller, never here); textingChannel is the channel a queued reminder would reach them on, or null (a
+  // web-only person: career_outbox_claim never delivers to someone with no channel contact).
+  reminderPush?: boolean;
+  textingChannel?: () => Promise<string | null>;
+}
+const CHANNEL_NAME: Record<string, string> = { imessage: "iMessage/SMS", whatsapp: "WhatsApp", telegram: "Telegram" };
+// How the reminder will reach them, said truthfully: texted on their channel when the scheduled push is on and they have
+// one; otherwise no message is sent, and the follow-up shows as due in their networking list.
+async function reminderWords(o: TrackDeps, due: string): Promise<{ promise: string; pushed: boolean }> {
+  const ch = o.reminderPush && o.textingChannel ? await o.textingChannel().catch(() => null) : null;
+  if (ch) return { promise: `I'll text you a reminder on ${CHANNEL_NAME[ch] ?? ch} on ${due} to follow up if there's no reply by then.`, pushed: true };
+  const why = o.reminderPush ? "no texting channel (iMessage/SMS, WhatsApp or Telegram) is linked to your account" : "follow-up reminders aren't switched on yet";
+  return { promise: `I won't message you a reminder: ${why}. From ${due}, "who have I reached out to" shows this follow-up as due.`, pushed: false };
 }
 export interface TrackResult { reply: string; intent: string; status: string; parts?: string[] }
 
@@ -205,9 +221,10 @@ async function sentTurn(o: TrackDeps, ask: Extract<TrackAsk, { kind: "sent" }>, 
   if (!marked.length) return { reply: `Nothing new was marked sent: ${already.join("; ")}.`, intent: TRACK_INTENT, status: "already" };
   const due = items[0] ? dayText(Date.parse(items[0].due_at)) : "";
   const one = marked.length === 1;
+  const words = await reminderWords(o, due);
   return {
     reply: [`Marked sent by you: ${marked.map((d) => `${d.n} ${who(d)}`).join(", ")}, ${ask.daysAgo ? "yesterday" : "today"}. Trainee sent nothing itself and will never send ${one ? "it" : "them"} again.${already.length ? ` Not changed: ${already.join("; ")}.` : ""}`,
-      `I'll remind you on ${due} to follow up if there's no reply by then. Say "${marked[0].recipient.name.split(" ")[0]} replied" when ${one ? "they do" : "someone does"}, "remind me in 3 days" for another day, or "no reminder".`].join("\n"),
+      `${words.promise} Say "${marked[0].recipient.name.split(" ")[0]} replied" when ${one ? "they do" : "someone does"}, "remind me in 3 days" for another day, or "no reminder".`].join("\n"),
     intent: TRACK_INTENT, status: "marked_sent",
   };
 }
@@ -241,11 +258,15 @@ async function remindTurn(o: TrackDeps, ask: Extract<TrackAsk, { kind: "remind" 
   if (r.many.length) return { reply: `More than one ${ask.name} is on record: ${r.many.join("; ")}. Say the full name. No reminder was set.`, intent: TRACK_INTENT, status: "which" };
   const d = r.d!, first = d.recipient.name.split(" ")[0];
   if (d.status === "replied") return { reply: `${who(d)} already replied, so no follow-up reminder was set.`, intent: TRACK_INTENT, status: "replied" };
-  if (d.status !== "sent") return { reply: `Your email to ${who(d)} isn't sent yet, so there's nothing to follow up on. Once you've sent it, say "sent ${d.n}" and I'll remind you in ${ask.days ?? FOLLOWUP_DAYS} days. No reminder was set.`, intent: TRACK_INTENT, status: "not_sent" };
+  if (d.status !== "sent") return { reply: `Your email to ${who(d)} isn't sent yet, so there's nothing to follow up on. Once you've sent it, say "sent ${d.n}" and I'll set a follow-up for ${ask.days ?? FOLLOWUP_DAYS} days later. No reminder was set.`, intent: TRACK_INTENT, status: "not_sent" };
   const days = Math.min(60, Math.max(1, ask.days ?? FOLLOWUP_DAYS));
   const sentAt = Date.parse(d.sent_at ?? "") || o.now;
   await setFollow(o, follow, [followOf(d, sentAt, o.now + days * DAY, o.now, true)]);
-  return { reply: `I'll remind you on ${dayText(o.now + days * DAY)} to follow up with ${who(d)}, unless you tell me ${first} replied first. Say "no reminder" to drop it.`, intent: TRACK_INTENT, status: "reminder_set" };
+  const day = dayText(o.now + days * DAY), words = await reminderWords(o, day);
+  return { reply: words.pushed
+      ? `I'll text you a reminder on ${day} to follow up with ${who(d)}, unless you tell me ${first} replied first. Say "no reminder" to drop it.`
+      : `Follow-up with ${who(d)} set for ${day}. ${words.promise} Say "${first} replied" if they do first, or "no reminder" to drop it.`,
+    intent: TRACK_INTENT, status: "reminder_set" };
 }
 
 async function noRemindTurn(o: TrackDeps, name: string | null, rows: OutreachDraft[], follow: Followup[]): Promise<TrackResult | null> {
@@ -299,8 +320,12 @@ async function followTurn(o: TrackDeps, name: string, rows: OutreachDraft[], fol
 }
 
 function linkedinTurn(o: TrackDeps): TrackResult {
-  const m = /\b(?:message|msg|dm|inmail|connect with|add|invite|reach out to)\s+([a-z][a-z.'-]*(?: [a-z][a-z.'-]*)?)\b/i.exec(o.message);
-  const name = m && !/^(?:everyone|everybody|people|all|recruiters?|them|him|her|my|the|someone|anyone|a|an)$/i.test(m[1].split(" ")[0]) ? m[1].split(" ")[0] : null;
+  // Applying on LinkedIn (Easy Apply) is never done for them: the employer's own posting is the way in.
+  if (/\b(?:apply|applying|application|easy ?apply|submit)\b/i.test(o.message) && !/\b(?:message|msg|dm|inmail|connect|reach out|endorse)\b/i.test(o.message)) {
+    return { reply: `I don't apply on LinkedIn for you (Easy Apply included), and I never sign in to LinkedIn or run anything on it: LinkedIn doesn't allow automated activity on accounts. Nothing was sent or done on LinkedIn. Send me the job's link on the employer's own careers site (or its Greenhouse, Lever or Ashby page) and I'll prepare the application there for your approval.`, intent: LINKEDIN_INTENT, status: "refused" };
+  }
+  const m = /\b(?:message|msg|dm|inmail|connect with|add|invite|reach out to|endorse|ping)\s+([a-z][a-z.'-]*(?: [a-z][a-z.'-]*)?)\b/i.exec(o.message);
+  const name = m && !/^(?:everyone|everybody|people|all|recruiters?|them|him|her|my|the|someone|anyone|a|an|with|to|on|via)$/i.test(m[1].split(" ")[0]) ? m[1].split(" ")[0] : null;
   const known = name && o.contactsWithEmail ? o.contactsWithEmail(name) : [];
   const first = known.length ? known[0].split(" ")[0] : name;
   const instead = known.length
@@ -313,35 +338,59 @@ function linkedinTurn(o: TrackDeps): TrackResult {
 // Each reminder that is due fires once: one message to the person's outbox (key followup:outreach:<draft>, so a second
 // run can never queue it twice), only while the email is still on record as sent with no reply; a reply, a bounce or a
 // cancel turns it off without a message. A paused, opted-out or erased person gets nothing (kept for when they resume).
-export async function runOutreachFollowups(o: { store: OutreachStore; outbox: Outbox; now: number; quiet?: (userIds: string[]) => Promise<Set<string>>; limit?: number }) {
-  const stats = { due: 0, queued: 0, off: 0, quiet: 0, errors: 0, error: null as string | null };
-  if (!o.store.allFollowups || !o.store.saveFollowups || !o.store.history) return stats;
-  const all = await o.store.allFollowups(o.limit ?? 500);
-  const quiet = o.quiet ? await o.quiet(all.map((x) => x.user_id)).catch(() => new Set(all.map((x) => x.user_id))) : new Set<string>();
-  for (const { user_id, items } of all) {
-    const due = items.filter((f) => !f.fired_at && Date.parse(f.due_at) <= o.now);
-    if (!due.length) continue;
-    stats.due += due.length;
-    if (quiet.has(user_id)) { stats.quiet += due.length; continue; }
-    try {
-      const rows = await o.store.history(user_id, 500);
-      const done: Followup[] = [];
-      for (const f of due) {
-        const d = rows.find((x) => x.id === f.draft_id);
-        if (!d || d.status !== "sent") { stats.off++; done.push({ ...f, fired_at: new Date(o.now).toISOString() }); continue; }
-        const first = f.name.split(" ")[0];
-        const text = `Follow-up reminder: you emailed ${f.name}${f.firm ? ` (${f.firm})` : ""} on ${shortDay(Date.parse(f.sent_at))} ("${f.subject}"), and no reply is on record. Say "follow up with ${first}" and I'll draft a short follow-up for your approval, "${first} replied" if they did, or "no reminder".`;
-        const fresh = await o.outbox.enqueue(user_id, { key: `followup:outreach:${f.draft_id}`, kind: "followup", text, at: o.now });
-        if (fresh) stats.queued++;
-        done.push({ ...f, fired_at: new Date(o.now).toISOString() });
+type RunOpts = { store: OutreachStore; outbox: Outbox; now: number; quiet?: (userIds: string[]) => Promise<Set<string>>;
+  batch?: number; leaseMs?: number; until?: number; limit?: number };
+// Scale (owner, 2026-10-27: no product volume limit; work at 100,000 people): people are claimed in leased batches
+// (claimDueFollowups, FOR UPDATE SKIP LOCKED), oldest due first, so any number of instances run side by side on disjoint
+// people, and the run loops until no one is left due. `batch` sizes one claim; `until` is the instance's own wall clock
+// (an edge function's time limit), never a cap on the work: what a run doesn't reach stays due, and its lease lapses
+// for the next run. A person whose turn failed keeps their lease until it lapses, then is claimed again.
+export const FOLLOWUP_CLAIM_BATCH = 200, FOLLOWUP_LEASE_MS = 5 * 60_000;
+export async function runOutreachFollowups(o: RunOpts) {
+  const stats = { due: 0, queued: 0, off: 0, quiet: 0, errors: 0, people: 0, claims: 0, error: null as string | null };
+  if (!o.store.saveFollowups || !(o.store.drafts || o.store.history) || !(o.store.claimDueFollowups || o.store.allFollowups)) return stats;
+  let once = false;
+  const held: { user_id: string; items: Followup[] }[] = []; // paused people this run claimed: released once it ends
+  const claim = o.store.claimDueFollowups
+    ? () => o.store.claimDueFollowups!(o.now, o.batch ?? FOLLOWUP_CLAIM_BATCH, o.leaseMs ?? FOLLOWUP_LEASE_MS)
+    : async () => (once ? [] : (once = true, await o.store.allFollowups!(o.limit ?? Number.MAX_SAFE_INTEGER)));
+  for (;;) {
+    if (o.until && Date.now() >= o.until) break;
+    const all = await claim();
+    stats.claims++;
+    if (!all.length) break;
+    const quiet = o.quiet ? await o.quiet(all.map((x) => x.user_id)).catch(() => new Set(all.map((x) => x.user_id))) : new Set<string>();
+    for (const { user_id, items } of all) {
+      const due = items.filter((f) => !f.fired_at && Date.parse(f.due_at) <= o.now);
+      if (!due.length) continue;
+      stats.people++;
+      stats.due += due.length;
+      if (quiet.has(user_id)) { stats.quiet += due.length; held.push({ user_id, items }); continue; } // kept; released after the loop
+      try {
+        // Only the drafts these reminders are about (by id), never the person's whole history.
+        const rows = o.store.drafts ? await o.store.drafts(user_id, due.map((f) => f.draft_id)) : await o.store.history!(user_id, 500);
+        const done: Followup[] = [];
+        for (const f of due) {
+          const d = rows.find((x) => x.id === f.draft_id);
+          if (!d || d.status !== "sent") { stats.off++; done.push({ ...f, fired_at: new Date(o.now).toISOString() }); continue; }
+          const first = f.name.split(" ")[0];
+          const text = `Follow-up reminder: you emailed ${f.name}${f.firm ? ` (${f.firm})` : ""} on ${shortDay(Date.parse(f.sent_at))} ("${f.subject}"), and no reply is on record. Say "follow up with ${first}" and I'll draft a short follow-up for your approval, "${first} replied" if they did, or "no reminder".`;
+          const fresh = await o.outbox.enqueue(user_id, { key: `followup:outreach:${f.draft_id}`, kind: "followup", text, at: o.now });
+          if (fresh) stats.queued++;
+          done.push({ ...f, fired_at: new Date(o.now).toISOString() });
+        }
+        const ids = new Set(done.map((x) => x.draft_id));
+        await o.store.saveFollowups(user_id, [...items.filter((x) => !ids.has(x.draft_id)), ...done]);
+      } catch (e) {
+        stats.errors++;
+        stats.error ??= (e instanceof Error ? e.message : String(e)).slice(0, 300);
       }
-      const ids = new Set(done.map((x) => x.draft_id));
-      await o.store.saveFollowups(user_id, [...items.filter((x) => !ids.has(x.draft_id)), ...done]);
-    } catch (e) {
-      stats.errors++;
-      stats.error ??= (e instanceof Error ? e.message : String(e)).slice(0, 300);
     }
+    if (!o.store.claimDueFollowups) break;
   }
+  // A paused person's reminders stay as they are (unfired); releasing the lease after the loop (never inside it, which
+  // would re-claim them at once) lets the next run check again whether they resumed.
+  for (const x of held) await o.store.saveFollowups(x.user_id, x.items).catch(() => {});
   return stats;
 }
 
@@ -349,7 +398,7 @@ export async function runOutreachFollowups(o: { store: OutreachStore; outbox: Ou
 // turned them on (CAREER_OUTREACH_FOLLOWUPS=on). Off — the default — the run does not happen at all: no
 // outbox row is queued and no reminder is marked fired, however many are due. Sending has its own switch
 // (CAREER_OUTREACH_SEND); the reminders need no Gmail, so this gate stands on its own.
-export async function runOutreachFollowupsGated(env: { get(k: string): string | undefined }, o: { store: OutreachStore; outbox: Outbox; now: number; quiet?: (userIds: string[]) => Promise<Set<string>>; limit?: number }) {
+export async function runOutreachFollowupsGated(env: { get(k: string): string | undefined }, o: RunOpts) {
   if (env.get("CAREER_OUTREACH_FOLLOWUPS") !== "on") return undefined;
   return await runOutreachFollowups(o);
 }

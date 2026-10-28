@@ -24,6 +24,7 @@ export const IMPORT_INTENT = "career_contacts_import";
 export const AT_INTENT = "career_contacts_at";
 export const DRAFT_INTENT = "career_networking_draft";
 export const SIGNATURE_INTENT = "career_outreach_signature";
+export const FORGET_INTENT = "career_contacts_forget";
 export const MAX_FILE_CHARS = 2_000_000, MAX_FILES = 3, LIST_MAX = 15;
 export const ADD_CONTACTS = "To add people, download your LinkedIn connections (LinkedIn: Settings, Data privacy, Get a copy of your data, Connections) and send me the CSV here, or paste rows under a header line like Name,Company,Title,Email.";
 export const NO_FINDER = "I don't have a people database or an email finder, and I won't guess names or addresses.";
@@ -67,6 +68,8 @@ export function parseNetworkingAsk(message: string): Ask | null {
   }
   const verb = new RegExp(`^(?:email|e-mail|emial|emal|eamil|message|reach out to|intro(?:duce)? me to|write(?: an?)?(?: (?:email|note|intro|message))? to|send(?: an?)?(?: (?:email|intro|note|message))? to|draft(?: me)?(?: an?| some| ${NUMW})?(?: cold| short| quick| networking)?(?: (?:emails?|intros?|introductions?|notes?|messages?|outreach(?: emails?)?))(?: to| for)?) (.+)$`, "i").exec(t);
   if (!verb) return null;
+  // Anything routed through LinkedIn is never a draft, and "via LinkedIn" is never part of a name (trackTurn refuses it).
+  if (/\blinked ?in\b|\beasy ?apply\b/i.test(t)) return null;
   const verbCount = numberOf(verb[1]);
   let rest = verb[2].trim(), topic: string | null = null;
   const tm = /\s+(?:(?:about|regarding|re|asking about|to ask about)(?=\s)|re:|for (?:an?|the|my)(?=\s))\s*(.+)$/i.exec(rest);
@@ -162,48 +165,109 @@ export interface NetworkingDeps {
   model: ModelFn | null; // null: drafting is not switched on here (no model call is made)
   mx?: MxResolver;
   previousAsk?: () => Promise<string | null>; // the person's message before this one (for the signature answer)
+  // R2: whether follow-up reminders are pushed (CAREER_OUTREACH_FOLLOWUPS=on, read by the caller) and the channel one
+  // would reach this person on (null: none linked). Injected, never read from the environment here.
+  reminderPush?: boolean;
+  textingChannel?: () => Promise<string | null>;
 }
 export interface NetworkingResult { reply: string; intent: string; status: string; parts?: string[] }
 
-// Contacts live on the account (the outreach store), not the thread: a list imported in one thread answers in
-// every thread of the same person. The turn runs on the thread state's working copy, so hydrate it from the
-// account first — rows only the thread holds (kept before this, or in the same turn) are kept and join the
-// account — and write the copy back when it no longer matches what the account held. A store without the
-// contacts methods keeps the old thread-only behaviour exactly.
-const contactKeys = (r: ContactRow) => [r.email ? `e:${r.email.toLowerCase()}` : `n:${plain(r.name)}@${plain(r.firm)}`, `${r.file}#${r.row}`];
-async function hydrateContacts(o: NetworkingDeps): Promise<ContactRow[] | null> {
-  if (!o.store.contacts) return null;
-  const account = await o.store.contacts(o.userId).catch(() => null);
-  if (!account) return null;
-  const seen = new Set(account.flatMap(contactKeys));
-  const merged = [...account];
-  for (const r of contactsOf(o.state)) if (!contactKeys(r).some((k) => seen.has(k))) { contactKeys(r).forEach((k) => seen.add(k)); merged.push(r); }
-  o.state.contacts = merged.slice(-MAX_CONTACTS);
-  return account;
+// Contacts live on the account (the outreach store), not the thread (architect ruling R1, 2026-10-27): a list imported
+// in one thread answers in every thread of the same person. The turn runs on the thread state's working copy:
+//   hydrate  the account's rows, plus rows only this thread holds (kept before accounts held contacts) — except a person
+//            the person told Trainee to forget (the record's `forgotten`): a stale thread copy never brings one back;
+//   persist  what this turn changed, as a delta, onto the account record as it stands now (compare-and-set on its
+//            version, re-read and re-applied if another thread wrote first): rows added or changed are written, rows
+//            removed are deleted and their person remembered as forgotten; a person added again on purpose (a new import
+//            that has them) is no longer forgotten. Nothing is written when the account's privacy epoch moved during
+//            the turn (an erase ran): a turn that started before an erase never writes contacts back after it.
+// A store without the record methods keeps the old thread-only behaviour exactly.
+const rowKey = (r: ContactRow) => `${r.file}#${r.row}`;
+// Who a row is: the address, else the name at the firm. What "forgotten" remembers, so another list's row of the same
+// person can't bring them back either.
+export const personKey = (r: ContactRow) => (r.email ? `e:${r.email.trim().toLowerCase()}` : `n:${plain(r.name)}@${plain(r.firm)}`);
+interface Hydrated { start: Map<string, ContactRow>; account: Map<string, string>; epoch: number | null }
+async function hydrateContacts(o: NetworkingDeps): Promise<Hydrated | null> {
+  if (!o.store.contactsRecord || !o.store.saveContactsRecord) return null;
+  const [rec, epoch] = await Promise.all([o.store.contactsRecord(o.userId).catch(() => null), o.store.accountEpoch ? o.store.accountEpoch(o.userId).catch(() => null) : Promise.resolve(0)]);
+  if (!rec || epoch === null) return null;
+  const forgotten = new Set(rec.forgotten);
+  const merged = new Map<string, ContactRow>();
+  for (const r of rec.items) if (r && typeof r.file === "string") merged.set(rowKey(r), r);
+  const known = new Set(rec.items.map(personKey));
+  // A thread-only row joins unless the account has that row or that person already, or the person was forgotten.
+  for (const r of contactsOf(o.state)) if (!merged.has(rowKey(r)) && !known.has(personKey(r)) && !forgotten.has(personKey(r))) { known.add(personKey(r)); merged.set(rowKey(r), r); }
+  const rows = [...merged.values()].slice(-MAX_CONTACTS);
+  o.state.contacts = rows;
+  return { start: new Map(rows.map((r) => [rowKey(r), r])), account: new Map(rec.items.map((r) => [rowKey(r), JSON.stringify(r)])), epoch };
 }
-async function persistContacts(o: NetworkingDeps, account: ContactRow[] | null): Promise<void> {
-  if (!account || !o.store.saveContacts) return;
-  const now = contactsOf(o.state);
-  if (JSON.stringify(now) !== JSON.stringify(account)) await o.store.saveContacts(o.userId, now).catch(() => {});
+async function persistContacts(o: NetworkingDeps, h: Hydrated | null): Promise<void> {
+  if (!h) return;
+  const end = contactsOf(o.state), endKeys = new Set(end.map(rowKey)), endPeople = new Set(end.map(personKey));
+  const upserts = end.filter((r) => h.account.get(rowKey(r)) !== JSON.stringify(r));
+  const removed = [...h.start.keys()].filter((k) => !endKeys.has(k));
+  const forget = new Set(removed.map((k) => personKey(h.start.get(k)!)).filter((p) => !endPeople.has(p)));
+  const restored = new Set(upserts.filter((r) => !h.start.has(rowKey(r))).map(personKey));
+  if (!upserts.length && !removed.length) return;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (o.store.accountEpoch && (await o.store.accountEpoch(o.userId).catch(() => null)) !== h.epoch) return;
+    const cur = await o.store.contactsRecord!(o.userId).catch(() => null);
+    if (!cur) return;
+    const drop = new Set([...removed, ...upserts.map(rowKey)]);
+    const items = [...cur.items.filter((r) => !drop.has(rowKey(r)) && !forget.has(personKey(r))), ...upserts].slice(-MAX_CONTACTS);
+    const forgotten = [...new Set([...cur.forgotten.filter((p) => !restored.has(p)), ...forget])];
+    if (await o.store.saveContactsRecord!(o.userId, { items, forgotten }, cur.version).catch(() => false)) return;
+  }
+  console.error("networking: your contacts changed in another conversation four times while saving; this turn's change was not saved to the account");
 }
 
 export async function networkingTurn(o: NetworkingDeps): Promise<NetworkingResult | null> {
-  const account = await hydrateContacts(o);
+  const h = await hydrateContacts(o);
   try {
     return await networkingTurnInner(o);
   } finally {
-    await persistContacts(o, account);
+    await persistContacts(o, h);
   }
+}
+
+// "forget my contacts", "delete my linkedin connections", "remove Maya Chen from my contacts": deleted from the person's
+// contacts in every conversation (the account record; persistContacts remembers each person as forgotten).
+export function forgetAsk(message: string): { all: true } | { linkedin: true } | { name: string } | null {
+  const t = String(message ?? "").replace(/\s+/g, " ").trim().replace(FILLER, "").replace(/[?!.]+$/, "").trim().toLowerCase();
+  if (!/^(?:forget|delete|remove|erase|clear|wipe)\b/.test(t) || t.length > 120) return null;
+  if (/^(?:forget|delete|remove|erase|clear|wipe) (?:all (?:of )?)?(?:my |the )?(?:linked ?in) (?:contacts|connections|export|list)$/.test(t)) return { linkedin: true };
+  if (/^(?:forget|delete|remove|erase|clear|wipe) (?:all (?:of )?)?(?:my |the )?(?:contacts|connections|contact list|contacts list|imported contacts)$/.test(t)) return { all: true };
+  const m = /^(?:forget|delete|remove|erase) ([a-z][a-z.'-]*(?: [a-z][a-z.'-]*){0,2}) from (?:my |the )?(?:contacts|connections|contact list|list)$/.exec(t);
+  return m ? { name: m[1] } : null;
+}
+function forgetTurn(o: NetworkingDeps, a: NonNullable<ReturnType<typeof forgetAsk>>): NetworkingResult {
+  const all = contactsOf(o.state);
+  const linkedin = (r: ContactRow) => /connections/i.test(r.file) || (r as unknown as { linkedin_export?: boolean }).linkedin_export === true;
+  const gone = "all" in a ? all : "linkedin" in a ? all.filter(linkedin)
+    : all.filter((r) => plain(r.name) === plain(a.name) || (!a.name.includes(" ") && plain(r.name).split(" ")[0] === plain(a.name)));
+  const whoIs = (r: ContactRow) => `${plain(r.name)}@${plain(r.firm)}`; // one person: the same name at the same firm, on any list
+  if ("name" in a && new Set(gone.map(whoIs)).size > 1) {
+    return { reply: `More than one ${a.name} is in your contacts: ${[...new Set(gone.map((r) => `${r.name}${r.firm ? ` at ${r.firm}` : ""}`))].join("; ")}. Say the full name. Nothing was deleted.`, intent: FORGET_INTENT, status: "which" };
+  }
+  if (!gone.length) return { reply: "name" in a ? `No one named ${a.name} is in your contacts, so nothing was deleted.` : `There are no ${"linkedin" in a ? "LinkedIn " : ""}contacts on record to delete.`, intent: FORGET_INTENT, status: "nothing" };
+  const drop = new Set(gone.map(rowKey));
+  o.state.contacts = all.filter((r) => !drop.has(rowKey(r)));
+  const people = new Set(gone.map(whoIs)).size;
+  const what = "name" in a ? gone[0].name : `${people} ${"linkedin" in a ? "LinkedIn " : ""}contact${people === 1 ? "" : "s"}`;
+  return { reply: `Deleted ${what} from your contacts, in every conversation. They won't come back unless you send them to me again. Emails already drafted or sent stay on record.`, intent: FORGET_INTENT, status: "forgotten" };
 }
 
 async function networkingTurnInner(o: NetworkingDeps): Promise<NetworkingResult | null> {
   const files = (o.attachments ?? []).slice(0, MAX_FILES);
   const pasted = files.length ? null : pastedCsv(o.message);
   if (files.length || pasted) return await importTurn(o, files, pasted);
+  const fg = forgetAsk(o.message);
+  if (fg) return forgetTurn(o, fg);
   // FAMILY NETWORKING: after the draft: marked sent by the person, replies, follow-up reminders, the list of who they
   // reached out to, a follow-up drafted, and LinkedIn automation refused (career_outreach_track.ts).
   const tracked = await trackTurn({ message: o.message, userId: o.userId, threadId: o.threadId, now: o.now, store: o.store, events: o.events,
     facts: (((o.state.profile as any)?.facts ?? []) as unknown[]), model: o.model,
+    reminderPush: o.reminderPush === true, textingChannel: o.textingChannel,
     contactsWithEmail: (name) => contactsOf(o.state).filter((r) => r.email && plain(r.name).split(" ")[0] === plain(name)).map((r) => `${r.name}${r.firm ? ` at ${r.firm}` : ""}`) });
   if (tracked) return tracked;
   const typed = typedAddress(o.message);

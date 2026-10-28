@@ -81,8 +81,16 @@ Deno.test("F10 who: from their own contacts, one person once; none says so and h
   assertMatch(notThere!.reply, /None of your 8 contacts .* is at Plaid Technologies\. I don't have a people database/);
   // People the router kept from an earlier export count too, with the same checks.
   const older: Record<string, unknown> = { profile: { connections: [{ name: "Robin Old", company: "Stripe", position: "Analyst", email: "robin.old@stripe.example" }] } };
+  // Architect ruling R1 (2026-10-27): contacts are the account's, not the thread's. `older` is another thread of the same
+  // person U, whose account already holds the 4 Stripe contacts imported above; so the answer there is those 4 plus the
+  // router's legacy row, each once (it was 1, the legacy row alone, while contacts were per thread).
   const legacy = await networkingTurn({ message: "who do I know at Stripe", userId: U, threadId: T, now: NOW, state: older, store, model: null });
-  assertMatch(legacy!.reply, /You have 1 contact at Stripe \(from LinkedIn connections \(imported earlier\)\), 1 with an email address:\n- Robin Old, Analyst \(robin\.old@stripe\.example\)/);
+  assertMatch(legacy!.reply, /^You have 5 contacts at Stripe \(from 3 lists\), 5 with an email address:/);
+  assertMatch(legacy!.reply, /\n- Robin Old, Analyst \(robin\.old@stripe\.example\)/);
+  assertEquals((legacy!.reply.match(/Lee Park/g) ?? []).length, 1, legacy!.reply);
+  // A person with no contacts on their account still gets the legacy row alone, exactly as before.
+  const alone = await networkingTurn({ message: "who do I know at Stripe", userId: "u-legacy-only", threadId: "t-legacy", now: NOW, state: { profile: structuredClone(older.profile) }, store, model: null });
+  assertMatch(alone!.reply, /You have 1 contact at Stripe \(from LinkedIn connections \(imported earlier\)\), 1 with an email address:\n- Robin Old, Analyst \(robin\.old@stripe\.example\)/);
 });
 
 Deno.test("F10 draft: onto the outreach batch; one approval per exact message; held and failed ones counted with reasons", async () => {

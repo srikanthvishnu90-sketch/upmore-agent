@@ -59,22 +59,50 @@ export interface OutreachStore {
   // FAMILY NETWORKING (2026-10-26): every draft of the person's, newest first (who they reached out to and where each
   // stands), and their follow-up reminders (career_watch_kv 'career:outreach:followups', erased with the account).
   history?(userId: string, limit?: number): Promise<OutreachDraft[]>;
+  // Exactly these drafts of the person's, by id (the primary key): the bounded read the reminder run and the sending rail use.
+  drafts?(userId: string, ids: string[]): Promise<OutreachDraft[]>;
   followups?(userId: string): Promise<Followup[]>;
   saveFollowups?(userId: string, items: Followup[]): Promise<void>;
   allFollowups?(limit: number): Promise<{ user_id: string; items: Followup[] }[]>;
+  // Scale (20261027160000): up to `batch` people with a reminder due at `now`, oldest due first, each leased for leaseMs so
+  // concurrent runs claim disjoint people; saveFollowups releases the lease. `batch` sizes one call, never caps the work.
+  claimDueFollowups?(now: number, batch: number, leaseMs: number): Promise<{ user_id: string; items: Followup[] }[]>;
   contacts?(userId: string): Promise<ContactRow[]>; // the person's contacts: one list per account, read by every thread
   saveContacts?(userId: string, rows: ContactRow[]): Promise<void>;
+  // The same list with what makes the account copy safe to merge into from many threads: `forgotten` (the identity key of
+  // every contact the person deleted: a stale thread copy can never put one back) and `version` (0 = no record yet).
+  // saveContactsRecord writes only if the record is still at `expect` (compare-and-set); false means another thread wrote
+  // first, and the caller re-reads and merges again. accountEpoch is the account's privacy epoch ('career:account'): a
+  // turn that started before an erase never writes contacts back after it.
+  contactsRecord?(userId: string): Promise<ContactsRecord>;
+  saveContactsRecord?(userId: string, rec: { items: ContactRow[]; forgotten: string[] }, expect: number): Promise<boolean>;
+  accountEpoch?(userId: string): Promise<number>;
 }
+export interface ContactsRecord { items: ContactRow[]; forgotten: string[]; version: number }
 // One follow-up reminder: on the draft the person sent (from Trainee or themselves), due on a day, fired at most once.
 export interface Followup {
   draft_id: string; name: string; firm: string; email: string; subject: string;
   sent_at: string; due_at: string; set_at: string; fired_at: string | null; asked: boolean;
 }
 export const FOLLOWUP_DAYS = 7, FOLLOWUP_KEY = "career:outreach:followups";
+// The stored value: every reminder still waiting is kept (no volume cap); fired ones are history, the newest 200 kept.
+// next_due_at: the earliest waiting due time, what the leased claim reads.
+export function followupValue(items: Followup[]): { items: Followup[]; next_due_at: string | null } {
+  const waiting = items.filter((f) => !f.fired_at), fired = items.filter((f) => f.fired_at).slice(-200);
+  const next = waiting.map((f) => new Date(Date.parse(f.due_at)).toISOString()).sort()[0] ?? null;
+  return { items: [...fired, ...waiting], next_due_at: next };
+}
 // The person's contacts: ONE list per account, on the same footing as the follow-up reminders above (a
 // career_watch_kv row, erased with the account). Contacts used to live only in the thread's state while
 // every outreach record was per-account, so a list imported in one thread was invisible in another.
 export const CONTACTS_KEY = "career:contacts";
+// The stored value as a record: a missing or pre-version row reads as version 0 with what it holds.
+export function recordOf(value: any, _exists = true): ContactsRecord {
+  const items = Array.isArray(value?.items) ? value.items : [];
+  const forgotten = Array.isArray(value?.forgotten) ? value.forgotten.map(String) : [];
+  const v = Number(value?.version);
+  return { items, forgotten, version: Number.isSafeInteger(v) && v > 0 ? v : 0 };
+}
 
 export const OUTREACH_INTENT = "career_outreach_batch";
 export const LAPSE_NOTE = "Any not sent within 7 days of your approval lapse unsent; when you next ask I'll say how many, and you can approve them again.";
@@ -383,6 +411,33 @@ export function parseOutreachReply(text: string): OutreachReply | null {
   return null;
 }
 
+// D-MN-2 (owner, 2026-10-27 19:48 CDT): a yes to the batch shown approves exactly that batch, each draft bound to its own
+// hash; "yes except 3" / "only 1-10" approve what is stated; a hedged answer ("maybe", "yes but not Acme", "yes?") approves
+// nothing. Read only while the batch is the thread's last word (outreachTurn), never by parseOutreachReply, so a bare
+// "yes" anywhere else stays someone else's (WO-033/P1).
+export function parseBatchYes(text: string): Extract<OutreachReply, { kind: "send" | "bad" }> | null {
+  const raw = String(text ?? "").trim();
+  if (raw.length > 80) return null;
+  // A question ("yes?", "send them all?") never matches below: only . and ! are stripped from the end.
+  const t = raw.toLowerCase().replace(/[’]/g, "'").replace(/[.!]+$/, "").replace(/\s+/g, " ").trim();
+  const yes = /^(?:yes|yep|yeah|yup|ok|okay|sure|approve(?:d)?|go ahead|do it|lgtm|looks good|sounds good|send them(?: all)?|send all of them)(?:[,!.]? (?:send (?:them|all(?: of them)?|them all)|go ahead|please|all of them|all|do it|approve(?: them| all)?))*(?:[,;]? (?:except|but not|minus|without|not) (.+))?$/.exec(t);
+  if (yes) {
+    if (yes[1] === undefined) return { kind: "send", all: true, ns: [], except: [] };
+    const nums = parseNumbers(yes[1].replace(/\b(?:numbers?|drafts?)\b|#/g, " ").trim());
+    if (!nums) return { kind: "bad", why: `say which to leave out by number, e.g. "yes except 3"` };
+    if (!nums.ok) return { kind: "bad", why: nums.why };
+    return { kind: "send", all: true, ns: [], except: nums.ns };
+  }
+  const only = /^(?:(?:yes|ok|okay)[,!.]? )?(?:only|just)(?: send| approve)?(?: numbers?| drafts?)? (.+)$/.exec(t);
+  if (only) {
+    const nums = parseNumbers(only[1]);
+    if (!nums) return { kind: "bad", why: `say which by number, e.g. "only 1-10"` };
+    if (!nums.ok) return { kind: "bad", why: nums.why };
+    return { kind: "send", all: false, ns: nums.ns, except: [] };
+  }
+  return null;
+}
+
 // ------------------------------------------------------------------------------------------------ caps
 export function capFor(p: { own: number | null | undefined; firstSentAt: string | null; now: number }): { cap: number; warmup: boolean } {
   const own = Number.isInteger(p.own) && (p.own as number) >= 1 ? Math.min(p.own as number, MAX_DAILY) : DEFAULT_DAILY;
@@ -432,8 +487,14 @@ const listOf = (ds: OutreachDraft[]) => ds.map((d) => `${d.n} ${d.recipient.name
 export async function outreachTurn(o: {
   message: string; userId: string; threadId: string; now: number; store: OutreachStore; events?: EventStore | null;
   redraft?: (d: OutreachDraft) => Promise<Drafted>; gmailConnected?: () => Promise<boolean>; connectAsk?: string; tz?: string;
-}): Promise<{ reply: string; status: string; intent: string; parts?: string[] } | null> {
-  const r = parseOutreachReply(o.message);
+  // D-MN-1/2: called once per answer with exactly the drafts this answer approved, each with the hash it was approved
+  // against (career_outreach_drafts.approved_hash). The Gmail sending rail (queueApprovedOutreach, built separately)
+  // plugs in here. A failure is logged and changes nothing that was approved: the scheduled send run re-checks every
+  // draft's hash at claim (admitSend "changed").
+  onApproved?: (userId: string, items: ApprovedItem[]) => Promise<void>;
+}): Promise<{ reply: string; status: string; intent: string; parts?: string[]; approved?: ApprovedItem[] } | null> {
+  // A batch yes (D-MN-2) counts only while the batch is the thread's last word: the check just below, as for "send all".
+  const r: OutreachReply | null = parseOutreachReply(o.message) ?? parseBatchYes(o.message);
   if (!r) return null;
   // A take-back ("cancel 1") counts at any time, but only for a draft of the newest batch still waiting or approved.
   const anytime = r.kind === "skip" && !!r.anytime;
@@ -518,6 +579,8 @@ export async function outreachTurn(o: {
       await recordOutreach(o.events, o.userId, "outreach_approved", d, o.now);
     } else not.push(`${n} (changed since it was shown)`);
   }
+  const items: ApprovedItem[] = approved.map((d) => ({ draftId: d.id, approvalHash: d.hash, n: d.n, batchId: d.batch_id, to: d.recipient.email }));
+  if (items.length && o.onApproved) await o.onApproved(o.userId, items).catch((e) => console.error("outreach: hand-off of approved drafts:", e instanceof Error ? e.message : e));
   const left = numbers.filter((n) => !want.includes(n) && byN.get(n)!.status === "shown");
   const prefs = await o.store.prefs(o.userId).catch(() => ({ daily_cap: null, signature: null }));
   const lines = [approved.length ? `Approved ${approved.length}, exactly as shown: ${listOf(approved)}.` : "Nothing new was approved."];
@@ -531,7 +594,16 @@ export async function outreachTurn(o: {
     // (gmail.send is deferred), so the reply says nothing went, and gives the ways to send it themselves, exactly as approved.
     else lines.push(`Nothing has gone out. Nothing can go out until your Gmail is connected for sending, and sending from your own address isn't available in Trainee yet.\n\n${sendYourselfText(approved)}${o.connectAsk ? `\n\n${o.connectAsk}` : ""}`);
   }
-  return { reply: lines.join(" ").replace(/ \n\n/, "\n\n"), status: approved.length ? "approved" : "none_approved", intent: left.length ? OUTREACH_INTENT : "career_outreach_answer" };
+  return { reply: lines.join(" ").replace(/ \n\n/, "\n\n"), status: approved.length ? "approved" : "none_approved", intent: left.length ? OUTREACH_INTENT : "career_outreach_answer", ...(items.length ? { approved: items } : {}) };
+}
+// One draft an answer approved: what the sending rail needs to queue it (D-MN-2: each bound to its own hash).
+export interface ApprovedItem { draftId: string; approvalHash: string; n: number; batchId: string; to: string }
+// The person's drafts approved and not yet sent, each with the hash it was approved against: the read the sending rail
+// uses to check that a queued {draftId, approvalHash} is still exactly what was approved (status approved, hash unchanged).
+export async function approvedOutreach(store: OutreachStore, userId: string): Promise<(ApprovedItem & { approvedAt: string | null })[]> {
+  const rows = store.history ? await store.history(userId, 500) : await store.latestBatch(userId);
+  return rows.filter((d) => d.status === "approved" && !!d.approved_hash && d.approved_hash === d.hash)
+    .map((d) => ({ draftId: d.id, approvalHash: d.approved_hash!, n: d.n, batchId: d.batch_id, to: d.recipient.email, approvedAt: d.approved_at }));
 }
 
 // ------------------------------------------------------------------------------------------------ sending it yourself
@@ -556,7 +628,7 @@ export function sendYourselfText(ds: Pick<OutreachDraft, "n" | "recipient" | "su
     `To send ${one ? "it" : "them"} yourself now, from your own email:`,
     `1. Copy ${one ? `draft ${ds[0].n}` : `drafts ${numbersText(ds.map((d) => d.n))}`} exactly as shown above into a new email${one ? ` to ${messageOf(ds[0]).to}` : ""}.`,
     `2. Or open ${one ? "it" : "each one"} ready to send in your mail app${one ? ":" : ""}\n${links.join("\n")}`,
-    `3. Once you've sent ${one ? "it" : "them"}, say "sent ${numbersText(ds.map((d) => d.n))}" and I'll mark ${one ? "it" : "them"} sent and remind you to follow up in ${FOLLOWUP_DAYS} days if there's no reply. Until then ${one ? "it stays" : "they stay"} approved for 7 days, so tell me once you've sent ${one ? "it" : "them"} and Trainee will never send ${one ? "it" : "them"} a second time.`,
+    `3. Once you've sent ${one ? "it" : "them"}, say "sent ${numbersText(ds.map((d) => d.n))}" and I'll mark ${one ? "it" : "them"} sent and set a follow-up for ${FOLLOWUP_DAYS} days later if there's no reply. Until then ${one ? "it stays" : "they stay"} approved for 7 days, so tell me once you've sent ${one ? "it" : "them"} and Trainee will never send ${one ? "it" : "them"} a second time.`,
   ].join("\n");
 }
 
@@ -661,10 +733,11 @@ export async function runOutreachReplies(o: { store: OutreachStore; read: ReplyR
 }
 
 // ------------------------------------------------------------------------------------------------ stores
-export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void; setQuiet(userId: string, on: boolean): void } {
+export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void; setQuiet(userId: string, on: boolean): void; setEpoch(userId: string, epoch: number): void } {
   const drafts: (OutreachDraft & { user_id: string })[] = [], dnc: Record<string, Set<string>> = {}, prefs: Record<string, Prefs> = {}, intents: Record<string, string | null> = {};
-  const follow: Record<string, Followup[]> = {};
+  const follow: Record<string, Followup[]> = {}, leases: Record<string, number> = {};
   const contactsByUser: Record<string, ContactRow[]> = {};
+  const forgottenByUser: Record<string, string[]> = {}, versionByUser: Record<string, number> = {}, epochByUser: Record<string, number> = {};
   const quiet = new Set<string>(); // paused, opted out or erased (career_user_quiet in the database)
   let seq = 0;
   const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -718,11 +791,28 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
     },
     async lastAssistantIntent(threadId: string) { return intents[threadId] ?? null; },
     async history(u: string, limit = 200) { return copy(drafts.filter((d) => d.user_id === u).sort((a, z) => String(z.created_at).localeCompare(String(a.created_at)) || z.n - a.n).slice(0, limit)); },
+    async drafts(u: string, ids: string[]) { const want = new Set(ids); return copy(drafts.filter((d) => d.user_id === u && want.has(d.id))); },
     async followups(u: string) { return copy(follow[u] ?? []); },
-    async saveFollowups(u: string, items: Followup[]) { follow[u] = copy(items); },
+    async saveFollowups(u: string, items: Followup[]) { follow[u] = copy(followupValue(items).items); delete leases[u]; },
     async allFollowups(limit: number) { return copy(Object.entries(follow).filter(([, v]) => v.length).slice(0, limit).map(([user_id, items]) => ({ user_id, items }))); },
+    async claimDueFollowups(now: number, batch: number, leaseMs: number) {
+      const due = Object.entries(follow).map(([user_id, items]) => ({ user_id, items, next: followupValue(items).next_due_at }))
+        .filter((x) => x.next && Date.parse(x.next) <= now && !((leases[x.user_id] ?? 0) > now))
+        .sort((a, z) => a.next!.localeCompare(z.next!) || a.user_id.localeCompare(z.user_id)).slice(0, Math.max(1, batch));
+      for (const x of due) leases[x.user_id] = now + leaseMs;
+      return copy(due.map(({ user_id, items }) => ({ user_id, items })));
+    },
     async contacts(u: string) { return copy(contactsByUser[u] ?? []); },
     async saveContacts(u: string, rows: ContactRow[]) { contactsByUser[u] = copy(rows.slice(-MAX_CONTACTS)); },
+    async contactsRecord(u: string) { return { items: copy(contactsByUser[u] ?? []), forgotten: [...(forgottenByUser[u] ?? [])], version: versionByUser[u] ?? 0 }; },
+    async saveContactsRecord(u: string, rec: { items: ContactRow[]; forgotten: string[] }, expect: number) {
+      if ((versionByUser[u] ?? 0) !== expect) return false;
+      contactsByUser[u] = copy(rec.items.slice(-MAX_CONTACTS)); forgottenByUser[u] = [...rec.forgotten]; versionByUser[u] = expect + 1;
+      return true;
+    },
+    async accountEpoch(u: string) { return epochByUser[u] ?? 0; },
+    // Test seams: the account's privacy epoch (an erase bumps it), and a write by "another thread" between a read and a save.
+    setEpoch(u: string, e: number) { epochByUser[u] = e; },
     async lapsed(u: string) { return copy(drafts.filter((d) => d.user_id === u && d.status === "skipped" && d.result === "expired").sort((a, z) => String(a.approved_at ?? a.created_at).localeCompare(String(z.approved_at ?? z.created_at)))); },
     setIntent(threadId: string, intent: string | null) { intents[threadId] = intent; },
     setQuiet(userId: string, on: boolean) { if (on) quiet.add(userId); else quiet.delete(userId); },
@@ -765,16 +855,29 @@ export function supabaseOutreachStore(admin: any): OutreachStore {
     async history(u, limit = 200) {
       return (must(await admin.from("career_outreach_drafts").select(COLS).eq("user_id", u).order("created_at", { ascending: false }).order("n", { ascending: false }).limit(limit), "read your outreach") ?? []).map(fromRow);
     },
+    async drafts(u, ids) {
+      if (!ids.length) return [];
+      const out: OutreachDraft[] = [];
+      for (let k = 0; k < ids.length; k += 100) {
+        out.push(...(must(await admin.from("career_outreach_drafts").select(COLS).eq("user_id", u).in("id", ids.slice(k, k + 100)), "read your outreach drafts") ?? []).map(fromRow));
+      }
+      return out;
+    },
     async followups(u) {
       const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", FOLLOWUP_KEY).maybeSingle(), "read your follow-up reminders");
       return Array.isArray(r?.value?.items) ? r.value.items : [];
     },
     async saveFollowups(u, items) {
-      must(await admin.from("career_watch_kv").upsert({ user_id: u, key: FOLLOWUP_KEY, value: { items: items.slice(-200) }, updated_at: new Date().toISOString() }, { onConflict: "user_id,key" }), "save your follow-up reminders");
+      // next_due_at is what the leased claim (20261027160000) orders and indexes on; saving releases any lease.
+      must(await admin.from("career_watch_kv").upsert({ user_id: u, key: FOLLOWUP_KEY, value: followupValue(items), updated_at: new Date().toISOString() }, { onConflict: "user_id,key" }), "save your follow-up reminders");
     },
     async allFollowups(limit) {
       const rows = must(await admin.from("career_watch_kv").select("user_id,value").eq("key", FOLLOWUP_KEY).limit(limit), "read follow-up reminders");
       return (rows ?? []).map((x: any) => ({ user_id: x.user_id, items: Array.isArray(x.value?.items) ? x.value.items : [] }));
+    },
+    async claimDueFollowups(now, batch, leaseMs) {
+      const rows = must(await admin.rpc("career_outreach_followups_claim", { p_now: new Date(now).toISOString(), p_batch: batch, p_lease_seconds: Math.max(1, Math.ceil(leaseMs / 1000)) }), "claim due follow-up reminders");
+      return (rows ?? []).map((x: any) => ({ user_id: String(x.user_id), items: Array.isArray(x.value?.items) ? x.value.items : [] }));
     },
     async contacts(u) {
       const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", CONTACTS_KEY).maybeSingle(), "read your contacts");
@@ -782,6 +885,27 @@ export function supabaseOutreachStore(admin: any): OutreachStore {
     },
     async saveContacts(u, rows) {
       must(await admin.from("career_watch_kv").upsert({ user_id: u, key: CONTACTS_KEY, value: { items: rows.slice(-MAX_CONTACTS) }, updated_at: new Date().toISOString() }, { onConflict: "user_id,key" }), "save your contacts");
+    },
+    async contactsRecord(u) {
+      const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", CONTACTS_KEY).maybeSingle(), "read your contacts");
+      return recordOf(r?.value ?? null, !!r);
+    },
+    async saveContactsRecord(u, rec, expect) {
+      const value = { items: rec.items.slice(-MAX_CONTACTS), forgotten: rec.forgotten, version: expect + 1 };
+      const at = new Date().toISOString();
+      // No record yet: insert, and lose to a thread that inserted first. Otherwise: update only the version read.
+      let rows = expect === 0
+        ? must(await admin.from("career_watch_kv").upsert({ user_id: u, key: CONTACTS_KEY, value, updated_at: at }, { onConflict: "user_id,key", ignoreDuplicates: true }).select("user_id"), "save your contacts")
+        : must(await admin.from("career_watch_kv").update({ value, updated_at: at }).eq("user_id", u).eq("key", CONTACTS_KEY).eq("value->>version", String(expect)).select("user_id"), "save your contacts");
+      // A row written before versions (saveContacts) reads as version 0: replace it only while it is still unversioned.
+      if (expect === 0 && !(Array.isArray(rows) && rows.length)) {
+        rows = must(await admin.from("career_watch_kv").update({ value, updated_at: at }).eq("user_id", u).eq("key", CONTACTS_KEY).is("value->version", null).select("user_id"), "save your contacts");
+      }
+      return Array.isArray(rows) && rows.length === 1;
+    },
+    async accountEpoch(u) {
+      const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", "career:account").maybeSingle(), "read your account");
+      return Number(r?.value?.epoch ?? 0) || 0;
     },
     async dnc(u) {
       const rows = must(await admin.from("career_outreach_dnc").select("email_hash").eq("user_id", u).limit(10000), "read the do-not-contact list");

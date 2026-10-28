@@ -1,6 +1,6 @@
 // Instinct scenarios: what every new user does first, and the state readers the judges use.
 // deno-lint-ignore-file no-explicit-any
-import { check, NOT_UNDERSTOOD, notBuilt } from "../judge.ts";
+import { check, NOT_UNDERSTOOD, notBuilt, type Scorecard } from "../judge.ts";
 import type { Workers } from "../ticks.ts";
 import { type Person, resumePdf, resumeText, sha256Hex, type Turn } from "../people.ts";
 import type { World } from "../world.ts";
@@ -146,3 +146,14 @@ export async function requireTable(w: World, rel: string, needs: string) {
   if (!(await w.exists(rel))) notBuilt(`no table public.${rel} in this tree`, needs);
 }
 export const lastTurn = (p: Person): Turn | undefined => p.turns.at(-1);
+
+// One scenario's harness error is recorded on its own card (a FAIL step naming it) and never stops the other scenarios.
+export async function guarded(card: Scorecard, feature: string, what: string, ch: string, f: () => Promise<void>) {
+  try { await f(); } catch (e) {
+    const c = card.cards.at(-1);
+    const target = c && c.feature === feature && c.channel === ch ? c : card.scenario(feature, what, ch).card;
+    const msg = e instanceof Error ? e.message : String(e);
+    target.steps.push({ name: "scenario finished", status: "FAIL", evidence: `the scenario stopped: ${msg}`, ms: 0 });
+    console.log(`    FAIL scenario stopped: ${msg}`);
+  }
+}

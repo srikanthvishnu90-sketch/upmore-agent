@@ -105,6 +105,15 @@ export function employers(initial: Posting[]) {
 
 // The synthetic market: n remote software-engineering internships across the three families, at employers whose names
 // and domains are synthetic (TEST). `domainOf` gives each employer a mail domain for the people provider.
+// Distinct, pronounceable employer names (a company is one employer: names that differ only by a number would be read as
+// one company by any sane normalizer). A module counter keeps every market's names apart.
+const SYL = ["ka", "lo", "mi", "ra", "ve", "zu", "to", "ne", "pi", "so", "da", "fe", "gu", "hi", "jo", "ku", "ly", "mo", "nu", "qi"];
+let named = 0;
+export function employerName(): string {
+  const i = named++;
+  const w = SYL[i % 20] + SYL[Math.floor(i / 20) % 20] + SYL[Math.floor(i / 400) % 20];
+  return `TEST ${w[0].toUpperCase()}${w.slice(1)} Systems`;
+}
 export function market(n: number, o: { captchaAt?: number[]; title?: string; location?: string; tag?: string } = {}): Posting[] {
   const out: Posting[] = [];
   const atsOf: Ats[] = ["greenhouse", "lever", "ashby"];
@@ -112,11 +121,11 @@ export function market(n: number, o: { captchaAt?: number[]; title?: string; loc
     const ats = atsOf[(i - 1) % 3];
     const board = `${o.tag ?? "testco"}${String(i).padStart(3, "0")}`;
     const id = ats === "greenhouse" ? String(4000 + i) : crypto.randomUUID(); // Lever and Ashby job ids are UUIDs
-    const company = `TEST ${o.tag ? `${o.tag[0].toUpperCase()}${o.tag.slice(1)} ` : ""}Company ${String(i).padStart(3, "0")}`;
+    const company = employerName();
     const publicUrl = ats === "greenhouse" ? `https://boards.greenhouse.io/${board}/jobs/${id}` : ats === "lever" ? `https://jobs.lever.co/${board}/${id}` : `https://jobs.ashbyhq.com/${board}/${id}`;
     out.push({ key: `${ats}:${board}:${id}`, ats, board, id, company, title: o.title ?? "Software Engineering Intern", location: o.location ?? "Remote (US)", publicUrl,
       ...((o.captchaAt ?? []).includes(i) ? { captcha: "later" as const } : {}) });
   }
   return out;
 }
-export const domainOf = (company: string) => `${company.toLowerCase().replace(/^test /, "").replace(/[^a-z0-9]/g, "")}.example`;
+export const domainOf = (company: string) => `${company.toLowerCase().replace(/^test /, "").replace(/ systems$/, "").replace(/[^a-z0-9]/g, "")}.example`;

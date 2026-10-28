@@ -8,7 +8,7 @@ import { type Channel, Person, persona, resumeText } from "../people.ts";
 import { market, type Posting } from "../employers.ts";
 import type { Workers } from "../ticks.ts";
 import type { World } from "../world.ts";
-import { answerQuestions, delivered, onboard, prepareAll, type Run, sayOrRetry, st } from "./common.ts";
+import { answerQuestions, delivered, guarded, onboard, prepareAll, type Run, sayOrRetry, st } from "./common.ts";
 
 interface Cfg { applyN: number; channelN: number; channels: Channel[]; groups: Set<string> }
 const CITY: Record<Channel, { tag: string; location: string; ask: string; plain: string }> = {
@@ -23,14 +23,18 @@ export async function applyScenarios(w: World, ws: Workers, card: Scorecard, cfg
   let n = 100;
   for (const ch of on("gold") ? cfg.channels : []) {
     console.log(`\n== MASS APPLY on ${ch}`);
-    await massApply(w, ws, card, ch, ++n, ch === "web" ? cfg.applyN : cfg.channelN);
+    const k = ++n;
+    await guarded(card, "apply", "mass apply", ch, () => massApply(w, ws, card, ch, k, ch === "web" ? cfg.applyN : cfg.channelN));
   }
   console.log(`\n== MASS APPLY variants`);
-  for (const [i, v] of (on("variants") ? ["yes except 3", "no", "wait", "maybe"] as const : []).entries()) await variant(w, ws, card, v, cfg.channels.includes("telegram") && i === 0 ? "telegram" : "web", 200 + i);
+  for (const [i, v] of (on("variants") ? ["yes except 3", "no", "wait", "maybe"] as const : []).entries()) {
+    const ch = cfg.channels.includes("telegram") && i === 0 ? "telegram" : "web";
+    await guarded(card, "apply", `card answer "${v}"`, ch, () => variant(w, ws, card, v, ch, 200 + i));
+  }
   console.log(`\n== MASS APPLY with no resume`);
-  for (const ch of on("noresume") ? cfg.channels.filter((c) => c === "web" || c === "telegram") : []) await noResume(w, ws, card, ch, 300 + (ch === "web" ? 0 : 1));
+  for (const ch of on("noresume") ? cfg.channels.filter((c) => c === "web" || c === "telegram") : []) await guarded(card, "apply", "no resume", ch, () => noResume(w, ws, card, ch, 300 + (ch === "web" ? 0 : 1)));
   console.log(`\n== MASS APPLY adversarial`);
-  if (on("adversarial")) await adversarial(w, ws, card, 400);
+  if (on("adversarial")) await guarded(card, "apply", "adversarial", "web", () => adversarial(w, ws, card, 400));
 }
 
 // ------------------------------------------------------------------------------------------------ the gold path
@@ -117,7 +121,7 @@ async function massApply(w: World, ws: Workers, card: Scorecard, ch: Channel, n:
   });
   // What a person does next when a yes did not take, or more remain: what the reply says (reply to the card, show the next
   // card). It keeps the later steps reachable on a tree without D-MS-1/D-MS-2; the steps above already failed on it.
-  {
+  if (!run.blocked()) {
     const followed: string[] = [];
     for (let round = 0; round < 15; round++) {
       const open = (await st(w).cards(u())).filter((x: any) => x.state === "open");

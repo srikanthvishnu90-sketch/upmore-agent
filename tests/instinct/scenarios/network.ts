@@ -8,11 +8,11 @@
 // deno-lint-ignore-file no-explicit-any
 import { check, mentions, notBuilt, plainWords, type Scorecard } from "../judge.ts";
 import { type Channel, Person, persona } from "../people.ts";
-import { domainOf } from "../employers.ts";
+import { domainOf, employerName } from "../employers.ts";
 import type { ProviderPerson } from "../fakes.ts";
 import { advanceClock, type Workers } from "../ticks.ts";
 import { ROOT, SECRETS, type World } from "../world.ts";
-import { onboard, type Run } from "./common.ts";
+import { guarded, onboard, type Run } from "./common.ts";
 
 interface Cfg { emails: number; channels: Channel[]; groups: Set<string> }
 const DAY = 86400_000;
@@ -52,16 +52,16 @@ function linkedinExport(companies: string[]): string {
 export async function networkScenarios(w: World, ws: Workers, card: Scorecard, cfg: Cfg) {
   const on = (g: string) => !cfg.groups.size || cfg.groups.has(g) || cfg.groups.has("network");
   console.log(`\n== NETWORKING on web`);
-  await networking(w, ws, card, "web", 500, cfg.emails, on);
+  await guarded(card, "network", "networking", "web", () => networking(w, ws, card, "web", 500, cfg.emails, on));
   for (const ch of cfg.channels.filter((c) => c !== "web")) {
     console.log(`\n== NETWORKING on ${ch}`);
-    await networking(w, ws, card, ch, 510 + cfg.channels.indexOf(ch), 5, (g) => ["connect", "find", "email"].includes(g) && on(g));
+    await guarded(card, "network", "networking", ch, () => networking(w, ws, card, ch, 510 + cfg.channels.indexOf(ch), 5, (g) => ["connect", "find", "email"].includes(g) && on(g)));
   }
 }
 
 async function networking(w: World, ws: Workers, card: Scorecard, ch: Channel, n: number, howMany: number, on: (g: string) => boolean) {
   const run = card.scenario("network", `networking: email ${howMany} engineers at companies applied to`, ch);
-  const companies = [1, 2, 3].map((i) => `TEST Net${n} Company ${String(i).padStart(3, "0")}`);
+  const companies = [1, 2, 3].map(() => employerName());
   const domains = companies.map(domainOf);
   const dir = directory(companies);
   for (const d of domains) w.fakes.provider.directory.set(d, dir.filter((x) => x.domain === d));
@@ -85,12 +85,15 @@ async function networking(w: World, ws: Workers, card: Scorecard, ch: Channel, n
 
   // ---------------------------------------------------------------------------------------------- connect
   if (on("connect")) {
-    await run.step("asks to send from their Gmail; told how, then connects it (the real OAuth function, Google faked)", async () => {
+    await run.step("asks in chat how to send from their Gmail and is given the way to connect it", async () => {
       const t = await p.say("can you send the emails from my gmail? how do i connect it");
-      check(/https?:\/\/\S+/.test(t.text), `no link to connect Gmail in the reply: "${t.text.slice(0, 200)}"`);
+      check(/https?:\/\/\S+connect\S*|connect\/gmail/i.test(t.text), `no way to connect Gmail in the reply: "${t.text.slice(0, 200)}"`, "answer \"how do I connect Gmail\" with the connect link, on every channel");
+      return `told: "${t.text.split("\n")[0].slice(0, 120)}"`;
+    });
+    await run.step("connects Gmail on the app's connect page (the real gmail-oauth function; Google's consent faked)", async () => {
       // The app's connect page: the person's session starts the career consent; they sign in at Google and allow it.
-      const tok = p.token ?? (await w.signUpWeb(`${account}`)).token;
-      if (!p.token) { w.users[tok] = { id: u(), email: account }; }
+      let tok = p.token;
+      if (!tok) { tok = `tok-${u()}`; w.users[tok] = { id: u(), email: account }; p.token = tok; }
       const start = await w.call("gmail-oauth", { method: "POST", headers: { Authorization: `Bearer ${tok}`, "content-type": "application/json" }, body: JSON.stringify({ action: "start_career" }) });
       check(start.status === 200 && typeof start.body?.url === "string", `start_career answered ${start.status}: ${JSON.stringify(start.body).slice(0, 200)}`);
       const scopes = new URL(start.body.url).searchParams.get("scope") ?? "";
@@ -164,11 +167,24 @@ async function networking(w: World, ws: Workers, card: Scorecard, ch: Channel, n
   let shown: any[] = [];
   if (on("email")) {
     await run.step(`"email ${howMany} of them": ${howMany} personalized drafts, verified addresses, only confirmed facts, nothing sent`, async () => {
-      let t = await p.say(`email ${howMany} of them, ask if they'd be up for a quick chat about their team`);
-      if (/how do you sign/i.test(t.text)) t = await p.say(`${p.p.first} ${p.p.last}\n${p.p.school} CS '27`);
+      const sign = async (t0: any) => (/how do you sign/i.test(t0.text) ? await p.say(`${p.p.first} ${p.p.last}\n${p.p.school} CS '27`) : t0);
+      let t = await sign(await p.say(`email ${howMany} of them, ask if they'd be up for a quick chat about their team`));
+      const firstAsk = t;
+      if (!(await drafts()).length) {
+        // What a person tries next: naming the companies, the way the product's own examples do.
+        const tried: string[] = [];
+        for (const c of companies) {
+          for (const ask of [`email the engineers at ${c} about a quick chat`, `draft intros to my contacts at ${c}`]) {
+            const before = (await drafts()).length;
+            t = await sign(await p.say(ask));
+            tried.push(`"${ask}" -> ${(await drafts()).length - before} drafts`);
+            if ((await drafts()).length > before) break;
+          }
+        }
+        run.note(`${ch}: "email ${howMany} of them" drafted nothing ("${firstAsk.text.split("\n")[0].slice(0, 100)}"); then ${tried.join("; ")}`);
+      }
       const all = await drafts();
-      const batch = all.length ? all.filter((d: any) => d.batch_id === all.at(-1).batch_id) : [];
-      shown = batch.filter((d: any) => d.status === "shown");
+      shown = all.filter((d: any) => d.status === "shown");
       check(mine().length === 0, "mail was sent before any approval");
       check(shown.length > 0, `no drafts; the reply: "${t.text.slice(0, 240)}"`, "draft outreach to the people found");
       const bad = shown.filter((d: any) => !verified.has(d.recipient_email) && !exportEmails.has(d.recipient_email));
@@ -178,8 +194,8 @@ async function networking(w: World, ws: Workers, card: Scorecard, ch: Channel, n
       const invented = shown.filter((d: any) => /Google/.test(d.body));
       check(!invented.length, `a draft claims something on nobody's record: ${invented[0]?.body?.slice(0, 120)}`);
       check(shown.every((d: any) => /stop/i.test(d.footer)), "a draft without the opt-out line");
-      check(shown.length >= howMany, `${shown.length} drafted of ${howMany} asked ("${t.text.split("\n")[0].slice(0, 120)}")`, `draft all ${howMany} in one batch (no per-batch cap: NO LIMITS)`);
-      check(mentions(t.text, shown.length), `the reply does not say ${shown.length}`);
+      check(shown.length >= howMany && firstAsk === t, `${shown.length} drafted of ${howMany} asked ("${firstAsk.text.split("\n")[0].slice(0, 120)}")`, `draft all ${howMany} people found, from "email ${howMany} of them", in one batch (NO LIMITS)`);
+      check(mentions(t.text, shown.filter((d: any) => d.batch_id === shown.at(-1).batch_id).length), `the reply does not say how many it drafted`);
       return `${shown.length} drafts, each to a verified address, only confirmed facts, opt-out line on each`;
     });
     await run.step("one yes approves exactly the batch shown, each bound to its exact recipient + subject + body", async () => {

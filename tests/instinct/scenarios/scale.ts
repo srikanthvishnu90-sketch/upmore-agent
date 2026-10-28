@@ -19,7 +19,7 @@ import { messageOf, payloadHash, supabaseOutreachStore } from "../../../supabase
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { advanceClock, type Workers } from "../ticks.ts";
 import { SERVICE_KEY, SUPABASE_URL, type World } from "../world.ts";
-import { st } from "./common.ts";
+import { guarded, st } from "./common.ts";
 
 interface Cfg { scaleUsers: number; scaleItems: number; scaleConcurrency: number; groups: Set<string> }
 const pct = (xs: number[], p: number) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.min(s.length - 1, Math.floor(p * s.length))] : 0; };
@@ -33,8 +33,8 @@ const RESUME_FILE = new TextEncoder().encode("%PDF-1.4\n% TEST instinct scale re
 
 export async function scaleScenarios(w: World, ws: Workers, card: Scorecard, cfg: Cfg) {
   const on = (g: string) => !cfg.groups.size || cfg.groups.has(g) || cfg.groups.has("scale");
-  if (on("apply-scale")) { console.log(`\n== SCALE apply: ${cfg.scaleUsers} people x ${cfg.scaleItems}`); await applyScale(w, ws, card, cfg); }
-  if (on("outreach-scale")) { console.log(`\n== SCALE outreach: ${cfg.scaleUsers} people`); await outreachScale(w, card, cfg); }
+  if (on("apply-scale")) { console.log(`\n== SCALE apply: ${cfg.scaleUsers} people x ${cfg.scaleItems}`); await guarded(card, "scale", "apply", "web", () => applyScale(w, ws, card, cfg)); }
+  if (on("outreach-scale")) { console.log(`\n== SCALE outreach: ${cfg.scaleUsers} people`); await guarded(card, "scale", "outreach", "web", () => outreachScale(w, card, cfg)); }
 }
 
 async function applyScale(w: World, ws: Workers, card: Scorecard, cfg: Cfg) {

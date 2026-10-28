@@ -2699,6 +2699,14 @@ const CareerRouter = (() => {
     if (/\b(delete|erase|forget|wipe|remove)\b[^.]*\b(everything|all of it|all my|my (data|info|information|profile|record|details))\b/.test(t) || /^(delete|erase|forget) (everything|it all)[.!]*$/.test(t)) {
       const wmir = threadMirrorForWrite(ctx);
       if (wmir) wmir.eraseConfirm = { at: new Date(nowOf(ctx)).toISOString() };
+      // PRODUCT AUDIT 2026-10-28 (owner #2): "how do I stop messages or delete my data?" asks two things; both are answered.
+      // Stopping is the pause (no alerts, nothing new started); deleting still waits for the exact yes below.
+      if (/\b(stop|unsubscribe|opt ?out|pause|quiet|no more)\b[^.]*\b(messages?|texts?|alerts?|notifications?|texting|contact)\b|\bstop (?:messaging|texting)\b/.test(t)) {
+        return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({
+          headline: "To stop messages: text \"stop\" — I pause, send no alerts and start nothing new until you text \"resume career work\".",
+          facts: ["To delete your data: say \"yes, erase it\" and I remove your saved career facts and profile, job watches and alerts, application tracker, and the plans and drafts I act on.", "Nothing is deleted until you send that exact yes."],
+          nextStep: "Which would you like?" }) };
+      }
       return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({ headline: "Before anything is deleted — here is exactly what an erase removes.", facts: ["It goes: your saved career facts and profile, your job watches and alerts, your application tracker, and the standing plans, drafts and conversation state I act on.", "It does not rewrite the chat transcript or audit records — that text is excluded from your active context instead, the same line the product's own erase draws."], nextStep: "Say “yes, erase it” if that is what you want. Nothing is deleted until that yes — and a yes to anything else does not count." }) };
     }
     return null;
@@ -6502,7 +6510,7 @@ const CareerRouter = (() => {
         try { sum0 = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum0 = null; }
         return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } }, sum0 ? { summary: sum0 } : { summary: { total: 0 } });
       }
-      const reply = compose({ headline: "Your tracker holds no applications on record in this session.", facts: ["When you apply through me, every application lands here with its stage, and a stage is spoken only from the record.", "Applications you handled yourself count too — tell me about one and I will add it."], nextStep: "Tell me about any application already out under your own name, and I will log it first." });
+      const reply = compose({ headline: "Your application tracker is empty — no applications on record yet.", facts: ["Once you apply through me, each one shows up here with where it stands. If you applied somewhere on your own, tell me and I'll add it."], nextStep: "Say \"find jobs\" and I'll start a search." }); // PRODUCT AUDIT 2026-10-28: plain words (no question, so a bare \"yes\" never reads as an answer to one)
       let sum = null;
       try { sum = Track && Track.statusSummary ? Track.statusSummary(store) : null; } catch { sum = null; }
       return emitTrack(ctx, { intent: "tracking_status", reply, resultStatus: "prepared", sends: 0, counts: { total: 0 } }, sum ? { summary: sum } : { summary: { total: 0 } });
@@ -10099,12 +10107,18 @@ const CareerRouter = (() => {
       // as for a profiled user. The check reads through the read view
       // (loadWatchProfileSync), which never materializes state.
       const standing = loadWatchProfileSync(ctx);
-      if (!standing || !standing.scoring_profile) {
+      // PRODUCT AUDIT 2026-10-28 (owner #4): "set a job alert for data analyst roles in Chicago" from a new person creates
+      // the watch on the role and place they stated (the stated words are the basis); only an ask with no role named at
+      // all still stops here.
+      if ((!standing || !standing.scoring_profile) && !watchRoleFromText(text)) {
         const reply = compose({ headline: "I can set that watch up — I need your profile on file first.", facts: ["A watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing."], nextStep: "Tell me about yourself first — school, class year, the work you have done — and then say the watch again." });
         return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };
       }
     }
-    const role = watchRoleFromText(text);
+    let role = watchRoleFromText(text);
+    // PRODUCT AUDIT 2026-10-28: "set an alert for new ones" names no role ("Watch set: ones" was saved): a pronoun or a
+    // bare job noun is no role, so the ask gets the one question instead.
+    if (role && /^(?:new |the |more |any )?(?:ones?|them|it|these|those|that|this|some|stuff|things?|jobs?|roles?|openings?|positions?)$/i.test(s(role.title).trim())) role = null;
     // SERIAL-1540: the request is kept as asked on the role, whichever source keyed it.
     if (role) role.as_asked = s(text).trim();
     if (!role) {
@@ -10168,7 +10182,7 @@ const CareerRouter = (() => {
       return { intent: "career_watch_create", reply, resultStatus: "blocked", sends: 0 };
     }
     const userWords = role.derived === true && !role.soc;
-    const facts = [`Watching: ${watchLineHuman(interest)}.`, "The watch is saved on your record — it is per-user, not per-thread, so it stands across conversations."];
+    const facts = [`Watching: ${watchLineHuman(interest)}.`, "It's saved to your account, so it stays on in every chat."]; // PRODUCT AUDIT 2026-10-28: plain words
     // SERIAL-1530: the remote choice is said, and a country-limited remote posting is held until the person's location is
     // on record (the spec's hard filters; nothing about where they are or what they are authorized for is inferred).
     const homeKnown = !!(wp.scoring_profile && wp.scoring_profile.location);
@@ -10179,7 +10193,7 @@ const CareerRouter = (() => {
     if (userWords) facts.push("That title is not a standard category, so the watch keys on your own words exactly as you stated them — postings whose titles carry those words are what it can match.");
     facts.push(alertDeliveryLine(ctx));
     if (wp.opt_out && wp.opt_out.global) facts.push("Your job alerts are currently paused, so this watch is recorded but will not remind until you resume alerts.");
-    facts.push("No reminder has been delivered and no application has been submitted.");
+    if (!profile) facts.push("Send me your resume and I'll rank matches against it.");
     const reply = compose({ headline: `Watch set: ${role.title}.`, facts, nextStep: "Want another role watched, or the list of what you are watching now?" });
     return { intent: "career_watch_create", reply, resultStatus: "prepared", sends: 0, watch_profile: wp, payload: wp, artifact: wp };
   }
@@ -10222,7 +10236,8 @@ const CareerRouter = (() => {
     const A = getAssign(); if (!A) return null;
     const t = lc(text);
     const isPause = /\b(pause|hold)\b[^.]*\b(alerts?|watch)/.test(t) || /\bpause my (job )?alerts\b/.test(t);
-    const isResume = /\b(resume|restart|unpause|turn back on)\b[^.]*\b(alerts?|watch)/.test(t)
+    // PRODUCT AUDIT 2026-10-28 (owner #5): "tailor my resume ..., and set an alert" — "my resume" is the CV, not "resume alerts".
+    const isResume = /\b(resume|restart|unpause|turn back on)\b[^.]*\b(alerts?|watch)/.test(t.replace(/\b(my|your|the|a|this) (resume|cv)\b/g, " "))
       // Backstop for the pronoun shape ("turn them back on") when
       // a path reaches this handler without the ownership layer —
       // it only ever acts on the standing opt-out below.
@@ -10438,7 +10453,7 @@ const CareerRouter = (() => {
     // RESUME — resolved against the record itself, never a guess.
     if (wp && /\bturn (them|it|everything|that) back on\b/.test(t)) return { op: "resume" };
     if (/\bturn (my |the )?(job )?alerts back on\b/.test(t)) return { op: "resume" };
-    if (/\b(resume|restart|unpause)\b/.test(t) && alertNoun) return { op: "resume" };
+    if (/\b(resume|restart|unpause)\b/.test(t.replace(/\b(my|your|the|a|this) (resume|cv)\b/g, " ")) && alertNoun) return { op: "resume" }; // PRODUCT AUDIT 2026-10-28: "my resume" is the CV
     // STOP — the whole alert stream, or one watch (remove, below).
     if (/\bstop (all )?(my )?(job )?alerts\b/.test(t) || /\bno more alerts\b/.test(t) || /\bturn off my (job )?alerts\b/.test(t)) return { op: "stop" };
     if (frame && /^\s*(ok|okay|alright)?[,.]?\s*stop( it)?[.!]?\s*$/.test(t) && !alertPendingElsewhere(ctx)) return { op: "stop" };
@@ -10461,7 +10476,7 @@ const CareerRouter = (() => {
     // disclosure family's shapes) stands the create down: "text my
     // boss about the internships" is not the user's own alert.
     if (/\b(text|tell|email|message|write to)\s+(my|the)\s+(boss|manager|supervisor)\b/.test(t)) return null;
-    const classicCreate = /\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for|about)\b|\bnotify me (when|about|for)\b|\blet me know\b|\btell me when\b|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t);
+    const classicCreate = /\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an? )?(job |new )?alerts?\b|\b(create|add|make|start) (an? )?(job )?alerts?\b|\balert me (when|for|about)\b|\bnotify me (when|about|for)\b|\blet me know\b|\btell me when\b|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t);
     const deliveryM = t.match(/\b(text|message|ping|notify|tell|send|dm)\s+me\b|\blet me know\b|\bheads up\b|\bkeep an eye (out )?on\b|\bi (want to|wanna|would like to) (know|hear|be notified)\b|\bping me\b/);
     const deliveryVerb = !!deliveryM;
     // The job object must be IN the ask — a job-container noun or a
@@ -10969,7 +10984,8 @@ const CareerRouter = (() => {
       return { intent: "career_approval_rule", reply, resultStatus: "awaiting_user", sends: 0 };
     }
     // Application status, in the phrasings the status gates above do not carry. The tracker answers from its rows.
-    if (/\b(?:have you|did you|have i|did i)\b[^.?]*\b(?:applied|apply|sent)\b|\bapplied (?:anywhere|to anything|for me)\b|\bhow many\b[^.?]*\b(?:applied|applications?)\b|\bwhere am i with\b|\bhow (?:are|is) my (?:job )?applications?\b|\bupdates? on\b[^.?]*\b(?:applied|applications?)\b|\bapplications? (?:going|go through|gone through)\b/.test(t)) {
+    // PRODUCT AUDIT 2026-10-28 (owner #3): "what's my status?" is read from the tracker, never the catch-all.
+    if (/^\s*(?:so |ok |hey )?(?:wh?at'?s|what is) my (?:job search |search )?status\s*[?.!]*\s*$|^\s*(?:my )?status\s*[?.!]*\s*$|^\s*where (?:do|does) (?:things|everything|my search) stand\s*[?.!]*\s*$|^\s*any updates?\s*[?.!]*\s*$|\b(?:have you|did you|have i|did i)\b[^.?]*\b(?:applied|apply|sent)\b|\bapplied (?:anywhere|to anything|for me)\b|\bhow many\b[^.?]*\b(?:applied|applications?)\b|\bwhere am i with\b|\bhow (?:are|is) my (?:job )?applications?\b|\bupdates? on\b[^.?]*\b(?:applied|applications?)\b|\bapplications? (?:going|go through|gone through)\b/.test(t)) {
       const ts = handleTrackStatus(text, ctx);
       if (ts) return ts;
     }
@@ -11823,7 +11839,7 @@ const CareerRouter = (() => {
     // phrasing matched none of them and fell to containment on the
     // deployed product. "Watch out …" is advice-seeking and stays out
     // (negative lookahead); the manage claim above still runs first.
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t)) {
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an? )?(job |new )?alerts?\b|\b(create|add|make|start) (an? )?(job )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
@@ -11853,7 +11869,7 @@ const CareerRouter = (() => {
       const wa = handleWatchAffirm(text, c);
       if (wa) return wa;
     }
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t)) {
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an? )?(job |new )?alerts?\b|\b(create|add|make|start) (an? )?(job )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
@@ -15132,7 +15148,9 @@ const CareerRouter = (() => {
     // composition nor named as held.
     add("worth", "the market-value read", /\bwhat am i worth\b|\bmarket value\b|\bmy worth now\b/);
     add("log", "the tracker log", /\blog\b[^.]*\b(applied|application)\b|\bi applied to\b/);
-    add("watch", "the watch", /\bset up\b[^.]*\bwatch\b|\bwatch for\b|\bstart watching\b|\balert me\b[^.]*\broles?\b/);
+    add("watch", "the job alert", /\bset up\b[^.]*\bwatch\b|\bwatch for\b|\bstart watching\b|\balert me\b[^.]*\broles?\b|\b(set|create|add|make|start) (up )?(an? )?(job |new )?alerts?\b/);
+    // PRODUCT AUDIT 2026-10-28 (owner #5): "... tailor my resume for the top one ..." is a part of its own.
+    add("tailor", "tailoring your resume", /\btailor\w*\b[^.]*\b(resume|cv)\b|\b(resume|cv)\b[^.]*\btailor\w*\b/);
     add("negotiation", "the negotiation", /\bnegotiat\w*\b/);
     add("prep", "the interview prep", /\bprep\b[^.]*\binterviews?\b|\bprep me\b|\bprep for (the|my|a) interviews?\b|\bprepare me for\b/);
     add("draft", "the draft", /\bdraft\b[^.]*\b(email|opener|note|message|letter)\b/);
@@ -15154,7 +15172,7 @@ const CareerRouter = (() => {
   }
   function runIntentPart(part, text, ctx) {
     try {
-      if (part.key === "find") return handleInternship(text, ctx) || handleDiscovery(text, ctx, {});
+      if (part.key === "find") return (/\b(internships?|intern|new[- ]grad|summer)\b/.test(lc(text)) ? handleInternship(text, ctx) : null) || handleDiscovery(text, ctx, {});
       if (part.key === "networking") return handleCampaignPlan(text, ctx);
       if (part.key === "tracking") {
         const store = trackStoreOf(ctx);
@@ -15312,17 +15330,18 @@ const CareerRouter = (() => {
         // falls back) is queued without a preview, never faked.
         const INLINE_OK = new Set(["find", "prep", "tracking", "log", "negotiation", "networking", "worth"]);
         const stillQueued = [];
+        const shown = new Set();
         let inlined = 0;
         for (const p of unserved) {
           if (!inlined && INLINE_OK.has(p.key) && !/^(application_packet|doorstep)/.test(res.intent || "")) {
             const pr = runIntentPart(p, s(text), c);
-            if (pr && pr.reply && pr.intent !== "career_fallback") { res.reply = `${res.reply}\n\n${pr.reply}`; recordActiveWork(c, pr, text); inlined += 1; }
+            if (pr && pr.reply && pr.intent !== "career_fallback") { res.reply = `${res.reply}\n\n${pr.reply}`; recordActiveWork(c, pr, text); inlined += 1; shown.add(p.key); }
           }
           stillQueued.push(p);
         }
         if (stillQueued.length) {
           c.intentQueue = stillQueued.map((p) => ({ key: p.key, label: p.label, ask: s(text) }));
-          additions.push(`Also in your message, held in order: ${stillQueued.map((p, i) => `${i + 1}) ${p.label}`).join("; ")} — say "next" and we take the next one, or name the part and we jump to it.`);
+          additions.push(`Also in your message, held in order: ${stillQueued.map((p, i) => `${i + 1}) ${p.label}${shown.has(p.key) ? " (a first look is above)" : ""}`).join("; ")} — say "next" and we take the next one, or name the part and we jump to it.`);
         }
       }
       if (additions.length) res.reply = `${res.reply}\n\n${additions.join("\n")}`;

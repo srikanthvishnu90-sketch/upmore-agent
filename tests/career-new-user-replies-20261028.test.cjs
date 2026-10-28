@@ -149,3 +149,74 @@ test("(10) pause replies are plain words", async () => {
     assert.match(r, /resume career work/, r);
   }
 });
+
+// ---------- Owner's Telegram-first list (2026-10-28): items 2, 3, 4, 5 ----------
+// A person whose account record, profile and watch state persist across turns, as agent-chat's host commit keeps them.
+function account(userId) {
+  let snap = null, acct = { version: 0, epoch: 0 }, watch = {};
+  const say = (text) => {
+    const ctx = host.createTurnCtx({ userId, threadId: `t-${userId}`, now: Date.parse("2026-10-28T15:00:00Z"), accountPersistence: true, accountMemory: true, snapshot: copy(snap), account: copy(acct), watchState: copy(watch), postings: POSTINGS });
+    const out = host.runTurn(text, ctx);
+    snap = copy(host.extractSnapshot(ctx));
+    const patch = copy(ctx._hostPatch || {});
+    acct = { ...acct, ...patch, version: acct.version + 1 };
+    if (ctx.alertWatchState) watch = copy(ctx.alertWatchState);
+    return { out, patch, ctx };
+  };
+  return { say, watch: () => watch, snap: () => snap, account: () => acct };
+}
+
+test("(owner 2) 'how do I stop messages or delete my data?' answers both, and deletes nothing", async () => {
+  await setup();
+  const p = account("u-owner2");
+  p.say("i want a job in marketing");
+  const before = JSON.stringify(p.snap());
+  const acctBefore = JSON.stringify(p.account());
+  const { out, patch } = p.say("how do I stop messages or delete my data?");
+  const r = String(out.reply);
+  assert.match(r, /text "stop"/i, `how to stop: ${r}`);
+  assert.match(r, /yes, erase it/i, `the exact approved deletion step: ${r}`);
+  assert.match(r, /Nothing is deleted until/i, r);
+  assert.ok(!patch.erase, "nothing erased");
+  assert.ok(JSON.parse(before).stores, "a stored state existed");
+  assert.deepEqual(JSON.parse(JSON.stringify(p.snap().stores.profile ?? null)), JSON.parse(before).stores.profile ?? null, "the profile is unchanged");
+  assert.ok(JSON.stringify(p.account()).includes("marketing") === acctBefore.includes("marketing"), "the account record keeps the goal");
+});
+
+test("(owner 3) \"what's my status?\" is answered from the tracker, not the catch-all", async () => {
+  await setup();
+  for (const m of ["what's my status?", "whats my status", "status?"]) {
+    const o = convo()(m);
+    assert.equal(o.intent, "tracking_status", `${m}: ${o.intent} ${o.reply}`);
+    assert.ok(!/not sure|did not catch|didn't catch/i.test(String(o.reply)), String(o.reply));
+  }
+});
+
+test("(owner 4) 'set a job alert for data analyst roles in Chicago' creates the watch (persisted); 'find me entry level ...' returns jobs", async () => {
+  await setup();
+  const p = account("u-owner4");
+  const { out } = p.say("set a job alert for data analyst roles in Chicago");
+  assert.equal(out.intent, "career_watch_create", String(out.reply));
+  assert.equal(out.resultStatus, "prepared", String(out.reply));
+  const wp = Object.values(p.watch()).find((v) => v && v.type === "career_watch_profile");
+  assert.ok(wp, "a watch profile is in the persisted watch state");
+  assert.equal(wp.interests.length, 1);
+  assert.equal(wp.interests[0].role.title, "Data Analyst");
+  assert.deepEqual(wp.interests[0].filters.locations, ["Chicago"]);
+  const f = convo()("find me entry level data analyst jobs in Chicago", { postings: POSTINGS });
+  assert.equal(f.intent, "career_discovery", String(f.reply));
+  assert.match(String(f.reply), /Data Analyst at Acme/, String(f.reply));
+});
+
+test("(owner 5) search + tailor + alert in one message: every part is acknowledged, the alert is saved", async () => {
+  await setup();
+  const p = account("u-owner5");
+  const { out } = p.say("find data analyst jobs in chicago, tailor my resume for the top one, and set an alert for new ones");
+  const r = String(out.reply);
+  assert.match(r, /Watch set: Data Analyst/, r);
+  assert.match(r, /Data Analyst at Acme/, `the search is answered: ${r}`);
+  assert.match(r, /tailoring your resume/i, `the tailor part is acknowledged: ${r}`);
+  assert.ok(!/no job watches on file/i.test(r), r);
+  const wp = Object.values(p.watch()).find((v) => v && v.type === "career_watch_profile");
+  assert.ok(wp && wp.interests.length === 1, "the alert is in the persisted watch state");
+});

@@ -52,6 +52,12 @@ export async function startPg(opts: { includeBridge?: boolean } = {}): Promise<P
     ...Deno.env.toObject(), PGBIN: bin, INCLUDE_BRIDGE: opts.includeBridge ? "1" : "",
   });
   if (prov.code !== 0) throw Error(`provision failed: ${prov.stderr.slice(-800)}`);
+  return attachPg(work, port, bin);
+}
+
+// The same clients over an already running throwaway cluster (a test's child process reaches the parent's database by
+// its socket directory and port). `stop` stops and removes that cluster.
+export function attachPg(work: string, port: number, bin: string): Pg {
   const base = ["-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-h", work, "-p", String(port), "-U", "postgres", "-d", "postgres"];
   const sql = async (text: string) => {
     const r = await run("psql", base, text);

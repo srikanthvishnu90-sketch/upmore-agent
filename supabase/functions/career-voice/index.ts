@@ -30,7 +30,7 @@ serve((req) => {
     cors,
     sessions: supabaseVoiceSessions(admin),
     mint: (apiKey) => openaiMint(apiKey),
-    budget: rpcBudgetGate((name, args) => admin.rpc(name, args)),
+    budget: rpcBudgetGate(async (name, args) => { const r = await admin.rpc(name, args); return { data: r.data, error: r.error }; }),
     // The debrief goes out now when the texting channel is wired; otherwise the scheduled delivery run sends it (each
     // minute). Either way the outbox keeps it once, under mock:<session id>.
     deliver: loopKey

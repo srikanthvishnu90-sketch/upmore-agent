@@ -10,17 +10,22 @@
 //   list       "who have I reached out to": every person on record and where each stands, with the reminder's day.
 //   follow     "follow up with Maya": a short follow-up drafted from confirmed facts (draftFor's fact-lock) as a new
 //              outreach batch, approved like any other by its exact text.
-//   linkedin   "message Maya on LinkedIn for me": refused plainly (Trainee never signs in to or automates LinkedIn), with
-//              what it can do instead. Nothing is recorded.
+//   site       "message Maya on LinkedIn for me", "apply to the X job on Indeed", "message recruiters on Handshake", or a
+//              linkedin.com / indeed.com (any country) / joinhandshake.com link: refused plainly, naming the site (Trainee
+//              never signs in to or automates LinkedIn, Indeed or Handshake), with what it can do instead. Nothing is
+//              recorded and nothing is left waiting, so a later "yes" answers whatever it was meant for. The chat runs this
+//              (siteAsk) before every apply, link-read and batch turn (career_networking.ts siteRefusedTurn).
 // The reminder fires from runOutreachFollowups (the scheduled run): once, to the person's outbox, only while no reply is
 // on record. Every record is the person's own (by user id); a name matches only someone they wrote to through Trainee.
 import type { Outbox } from "./career_alert_store.ts";
+import { neverOpen } from "./career_people_sites.ts";
 import type { EventStore } from "./agent/timeline.ts";
 import { batchMessages, confirmed, draftFor, emailHash, type Followup, FOLLOWUP_DAYS, footerOf, messageOf, type ModelFn, OUTREACH_INTENT,
   type OutreachDraft, type OutreachStore, payloadHash, recordOutreach } from "./career_outreach.ts";
 
 export const TRACK_INTENT = "career_outreach_track";
 export const LINKEDIN_INTENT = "career_linkedin_refused";
+export const SITE_INTENT = "career_site_refused"; // Indeed and Handshake; LinkedIn keeps LINKEDIN_INTENT
 const DAY = 86_400_000;
 const TZ = "America/New_York"; // the day the outreach caps use when the person's own zone is not known (dayStartOf)
 
@@ -31,7 +36,8 @@ export type TrackAsk =
   | { kind: "no_remind"; name: string | null }
   | { kind: "list" }
   | { kind: "follow"; name: string }
-  | { kind: "linkedin" };
+  | { kind: "site"; site: Site };
+export type Site = "LinkedIn" | "Indeed" | "Handshake";
 
 const NAME = "([a-z][a-z.'-]*(?: [a-z][a-z.'-]*){0,2}?)";
 const NOT_NAME = /^(?:it|them|that|this|those|these|everyone|everybody|anyone|someone|him|her|they|the email|the emails|the draft|my resume|my cv|a|an|the|my|me|you|stripe|google)$/;
@@ -51,11 +57,12 @@ const nameOk = (n: string | undefined) => !!n && !NOT_NAME.test(n.trim()) && n.t
 
 // What the person said, or null when it is none of these (the rest of the chain answers it).
 export function trackAsk(message: string): TrackAsk | null {
+  const site = siteAsk(message);
+  if (site) return { kind: "site", site };
   const raw = String(message ?? "");
   if (raw.length > 300) return null;
   const t = lower(raw).replace(/^(?:ok(?:ay)?|done|great|cool|alright|so|hey|fyi|update|btw)[,:]?\s+/, "");
   if (!t) return null;
-  if (LINKEDIN.test(t) && LI_ACT.test(t) && !LI_OWN.test(t)) return { kind: "linkedin" };
   const ago = /yesterday|last night/.test(t) ? 1 : 0;
   let m = new RegExp(`^(?:i |ive |i've |i have )?(?:just |already |finally )?(?:sent|mailed) (?:draft |number |email |emails )?${NUMS}${WHEN}$`).exec(t);
   if (m) { const ns = numbers(m[1]); return ns ? { kind: "sent", ns, name: null, daysAgo: ago } : null; }
@@ -85,6 +92,48 @@ const LINKEDIN = /\blinked ?in\b|\beasy ?apply\b|\bin-?mails?\b/;
 // any ask routed "via / on / through LinkedIn". Their own export stays theirs (LI_OWN).
 const LI_ACT = /\b(?:message|msg|dm|inmail|in-mail|connect|link (?:my|your|to)|hook up|add (?:her|him|them|everyone|people|[a-z]+) on|invite|send (?:an? |the |my |some )?(?:connection(?: request)?s?|invites?|invitations?|messages?|notes?|dms?|inmails?|requests?)|connection requests?|reach out|ping|scrape|crawl|automate|auto-?(?:connect|message|apply|send)|pull (?:people|profiles|contacts|emails)|find (?:people|profiles|recruiters|alumni|emails?)|search|look up|log ?in|sign ?in|endorse|endorsements?|recommend (?:me|her|him|them)|write (?:me |her |him )?(?:a )?recommendation|post|publish|share|comment|like (?:her|his|their|the|a|my) post|follow(?! ?-?up)|apply|easy ?apply|submit)\b|\b(?:via|through|thru|over|using) linked ?in\b|\beasy ?apply\b/;
 const LI_OWN = /\b(?:connections\.csv|export|download|copy of (?:my|your) data|get a copy|here (?:are|is)|these are|attached|my linkedin profile|my profile (?:link|url))\b/;
+// Indeed and Handshake named as the place of the action ("on Indeed", "through my Handshake", "Indeed's Easy Apply",
+// "Handshake jobs"), never the plain words ("indeed I did", "a firm handshake").
+const SITE_WORD: [Exclude<Site, "LinkedIn">, RegExp][] = [
+  ["Indeed", /\b(?:on|via|through|thru|over|using|from|at|in|with) (?:my |the |your )?indeed\b|\bindeed(?:'s)? (?:easy ?apply|jobs?|postings?|listings?|ads?|messages?|inbox|account|profile|resume|recruiters?|employers?)\b|\bindeed\.[a-z]|\b(?:search|browse|scan|scrape|crawl|check|use) (?:my )?indeed\b/],
+  ["Handshake", /\b(?:on|via|through|thru|over|using|from|at|in|with) (?:my |the |your |our )?(?:join ?)?handshake\b|\b(?:join ?)?handshake(?:'s)? (?:jobs?|postings?|listings?|messages?|inbox|account|profile|app|recruiters?|employers?|events?|fairs?)\b|\bjoinhandshake\b/],
+];
+const SITE_ACT = new RegExp(`${LI_ACT.source}|\\b(?:applying|application|messages?)\\b`);
+const LINK = /(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?(?:\/[^\s<>"'()]*)?/gi;
+const LABEL_SITE: Record<string, Site> = { linkedin: "LinkedIn", lnkd: "LinkedIn", licdn: "LinkedIn", indeed: "Indeed", indeedemail: "Indeed", indeedmail: "Indeed", joinhandshake: "Handshake" };
+// The site a link is on when it is one of the three (any suffix or depth, as career_people_sites.ts neverOpen), else null.
+export function siteOfLink(url: string): Site | null {
+  let host: string;
+  try { host = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).hostname; } catch { return null; }
+  if (!neverOpen(host)) return null;
+  for (const l of host.toLowerCase().split(".").slice(0, -1)) if (LABEL_SITE[l]) return LABEL_SITE[l];
+  return null;
+}
+// Whether the message asks Trainee to do something on LinkedIn, Indeed or Handshake (a link to one of them pasted with
+// no employer link beside it, or an action named on one of them), and which. Their own LinkedIn export stays theirs.
+export function siteAsk(message: string): Site | null {
+  const raw = String(message ?? "").slice(0, 4000);
+  const t = lower(raw);
+  if (!t) return null;
+  const own = LI_OWN.test(t);
+  const unmailed = raw.replace(/\S+@\S+/g, " ");
+  const links = (unmailed.match(LINK) ?? []).map((u) => u.replace(/[.,;:!?)\]]+$/, ""));
+  const sites = links.map(siteOfLink);
+  // A link to the employer's own page beside it is the way in: that turn reads it, and never opens the others.
+  if (sites.some((s) => s) && sites.some((s, i) => !s && /\//.test(links[i]))) return null;
+  const linked = sites.find((s): s is Site => !!s);
+  // A link to one of them is refused when it comes with an action or alone ("<link>", "this one <link>"); a LinkedIn
+  // link that is their own profile ("my linkedin profile <link>") is theirs.
+  if (linked) {
+    const words = lower(unmailed.replace(LINK, " ")).split(" ").filter(Boolean).length;
+    return (linked === "LinkedIn" && own) || !(SITE_ACT.test(t) || words <= 3) ? null : linked;
+  }
+  const li = LINKEDIN.test(t) && LI_ACT.test(t) && !own;
+  if (li && /\blinked ?in\b/.test(t)) return "LinkedIn";
+  const w = lower(unmailed); // "Easy Apply ... on Indeed" is Indeed's
+  for (const [site, rx] of SITE_WORD) if (rx.test(w) && SITE_ACT.test(w)) return site;
+  return li ? "LinkedIn" : null;
+}
 
 export interface TrackDeps {
   message: string; userId: string; threadId: string; now: number;
@@ -149,7 +198,7 @@ const statusLine = (d: OutreachDraft, f: Followup | undefined, now: number): str
 export async function trackTurn(o: TrackDeps): Promise<TrackResult | null> {
   const ask = trackAsk(o.message);
   if (!ask) return null;
-  if (ask.kind === "linkedin") return await linkedinTurn(o);
+  if (ask.kind === "site") return await siteTurn(o, ask.site);
   if (!o.store.history) return null;
   const rows = await o.store.history(o.userId, 500);
   // Nothing on record to track: only the list answers (plainly); every other ask is someone else's (the router's).
@@ -319,19 +368,21 @@ async function followTurn(o: TrackDeps, name: string, rows: OutreachDraft[], fol
   return { reply: parts.join("\n\n"), intent: OUTREACH_INTENT, status: "drafted", parts };
 }
 
-async function linkedinTurn(o: TrackDeps): Promise<TrackResult> {
-  // Applying on LinkedIn (Easy Apply) is never done for them: the employer's own posting is the way in.
+async function siteTurn(o: TrackDeps, site: Site): Promise<TrackResult> {
+  const intent = site === "LinkedIn" ? LINKEDIN_INTENT : SITE_INTENT;
+  const why = site === "LinkedIn" ? "LinkedIn doesn't allow automated activity on accounts" : `Trainee doesn't automate ${site}`;
+  // Applying on the site (Easy Apply included) is never done for them: the employer's own posting is the way in.
   if (/\b(?:apply|applying|application|easy ?apply|submit)\b/i.test(o.message) && !/\b(?:message|msg|dm|inmail|connect|reach out|endorse)\b/i.test(o.message)) {
-    return { reply: `I don't apply on LinkedIn for you (Easy Apply included), and I never sign in to LinkedIn or run anything on it: LinkedIn doesn't allow automated activity on accounts. Nothing was sent or done on LinkedIn. Send me the job's link on the employer's own careers site (or its Greenhouse, Lever or Ashby page) and I'll prepare the application there for your approval.`, intent: LINKEDIN_INTENT, status: "refused" };
+    return { reply: `I don't apply on ${site} for you${site === "LinkedIn" ? " (Easy Apply included)" : ""}, and I never sign in to ${site} or run anything on it: ${why}. Nothing was sent or done on ${site}. Send me the job's link on the employer's own careers site (or its Greenhouse, Lever or Ashby page) and I'll prepare the application there for your approval.`, intent, status: "refused" };
   }
   const m = /\b(?:message|msg|dm|inmail|connect with|add|invite|reach out to|endorse|ping)\s+([a-z][a-z.'-]*(?: [a-z][a-z.'-]*)?)\b/i.exec(o.message);
-  const name = m && !/^(?:everyone|everybody|people|all|recruiters?|them|him|her|my|the|someone|anyone|a|an|with|to|on|via)$/i.test(m[1].split(" ")[0]) ? m[1].split(" ")[0] : null;
+  const name = m && !/^(?:everyone|everybody|people|all|recruiters?|employers?|them|him|her|my|the|someone|anyone|a|an|with|to|on|via)$/i.test(m[1].split(" ")[0]) ? m[1].split(" ")[0] : null;
   const known = name && o.contactsWithEmail ? await Promise.resolve(o.contactsWithEmail(name)).catch(() => [] as string[]) : [];
   const first = known.length ? known[0].split(" ")[0] : name;
   const instead = known.length
     ? `I can write ${first} an email instead, for you to approve: ${known.slice(0, 3).join("; ")} is in your contacts with an address. Say "email ${name} at <firm> about <what you want to ask>".`
     : `I can draft an email to anyone in your contacts who has an address, for you to approve and send yourself. To see who you know at a firm, send me your LinkedIn connections export (LinkedIn: Settings, Data privacy, Get a copy of your data, Connections) and ask "who do I know at <firm>".`;
-  return { reply: `I don't message, connect, search or post on LinkedIn for you, and I never sign in to LinkedIn or run anything on it: LinkedIn doesn't allow automated activity on accounts. Nothing was sent or done on LinkedIn. ${instead}`, intent: LINKEDIN_INTENT, status: "refused" };
+  return { reply: `I don't message, connect, search or post on ${site} for you, and I never sign in to ${site} or run anything on it: ${why}. Nothing was sent or done on ${site}. ${instead}`, intent, status: "refused" };
 }
 
 // ------------------------------------------------------------------------------------------------ the scheduled run

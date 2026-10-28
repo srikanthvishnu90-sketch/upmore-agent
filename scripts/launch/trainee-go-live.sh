@@ -176,6 +176,7 @@ MIGRATIONS=(
   20261027010000_career_people.sql
   20261027020000_career_intro_reminder_push.sql
   20261027170000_career_people_scale.sql
+  20261027170100_career_people_gmail_sweep.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -255,6 +256,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_intro_requests') is not null"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_proactive_runs' and column_name = 'intro_reminders')"
   "to_regprocedure('public.career_people_import_part(uuid,text,text,text,jsonb,integer,integer,boolean,bigint)') is not null and to_regclass('public.agent_flow_state_user') is not null"
+  "to_regclass('public.career_people_gmail_sweeps') is not null and exists (select 1 from pg_proc where proname = 'career_people_sweep_claim')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

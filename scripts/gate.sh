@@ -236,14 +236,29 @@ elif [[ $partition == architect ]]; then
   : # the architect partition runs no node suites; core, browser and coverage hold all of them
 elif [[ $partition == browser ]]; then
   step career-and-shared-tests-browser node --test --test-concurrency=2 "${node_browser_tests[@]}"
-else
+elif [[ -z ${GATE_COVERAGE_SHARD:-} ]]; then
   step career-and-shared-tests-coverage node --test --test-concurrency=2 "${node_coverage_tests[@]}"
+else
+  # Coverage shards (2026-10-26): GATE_COVERAGE_SHARD=i/n runs shard i of n of the forms-ci suite's tests in this
+  # job, selected by node's own test-name patterns (scripts/forms-ci-shards.cjs holds the table and its
+  # completeness rules; the last shard runs every test not named elsewhere, and the read-only proof runs in all).
+  # The suite file and its assertions are unchanged; the aggregate gate (forms-ci coverage) job checks that every
+  # test of the suite passed in some shard.
+  if (( ${#node_coverage_tests[@]} != 1 )); then
+    echo "GATE COVERAGE SHARD: sharding expects exactly one coverage suite, got ${#node_coverage_tests[@]}" >&2
+    exit 1
+  fi
+  shard_args=()
+  shard_list=$(node scripts/forms-ci-shards.cjs args "${GATE_COVERAGE_SHARD%/*}" "${GATE_COVERAGE_SHARD#*/}")
+  mapfile -t shard_args <<<"$shard_list"
+  printf 'GATE COVERAGE SHARD %s: %s\n' "$GATE_COVERAGE_SHARD" "${shard_args[*]}"
+  step "career-and-shared-tests-coverage-shard-${GATE_COVERAGE_SHARD%/*}" node --test --test-concurrency=2 "${shard_args[@]}" "${node_coverage_tests[@]}"
 fi
 if [[ $partition == all || $partition == core ]]; then
   step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
   step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
   step career-bundle python3 scripts/build-router-core.py --career-only --check
-  step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts supabase/functions/site-signup/index.ts supabase/functions/site-careers/index.ts supabase/functions/career-cloud-runner/index.ts
+  step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-telegram-link/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts supabase/functions/site-signup/index.ts supabase/functions/site-careers/index.ts supabase/functions/career-cloud-runner/index.ts
 fi
 
 # Every step's result again at the end: a CI log read from its tail still shows which step failed.

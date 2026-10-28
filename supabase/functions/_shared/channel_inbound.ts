@@ -13,7 +13,7 @@ import { CARD_NEEDS_REPLY_STATUS, needsReplyTextFor } from "./career_apply_cards
 //   a yes from it links the new one.
 import { channelCommand, CHANNEL_REPLIES } from "./channel.ts";
 import { fitOutbox as fitReply, normalizeContact, OUTBOX_CHARS } from "./conversation.ts";
-import { type Channel, CHANNEL_NAME, channelOf, type ChannelAdapter, type InboundMessage, packMessages, type Provider, type StatusEvent } from "./channel_adapters.ts";
+import { type Channel, CHANNEL_NAME, channelOf, type ChannelAdapter, type InboundMessage, packMessages, type Provider, type SendOptions, type StatusEvent } from "./channel_adapters.ts";
 import { telegramDeepLink } from "./telegram.ts";
 
 export const SIGNUP_CLOSED_REPLY = "Trainee is invite-only right now, so I can't set you up yet. Nothing about you was saved except that you texted.";
@@ -30,6 +30,17 @@ export const TELEGRAM_LINKED_REPLY = "Telegram is linked to your Trainee account
 export const TELEGRAM_LINK_INVALID_REPLY = "That link has expired or was already used. Text \"connect telegram\" to Trainee where you already use it for a new one.";
 export const TELEGRAM_LINKED_ELSEWHERE_REPLY = "This Telegram account is already linked to a different Trainee account, so nothing changed.";
 export const FILE_NOT_READ_REPLY = "I can't open files sent here yet, so I haven't read that one. Paste your resume as text in this chat and I'll read it now.";
+// FEATURE 16 (Telegram, where a PDF or Word file is read): what a photo or a voice message is told instead.
+export const PHOTO_NOT_READ_REPLY = "I can't read photos, so I haven't read that one. Send your resume as a PDF or Word file, or paste the text here.";
+export const VOICE_NOT_READ_REPLY = "I can't listen to voice, audio or video messages here, so I haven't heard that one. Type it as a message and I'll answer.";
+export const DOC_NOT_SENT_REPLY = "I couldn't attach the file here just now, so it wasn't sent. Ask me to send it again.";
+// FEATURE 16 (owner decision 2026-10-26): Telegram's own login links a chat to an account (TELEGRAM_LOGIN_URL: the web
+// page, telegram-link.html, on the domain set with BotFather /setdomain).
+export const LINK_BUTTON = "Link your Trainee account";
+export const TELEGRAM_LINK_REPLY = "To use Trainee in this chat, link your Trainee account: tap the button below and sign in to Trainee. Telegram tells Trainee only your Telegram name and id.";
+export const TELEGRAM_UNLINKED_REPLY = "Telegram is unlinked from your Trainee account. Nothing from this chat reaches that account now.";
+export const TELEGRAM_CHANNEL_ONLY_REPLY = "This chat is your Trainee account, so it can't be unlinked. Nothing changed.";
+const LINK_ASK = /^(link|connect) (my (trainee )?account|telegram|this chat)[.!]*$/i, UNLINK_ASK = /^unlink (telegram|this chat|my account)[.!]*$/i;
 export const LINK_NONCE_MS = 10 * 60000;
 export const LINK_ASK_MS = 60 * 60000; // a yes counts for an hour after the question
 
@@ -51,19 +62,31 @@ export interface InboundStore {
   issueLinkNonce?(userId: string, at: number): Promise<string>;
   redeemLinkNonce?(nonce: string, contact: string, at: number): Promise<Redeemed>;
   reholdSent?(providerMessageId: string, at: number, error: string): Promise<number>; // a sent message that failed for the window
+  unlinkTelegram?(userId: string, at: number): Promise<number>; // FEATURE 16: "unlink telegram"; how many contacts let go
 }
 export interface CoreDeps {
   env: { get(k: string): string | undefined };
   now: () => number;
   store: InboundStore;
-  reply: (contact: string, bubbles: string[]) => Promise<{ ok: boolean }>; // straight out on the inbound channel: no account, no outbox row
+  // straight out on the inbound channel: no account, no outbox row. opts (FEATURE 16): buttons, where the channel has them.
+  reply: (contact: string, bubbles: string[], opts?: SendOptions) => Promise<{ ok: boolean }>;
   render: (text: string) => string[];
   // parts (optional): a reply longer than one message's worth (an outreach batch of drafts, a long card), each part at most
   // OUTBOX_CHARS; when given with two or more, they are what the person reads, in order, and `reply` is not sent.
   // replyToMessageId (optional): the provider's id of the message the person replied to (SERIAL-1462). cardId (optional,
   // in the answer): the card this reply shows, so the outbox row that carries it is recorded against the card.
-  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => Promise<{ status: number; reply: string; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null }>;
+  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => Promise<{ status: number; reply: string; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null; artifacts?: { ref: string; filename: string; mime: string }[] }>;
   deliver: (a: { userId: string; key: string; now: number }) => Promise<void>; // a head start on the every-minute run
+  // FEATURE 16 (Telegram; optional, so the other channels run unchanged):
+  // resumeFile: a document the person sent, downloaded, read and stored as their upload (channel_resume_upload.ts); ok
+  //   gives the message the chat receives for it, else the plain reply to say. Absent: the file is not read (WO-106 reply).
+  resumeFile?: (a: { userId: string; doc: NonNullable<InboundMessage["document"]>; now: number }) => Promise<{ ok: true; message: string } | { ok: false; reply: string }>;
+  // cardTap: a button tap on a card (channel_card_tap.ts tapCard); answerCallback: the tap answered once on the button.
+  cardTap?: (a: { userId: string; data: string; now: number }) => Promise<{ toast: string; reply: string; status: string; parts?: string[] }>;
+  answerCallback?: (callbackId: string, text: string) => Promise<boolean>;
+  // FEATURE 16: the turn's documents (owner-scoped refs) sent as files after its reply; how many went. Absent: the channel
+  // sends no files, and the reply's own words stand (agent-chat says when a file could not be attached).
+  sendArtifacts?: (a: { userId: string; threadId: string | null; contact: string; artifacts: { ref: string; filename: string; mime: string }[] }) => Promise<{ sent: number; failed: number }>;
 }
 type Out = { status: number; body: Record<string, unknown> };
 const ok = (body: Record<string, unknown>): Out => ({ status: 200, body: { ok: true, ...body } });
@@ -82,16 +105,14 @@ export function signupAllows(env: CoreDeps["env"], contact: string, phone?: stri
 }
 // The parts contract (WO-038, for WO-033's outreach batch and long cards): agent-chat may answer with `parts`, each at
 // most OUTBOX_CHARS. Each becomes its own outbox row and is never cut: a part over the limit is split on purpose (lines
-// kept together), never truncated. Fewer than two usable parts: null, and the single reply goes as before. At most
-// MAX_PARTS rows; past that the rest is joined into the last row and cut with the cut note, said, never silent.
-export const MAX_PARTS = 30;
+// kept together), never truncated. Fewer than two usable parts: null, and the single reply goes as before.
+// NO LIMITS (owner, 2026-10-27 19:55 CDT): every part is delivered, however many (a card of 500 applications is about 40
+// messages); the old 30-part ceiling, which cut the tail of a long card, is gone. Pacing is the provider's (pacer).
 export function replyParts(raw: unknown): string[] | null {
   if (!Array.isArray(raw)) return null;
   const parts = raw.filter((p): p is string => typeof p === "string").map((p) => p.trim()).filter(Boolean)
     .flatMap((p) => (p.length <= OUTBOX_CHARS ? [p] : packMessages(p, OUTBOX_CHARS)));
-  if (parts.length < 2) return null;
-  if (parts.length <= MAX_PARTS) return parts;
-  return [...parts.slice(0, MAX_PARTS - 1), fitReply(parts.slice(MAX_PARTS - 1).join("\n\n"))];
+  return parts.length < 2 ? null : parts;
 }
 // A provider id becomes a chat turn key the chat accepts (letters, digits, - and _), so agent-chat's own replay guard sees
 // a retry of the same message as the same turn.
@@ -116,12 +137,18 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     if (person?.contact) contact = person.contact;
     if (store.sawInbound) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
     if (msg.kind === "blocked") { await store.setOptOut(contact, true, now); return ok({ command: "stop", blocked: true }); }
+    // FEATURE 16: a button tap from a chat that is no one's account approves nothing; the button is answered and that is all.
+    if (msg.kind === "callback" && !person) {
+      if (msg.callback && d.answerCallback) await d.answerCallback(msg.callback.id, "This button isn't for this chat. Nothing was approved.").catch(() => false);
+      return ok({ ignored: "a button tap from an unknown chat" });
+    }
     if (msg.kind === "seen") {
       // WO-106 (live 2026-10-21: a resume sent as a file got no answer at all): a file or photo from a known person is told
       // what to do instead; a sticker or reaction is still left alone.
-      if (msg.file && person) {
-        const r = await d.reply(contact, d.render(FILE_NOT_READ_REPLY));
-        return ok({ ignored: "a file (not read yet); told to paste the text", sent: r.ok });
+      if ((msg.file || msg.media) && person) {
+        const text = msg.media === "voice" ? VOICE_NOT_READ_REPLY : msg.media === "photo" && d.resumeFile ? PHOTO_NOT_READ_REPLY : FILE_NOT_READ_REPLY;
+        const r = await d.reply(contact, d.render(text));
+        return ok({ ignored: `${msg.media ?? "a file"} (not read); told what to send`, sent: r.ok });
       }
       return ok({ ignored: "no text (attachments are not read yet)" });
     }
@@ -161,6 +188,13 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
         }
       }
       if (!signupAllows(d.env, contact, msg.phone)) {
+        // FEATURE 16: on Telegram, with the login page configured, the person links their existing account instead.
+        const loginUrl = (d.env.get("TELEGRAM_LOGIN_URL") || "").trim();
+        if (msg.channel === "telegram" && /^https:\/\//.test(loginUrl)) {
+          if (await store.refusedBefore(contact, now) && msg.command !== "start") return ok({ ignored: "not linked (already told)" });
+          const r = await d.reply(contact, d.render(TELEGRAM_LINK_REPLY), { buttons: [[{ text: LINK_BUTTON, loginUrl }]] });
+          return ok({ link: "offered", sent: r.ok });
+        }
         if (await store.refusedBefore(contact, now)) return ok({ ignored: "signup closed (already told)" });
         const r = await d.reply(contact, d.render(SIGNUP_CLOSED_REPLY));
         return ok({ refused: "signup closed", sent: r.ok });
@@ -178,12 +212,52 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       catch (e) { console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
       return ok(extra);
     };
+    // FEATURE 16: a tap on a card's Approve or Decline (Telegram's inline keyboard): answered exactly as the web tap
+    // (channel_card_tap.ts), the button answered once, and the result said in the chat through the outbox.
+    if (msg.kind === "callback") {
+      if (!msg.callback || !d.cardTap) {
+        if (msg.callback && d.answerCallback) await d.answerCallback(msg.callback.id, "Nothing was approved.").catch(() => false);
+        return ok({ ignored: "a button tap (not wired)" });
+      }
+      const tap = await d.cardTap({ userId: person.userId, data: msg.callback.data, now });
+      if (d.answerCallback) await d.answerCallback(msg.callback.id, tap.toast).catch(() => false);
+      // A tap that approved a large batch answers in several messages (one line per application), each whole, in order.
+      const tapParts = replyParts(tap.parts);
+      if (!tapParts) return await answer(tap.reply, { tap: tap.status });
+      const tapRows = tapParts.map((text, i) => ({ key: `${key}:${i + 1}`, text, part: { of: key, n: i + 1 } }));
+      for (const r of tapRows) await store.enqueueReply(person.userId, r.key, r.text, now, msg.channel, r.part, null);
+      try { for (const r of tapRows) await d.deliver({ userId: person.userId, key: r.key, now }); }
+      catch (e) { console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
+      return ok({ tap: tap.status, parts: tapRows.length });
+    }
+    // FEATURE 16: a document (a resume as a PDF or Word file): downloaded, read and stored as the person's upload; the
+    // chat then reads its text as a pasted resume. Not wired, or not readable: said plainly, and no turn runs.
+    let fileMessage: string | null = null;
+    if (msg.document) {
+      if (!d.resumeFile) return await answer(FILE_NOT_READ_REPLY, { ignored: "a file (not read here)" });
+      const got = await d.resumeFile({ userId: person.userId, doc: msg.document, now });
+      if (!got.ok) return await answer(got.reply, { file: "not read" });
+      fileMessage = got.message;
+    }
     // A yes to "Reply yes to link it", within the hour, on the channel that was asked.
     if (YES.test(msg.text.trim()) && store.confirmLink) {
       const linked = await store.confirmLink({ userId: person.userId, askedOn: contact, at: now, notice: LINKED_HERE_REPLY });
       if (linked) {
         if (linked.key) { try { await d.deliver({ userId: person.userId, key: linked.key, now }); } catch { /* the outbox has it */ } }
         return await answer(linkedReply(channelOf(linked.contact)), { linked: channelOf(linked.contact) });
+      }
+    }
+    // FEATURE 16: on Telegram, "link my account" offers Telegram's login; "unlink telegram" lets this chat go.
+    if (msg.channel === "telegram" && !fileMessage) {
+      const loginUrl = (d.env.get("TELEGRAM_LOGIN_URL") || "").trim();
+      if (LINK_ASK.test(msg.text.trim()) && /^https:\/\//.test(loginUrl)) {
+        const r = await d.reply(contact, d.render(TELEGRAM_LINK_REPLY), { buttons: [[{ text: LINK_BUTTON, loginUrl }]] });
+        return ok({ link: "offered", sent: r.ok });
+      }
+      if (UNLINK_ASK.test(msg.text.trim()) && store.unlinkTelegram) {
+        const n = await store.unlinkTelegram(person.userId, now);
+        const r = await d.reply(contact, d.render(n < 0 ? TELEGRAM_CHANNEL_ONLY_REPLY : n ? TELEGRAM_UNLINKED_REPLY : "This chat isn't linked to a Trainee account, so there was nothing to unlink."));
+        return ok({ unlinked: n, sent: r.ok });
       }
     }
     if (CONNECT_TELEGRAM.test(msg.text.trim()) && store.issueLinkNonce) {
@@ -194,11 +268,11 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       return await answer(text, { connect: "telegram" });
     }
 
-    let reply: string, parts: string[] | null = null;
+    let reply: string, parts: string[] | null = null, artifacts: { ref: string; filename: string; mime: string }[] = [], turnThread: string | null = person.threadId;
     try {
       const turnKey = await turnKeyFor(msg.provider === "loopmessage" ? msg.messageId : `${msg.provider}:${msg.messageId}`);
       // Telegram's /start and /help come as a command with no text; the brain reads them as the command itself.
-      const said = msg.text || (command ? `/${command}` : "");
+      const said = fileMessage ?? (msg.text || (command ? `/${command}` : ""));
       // The brain gets the person, the thread, the words and a turn key, and the reply-to id only when the platform gave one.
       const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}) });
       reply = out.reply.trim() || CHAT_DOWN_REPLY;
@@ -208,6 +282,8 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       if (out.resultStatus === CARD_NEEDS_REPLY_STATUS) reply = needsReplyTextFor(msg.channel);
       parts = replyParts(out.parts);
       cardId = typeof out.cardId === "string" && out.cardId ? out.cardId : null;
+      artifacts = Array.isArray(out.artifacts) ? out.artifacts : [];
+      turnThread = out.threadId ?? person.threadId;
       if (toBrain && command === "start") {
         reply = `${CHANNEL_REPLIES.start}\n\n${reply}`;
         if (parts) parts = [`${CHANNEL_REPLIES.start}\n\n${parts[0]}`, ...parts.slice(1)];
@@ -224,7 +300,13 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     for (const r of rows) await store.enqueueReply(person.userId, r.key, r.text, now, msg.channel, r.part, cardId);
     try { for (const r of rows) await d.deliver({ userId: person.userId, key: r.key, now }); }
     catch (e) { console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
-    return ok({ replied: true, ...(parts ? { parts: parts.length } : {}) });
+    // FEATURE 16: the documents, after the reply that names them; one that does not go is said, never claimed sent.
+    let docs: { sent: number; failed: number } | null = null;
+    if (artifacts.length && d.sendArtifacts) {
+      docs = await d.sendArtifacts({ userId: person.userId, threadId: turnThread, contact, artifacts }).catch(() => ({ sent: 0, failed: artifacts.length }));
+      if (docs.failed) await d.reply(contact, d.render(DOC_NOT_SENT_REPLY)).catch(() => ({ ok: false }));
+    }
+    return ok({ replied: true, ...(parts ? { parts: parts.length } : {}), ...(docs ? { documents: docs } : {}) });
   } catch (e) {
     console.error("inbound failed:", e instanceof Error ? e.message : String(e));
     try { await d.reply(contact, d.render(CHAT_DOWN_REPLY)); } catch { /* already logged */ }

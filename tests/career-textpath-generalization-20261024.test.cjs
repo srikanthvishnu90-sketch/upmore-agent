@@ -70,11 +70,11 @@ test("mech1: an unmatched in-scope question gets didn't-catch + real capabilitie
   const [t1] = run("gz-probation", ["can you explain how a probationary period usually changes notice obligations"]);
   assert.equal(t1.fallback, false, `fell back: ${t1.reply.slice(0, 120)}`);
   assert.equal(t1.intent, "career_catchall");
-  assert.match(t1.reply, /did not catch|didn't catch/i);
-  assert.doesNotMatch(t1.reply, /i understand/i);
-  assert.doesNotMatch(t1.reply, /notice obligations/);
-  assert.match(t1.reply, /watch|track|prep/i);
-  assert.equal(questionsIn(t1.reply), 1, `exactly one bounded question: ${t1.reply.slice(0, 200)}`);
+  // WO-111: the floor names the words it could not act on and says nothing changed; no capability menu, no claimed understanding.
+  assert.match(t1.reply, /could not match/i);
+  assert.match(t1.reply, /changed nothing/i);
+  assert.doesNotMatch(t1.reply, /i understand|here is what i can do/i);
+  assert.ok(questionsIn(t1.reply) <= 1, `at most one question: ${t1.reply.slice(0, 200)}`);
 });
 
 test("mech1: a second unmatched topic (contract clawback) lands in the same catch-all, not a template", () => {

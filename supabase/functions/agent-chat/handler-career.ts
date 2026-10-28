@@ -82,6 +82,7 @@ import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, su
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
 import { disconnectGoogle, disconnectReply, isGoogleDisconnect } from "../_shared/google_disconnect.ts"; // FEATURE GV
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
+import { CAREER_READ_SCOPE as PEOPLE_READ_SCOPE, supabasePeopleDeps } from "../_shared/career_people.ts"; // D-033
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
 // FEATURE 8: inbox check and follow-ups that can be sent.
@@ -577,7 +578,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
             previousAsk: async () => {
               const r = await admin.from("agent_messages").select("content").eq("thread_id", tid).eq("role", "user").order("id", { ascending: false }).limit(1);
               return r.error ? null : (r.data?.[0]?.content ?? null);
-            } })
+            },
+            // D-033 people finding: the LinkedIn export, Gmail correspondents (the career grant's read scope), pages, intros.
+            people: supabasePeopleDeps(admin, { fetch, token: careerTokenFor(f08Grant, PEOPLE_READ_SCOPE), introPush: Deno.env.get("CAREER_INTRO_REMINDERS") === "on" }) })
           .catch((e) => { console.error("networking turn:", e?.message ?? e); return null; })
         : null;
       if (netMeter.calls) await recordTurnCost(admin, user.id, tid, netMeter);

@@ -51,7 +51,12 @@ LIVE_MISSING_DEFAULT="20261026120018_career_resume_one_record.sql 20261020110000
   20261026060006_career_more_providers.sql 20261026060106_career_ingest_runs.sql 20261026070007_career_alert_min_fit.sql
   20261026080008_career_mail_drafts_sent.sql 20261026090009_career_account_memory.sql
   20261026100000_career_apply_cloud_runner.sql 20261026100001_career_apply_want_guard.sql
-  20261026140000_career_apply_receipt_store.sql"
+  20261026140000_career_apply_receipt_store.sql
+  20261026210016_career_resume_required.sql 20261026220016_channel_telegram_login.sql
+  20261026230100_career_erase_complete.sql 20261026230300_career_turn_gate.sql
+  20261026230400_career_kb_postings_recency_index.sql"
+# 20261026210016 and 20261026220016 (FEATURE 16, NOT APPLIED) are new here, not live; 20261026210016 reads
+# career_apply_profile_for, created by 20261025120000 (missing above).
 read -r -a LIVE_MISSING <<<"$(echo ${LIVE_MISSING:-$LIVE_MISSING_DEFAULT})"
 LIVE_SAFE="${LIVE_SAFE_BRIEF_DIGEST:-1}"
 BRIEF=20261021050000_career_brief_digest.sql

@@ -9,7 +9,7 @@ import { liveOnly, type LinkCheck } from "../link_check.ts";
 import { startWatching, validPrefs, validZone, type AlertStore } from "../career_alert_store.ts";
 import { DEFAULT_PREFS } from "../career_alerts.ts";
 import { applyFloor } from "../career_floor.ts";
-import { addStanding, type MemoryStore, quotedFrom } from "./memory.ts";
+import { addStanding, instructionShaped, type MemoryStore, quotedFrom, ungroundedWords } from "./memory.ts";
 import { standing } from "../career_mail.ts";
 import { appsFromTracker, type MailStore } from "../career_mail_store.ts";
 import { dayIn, EVENT_KINDS, type EventStore, recordEvent, RECALL_MAX, windowOf } from "./timeline.ts";
@@ -188,6 +188,9 @@ export function careerTools(deps: {
         const store = memoryOf(), had = await store.standing(c.userId);
         const r = addStanding(had, { text: String(i.instruction ?? ""), said: String(i.quote), now: c.now });
         if (!r.ok) throw new Error(r.error);
+        // Launch readiness S3: the saved words come from the person's message, never from a posting or email the model read.
+        const foreign = ungroundedWords(c.turn.message, String(i.instruction ?? ""), String(i.quote ?? ""));
+        if (foreign.length) throw new Error(`not kept: the instruction must be in the person's own words from this message, and these are not: ${foreign.slice(0, 8).join(", ")}; restate it with their words, or nothing is kept`);
         await store.saveStanding(c.userId, r.items);
         if (r.items.length > had.length) await record(c, "instruction_kept", r.item.text, { id: r.item.id, said: r.item.said });
         return { kept: r.item, total: r.items.length };
@@ -333,12 +336,18 @@ export function careerTools(deps: {
         // ("unknown stage"); the label is one of the tracker's stages before either call.
         const stage = trackerStage(i.stage);
         if (!stage) throw new Error(`not recorded: "${String(i.stage ?? "")}" is not a stage; use one of: ${(CareerTrack.STAGES as string[]).join(", ")}`);
+        // Launch readiness S3: the tracker is read back into later prompts, so an employer or role shaped like an
+        // instruction (a link, an email address, a line break, or more than a name's length), which only text the model
+        // read could put there, is never recorded.
+        if (instructionShaped(i.company)) throw new Error("not recorded: that is not an employer's name; ask them which employer");
+        const roleSaid = i.role && !instructionShaped(i.role) ? String(i.role) : "";
         const moved = CareerTrack.manualUpdate(s, String(i.company), stage, { now: c.now });
-        const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage }, { now: c.now });
+        const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: roleSaid, stage }, { now: c.now });
         if (application && when) application.next_when = when;
-        await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage), ...(when ? { when } : {}) });
+        await record(c, "status_change", String(i.company), { role: application?.role || roleSaid || null, stage: application?.stage ?? String(i.stage), ...(when ? { when } : {}) });
         const said = i.when && !when ? { when_not_kept: "that day or time is not in their message this turn; ask them" } : {};
-        return { application, ...(when ? { when_kept: when } : {}), ...said };
+        const roleNote = i.role && !roleSaid ? { role_not_kept: "that is not a role's name; ask them the role if it matters" } : {};
+        return { application, ...(when ? { when_kept: when } : {}), ...said, ...roleNote };
       },
     },
     {

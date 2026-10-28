@@ -67,18 +67,19 @@ export interface OutreachStore {
   // Scale (20261027160000): up to `batch` people with a reminder due at `now`, oldest due first, each leased for leaseMs so
   // concurrent runs claim disjoint people; saveFollowups releases the lease. `batch` sizes one call, never caps the work.
   claimDueFollowups?(now: number, batch: number, leaseMs: number): Promise<{ user_id: string; items: Followup[] }[]>;
-  contacts?(userId: string): Promise<ContactRow[]>; // the person's contacts: one list per account, read by every thread
-  saveContacts?(userId: string, rows: ContactRow[]): Promise<void>;
-  // The same list with what makes the account copy safe to merge into from many threads: `forgotten` (the identity key of
-  // every contact the person deleted: a stale thread copy can never put one back) and `version` (0 = no record yet).
-  // saveContactsRecord writes only if the record is still at `expect` (compare-and-set); false means another thread wrote
-  // first, and the caller re-reads and merges again. accountEpoch is the account's privacy epoch ('career:account'): a
-  // turn that started before an erase never writes contacts back after it.
-  contactsRecord?(userId: string): Promise<ContactsRecord>;
-  saveContactsRecord?(userId: string, rec: { items: ContactRow[]; forgotten: string[] }, expect: number): Promise<boolean>;
+  // The person's contacts, ONE list per account (architect ruling R1; career_account_contacts, 20261027160100), read only
+  // through indexed, paged queries, never the whole list on a turn. Keys are computed by the caller (career_networking.ts
+  // keyedContact). Writes carry the account's privacy epoch read at turn start and are refused (null) once it moved.
+  contactsSummary?(userId: string): Promise<{ total: number; fileCount: number; files: string[] }>;
+  contactsAtFirm?(userId: string, firmKey: string): Promise<ContactRow[]>;
+  contactsNamed?(userId: string, nameKey: string): Promise<ContactRow[]>; // name_key = nameKey, or starts with `${nameKey} `
+  contactsByEmail?(userId: string, email: string): Promise<ContactRow[]>;
+  contactsInFile?(userId: string, file: string): Promise<ContactRow[]>;
+  putContacts?(userId: string, epoch: number, rows: KeyedContact[], o?: { replaceFile?: string; unlessForgotten?: boolean }): Promise<number | null>;
+  forgetContacts?(userId: string, epoch: number, sel: { all?: boolean; linkedin?: boolean; rowKeys?: string[] }): Promise<number | null>;
   accountEpoch?(userId: string): Promise<number>;
 }
-export interface ContactsRecord { items: ContactRow[]; forgotten: string[]; version: number }
+export interface KeyedContact { row_key: string; person_key: string; file: string; name_key: string; email: string | null; firm_key: string; firm_raw_key: string; data: ContactRow }
 // One follow-up reminder: on the draft the person sent (from Trainee or themselves), due on a day, fired at most once.
 export interface Followup {
   draft_id: string; name: string; firm: string; email: string; subject: string;
@@ -91,17 +92,6 @@ export function followupValue(items: Followup[]): { items: Followup[]; next_due_
   const waiting = items.filter((f) => !f.fired_at), fired = items.filter((f) => f.fired_at).slice(-200);
   const next = waiting.map((f) => new Date(Date.parse(f.due_at)).toISOString()).sort()[0] ?? null;
   return { items: [...fired, ...waiting], next_due_at: next };
-}
-// The person's contacts: ONE list per account, on the same footing as the follow-up reminders above (a
-// career_watch_kv row, erased with the account). Contacts used to live only in the thread's state while
-// every outreach record was per-account, so a list imported in one thread was invisible in another.
-export const CONTACTS_KEY = "career:contacts";
-// The stored value as a record: a missing or pre-version row reads as version 0 with what it holds.
-export function recordOf(value: any, _exists = true): ContactsRecord {
-  const items = Array.isArray(value?.items) ? value.items : [];
-  const forgotten = Array.isArray(value?.forgotten) ? value.forgotten.map(String) : [];
-  const v = Number(value?.version);
-  return { items, forgotten, version: Number.isSafeInteger(v) && v > 0 ? v : 0 };
 }
 
 export const OUTREACH_INTENT = "career_outreach_batch";
@@ -733,11 +723,29 @@ export async function runOutreachReplies(o: { store: OutreachStore; read: ReplyR
 }
 
 // ------------------------------------------------------------------------------------------------ stores
-export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void; setQuiet(userId: string, on: boolean): void; setEpoch(userId: string, epoch: number): void } {
+const CONTACTS_TABLE = "career_account_contacts", CONTACTS_PAGE = 1000;
+async function pagedContacts(q: (after: string) => PromiseLike<{ data: any; error: { message: string } | null }>): Promise<{ row_key: string; data: ContactRow }[]> {
+  const out: { row_key: string; data: ContactRow }[] = [];
+  let after = "";
+  for (;;) {
+    const r = await q(after);
+    if (r.error) throw new Error(`read your contacts: ${r.error.message}`);
+    const rows = (r.data ?? []) as { row_key: string; data: ContactRow }[];
+    out.push(...rows);
+    if (rows.length < CONTACTS_PAGE) return out;
+    after = rows[rows.length - 1].row_key;
+  }
+}
+const mergeRows = (a: { row_key: string; data: ContactRow }[], b: { row_key: string; data: ContactRow }[]) => {
+  const m = new Map<string, ContactRow>();
+  for (const r of [...a, ...b]) m.set(r.row_key, r.data);
+  return [...m.entries()].sort(([x], [y]) => x.localeCompare(y)).map(([, d]) => d);
+};
+export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void; setQuiet(userId: string, on: boolean): void; setEpoch(userId: string, epoch: number): void; allContacts(userId: string): ContactRow[]; forgotten(userId: string): string[] } {
   const drafts: (OutreachDraft & { user_id: string })[] = [], dnc: Record<string, Set<string>> = {}, prefs: Record<string, Prefs> = {}, intents: Record<string, string | null> = {};
   const follow: Record<string, Followup[]> = {}, leases: Record<string, number> = {};
-  const contactsByUser: Record<string, ContactRow[]> = {};
-  const forgottenByUser: Record<string, string[]> = {}, versionByUser: Record<string, number> = {}, epochByUser: Record<string, number> = {};
+  const book: Record<string, Map<string, KeyedContact>> = {}, forgottenByUser: Record<string, Set<string>> = {}, epochByUser: Record<string, number> = {};
+  const rowsOf = (u: string) => [...(book[u]?.values() ?? [])].sort((a, z) => a.row_key.localeCompare(z.row_key));
   const quiet = new Set<string>(); // paused, opted out or erased (career_user_quiet in the database)
   let seq = 0;
   const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -802,17 +810,40 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
       for (const x of due) leases[x.user_id] = now + leaseMs;
       return copy(due.map(({ user_id, items }) => ({ user_id, items })));
     },
-    async contacts(u: string) { return copy(contactsByUser[u] ?? []); },
-    async saveContacts(u: string, rows: ContactRow[]) { contactsByUser[u] = copy(rows.slice(-MAX_CONTACTS)); },
-    async contactsRecord(u: string) { return { items: copy(contactsByUser[u] ?? []), forgotten: [...(forgottenByUser[u] ?? [])], version: versionByUser[u] ?? 0 }; },
-    async saveContactsRecord(u: string, rec: { items: ContactRow[]; forgotten: string[] }, expect: number) {
-      if ((versionByUser[u] ?? 0) !== expect) return false;
-      contactsByUser[u] = copy(rec.items.slice(-MAX_CONTACTS)); forgottenByUser[u] = [...rec.forgotten]; versionByUser[u] = expect + 1;
-      return true;
+    async contactsSummary(u: string) {
+      const rows = rowsOf(u), files = [...new Set(rows.map((r) => r.file))].sort();
+      return { total: rows.length, fileCount: files.length, files: files.slice(0, 3) };
+    },
+    async contactsAtFirm(u: string, k: string) { return copy(rowsOf(u).filter((r) => k && (r.firm_key === k || r.firm_raw_key === k)).map((r) => r.data)); },
+    async contactsNamed(u: string, k: string) { return copy(rowsOf(u).filter((r) => k && (r.name_key === k || r.name_key.startsWith(`${k} `))).map((r) => r.data)); },
+    async contactsByEmail(u: string, e: string) { return copy(rowsOf(u).filter((r) => r.email === e.toLowerCase()).map((r) => r.data)); },
+    async contactsInFile(u: string, f: string) { return copy(rowsOf(u).filter((r) => r.file === f).map((r) => r.data)); },
+    async putContacts(u: string, epoch: number, rows: KeyedContact[], o: { replaceFile?: string; unlessForgotten?: boolean } = {}) {
+      if ((epochByUser[u] ?? 0) !== epoch) return null;
+      const m = (book[u] ??= new Map()), gone = (forgottenByUser[u] ??= new Set());
+      if (o.replaceFile !== undefined) for (const [k, r] of m) if (r.file === o.replaceFile) m.delete(k);
+      let n = 0;
+      for (const r of rows) {
+        if (o.unlessForgotten && gone.has(r.person_key)) continue;
+        if (!o.unlessForgotten) gone.delete(r.person_key);
+        m.set(r.row_key, copy({ ...r, email: r.email ? r.email.toLowerCase() : null })); n++;
+      }
+      return n;
+    },
+    async forgetContacts(u: string, epoch: number, sel: { all?: boolean; linkedin?: boolean; rowKeys?: string[] }) {
+      if ((epochByUser[u] ?? 0) !== epoch) return null;
+      const m = (book[u] ??= new Map()), gone = (forgottenByUser[u] ??= new Set()), keys = new Set(sel.rowKeys ?? []);
+      const people = new Set(rowsOf(u).filter((r) => sel.all || (sel.linkedin && (/connections/i.test(r.file) || (r.data as any).linkedin_export === true)) || keys.has(r.row_key)).map((r) => r.person_key));
+      let n = 0;
+      for (const [k, r] of m) if (people.has(r.person_key)) { m.delete(k); n++; }
+      for (const pk of people) gone.add(pk);
+      return n;
     },
     async accountEpoch(u: string) { return epochByUser[u] ?? 0; },
     // Test seams: the account's privacy epoch (an erase bumps it), and a write by "another thread" between a read and a save.
     setEpoch(u: string, e: number) { epochByUser[u] = e; },
+    allContacts(u: string) { return copy(rowsOf(u).map((r) => r.data)); },
+    forgotten(u: string) { return [...(forgottenByUser[u] ?? [])].sort(); },
     async lapsed(u: string) { return copy(drafts.filter((d) => d.user_id === u && d.status === "skipped" && d.result === "expired").sort((a, z) => String(a.approved_at ?? a.created_at).localeCompare(String(z.approved_at ?? z.created_at)))); },
     setIntent(threadId: string, intent: string | null) { intents[threadId] = intent; },
     setQuiet(userId: string, on: boolean) { if (on) quiet.add(userId); else quiet.delete(userId); },
@@ -879,29 +910,44 @@ export function supabaseOutreachStore(admin: any): OutreachStore {
       const rows = must(await admin.rpc("career_outreach_followups_claim", { p_now: new Date(now).toISOString(), p_batch: batch, p_lease_seconds: Math.max(1, Math.ceil(leaseMs / 1000)) }), "claim due follow-up reminders");
       return (rows ?? []).map((x: any) => ({ user_id: String(x.user_id), items: Array.isArray(x.value?.items) ? x.value.items : [] }));
     },
-    async contacts(u) {
-      const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", CONTACTS_KEY).maybeSingle(), "read your contacts");
-      return Array.isArray(r?.value?.items) ? r.value.items : [];
+    // R1 contacts (career_account_contacts): every read indexed and keyset-paged on row_key; PAGE sizes a call, not the work.
+    async contactsSummary(u) {
+      const r = must(await admin.rpc("career_account_contacts_summary", { p_user: u }), "read your contacts");
+      const x = Array.isArray(r) ? r[0] : r;
+      return { total: Number(x?.total ?? 0), fileCount: Number(x?.file_count ?? 0), files: Array.isArray(x?.files) ? x.files : [] };
     },
-    async saveContacts(u, rows) {
-      must(await admin.from("career_watch_kv").upsert({ user_id: u, key: CONTACTS_KEY, value: { items: rows.slice(-MAX_CONTACTS) }, updated_at: new Date().toISOString() }, { onConflict: "user_id,key" }), "save your contacts");
+    async contactsAtFirm(u, k) {
+      if (!k) return [];
+      const a = await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).eq("firm_key", k).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE));
+      const b = await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).eq("firm_raw_key", k).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE));
+      return mergeRows(a, b);
     },
-    async contactsRecord(u) {
-      const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", CONTACTS_KEY).maybeSingle(), "read your contacts");
-      return recordOf(r?.value ?? null, !!r);
+    async contactsNamed(u, k) {
+      if (!k) return [];
+      const a = await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).eq("name_key", k).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE));
+      const b = await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).like("name_key", `${k} %`).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE));
+      return mergeRows(a, b);
     },
-    async saveContactsRecord(u, rec, expect) {
-      const value = { items: rec.items.slice(-MAX_CONTACTS), forgotten: rec.forgotten, version: expect + 1 };
-      const at = new Date().toISOString();
-      // No record yet: insert, and lose to a thread that inserted first. Otherwise: update only the version read.
-      let rows = expect === 0
-        ? must(await admin.from("career_watch_kv").upsert({ user_id: u, key: CONTACTS_KEY, value, updated_at: at }, { onConflict: "user_id,key", ignoreDuplicates: true }).select("user_id"), "save your contacts")
-        : must(await admin.from("career_watch_kv").update({ value, updated_at: at }).eq("user_id", u).eq("key", CONTACTS_KEY).eq("value->>version", String(expect)).select("user_id"), "save your contacts");
-      // A row written before versions (saveContacts) reads as version 0: replace it only while it is still unversioned.
-      if (expect === 0 && !(Array.isArray(rows) && rows.length)) {
-        rows = must(await admin.from("career_watch_kv").update({ value, updated_at: at }).eq("user_id", u).eq("key", CONTACTS_KEY).is("value->version", null).select("user_id"), "save your contacts");
+    async contactsByEmail(u, e) {
+      return mergeRows(await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).eq("email", e.toLowerCase()).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE)), []);
+    },
+    async contactsInFile(u, f) {
+      return mergeRows(await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).eq("file", f).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE)), []);
+    },
+    async putContacts(u, epoch, rows, o = {}) {
+      let n = 0;
+      // One call per chunk keeps each request small; a file's rows replace its earlier rows in the first chunk only.
+      for (let k = 0; k === 0 || k < rows.length; k += CONTACTS_PAGE) {
+        const part = rows.slice(k, k + CONTACTS_PAGE).map((r) => ({ ...r, email: r.email ? r.email.toLowerCase() : null }));
+        const w = must(await admin.rpc("career_account_contacts_put", { p_user: u, p_epoch: epoch, p_rows: part, p_replace_file: k === 0 ? o.replaceFile ?? null : null, p_unless_forgotten: !!o.unlessForgotten }), "save your contacts");
+        if (w === null || w === undefined) return null;
+        n += Number(w);
       }
-      return Array.isArray(rows) && rows.length === 1;
+      return n;
+    },
+    async forgetContacts(u, epoch, sel) {
+      const w = must(await admin.rpc("career_account_contacts_forget", { p_user: u, p_epoch: epoch, p_all: !!sel.all, p_linkedin: !!sel.linkedin, p_row_keys: sel.rowKeys ?? [] }), "delete your contacts");
+      return w === null || w === undefined ? null : Number(w);
     },
     async accountEpoch(u) {
       const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", "career:account").maybeSingle(), "read your account");

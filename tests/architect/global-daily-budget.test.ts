@@ -231,14 +231,20 @@ Deno.test("every paid call goes through the gateway: no direct provider URL, key
   eq(scanForDirectProviderUse({ "supabase/functions/_shared/model_gateway.ts": 'fetch("https://api.openai.com/x")' }), [], "the gateway is allowed");
 });
 
-Deno.test("gateway source: the only sends are in callModel, after the reservation, and the kill switch and fail-closed checks come first", async () => {
+Deno.test("gateway source: the only sends are in callModel and webSearchCall, each after its reservation, and the kill switch and fail-closed checks come first", async () => {
   const g = await Deno.readTextFile(new URL("model_gateway.ts", SHARED));
   const sends = [...g.matchAll(/await request\(/g)].map((m) => m.index!);
-  eq(sends.length, 2, "exactly two sends (OpenAI, Anthropic), both inside callModel");
-  const fn = g.indexOf("export async function callModel"), end = g.indexOf("// What a person reads when the provider is down");
-  assert(sends.every((i) => i > fn && i < end), "both sends are inside callModel");
-  const reserve = g.indexOf("await gate.reserve("), paused = g.indexOf("budgetPausedByEnv("), closed = g.indexOf("if (!got.ok)");
-  assert(paused > fn && paused < reserve && reserve < closed && closed < Math.min(...sends), "pause check, reserve, refusal check, then the first send");
+  eq(sends.length, 3, "exactly three sends: OpenAI and Anthropic in callModel, OpenAI's web search in webSearchCall");
+  const fn = g.indexOf("export async function callModel"), ws = g.indexOf("export async function webSearchCall"), end = g.indexOf("// What a person reads when the provider is down");
+  assert(fn > 0 && ws > fn && end > ws, "callModel, then webSearchCall, then the rest");
+  // Each door, in its own text: pause check, reserve, refusal check, then its sends.
+  for (const [name, from, to] of [["callModel", fn, g.indexOf("// ---- web search", fn)], ["webSearchCall", ws, end]] as const) {
+    const body = g.slice(from, to), mine = sends.filter((i) => i > from && i < to).map((i) => i - from);
+    assert(mine.length >= 1, `${name} sends`);
+    const paused = body.indexOf("budgetPausedByEnv("), reserve = body.indexOf("await gate.reserve("), closed = body.indexOf("if (!got.ok)");
+    assert(paused > 0 && paused < reserve && reserve < closed && closed < Math.min(...mine), `${name}: pause check, reserve, refusal check, then the first send`);
+  }
+  assert(sends.every((i) => i > fn && i < end), "every send is inside one of the two doors");
   const other = g.replace(g.slice(fn, end), "");
   assert(!/\bfetch\(/.test(other.replace(/\/\/.*$/gm, "")), "no other fetch in the gateway");
   // Every production caller of the model goes through callModel (directly or via chatReply/plannerModel).
@@ -362,7 +368,7 @@ async function sqlScenarios(pg: Pg) {
     eq((await rsv("2026-10-28T05:00:00Z", TODAY_LIMIT - 1)).data.ok, true, "10-28 00:00:00 Chicago: allowed up to $15");
     eq((await rsv("2026-10-29T04:59:59Z")).data.ok, true, "10-28 23:59:59 Chicago: the last micro-dollar of the $15 day");
     eq((await rsv("2026-10-29T04:59:59Z")).data.state, "limit", "and refused once the $15 is gone");
-    eq((await day(pg, "2026-10-28")).reserved, TODAY_LIMIT, "10-28 holds exactly $15");
+    { const d28 = await day(pg, "2026-10-28"); eq(d28.spent + d28.reserved, TODAY_LIMIT, "10-28 holds exactly $15 (spent once its reservations passed the TTL)"); }
     // 10-29: its own $20, untouched by 10-28 (no carry-over either way).
     eq((await rsv("2026-10-29T05:00:00Z", LIMIT - 1)).data.ok, true, "10-29 00:00:00 Chicago: a fresh $20, not what 10-28 left");
     const last = await rsv("2026-10-30T04:59:59Z"); eq(last.data.ok, true, "10-29 23:59:59 Chicago: allowed while the $20 lasts");

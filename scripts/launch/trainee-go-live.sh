@@ -167,6 +167,7 @@ MIGRATIONS=(
   20261026230500_definer_execute_lockdown.sql
   20261027010000_career_people.sql
   20261027020000_career_intro_reminder_push.sql
+  20261027170000_career_people_scale.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -237,6 +238,7 @@ MIGRATION_MARK=(
   "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
   "to_regclass('public.career_intro_requests') is not null"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_proactive_runs' and column_name = 'intro_reminders')"
+  "to_regprocedure('public.career_people_import_part(uuid,text,text,text,jsonb,integer,integer,boolean,bigint)') is not null and to_regclass('public.agent_flow_state_user') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

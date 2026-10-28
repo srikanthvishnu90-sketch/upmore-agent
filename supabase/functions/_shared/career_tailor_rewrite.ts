@@ -16,7 +16,7 @@
 //
 // Behind CAREER_TAILOR_REWRITE=on (default off). One model call per tailoring, metered by the caller's meter.
 import { CareerProfile, CareerRouter, CareerTailor, CareerWriting } from "./router_core.career.js";
-import { baseResume, changelog, confirmedOnly } from "./career_tailor.ts";
+import { baseResume, changelog, confirmedOnly, submissionResume } from "./career_tailor.ts";
 
 export const REWRITE_FLAG = "CAREER_TAILOR_REWRITE";
 export const MAX_BULLETS = 14;
@@ -203,12 +203,15 @@ export async function rewriteResume(o: { resume: any; profile: any; jd: any; pos
 // ------------------------------------------------------------------------------------------------ the live turn
 // The router's career_tailor result (the tailored document rides it as tailorDoc / tailorJd) is rewritten, re-rendered
 // through 123's render (148 PDF, exactly as the router renders it) and the artifact replaced in place, so the PDF that is
-// materialized and the copy the router kept on the profile are the rewritten one. Off, or anything missing: untouched.
+// materialized and the copy the router kept on the profile are the rewritten one. Anything missing: untouched. Off: no
+// model call, no reply change, and the files become the employer copy (employerFiles).
 export interface TurnOut { reply: string; intent: string; result?: any; [k: string]: unknown }
 export interface RewriteTurn { out: TurnOut; summary: { status: string; accepted: Accepted[]; rejected: Rejected[]; unchanged: number; changelog: string } | null }
 export async function tailorRewriteTurn(o: { out: TurnOut; profile: any; on: boolean; model: ModelFn; voice?: any }): Promise<RewriteTurn> {
   const res = o.out?.result;
-  if (!o.on || o.out?.intent !== "career_tailor" || !res || !res.tailorDoc || !res.artifact || res.artifact.kind !== "tailored_resume" || !o.profile) return { out: o.out, summary: null };
+  if (o.out?.intent !== "career_tailor" || !res || !res.tailorDoc || !res.artifact || res.artifact.kind !== "tailored_resume" || !o.profile) return { out: o.out, summary: null };
+  // Off: no model call and no reply change; the attached files become the employer copy (employerFiles below).
+  if (!o.on) { employerFiles(res, res.tailorDoc, o.profile); return { out: o.out, summary: null }; }
   const jd = CareerTailor.parseJD(String(res.tailorJd || ""));
   const posting = { title: res.tailorPosting?.title ?? null, company: res.tailorPosting?.company ?? res.artifact.company ?? null };
   const r = await rewriteResume({ resume: res.tailorDoc, profile: o.profile, jd, posting, model: o.model, voice: o.voice });
@@ -221,14 +224,45 @@ export async function tailorRewriteTurn(o: { out: TurnOut; profile: any; on: boo
   const log = changelog({ diff, base, tailored: cited, profile: clean, jd, hidden: [], persona: null, rewrites: r });
   let reply = o.out.reply;
   if (r.accepted.length) {
-    const rendered = CareerTailor.render(r.resume, { profile: o.profile });
-    if (rendered?.pdf) {
-      Object.assign(res.artifact, { text: rendered.text || "", markdown: rendered.markdown || "", pdf: rendered.pdf, sha256: CareerRouter.sha256(rendered.text || ""), reworded: r.accepted.length });
+    if (employerFiles(res, r.resume, o.profile)) {
+      res.artifact.reworded = r.accepted.length;
     } else {
-      // The rewritten document did not render: the select-and-reorder PDF already attached stands, and nothing claims a rewrite.
+      // The rewritten document did not render: the select-and-reorder files stand, and nothing claims a rewrite.
+      employerFiles(res, res.tailorDoc, o.profile);
       return { out: { ...o.out, reply: `${reply}\nNo bullet was reworded this time (the reworded version did not render), so the attached resume is in your own confirmed words.` }, summary: { status: "render_failed", accepted: [], rejected: r.rejected, unchanged: r.unchanged, changelog: "" } };
     }
-  }
+  } else employerFiles(res, res.tailorDoc, o.profile);
   reply = `${reply}\nWhat changed: ${log.line}`;
   return { out: { ...o.out, reply }, summary: { status: r.status, accepted: r.accepted, rejected: r.rejected, unchanged: r.unchanged, changelog: log.line } };
+}
+
+// FAMILY MATERIALS (AM-03, 2026-10-26): the files the person is handed are the ones they would send. The router's PDF
+// printed the tailor's eligibility verdict on the page as if it were a resume line, was named Resume_Resume.pdf when no
+// name is on file, and the reply's "Saved as PDF and DOCX files, attached" was half true: only the PDF rode the reply.
+// Here the attached files become the employer copy (career_tailor.ts submissionResume: cited lines only; the verdict and
+// gap notes stay in the reply, where the person reads them), audited again against the confirmed facts, rendered as PDF
+// and DOCX from the same lines (channel_artifacts.ts documentsOf attaches both), and named for the person or, with no
+// name on file, for the posting. The router keeps the same artifact object on the profile, so "send me the pdf again"
+// sends this copy. Anything that does not hold (an empty copy, a failed audit, a format that did not render) leaves the
+// router's files exactly as they were.
+export function employerFiles(res: any, doc: any, profile: any): boolean {
+  try {
+    const sub = submissionResume(doc);
+    if (!sub.sections.length) return false;
+    if (!CareerTailor.auditResume(sub, confirmedOnly(profile)).ok) return false;
+    const rendered = CareerTailor.render(sub, { profile });
+    if (!rendered?.pdf?.base64 || !rendered?.docx?.base64) return false;
+    const company = String(res.artifact?.company || res.tailorPosting?.company || "").replace(/\([^)]*\)/g, " ")
+      .replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
+    const named = (ext: string, given: string) => (sub.header?.name ? given : `Resume${company ? `_${company}` : ""}.${ext}`);
+    Object.assign(res.artifact, {
+      text: rendered.text || "", markdown: rendered.markdown || "", sha256: CareerRouter.sha256(rendered.text || ""),
+      pdf: { ...rendered.pdf, filename: named("pdf", rendered.pdf.filename) },
+      docx: { ...rendered.docx, filename: named("docx", rendered.docx.filename) },
+      employer_copy: true,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }

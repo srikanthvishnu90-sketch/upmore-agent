@@ -43,7 +43,10 @@ async function run(cmd: string, args: string[], stdin?: string, env?: Record<str
 }
 
 // `includeBridge`: also the draft card-cloud bridge, at its filename position (tests/architect/bridge-ledger-order.test.ts).
-export async function startPg(opts: { includeBridge?: boolean } = {}): Promise<Pg> {
+// `migrationBudget`: leave the global model budget as the migration made it (the one window 2026-10-29 America/Chicago). By default the
+// harness opens a test budget around NOW, so a test that makes a (fake) model call does not depend on the date it runs on; the budget's
+// own tests (tests/architect/global-daily-budget.test.ts) pass migrationBudget to test the real window.
+export async function startPg(opts: { includeBridge?: boolean; migrationBudget?: boolean } = {}): Promise<Pg> {
   const bin = pgBinDir();
   if (!bin) throw Error("NO_POSTGRES");
   const work = await Deno.makeTempDir({ prefix: "trainee-flow-pg-" });
@@ -52,6 +55,18 @@ export async function startPg(opts: { includeBridge?: boolean } = {}): Promise<P
     ...Deno.env.toObject(), PGBIN: bin, INCLUDE_BRIDGE: opts.includeBridge ? "1" : "",
   });
   if (prov.code !== 0) throw Error(`provision failed: ${prov.stderr.slice(-800)}`);
+  const pg = attachPg(work, port, bin);
+  if (!opts.migrationBudget) {
+    await pg.sql(`insert into public.model_budget_days(day, limit_micros) values (public.model_budget_day(now() - interval '12 hours'), 20000000) on conflict (day) do nothing;
+      update public.model_budget_settings set value = to_char((now() - interval '12 hours') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') where key = 'window_start';
+      update public.model_budget_settings set value = to_char((now() + interval '12 hours') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') where key = 'window_end';`);
+  }
+  return pg;
+}
+
+// The same clients over an already running throwaway cluster (a test's child process reaches the parent's database by
+// its socket directory and port). `stop` stops and removes that cluster.
+export function attachPg(work: string, port: number, bin: string): Pg {
   const base = ["-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-h", work, "-p", String(port), "-U", "postgres", "-d", "postgres"];
   const sql = async (text: string) => {
     const r = await run(`${bin}/psql`, base, text); // the binary itself: the Debian psql is a Perl wrapper, slow to start

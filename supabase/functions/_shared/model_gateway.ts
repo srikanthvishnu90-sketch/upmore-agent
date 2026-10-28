@@ -2,13 +2,14 @@
 //
 // Every caller (the chat reply, the flow router, the financial planner) keeps building the request it always built, in
 // the Anthropic Messages shape, and reads back the same shape. This module sends it to the configured provider and
-// translates both ways, so the planner's tool loop, the router's forced tool call and the chat's text reply do not change
-// when the provider does. Switching back is one secret (MODEL_PROVIDER=anthropic), not a code change.
+// translates both ways, so the planner's tool loop, the router's forced tool call and the chat's text reply keep one shape.
 //
-// Provider: OpenAI, always, unless MODEL_PROVIDER=anthropic is set on purpose (owner, 2026-10-12: this app runs on OpenAI
-// only and never spends Anthropic API credits by accident). A missing OPENAI_API_KEY stays OpenAI and fails as
-// "not configured" with the honest outage reply; it never falls back to Anthropic. Model: OPENAI_MODEL (default gpt-5-nano) or ANTHROPIC_MODEL (default claude-haiku-4-5-20251001); the router
-// may use OPENAI_ROUTER_MODEL / ANTHROPIC_ROUTER_MODEL. Keys are read from the environment only and never logged.
+// Provider: OpenAI, always (owner rule: OpenAI only, no Anthropic API spend; CLAUDE.md). No secret can switch it:
+// MODEL_PROVIDER, ANTHROPIC_API_KEY, ANTHROPIC_MODEL and ANTHROPIC_ROUTER_MODEL are ignored (Q3, 2026-10-28; the launch
+// audit's SEC11 found one secret change would have moved spend to Anthropic). A missing OPENAI_API_KEY fails as
+// "not configured" with the honest outage reply. Model: OPENAI_MODEL (default gpt-5-nano); the router may use
+// OPENAI_ROUTER_MODEL. Keys are read from the environment only and never logged. The Anthropic request branch in
+// callModel is reachable only from a hand-built ModelConfig (the finance planner's tests); it is on the removal list.
 import { ModelBudgetBlockedError, ModelUnavailableError, providerError, recordModelUsage, reserveModelCall } from "./model_calls.ts";
 import { type BudgetGate, budgetBlockOfType, budgetPausedByEnv, budgetReply, denoEnvGet, REFUSED_BEFORE_GENERATION, resolveBudgetGate, usageProven, worstCaseMicros } from "./model_budget.ts";
 
@@ -18,22 +19,14 @@ export interface ModelConfig { provider: Provider; model: string; apiKey: string
 type Env = { get(name: string): string | undefined };
 
 export const OPENAI_DEFAULT_MODEL = "gpt-5-nano";
-export const ANTHROPIC_DEFAULT_MODEL = "claude-haiku-4-5-20251001";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const PROVIDER_NAME: Record<Provider, string> = { openai: "OpenAI", anthropic: "Anthropic" };
 
 export function modelConfig(env: Env, role: ModelRole = "chat"): ModelConfig {
-  const asked = String(env.get("MODEL_PROVIDER") || "").trim().toLowerCase();
-  const provider: Provider = asked === "anthropic" ? "anthropic" : "openai";
-  if (provider === "openai") {
-    const base = env.get("OPENAI_MODEL") || OPENAI_DEFAULT_MODEL;
-    const model = (role === "router" && env.get("OPENAI_ROUTER_MODEL")) || base;
-    return { provider, model, apiKey: env.get("OPENAI_API_KEY") || "", reasoningEffort: reasoningModel(model) ? (env.get("OPENAI_REASONING_EFFORT") || "minimal") : null };
-  }
-  const base = env.get("ANTHROPIC_MODEL") || ANTHROPIC_DEFAULT_MODEL;
-  const model = (role === "router" && env.get("ANTHROPIC_ROUTER_MODEL")) || base;
-  return { provider, model, apiKey: env.get("ANTHROPIC_API_KEY") || "", reasoningEffort: null };
+  const base = env.get("OPENAI_MODEL") || OPENAI_DEFAULT_MODEL;
+  const model = (role === "router" && env.get("OPENAI_ROUTER_MODEL")) || base;
+  return { provider: "openai", model, apiKey: env.get("OPENAI_API_KEY") || "", reasoningEffort: reasoningModel(model) ? (env.get("OPENAI_REASONING_EFFORT") || "minimal") : null };
 }
 export const providerName = (c: ModelConfig) => PROVIDER_NAME[c.provider];
 // Reasoning models (gpt-5 family, o-series) take max_completion_tokens and reasoning_effort, and reject a custom temperature.

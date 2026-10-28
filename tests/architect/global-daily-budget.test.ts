@@ -424,7 +424,7 @@ async function sqlScenarios(pg: Pg) {
 async function withPg(fn: (pg: Pg) => Promise<void>) {
   if (!pgBinDir()) { if (CI) throw Error("Postgres 16 is required in CI"); console.log("SKIP: no Postgres 16 (PGBIN)"); return; }
   const prev = Deno.env.get("PG_MAX_CONNECTIONS"); Deno.env.set("PG_MAX_CONNECTIONS", "400");
-  const pg = await startPg();
+  const pg = await startPg({ migrationBudget: true });
   try { await fn(pg); } finally { await pg.stop(); if (prev === undefined) Deno.env.delete("PG_MAX_CONNECTIONS"); else Deno.env.set("PG_MAX_CONNECTIONS", prev); }
 }
 Deno.test({ name: "database: 200 concurrent reservations never exceed $20; settle, release, expiry, Chicago midnight and DST, settings, alerts, grants", sanitizeResources: false, sanitizeOps: false,

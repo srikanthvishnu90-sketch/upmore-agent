@@ -37,6 +37,9 @@ import { CareerPool } from "../_shared/career_pool.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
 import { linkChecker } from "../_shared/link_check.ts";
+import { billingCfgFromEnv, supabaseBillingStore } from "../_shared/trainee_billing.ts";
+import { stripeClient } from "../_shared/stripe_client.ts";
+import { supabaseExportPublisher, supabaseExportSource } from "../_shared/data_export.ts";
 import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
 import { STAGED_TOOL_POLICY, stagedRoute } from "./career_staged.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
@@ -638,6 +641,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const summary = summaryFor(win.cut, recent, now, tz);
         // WO-066: the person's own daily application limit (the queue's SQL holds the same bound); unread, the default.
         const daily = await admin.rpc("career_apply_daily_limit", { p_user: user.id }).then((r: any) => r.error ? undefined : Number(r.data) || undefined, () => undefined);
+        // Trainee's own plan from chat (subscribe, status, cancel at period end): present only when Stripe's key and Trainee's price are set.
+        const billingCfg = billingCfgFromEnv(Deno.env), stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+        const billing = stripeKey && billingCfg.priceId ? { stripe: await stripeClient(stripeKey).catch((e: Error) => { console.error("billing: stripe unavailable:", e.message); return null; }), store: supabaseBillingStore(admin), cfg: billingCfg } : null;
         const turn = await agentTurn({ message, history, stores: ctx as unknown as Record<string, unknown>, userId: user.id, threadId: tid, now,
           model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: (q) => postingsDb.search(searchWords(q), 150), alerts: alertStore,
           mail: supabaseMailStore(admin), interviews: supabaseInterviewStore(admin), digest: supabaseDigestStore(admin),
@@ -650,6 +656,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           // goes only on its card's tap.
           wants: supabaseWantStore(admin), limits: { daily }, posting: (id) => postingsDb.get(id),
           // WO-106 (F4): each job link is checked against its board just before it is shown.
+          billing: billing && billing.stripe ? billing : null,
+          // 'Export my data': one private file, a one-hour signed link in this chat, only after the person's yes.
+          exporter: { source: supabaseExportSource(admin), publish: supabaseExportPublisher(admin) },
           linkCheck: linkChecker(fetch, { userAgent: `Trainee job link check (contact: ${Deno.env.get("INGEST_CONTACT_EMAIL") || "unset"})` }),
           // FEATURE 13: the staged brain answers with the actions that have a code-first owner withheld.
           toolPolicy: staged.chosen ? STAGED_TOOL_POLICY : null,

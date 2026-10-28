@@ -4,7 +4,7 @@
 // Flow:
 // - Auth required (verify_jwt=true at deploy)
 // - Gets or creates a Stripe Customer for the user
-// - Checks for unapplied referral credits; notes them for post-checkout application
+// - Checks for unapplied referral credits (tolerating absent referral tables); notes them for post-checkout application
 // - Creates a Checkout session for the $10/mo recurring price
 // - Returns { url } for redirect
 //
@@ -13,6 +13,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import Stripe from "https://esm.sh/stripe@14.25.0?target=deno";
+import { billingCfgFromEnv, startCheckout, supabaseBillingStore, tolerantReferrals } from "../_shared/trainee_billing.ts";
 
 const ALLOWED_ORIGINS = [
   "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app",
@@ -42,7 +43,7 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    const priceId = Deno.env.get("STRIPE_PRICE_ID");
+    const priceId = billingCfgFromEnv(Deno.env).priceId;
 
     if (!stripeKey) return json({ error: "Stripe not configured" }, 503);
     if (!priceId) return json({ error: "Subscription price not configured" }, 503);
@@ -58,54 +59,18 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    const cfg = billingCfgFromEnv(Deno.env);
 
-    // 2. Get or create Stripe customer.
-    let customerId: string | null = null;
-    const { data: sub } = await admin
-      .from("user_subscriptions")
-      .select("stripe_customer_id")
-      .eq("user_id", user.id)
-      .single();
-    if (sub?.stripe_customer_id) {
-      customerId = sub.stripe_customer_id;
-    } else {
-      const customer = await stripe.customers.create({
-        email: user.email || undefined,
-        metadata: { supabase_user_id: user.id },
-      });
-      customerId = customer.id;
-      await admin.from("user_subscriptions").upsert({
-        user_id: user.id,
-        stripe_customer_id: customerId,
-        status: "incomplete",
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
-    }
+    // 2. Checkout for Trainee's own price (customer get-or-create, tagging and the already-subscribed check live in the core).
+    const r = await startCheckout({ stripe, store: supabaseBillingStore(admin), cfg }, { userId: user.id, email: user.email });
+    if (!r.ok) return json({ error: r.reason === "already_subscribed" ? "Already subscribed" : "Checkout unavailable" }, r.reason === "already_subscribed" ? 409 : 503);
 
-    // 3. Check for unapplied referral credits (for display).
-    const { data: credits } = await admin
-      .from("referral_credits")
-      .select("amount")
-      .eq("user_id", user.id)
-      .eq("applied", false);
-    const creditTotal = (credits || []).reduce((s, c) => s + Number(c.amount), 0);
-
-    // 4. Create checkout session.
-    const siteUrl = ALLOWED_ORIGINS[0];
-    const checkoutSession = await stripe.checkout.sessions.create({
-      customer: customerId,
-      mode: "subscription",
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${siteUrl}/?subscribed=1`,
-      cancel_url: `${siteUrl}/?subscribe=cancelled`,
-      metadata: { supabase_user_id: user.id },
-      subscription_data: {
-        metadata: { supabase_user_id: user.id },
-      },
-    });
+    // 3. Unapplied referral credits, for display only. The referral tables may be absent: then there are none.
+    let creditTotal = 0;
+    try { creditTotal = (await tolerantReferrals(admin).unappliedCredits(user.id)).reduce((s, c) => s + c.amount, 0); } catch (e) { console.error("stripe-checkout: credits unreadable:", (e as Error).message); }
 
     return json({
-      url: checkoutSession.url,
+      url: r.url,
       credits_available: creditTotal,
       credits_note: creditTotal >= 10
         ? `$${creditTotal} in referral credit will apply to your Stripe balance after checkout.`

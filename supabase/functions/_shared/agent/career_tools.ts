@@ -33,6 +33,9 @@ import { queueWants, refusal, resolvePicks, screenPicks, type Pick as WantPick, 
 import { payFrom } from "../posting_pay.ts";
 import type { Limits } from "../career_apply.ts";
 import { type Situation, statusText } from "../career_situation.ts";
+import type { BillingDeps } from "../trainee_billing.ts";
+import type { ExportDeps } from "../data_export.ts";
+import { accountTools } from "./account_tools.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -162,6 +165,10 @@ export function careerTools(deps: {
   situation?: Situation | null;
   // WO-106 (F4): each job link is checked just before it is shown (link_check.ts); absent, links are marked unchecked.
   linkCheck?: LinkCheck | null;
+  // Trainee's own plan (trainee_billing.ts): Stripe Checkout link, status, cancel at period end. Absent: the tools are absent.
+  billing?: BillingDeps | null;
+  // The person's data export (data_export.ts). Absent: the tool is absent.
+  exporter?: ExportDeps | null;
 }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const outreachOf = () => { if (!deps.outreach) throw new Error("outreach is not set up here; say so, never pretend a draft or send happened"); return deps.outreach; };
@@ -855,5 +862,6 @@ export function careerTools(deps: {
         };
       },
     },
+    ...accountTools(deps),
   ];
 }

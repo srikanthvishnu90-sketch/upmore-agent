@@ -664,7 +664,7 @@ async function forgetTurn(o: PeopleTurnIn, d: PeopleDeps, what: Extract<Ask, { k
   const parts: string[] = [];
   let n = 0;
   if (what === "linkedin" || what === "all") {
-    // "provider": people a data provider found for them (career_people_provider.ts, D-MN-3) go with "forget my contacts" too.
+    // "provider": people found for them on public pages (career_people_provider.ts, D-MN-3) go with "forget my contacts" too.
     const sources: Source[] = what === "all" ? ["linkedin_export", "gmail", "company_page", "provider"] : ["linkedin_export"];
     const gone = await d.store.forget(o.userId, sources);
     // Every copy, in every chat of theirs: the other chats first (read back there), then this one's working state.

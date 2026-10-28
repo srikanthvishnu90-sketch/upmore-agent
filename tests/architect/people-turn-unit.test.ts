@@ -22,7 +22,9 @@ function memoryStore(): PeopleStore & { rows: (PersonRec & { user_id: string })[
   const threads = new Map<string, { user: string; state: Record<string, unknown> }>();
   return {
     rows, introsOf: intros as any, threads,
-    async pruneThreadContacts(u, except, drop) {
+    async pruneThreadContacts(u, except, all) {
+      // the SQL function's rule (career_people_prune_thread_contacts): all rows, or the export's
+      const drop = (r: any) => all || r.linkedin_export === true || /connections\.csv/i.test(String(r.file ?? ""));
       let n = 0, t = 0;
       for (const [tid, th] of threads) {
         if (th.user !== u || tid === except || !Array.isArray(th.state.contacts)) continue;
@@ -280,4 +282,59 @@ Deno.test("people turn: prompt injection: a page Person whose jobTitle is an ins
   eq(store.introsOf.map((i: any) => i.status), ["drafted"], "nothing was approved by the page");
   assert(store.rows.some((x) => x.user_id === U && x.source === "linkedin_export"), "and nothing was forgotten by it");
   assert(!/Ignore all previous|admin mode/i.test(JSON.stringify(state)), "nor kept in the chat's state");
+});
+
+// ------------------------------------------------------------------------------------------------ scale (owner, 2026-10-27 19:52/19:55)
+Deno.test("people store at scale: a 30,000-row export goes in parts of 2,000 under one import; every read a turn makes is one bounded page; the push pages through every due reminder", async () => {
+  const calls: { kind: string; name: string; args?: any; limit?: number; rows?: number }[] = [];
+  let importId = 0, due = 0;
+  const builder = (table: string): any => {
+    const st: any = { limit: undefined as number | undefined };
+    const p: any = new Proxy(st, { get: (_t, k) => {
+      if (k === "then") return (ok: any) => { calls.push({ kind: "from", name: table, limit: st.limit }); return ok({ data: [], error: null }); };
+      if (k === "limit") return (n: number) => { st.limit = n; return p; };
+      return () => p;
+    } });
+    return p;
+  };
+  const admin = {
+    from: (t: string) => builder(t),
+    rpc: async (name: string, args: any) => {
+      calls.push({ kind: "rpc", name, args, rows: Array.isArray(args?.p_rows) ? args.p_rows.length : undefined, limit: args?.p_limit });
+      if (name === "career_people_import_part") { importId ||= 77; return { data: { inserted: args.p_rows.length, duplicates: 0, kept: 0, with_email: 0, replaced: 0, import: importId }, error: null }; }
+      if (name === "career_intro_due") {
+        const n = Math.min(Math.max(0, 450 - due), args.p_limit);
+        const rows = Array.from({ length: n }, (_, i) => ({ id: due + i + 1, n: 1, user_id: `u-${due + i}`, follow_up_at: new Date(NOW + due + i).toISOString() }));
+        due += n; return { data: rows, error: null };
+      }
+      return { data: [], error: null };
+    },
+  };
+  const store = supabasePeopleStore(admin);
+  const rows = Array.from({ length: 30_000 }, (_, i) => ({ name: `P ${i}`, dedupe_key: `n:p ${i}` }));
+  const r = await store.importRows(U, "linkedin_export", "Connections.csv", null, rows, 30_000, 0, true);
+  const parts = calls.filter((c) => c.name === "career_people_import_part");
+  eq([parts.length, r.inserted], [15, 30_000], "15 parts, every row sent once");
+  assert(parts.every((c) => c.rows! <= 2000), "no part over 2,000 rows");
+  eq(parts.map((c) => c.args.p_import), [null, ...Array(14).fill(77)], "the first part opens the import; every later part names it");
+  calls.length = 0;
+  await store.atCompany(U, "ramp"); await store.intros(U); await store.named(U, "Maya"); await store.dueFor!(U, new Date(NOW).toISOString());
+  eq(calls.length, 4);
+  for (const c of calls) assert(typeof c.limit === "number" && c.limit <= 200, `a turn's read is one bounded page: ${JSON.stringify(c)}`);
+  calls.length = 0;
+  const all = await store.dueIntros(new Date(NOW).toISOString());
+  eq(all.length, 450, "every due reminder, past any one page (no cap)");
+  eq(calls.filter((c) => c.name === "career_intro_due").map((c) => c.args.p_after_id), [null, 200, 400], "read in keyset pages of 200");
+});
+
+Deno.test("people turn at scale: more contacts at a company than one page: the count is the database's, never the page's", async () => {
+  const { say, store } = setup();
+  for (let i = 0; i < 250; i++) store.rows.push({ id: 10_000 + i, user_id: U, source: "linkedin_export", name: `Person ${i}`, email: null, company: "Ramp", company_key: "ramp", position: "", school: "",
+    connected_on: null, last_seen_at: null, source_ref: `Connections.csv, row ${i}`, source_url: null, retrieved_at: "", dedupe_key: `n:${i}` } as any);
+  const whole = store.atCompany.bind(store);
+  store.atCompany = async (u, k) => (await whole(u, k)).slice(0, 200);
+  (store as any).tallies = async (u: string, k: string) => ({ intros_open: 0, at_company: store.rows.filter((x) => x.user_id === u && x.company_key === k).length });
+  const r = await say("who do I know at Ramp?");
+  eq(r!.status, "listed", r!.reply);
+  assert(/^You have 250 contacts at Ramp on file; here are the first 15/.test(r!.reply) && /\nand 235 more\./.test(r!.reply), r!.reply);
 });

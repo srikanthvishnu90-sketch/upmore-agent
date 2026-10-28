@@ -47320,13 +47320,13 @@ const CareerRouter = (() => {
       const co = (target && target.company) || (aboutCo && namedRoleCompanyOf(aboutCo[1])) || (nctx && nctx.company) || (ctx.posting && ctx.posting.company) || null;
       const role = (target && target.role) || (nctx && nctx.role) || (ctx.posting && ctx.posting.title) || null;
       const worker = ctx.workerCapabilities && ctx.workerCapabilities.portal_browser;
-      const facts = ["What I can do: prepare the full application for a named role — the tailored resume and the complete packet — run it to an approval card in this conversation, and submit only after your tap on that card, through the browser worker."];
-      if (worker && worker.status === "NOT_WIRED") facts.push("What I can't do from this handler today: actually submit — the browser worker is not connected here, so a prepared application stops at your approval card until that wiring exists.");
+      const facts = ["What I can do: put a role you name on your apply list; the Trainee extension on your computer prepares the application with a resume tailored to it, shows you the exact answers on a card, and sends it only after you tap approve."];
+      if (worker && worker.status === "NOT_WIRED") facts.push("What I can't do here today: send an application myself, so each one waits for the extension and your tap on its card.");
       if (co) {
         const found = resolveNamedPosting(target || { company: co, role }, ctx);
-        facts.push(found ? `The ${role || "role"} at ${co} is on record as a posting I can prepare from.` : `The ${role || "role you named"} at ${co} is not in the served board list I can prepare from — paste the posting or its link and I will prepare it from that instead.`);
+        facts.push(found ? `The ${role || "role"} at ${co} is on record as a posting I can prepare from.` : `The ${role || "role you named"} at ${co} is not in the postings I have on file — paste the posting or its link and I will work from that instead.`);
       }
-      const reply = compose({ headline: "Plainly, about submitting applications:", facts, nextStep: co ? "Paste the posting or say \"apply\" with the role named and the preparation starts in this turn." : "Name the role and company — or paste the posting — and the preparation starts in this turn." });
+      const reply = compose({ headline: "Plainly, about submitting applications:", facts, nextStep: co ? "Paste the posting, or say \"apply\" with the role named, and I'll put it on your apply list." : "Name the role and company, or paste the posting, and I'll put it on your apply list." });
       return { intent: "named_role_apply", reply, resultStatus: "awaiting_user", sends: 0 };
     }
     if (!applyVerb && !linked && !(target && /^\s*(the role is|that role is)/i.test(raw))) return null;
@@ -47349,7 +47349,7 @@ const CareerRouter = (() => {
       // about the <Co> role?" — bind to it.
       if (tgt.company) { const mir = threadMirrorForWrite(ctx); if (mir) mir.namedApply = { company: tgt.company, role: tgt.role || null }; }
       const worker = ctx.workerCapabilities && ctx.workerCapabilities.portal_browser;
-      const facts = [`The apply path runs on postings in the served board list or on a posting you paste; the ${tgt.role || "role"} posting at ${tgt.company || "that company"} is in neither right now, and no role will be invented to fill the gap.`];
+      const facts = [`I can apply only to a posting I have on file or one you paste. The ${tgt.role || "role"} posting at ${tgt.company || "that company"} is not on file, and I won't make one up.`];
       if (worker && worker.status === "NOT_WIRED") facts.push("The browser worker that executes applications is also not wired in this handler — even a listed role would stop at preparation here.");
       const reply = compose({ headline: `I can't apply to the ${tgt.role || "role"} at ${tgt.company || "that company"} yet — that posting is not in the list I can work from.`, facts, nextStep: "Paste the posting or its link and I will prepare the application from it in this turn." });
       return { intent: "named_role_apply", reply, resultStatus: "blocked", sends: 0 };
@@ -52277,15 +52277,19 @@ const CareerRender = (() => {
     out.writeUInt32BE(adler32(data), 2 + body.length);
     return out;
   }
-  function inflateRaw(data) { return inflateRawCore(data).buffer; }
+  function inflateRaw(data, opts) { return inflateRawCore(data, opts && opts.maxOutputLength).buffer; }
   // Returns the decoded bytes plus `end`: the offset just past the
   // deflate stream. Callers slice streams out of larger buffers (a PDF
   // stream is followed by "\nendstream"), so trailing bytes after the
   // final block are normal and must not be read as part of the stream —
   // Node's zlib tolerates them the same way.
-  function inflateRawCore(data) {
+  // maxOut (FEATURE 16, review of PR #194): stop with a RangeError once the output passes it, as Node's maxOutputLength
+  // does, so a small compressed stream can never expand without bound.
+  function inflateRawCore(data, maxOut) {
     let pos = 0, bitbuf = 0, bitcnt = 0;
+    const cap = Number.isFinite(maxOut) && maxOut > 0 ? maxOut : Infinity;
     const out = [];
+    const over = () => { if (out.length > cap) { const e = new RangeError("inflated output exceeds maxOutputLength"); e.code = "ERR_BUFFER_TOO_LARGE"; throw e; } };
     const getBits = (n) => {
       while (bitcnt < n) {
         if (pos >= data.length) throw new Error("deflate stream ends early");
@@ -52329,6 +52333,7 @@ const CareerRender = (() => {
         pos += 4;
         if (pos + len > data.length) throw new Error("stored block overruns the stream");
         for (let i = 0; i < len; i++) out.push(data[pos++]);
+        over();
       } else if (type === 1 || type === 2) {
         let lit, dist;
         if (type === 1) {
@@ -52367,17 +52372,18 @@ const CareerRender = (() => {
           const d = DIST_BASE[dsym] + getBits(DIST_EXT[dsym]);
           if (d > out.length) throw new Error("deflate distance too far back");
           for (let j = 0; j < len; j++) out.push(out[out.length - d]);
+          if (out.length > cap) over();
         }
       } else throw new Error("invalid deflate block type");
     } while (!last);
     return { buffer: Bytes.from(out), end: pos - (bitcnt >> 3) };
   }
-  function zlibInflate(data) {
+  function zlibInflate(data, opts) {
     if (data.length < 6) throw new Error("zlib stream too short");
     const cmf = data[0], flg = data[1];
     if ((cmf * 256 + flg) % 31 !== 0 || (cmf & 0x0f) !== 8) throw new Error("invalid zlib header");
     if (flg & 0x20) throw new Error("preset dictionary not supported");
-    const core = inflateRawCore(data.subarray(2));
+    const core = inflateRawCore(data.subarray(2), opts && opts.maxOutputLength);
     const at = 2 + core.end; // the Adler-32 sits right after the deflate stream
     if (at + 4 > data.length) throw new Error("zlib stream truncated before its checksum");
     const stored = ((data[at] << 24) | (data[at + 1] << 16) | (data[at + 2] << 8) | data[at + 3]) >>> 0;
@@ -52387,8 +52393,8 @@ const CareerRender = (() => {
   const pureZlib = {
     deflateSync: (data) => zlibDeflate(data),
     deflateRawSync: (data) => deflateStored(data),
-    inflateSync: (data) => zlibInflate(data),
-    inflateRawSync: (data) => inflateRaw(data),
+    inflateSync: (data, opts) => zlibInflate(data, opts),
+    inflateRawSync: (data, opts) => inflateRaw(data, opts),
   };
   function sha256HexPure(data) {
     const K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
@@ -52548,14 +52554,19 @@ const CareerRender = (() => {
   }
   // Central-directory reader: part name -> inflated Bytes. Independent of
   // the writer (walks the EOCD + central directory, verifies CRC on read).
-  function unzipParts(buf) {
+  // FEATURE 16 (review of PR #194: a 783 KB .docx reached 1.7 GB): only the parts `want` names are inflated (all, when
+  // absent), each to at most PART_MAX bytes (Node's maxOutputLength; the pure-JS inflater the same), and all of them
+  // together to at most TOTAL_MAX; a part past either is left out, never inflated whole. `namesOnly` lists the names and
+  // inflates nothing.
+  const PART_MAX = 5 * 1024 * 1024, TOTAL_MAX = 20 * 1024 * 1024, MAX_STREAMS = 400;
+  function unzipParts(buf, want, namesOnly) {
     const parts = new Map();
     if (!Bytes.isBuffer(buf) || buf.length < 22) return parts;
     let eocd = -1;
     for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 65536; i--) { if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; } }
     if (eocd < 0) return parts;
     const count = buf.readUInt16LE(eocd + 10);
-    let p = buf.readUInt32LE(eocd + 16);
+    let p = buf.readUInt32LE(eocd + 16), total = 0;
     for (let n = 0; n < count && p + 46 <= buf.length; n++) {
       if (buf.readUInt32LE(p) !== 0x02014b50) break;
       const method = buf.readUInt16LE(p + 10);
@@ -52564,18 +52575,25 @@ const CareerRender = (() => {
       const nameLen = buf.readUInt16LE(p + 28), extraLen = buf.readUInt16LE(p + 30), commentLen = buf.readUInt16LE(p + 32);
       const localOff = buf.readUInt32LE(p + 42);
       const name = buf.toString("utf8", p + 46, p + 46 + nameLen);
+      p += 46 + nameLen + extraLen + commentLen;
+      if (namesOnly) { parts.set(name, null); continue; }
+      if (want && !want(name)) continue;
+      if (localOff + 30 > buf.length) continue;
       const lNameLen = buf.readUInt16LE(localOff + 26), lExtraLen = buf.readUInt16LE(localOff + 28);
       const dataStart = localOff + 30 + lNameLen + lExtraLen;
       const raw = buf.subarray(dataStart, dataStart + compSize);
+      const room = Math.min(PART_MAX, TOTAL_MAX - total);
+      if (room <= 0) break;
       let data = null;
-      try { data = method === 8 ? zlib.inflateRawSync(raw) : Bytes.from(raw); } catch { data = null; }
-      if (data && crc32(data) === crc) parts.set(name, data);
-      p += 46 + nameLen + extraLen + commentLen;
+      try { data = method === 8 ? zlib.inflateRawSync(raw, { maxOutputLength: room }) : (raw.length <= room ? Bytes.from(raw) : null); } catch { data = null; }
+      if (data && crc32(data) === crc) { parts.set(name, data); total += data.length; }
+      else total += room; // a part that failed or went past its cap still cost up to its room: charged, so bombs cannot be retried for free
     }
     return parts;
   }
-  const docxPartNames = (buf) => [...unzipParts(buf).keys()];
-  function docxPart(buf, name) { return unzipParts(buf).get(name) || null; }
+
+  const docxPartNames = (buf) => [...unzipParts(buf, null, true).keys()];
+  function docxPart(buf, name) { return unzipParts(buf, (n) => n === name).get(name) || null; }
   // Rebuild a DOCX with some parts replaced (audit-mode mutants in tests).
   function rebuildDocx(buf, replacements) {
     const parts = unzipParts(buf);
@@ -52767,6 +52785,7 @@ const CareerRender = (() => {
   // ================= PDF extraction — parser A (content-stream operators) =================
   function pdfStreams(buf) {
     const streams = [];
+    let total = 0;
     const s = buf.toString("latin1");
     let idx = 0;
     while (true) {
@@ -52777,7 +52796,11 @@ const CareerRender = (() => {
       const en = s.indexOf("endstream", start);
       if (en < 0) break;
       const raw = buf.subarray(start, en);
-      try { streams.push(zlib.inflateSync(raw)); } catch { /* not a flate stream (e.g. object stream) — parser B still scans it raw */ }
+      // FEATURE 16: each stream to at most PART_MAX, all of them to TOTAL_MAX, at most MAX_STREAMS of them; one past a cap
+      // is left out, never inflated whole.
+      const room = Math.min(PART_MAX, TOTAL_MAX - total);
+      if (room <= 0 || streams.length >= MAX_STREAMS) break;
+      try { const out = zlib.inflateSync(raw, { maxOutputLength: room }); streams.push(out); total += out.length; } catch { total += room; /* not a flate stream, or past the cap: charged what it could cost; parser B still scans it raw */ }
       idx = en + 9;
     }
     return streams;
@@ -52899,16 +52922,17 @@ const CareerRender = (() => {
     return lines;
   }
   function docxStructure(buf) {
-    const parts = unzipParts(buf);
+    const parts = unzipParts(buf, (n) => n === "word/document.xml" || n === "word/styles.xml");
+    const names = [...unzipParts(buf, null, true).keys()];
     const docXml = (parts.get("word/document.xml") || Bytes.alloc(0)).toString("utf8");
     const stylesXml = (parts.get("word/styles.xml") || Bytes.alloc(0)).toString("utf8");
     const fonts = [...new Set([...stylesXml.matchAll(/w:ascii="([^"]+)"/g)].map((m) => m[1]))];
     const sizes = [...new Set([...stylesXml.matchAll(/<w:sz w:val="(\d+)"/g)].map((m) => parseInt(m[1], 10) / 2))].sort((a, b) => a - b);
-    const mediaParts = [...parts.keys()].filter((k) => k.startsWith("word/media/")).length;
+    const mediaParts = names.filter((k) => k.startsWith("word/media/")).length;
     const images = mediaParts + (docXml.match(/<w:drawing|<a:blip|<w:pict/g) || []).length;
     const tables = (docXml.match(/<w:tbl[\s>]/g) || []).length;
     const textFrames = (docXml.match(/txbxContent/g) || []).length;
-    const headerFooterParts = [...parts.keys()].filter((k) => /word\/(header|footer)\d*\.xml/.test(k)).length;
+    const headerFooterParts = names.filter((k) => /word\/(header|footer)\d*\.xml/.test(k)).length;
     return { bytes: Bytes.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
   }
   // External parser B (python-docx) — used when the caller opts in.
@@ -57407,8 +57431,37 @@ const CareerBatchApply = (() => {
     };
   }
 
+  // Launch readiness Q3 (2026-10-26): a stop reaches the person in plain
+  // words; its code stays on the record (app.stop.code, the summary's
+  // stops), never in the reply. A code with no sentence here says only
+  // what is always true of a stop.
+  const STOP_WORDS = {
+    BOARD_NOT_WIRED: "Trainee can't reach this employer's application site from here, so nothing was filled or sent",
+    UNCOVERED_QUESTION: "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer",
+    CAPTCHA_HANDOFF: "a captcha appeared, so the last step is yours",
+    EXECUTION_ERROR: "it stopped with an error, so it is not counted as submitted",
+    DRIVER_ERROR: "it stopped with an error before it was submitted",
+    NO_RESULT: "the employer's site gave no result, so it is not counted as submitted",
+    UNKNOWN_OUTCOME: "the submit gave no readable result, so it is recorded as unknown and will not be sent again on its own",
+    NOT_PREPARED: "it is selected but not prepared yet",
+    NOT_SUBMITTED: "it reached the final review but was not in what you approved, so it was not sent",
+    CAP_REACHED: "today's application limit was reached, so it waits for the next day",
+    COUNT_DEFERRED: "it is beyond the number you asked for, so it stays in the queue",
+    KNOCKOUT_UNMET: "it has a requirement you don't meet",
+    JOB_CLOSED: "the posting is closed",
+  };
+  function plainStop(code) {
+    return STOP_WORDS[code] || "it was stopped, so it is not counted as submitted";
+  }
+  // "Found 1 role", "Found 3 data analyst roles": the family is a noun
+  // phrase that may already end in role(s).
+  function rolesPhrase(n, familyText) {
+    const fam = String(familyText || "").replace(/\s*\broles?$/i, "").trim();
+    return `${n} ${fam ? `${fam} ` : ""}${n === 1 ? "role" : "roles"}`;
+  }
+
   // The first line of every batch reply: the fraction that came
-  // through, then each one that did not, named once with its code.
+  // through, then each one that did not, named once in plain words.
   function coverageLines(run) {
     const acc = accountRun(run);
     const verb = acc.phase === "submitted" ? "submitted" : "ready for your yes";
@@ -57424,12 +57477,12 @@ const CareerBatchApply = (() => {
       if (unconfirmed.length) {
         const confirmed = selApps.filter((a) => a.stage === "submitted" && a.confirmationId).length;
         lines[0] = `${confirmed}/${acc.total} applications submitted with employer confirmations.`;
-        for (const a of unconfirmed) lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}: SENT_WITHOUT_CONFIRMATION — the employer's system took the application but recorded no confirmation; it is not counted as submitted.`);
+        for (const a of unconfirmed) lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}: the employer's system took the application but recorded no confirmation, so it is not counted as submitted.`);
       }
     }
     for (const o of acc.outcomes) {
       if (o.through) continue;
-      lines.push(`- ${o.company || "a company"} — ${o.role || "a role"}: ${o.code} — ${o.reason}`);
+      lines.push(`- ${o.company || "a company"} — ${o.role || "a role"}: ${plainStop(o.code)}.`);
     }
     return lines;
   }
@@ -57437,9 +57490,9 @@ const CareerBatchApply = (() => {
   function speakSummary(run) {
     const sm = run.summary || summarizeRun(run);
     const lines = coverageLines(run);
-    lines.push(`Found ${sm.found} ${run.familyText} roles${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
-    if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : x.code})`).join("; ")}.`);
-    lines.push(`${sm.eligible} were eligible; I took the ${sm.selected} you named.`);
+    lines.push(`Found ${rolesPhrase(sm.found, run.familyText)}${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
+    if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : plainStop(x.code)})`).join("; ")}.`);
+    lines.push(`${sm.eligible} ${sm.eligible === 1 ? "was" : "were"} eligible; I took the ${sm.selected} you named.`);
     // MUSE-F-001 (ported from the loop-writer package, muse/2026-10-20-loop-writer): the selection by name — company,
     // role, the posting's own link and where each one stands — from the run's own application records, never re-derived.
     const selApps = (run.selected || []).map((k) => run.apps[k]).filter(Boolean);
@@ -57468,7 +57521,7 @@ const CareerBatchApply = (() => {
       }
     }
     if (sm.confirmations.length) lines.push(`Submitted ${sm.confirmations.length} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
-    for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${st.code} — ${st.reason}`}`);
+    for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${plainStop(st.code)}.`}`);
     const capDef = sm.deferred.filter((x) => x.code === "CAP_REACHED");
     const countDef = sm.deferred.filter((x) => x.code === "COUNT_DEFERRED");
     if (capDef.length) lines.push(`${capDef.length} hit today's application cap and are queued for ${capDef[0].resumeOn || "tomorrow"} — they resume automatically, they are not lost.`);

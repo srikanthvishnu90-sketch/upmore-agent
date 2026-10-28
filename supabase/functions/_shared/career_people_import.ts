@@ -17,7 +17,9 @@
 
 import { knownFirm } from "./career_contacts.ts";
 
-export const MAX_ROWS = 30_000;           // rows kept from one export
+// No row count of Trainee's own (owner, 2026-10-27: no limits): every row of the file is read and kept, in parts of 2,000
+// per database call (career_people.ts IMPORT_PART). The byte sizes below are what one request can hold in memory safely
+// (a malformed or hostile file), not a number of people: a 20 MB Connections.csv is well over 100,000 connections.
 export const MAX_TEXT = 20_000_000;       // characters of CSV read
 export const MAX_ZIP_BYTES = 30_000_000;  // a ZIP as sent
 export const MAX_INFLATE = 20_000_000;    // bytes one ZIP entry may inflate to, whatever its header claims
@@ -36,7 +38,7 @@ export type ParseResult = ParsedExport | { ok: false; why: string };
 
 // ------------------------------------------------------------------------------------------------ CSV
 // RFC 4180: quoted fields with doubled quotes, CR, LF or CRLF line ends, a byte-order mark. One pass.
-export function parseCsv(text: string, maxRows = MAX_ROWS + 50): string[][] {
+export function parseCsv(text: string, maxRows = Number.POSITIVE_INFINITY): string[][] {
   const s = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
   const rows: string[][] = [];
   let row: string[] = [], i = 0;
@@ -163,7 +165,6 @@ export function parseExport(fileName: string, text: string): ParseResult {
     const r = body[i], row = i + 1;
     if (r.length === 1 && !r[0].trim()) continue; // a blank line
     read++;
-    if (rows.length >= MAX_ROWS) { skipped.push({ row, why: `past the ${MAX_ROWS.toLocaleString("en-US")}-row limit` }); continue; }
     const rawName = cell(r, "name") || [cell(r, "first"), cell(r, "last")].filter((x) => x.trim()).join(" ");
     const nameParts = at.name !== undefined ? [cell(r, "name")] : [cell(r, "first"), cell(r, "last")];
     if (nameParts.some(isFormula)) { skipped.push({ row, why: "a name that is a spreadsheet formula" }); continue; }

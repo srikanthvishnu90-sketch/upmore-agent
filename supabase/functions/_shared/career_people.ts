@@ -38,6 +38,9 @@ export const SCHOOL_INTENT = "career_people_school";
 export const MIRROR_MAX = 1000;     // rows also kept in the thread's contacts list, for the email drafter (snapshot is at most 1 MB)
 export const PASTE_WINDOW_MS = 60 * 60_000;
 export const LIST_MAX = 15;
+// One read page: how many rows a turn reads from one table at once (an indexed, bounded read). Not a volume limit: the
+// scheduled push pages through every row, imports go in parts of IMPORT_PART with no total cap, and counts are the database's.
+export const PAGE = 200, IMPORT_PART = 2000;
 export const LINKEDIN_FILE = "Connections.csv";
 export const NO_FINDER = "I don't have a people database or an email finder, and I won't guess names or addresses.";
 export const NO_SEARCH = "I can't search the web, so I don't look up a company's pages myself.";
@@ -67,7 +70,11 @@ export interface PeopleStore {
   importRows(userId: string, source: Source, file: string, sha: string | null, rows: Record<string, unknown>[], read: number, skipped: number, replace: boolean):
     Promise<{ inserted: number; duplicates: number; kept: number; with_email: number; replaced: number }>;
   counts(userId: string): Promise<Partial<Record<Source, number>>>;
-  atCompany(userId: string, key: string): Promise<PersonRec[]>;
+  atCompany(userId: string, key: string): Promise<PersonRec[]>; // one page (PAGE), those with an address first
+  // Counts in the database, so a reply's number is true however many rows there are (absent: counted from a page).
+  tallies?(userId: string, companyKey: string): Promise<{ intros_open: number; at_company: number }>;
+  // This person's due reminders (the in-chat line), on the partial due index (absent: filtered from intros()).
+  dueFor?(userId: string, nowIso: string): Promise<Intro[]>;
   named(userId: string, name: string): Promise<PersonRec[]>;
   setSchool(userId: string, ids: number[], school: string): Promise<number>;
   forget(userId: string, sources: Source[]): Promise<number>;
@@ -85,9 +92,11 @@ export interface PeopleStore {
   updateIntro(userId: string, n: number, patch: Partial<Intro>, onlyIf?: { status?: string[]; payload_hash?: string }): Promise<Intro | null>;
   forgetIntros(userId: string): Promise<number>;
   // The drafter's copy of contacts lives in each thread's state (state.career.stores.contacts). A forget is the
-  // account's: drop the matching rows from every OTHER thread of this person (the turn's own thread is its working
-  // state, cleared by the turn and saved with it). Returns the rows removed and the threads they were in.
-  pruneThreadContacts(userId: string, exceptThread: string, drop: (row: ContactRow) => boolean): Promise<{ rows: number; threads: number }>;
+  // account's: drop the export's rows (all rows when `all`) from every OTHER thread of this person (the turn's own thread
+  // is its working state, cleared by the turn and saved with it). A row is the export's when it says linkedin_export or
+  // came from a Connections.csv file (fromExport below; the SQL function uses the same rule). Returns the rows removed and
+  // the threads they were in.
+  pruneThreadContacts(userId: string, exceptThread: string, all: boolean): Promise<{ rows: number; threads: number }>;
 }
 // deno-lint-ignore no-explicit-any
 const must = (r: { data: any; error: any }, what: string): any => { if (r.error) throw new Error(`${what}: ${r.error.message ?? r.error}`); return r.data; };
@@ -96,20 +105,38 @@ const COLS = "id,source,name,email,company,company_key,position,school,connected
 export function supabasePeopleStore(admin: any): PeopleStore {
   const esc = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
   return {
+    // In parts of IMPORT_PART rows (one request and one statement each), all under one import record, so an export of
+    // tens of thousands of rows never travels or locks as one piece; the result is the database's totals after the last part.
     async importRows(userId, source, file, sha, rows, read, skipped, replace) {
-      return must(await admin.rpc("career_people_import", { p_user: userId, p_source: source, p_file: file, p_sha: sha, p_rows: rows, p_read: read, p_skipped: skipped, p_replace: replace }), "save the people");
+      let imp: number | null = null, inserted = 0, duplicates = 0, replaced = 0, last: any = null;
+      for (let i = 0; i === 0 || i < rows.length; i += IMPORT_PART) {
+        last = must(await admin.rpc("career_people_import_part", { p_user: userId, p_source: source, p_file: file, p_sha: sha, p_rows: rows.slice(i, i + IMPORT_PART),
+          p_read: read, p_skipped: skipped, p_replace: replace, p_import: imp }), "save the people");
+        imp = Number(last.import); inserted += Number(last.inserted); duplicates += Number(last.duplicates); replaced += Number(last.replaced ?? 0);
+      }
+      return { inserted, duplicates, kept: Number(last.kept), with_email: Number(last.with_email), replaced };
     },
     async counts(userId) { return must(await admin.rpc("career_people_counts", { p_user: userId }), "count the people") ?? {}; },
+    // One page at a company (career_people_company index), those with an address first; the true total is tallies().
     async atCompany(userId, key) {
       if (!key) return [];
-      return must(await admin.from("career_people").select(COLS).eq("user_id", userId).eq("company_key", key).order("id", { ascending: true }).limit(1000), "read the people at a company") ?? [];
+      return must(await admin.from("career_people").select(COLS).eq("user_id", userId).eq("company_key", key).order("email", { ascending: true, nullsFirst: false }).order("id", { ascending: true }).limit(PAGE), "read the people at a company") ?? [];
     },
+    async tallies(userId, key) {
+      const r = must(await admin.rpc("career_people_tallies", { p_user: userId, p_company_key: key }), "count the people");
+      return { intros_open: Number(r?.intros_open ?? 0), at_company: Number(r?.at_company ?? 0) };
+    },
+    async dueFor(userId, nowIso) {
+      return must(await admin.from("career_intro_requests").select("*").eq("user_id", userId).not("follow_up_at", "is", null).is("reminded_at", null)
+        .in("status", ["approved", "sent"]).lte("follow_up_at", nowIso).order("follow_up_at", { ascending: true }).limit(PAGE), "read the due intro reminders") ?? [];
+    },
+    // On the (user_id, lower(name)) index: an exact name, else a first name alone; one page, exact matches first.
     async named(userId, name) {
       const n = cleanCell(name, 200);
       if (!n) return [];
-      const exact = must(await admin.from("career_people").select(COLS).eq("user_id", userId).ilike("name", esc(n)).limit(50), "read the people by name") ?? [];
-      if (exact.length || /\s/.test(n)) return exact;
-      return must(await admin.from("career_people").select(COLS).eq("user_id", userId).ilike("name", `${esc(n)} %`).limit(50), "read the people by first name") ?? [];
+      const rows = must(await admin.rpc("career_people_named", { p_user: userId, p_name: n, p_limit: PAGE }), "read the people by name") ?? [];
+      const exact = rows.filter((r: PersonRec) => (r.name ?? "").toLowerCase() === n.toLowerCase());
+      return exact.length || /\s/.test(n) ? exact : rows;
     },
     async setSchool(userId, ids, school) {
       if (!ids.length) return 0;
@@ -139,12 +166,20 @@ export function supabasePeopleStore(admin: any): PeopleStore {
       return must(await admin.from("career_job_emails").select("source,title,detail,url,received_at").eq("user_id", userId).order("received_at", { ascending: false }).limit(limit), "read the job emails") ?? [];
     },
     async forgetJobs(userId) { return (must(await admin.from("career_job_emails").delete().eq("user_id", userId).select("id"), "forget the job emails") ?? []).length; },
-    async intros(userId) { return must(await admin.from("career_intro_requests").select("*").eq("user_id", userId).order("n", { ascending: true }).limit(200), "read the intro requests") ?? []; },
+    // The most recent page of intro requests (newest PAGE by number), returned oldest first.
+    async intros(userId) { return ((must(await admin.from("career_intro_requests").select("*").eq("user_id", userId).order("n", { ascending: false }).limit(PAGE), "read the intro requests") ?? []) as Intro[]).reverse(); },
+    // Every due reminder, however many: keyset pages of PAGE on the partial due index (no cap of Trainee's own).
     async dueIntros(nowIso) {
-      const rows = must(await admin.from("career_intro_requests").select("*").not("follow_up_at", "is", null).is("reminded_at", null)
-        .in("status", ["approved", "sent"]).lte("follow_up_at", nowIso).order("follow_up_at", { ascending: true }).limit(500), "read the due intro reminders") ?? [];
       // deno-lint-ignore no-explicit-any
-      return rows.map((r: any) => { const { user_id, ...intro } = r; return { userId: String(user_id), intro: intro as Intro }; });
+      const out: { userId: string; intro: Intro }[] = [];
+      let afterAt: string | null = null, afterId: number | null = null;
+      for (;;) {
+        // deno-lint-ignore no-explicit-any
+        const rows: any[] = must(await admin.rpc("career_intro_due", { p_now: nowIso, p_after_at: afterAt, p_after_id: afterId, p_limit: PAGE }), "read the due intro reminders") ?? [];
+        for (const r of rows) { const { user_id, ...intro } = r; out.push({ userId: String(user_id), intro: intro as Intro }); }
+        if (rows.length < PAGE) return out;
+        afterAt = rows.at(-1).follow_up_at; afterId = rows.at(-1).id;
+      }
     },
     async intro(userId, n) { return must(await admin.from("career_intro_requests").select("*").eq("user_id", userId).eq("n", n).maybeSingle(), "read the intro request"); },
     async addIntro(userId, i) {
@@ -165,30 +200,13 @@ export function supabasePeopleStore(admin: any): PeopleStore {
       return r[0] ?? null;
     },
     async forgetIntros(userId) { return (must(await admin.from("career_intro_requests").delete().eq("user_id", userId).select("id"), "forget the intro requests") ?? []).length; },
-    async pruneThreadContacts(userId, exceptThread, drop) {
-      let rows = 0, threads = 0;
-      const all = must(await admin.from("agent_flow_state").select("thread_id,updated_at,state").eq("user_id", userId).neq("thread_id", exceptThread).limit(1000), "read your chats' contact lists") ?? [];
-      for (const t of all) {
-        // A thread that changed between the read and the write is read again (its own turn saved meanwhile), up to 3 times.
-        let cur = t;
-        for (let attempt = 0; ; attempt++) {
-          const career = cur?.state?.career;
-          const list = Array.isArray(career?.stores?.contacts) ? career.stores.contacts as ContactRow[] : [];
-          const kept = list.filter((r) => !drop(r));
-          if (kept.length === list.length) break;
-          // The revision moves, so a turn in that thread that loaded the old list can't save it back over the forget.
-          const next = { ...cur.state, career: { ...career, revision: Number(career.revision ?? 0) + 1, stores: { ...career.stores, contacts: kept } } };
-          const w = must(await admin.from("agent_flow_state").update({ state: next, updated_at: new Date().toISOString() }).eq("user_id", userId).eq("thread_id", cur.thread_id).eq("updated_at", cur.updated_at).select("thread_id"), "forget your chats' contact lists") ?? [];
-          if (w.length) { rows += list.length - kept.length; threads++; break; }
-          if (attempt >= 2) throw new Error("forget your chats' contact lists: a chat kept changing");
-          cur = must(await admin.from("agent_flow_state").select("thread_id,updated_at,state").eq("user_id", userId).eq("thread_id", cur.thread_id).maybeSingle(), "read a chat's contact list");
-          if (!cur) break;
-        }
-      }
-      // Read back: no other thread of this person still holds a dropped row.
-      const left = must(await admin.from("agent_flow_state").select("thread_id,contacts:state->career->stores->contacts").eq("user_id", userId).neq("thread_id", exceptThread).limit(1000), "read back your chats' contact lists") ?? [];
-      if (left.some((t: any) => Array.isArray(t.contacts) && t.contacts.some(drop))) throw new Error("forget your chats' contact lists: rows remain after the delete");
-      return { rows, threads };
+    // In the database, one statement over every other chat of theirs (on the user_id index), each chat's revision moved so a
+    // stale turn can't save the old list back (career_people_prune_thread_contacts). Then a read-back: none is left.
+    async pruneThreadContacts(userId, exceptThread, all) {
+      const r = must(await admin.rpc("career_people_prune_thread_contacts", { p_user: userId, p_except: exceptThread, p_all: all }), "forget your chats' contact lists");
+      const again = must(await admin.rpc("career_people_prune_thread_contacts", { p_user: userId, p_except: exceptThread, p_all: all }), "read back your chats' contact lists");
+      if (Number(again?.rows ?? 0) > 0) throw new Error("forget your chats' contact lists: rows remained after the delete");
+      return { rows: Number(r?.rows ?? 0), threads: Number(r?.threads ?? 0) };
     },
   };
 }
@@ -518,7 +536,9 @@ async function everyoneAt(o: PeopleTurnIn, d: PeopleDeps, firm: string) {
   const stored = await d.store.atCompany(o.userId, key);
   const g = await gmailAt(o, d, firm);
   const list = stateRows(o).filter((p) => p.company_key === key);
-  return { people: uniq([...stored.filter((p) => p.source !== "gmail"), ...g.rows, ...list]), gmail: g.state };
+  // A full page means there are more on file than one turn reads: the database's own count is the total then.
+  const more = stored.length >= PAGE && d.store.tallies ? await d.store.tallies(o.userId, key) : null;
+  return { people: uniq([...stored.filter((p) => p.source !== "gmail"), ...g.rows, ...list]), gmail: g.state, stored: more ? more.at_company : null };
 }
 const gmailNote = (s: string, firm: string) =>
   s === "not_connected" ? `Your Gmail isn't connected, so I didn't check who you've emailed at ${firm}. To include them, connect it (read-only):\n${connectUrl("gmail")}`
@@ -538,7 +558,7 @@ async function whoTurn(o: PeopleTurnIn, d: PeopleDeps, firmAsked: string): Promi
   // Only their earlier lists, no export and no Gmail: the networking turn answers, as before.
   if (!total && listed.length && !gmailOn) return null;
   const firm = cleanCell(firmAsked, 60);
-  const { people, gmail } = await everyoneAt(o, d, firm);
+  const { people, gmail, stored } = await everyoneAt(o, d, firm);
   if (!people.length) {
     const none = total + listed.length
       ? `None of your ${plural(total + listed.length, "contact")} is at ${firm}.`
@@ -548,8 +568,13 @@ async function whoTurn(o: PeopleTurnIn, d: PeopleDeps, firmAsked: string): Promi
   }
   const mailed = people.filter((p) => p.email).length;
   const shown = people.slice(0, LIST_MAX);
-  const lines = [`You have ${plural(people.length, "contact")} at ${firm}, ${fmtN(mailed)} with an email address:`, ...shown.map(lineOf),
-    ...(people.length > shown.length ? [`and ${fmtN(people.length - shown.length)} more.`] : []),
+  // More on file than one page: the count is the database's (rows kept for that company), never the page's.
+  const head = stored !== null && stored > people.length
+    ? `You have ${plural(stored, "contact")} at ${firm} on file; here are the first ${fmtN(shown.length)}, those with an email address first:`
+    : `You have ${plural(people.length, "contact")} at ${firm}, ${fmtN(mailed)} with an email address:`;
+  const rest = (stored !== null && stored > people.length ? stored : people.length) - shown.length;
+  const lines = [head, ...shown.map(lineOf),
+    ...(rest > 0 ? [`and ${fmtN(rest)} more.`] : []),
     `\nSay "intro to <name> at ${firm}" for a note you can send, or "get me an intro to <someone there>" and I'll find who can introduce you.`,
     gmailNote(gmail, firm) ? `\n${gmailNote(gmail, firm)}` : ""];
   return { reply: lines.filter(Boolean).join("\n"), intent: AT_INTENT, status: "listed" };
@@ -644,7 +669,7 @@ async function forgetTurn(o: PeopleTurnIn, d: PeopleDeps, what: Extract<Ask, { k
     const gone = await d.store.forget(o.userId, sources);
     // Every copy, in every chat of theirs: the other chats first (read back there), then this one's working state.
     const drop = what === "all" ? () => true : (r: ContactRow) => fromExport(r);
-    const others = await d.store.pruneThreadContacts(o.userId, o.threadId, drop);
+    const others = await d.store.pruneThreadContacts(o.userId, o.threadId, what === "all");
     const before = contactsOf(o.state).length;
     o.state.contacts = contactsOf(o.state).filter((r) => !drop(r));
     const fromChats = before - contactsOf(o.state).length + others.rows;
@@ -655,7 +680,7 @@ async function forgetTurn(o: PeopleTurnIn, d: PeopleDeps, what: Extract<Ask, { k
   if (what === "gmail") { const gone = await d.store.forget(o.userId, ["gmail"]); n += gone; parts.push(`Deleted ${plural(gone, "person")} read from your Gmail.`); }
   if (what === "jobs") { const gone = await d.store.forgetJobs(o.userId); n += gone; parts.push(`Deleted ${plural(gone, "posting")} read from your Handshake and Indeed emails.`); }
   if (what === "intros" || what === "all") { const gone = await d.store.forgetIntros(o.userId); n += gone; parts.push(`Deleted ${plural(gone, "intro request")}.`); }
-  if (what === "linkedin") { const left = (await d.store.intros(o.userId)).filter((i) => i.status !== "cancelled").length; if (left) parts.push(`Your ${plural(left, "intro request")} ${left === 1 ? "is" : "are"} kept; say "forget my intro requests" to delete ${left === 1 ? "it" : "them"} too.`); }
+  if (what === "linkedin") { const left = d.store.tallies ? (await d.store.tallies(o.userId, "")).intros_open : (await d.store.intros(o.userId)).filter((i) => i.status !== "cancelled").length; if (left) parts.push(`Your ${plural(left, "intro request")} ${left === 1 ? "is" : "are"} kept; say "forget my intro requests" to delete ${left === 1 ? "it" : "them"} too.`); }
   return { reply: n ? parts.join(" ") : `There was nothing to delete. ${parts.join(" ")}`.trim(), intent: FORGET_INTENT, status: n ? "forgotten" : "nothing" };
 }
 
@@ -782,9 +807,10 @@ async function draftIntro(o: PeopleTurnIn, d: PeopleDeps, path: Exclude<Path, { 
 }
 
 async function introCmd(o: PeopleTurnIn, d: PeopleDeps, a: Extract<Ask, { kind: "intro_cmd" }>): Promise<PeopleResult> {
-  const all = await d.store.intros(o.userId);
-  const n = a.n ?? all.filter((i) => i.status !== "cancelled").at(-1)?.n ?? null;
-  const i = n === null ? null : all.find((x) => x.n === n) ?? null;
+  // A numbered intro is read by its number (one row, on the (user_id, n) key), however old; "the last one" from the
+  // newest page.
+  const n = a.n ?? (await d.store.intros(o.userId)).filter((i) => i.status !== "cancelled").at(-1)?.n ?? null;
+  const i = n === null ? null : await d.store.intro(o.userId, n);
   const R = (reply: string, status: string) => ({ reply, intent: INTRO_UPDATE_INTENT, status });
   if (!i) return R(n === null ? "You have no intro requests yet." : `There's no intro ${n} on your list. Say "my intros" to see them.`, "not_found");
   if (i.status === "cancelled" && a.verb !== "cancel") return R(`Intro ${i.n} was cancelled, so I left it as it is.`, "refused");
@@ -851,7 +877,8 @@ export function introReminderText(due: Intro[]): string {
   return `Reminder you asked for: ${due.map((i) => `intro ${i.n} to ${i.to_name}${i.route === "mutual" ? ` (for ${i.target_name})` : ""}, sent ${day(i.sent_at) || "earlier"}`).join("; ")} has no reply on record. Say "intro ${due[0].n} replied", "intro ${due[0].n} no reply", or "redo intro ${due[0].n}".`;
 }
 async function dueLine(o: PeopleTurnIn, d: PeopleDeps): Promise<string> {
-  const due = (await d.store.intros(o.userId)).filter((i) => i.follow_up_at && !i.reminded_at && ["approved", "sent"].includes(i.status) && Date.parse(i.follow_up_at) <= o.now);
+  const due = d.store.dueFor ? await d.store.dueFor(o.userId, new Date(o.now).toISOString())
+    : (await d.store.intros(o.userId)).filter((i) => i.follow_up_at && !i.reminded_at && ["approved", "sent"].includes(i.status) && Date.parse(i.follow_up_at) <= o.now);
   if (!due.length) return "";
   for (const i of due) await d.store.updateIntro(o.userId, i.n, { reminded_at: new Date(o.now).toISOString() });
   return introReminderText(due);

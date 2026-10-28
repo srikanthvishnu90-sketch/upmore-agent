@@ -155,6 +155,8 @@ export async function runCloudJob(job: CloudJob, d: {
       await d.queue.authorize(job, phase);
     };
     await authorize("before_engine");
+    // OWNER RULE (2026-10-26, "never submit applications without a real resume"): no resume bound, no run.
+    if (!/^[a-f0-9]{64}$/.test(String(p?.resume_sha256 ?? ""))) throw Object.assign(Error("NO_RESUME"), { code: "NO_RESUME" });
     const r = await d.queue.resume(job);
     if (!r) throw Object.assign(Error("RESUME_NOT_IN_CLOUD"), { code: "RESUME_NOT_IN_CLOUD" });
     const bytes = b64bytes(r.b64);

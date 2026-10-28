@@ -14,7 +14,7 @@
 import { cleanCell, cleanEmail, readsAsInstruction } from "./career_people_import.ts";
 import { neverOpen } from "./career_people_sites.ts";
 
-export const PAGE_MAX_BYTES = 2_000_000, PAGE_TIMEOUT_MS = 8_000, MAX_REDIRECTS = 3, MAX_PEOPLE = 200;
+export const PAGE_MAX_BYTES = 2_000_000, PAGE_TIMEOUT_MS = 8_000, MAX_REDIRECTS = 3; // what one fetch may hold; no count of people (the 2 MB bounds the work)
 export const UA = "TraineeBot/1.0 (reads one page a person sent; no crawling)";
 
 export type PageWhy = "bad_url" | "not_https" | "blocked_site" | "private_host" | "robots" | "too_large" | "not_html" | "http" | "timeout" | "network" | "redirects";
@@ -198,12 +198,12 @@ export function peopleOnPage(html: string): { people: PagePerson[]; org: string 
   const seen = new Set<string>();
   const add = (p: PagePerson) => {
     const k = `${(p.name ?? "").toLowerCase()}|${p.email ?? ""}`;
-    if (seen.has(k) || people.length >= MAX_PEOPLE) return;
+    if (seen.has(k)) return;
     seen.add(k); people.push(p);
   };
   const walk = (o: any, depth: number) => {
     if (!o || typeof o !== "object" || depth > 6) return;
-    if (Array.isArray(o)) { o.slice(0, 500).forEach((x) => walk(x, depth + 1)); return; }
+    if (Array.isArray(o)) { o.forEach((x) => walk(x, depth + 1)); return; }
     if (isType(o, "Organization") && !org) org = str(o.name, 200) || null;
     if (isType(o, "Person")) {
       const name = str(o.name, 200);

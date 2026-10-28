@@ -110,6 +110,7 @@ read from the environment or asked on a hidden prompt; none is echoed, written t
 | `TRAINEE_ROTATE_CHANNELS=1` | only when replacing a Telegram webhook secret or a WhatsApp verify token on purpose | as with `TRAINEE_ROTATE_INBOUND`: Enter never replaces one already set |
 | `WHATSAPP_TEMPLATE_UPDATES`, `WHATSAPP_TEMPLATE_LANGUAGE` | the approved template's name (`trainee_updates`) and language (`en_US`). Unset: outside WhatsApp's 24-hour window nothing is sent; messages wait for the person's next message | function secrets |
 | `WHATSAPP_DAILY_TEMPLATES` | your WhatsApp messaging limit, templates a day (unset means 250, a new account's tier) | function secret |
+| `CAREER_PREPARE_AHEAD_URL`, `CAREER_PREPARE_AHEAD_TOKEN` (optional, both or neither) | the preparation host's door, `https://<host>/prepare`, and that host's own token (section "Running mass submission" below). Left empty, phone-only preparation stays `NOT_WIRED` and the smoke says so | function secrets (agent-chat kicks the host with them; the smoke reads the host's `/status`) |
 
 Function secrets are project-wide in Supabase: every function sees every one.
 
@@ -292,6 +293,24 @@ Not verified against Meta's own pages (they did not load from the build environm
 form, the business-scoped id fields (`user_id`, `from_user_id`, sending with `recipient`), whether 131047 comes back on
 the send or only in a status (both are handled), and Graph API `v21.0` (set `WHATSAPP_GRAPH_VERSION` to the version your
 app shows). Steps 7 and 10 check them live.
+
+## Running mass submission
+
+There is no volume number of Trainee's own (owner, 2026-10-27). Every executor runs as many applications as its machine
+holds, on every employer site. It slows only when a site refuses (a 429, a Retry-After, or a verification check), and then
+only on that site, for every instance at once. A captcha is never solved: it ends `needs_user` with its link, and so does
+a sign-in wall. Each application is started at most once, even when a worker is killed mid-batch.
+
+- **The commands**:
+  - submitting from the cloud: `deno run -A workers/career-cloud/worker.ts`, on as many machines as you like;
+  - the person's own computer: `deno run -A workers/career-browser/approve-first.ts run <resume.pdf>`, one at a time with
+    `--headed`, `--handoff` or `--person-submits`;
+  - phone-only preparation: `deno run -A workers/career-browser/prepare-ahead.ts serve --port 8787` behind HTTPS, with
+    `PREPARE_AHEAD_SHARD=i/n` on each of several hosts.
+- **What go-live takes**: `CAREER_PREPARE_AHEAD_URL` and `CAREER_PREPARE_AHEAD_TOKEN` (both or neither; the table above).
+  Without them, phone-only preparation is `NOT_WIRED`: the smoke says so, and `prepareHostStatus` gives the chat a
+  plain sentence.
+- **Hosts, env names, scaling out, and the measured numbers**: docs/launch/MASS-SUBMISSION.md.
 
 ## Rollback
 

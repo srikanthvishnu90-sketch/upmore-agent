@@ -1,6 +1,7 @@
 // The apply core (WO-009a, D-011: mass applying first). Pure functions, no browser and no network:
 //   classifyOutcome   what the employer's page shows after submit → the only states we ever report
-//   admitApplication  the person's approval of this exact payload, duplicates, one per company per 30 days, a daily limit
+//   admitApplication  the person's approval of this exact payload; the exact same posting refused as a duplicate (D-MS-3);
+//                     only a daily pace the person set themselves (D-MS-2: no product volume cap)
 //   greenhouseQuestions / classifyField / planBatch
 //                     prepare every application BEFORE a browser opens: the employer's published questions are answered from
 //                     the person's confirmed facts; anything missing is asked once for the whole batch and saved, so later
@@ -42,6 +43,8 @@ export function classifyOutcome(o: Observation): Outcome {
 // The person's pace as the apply path carries it: `daily` is their number, or null for none; `unreadable` carries the
 // stored value when it is present but not a pace (SERIAL-1430: unknown, never "no limit").
 export interface Limits { daily?: number | null; unreadable?: string }
+// D-MS-3 (owner, 2026-10-27): no "one per company per 30 days". Kept exported, unused by admission, only so callers that
+// still word a refusal by it compile until they move to the duplicate rule (career_apply_want.ts, career_apply_chat.ts).
 export const COMPANY_COOLDOWN_DAYS = 30;
 const DAY = 86400000;
 // States that mean an application reached (or may have reached) the employer, or is approved to; a failed or
@@ -80,15 +83,36 @@ export const dailyLimit = (l?: Limits): number => {
   return st.state === "set" ? st.pace : st.state === "none" ? Infinity : NaN;
 };
 
-export interface LogRow { user_id: string; job_id: string; company: string; at: number; state: string }
-export function admitApplication(log: LogRow[], a: { user_id: string; job_id: string; company: string; approval_hash?: string; payload_hash?: string }, now: number, limits?: Limits): { ok: boolean; reason: string | null } {
+// A job link as one posting: the SQL's career_apply_posting_key (20261027140000), rule for rule (tests/architect/
+// mass-submit-posting-key.test.ts compares them). Lower case; the host without www. and without a default port, any other
+// port kept; the path without trailing slashes, and without a final /apply or /application when two or more segments come
+// before it; the query kept, sorted, without tracking parameters; any Greenhouse link naming a job number is that number.
+// Null when it is not a web link.
+export function postingKey(url: unknown): string | null {
+  const m = /^https?:\/\/([^/?#@]+)([^?#]*)(\?[^#]*)?/.exec(String(url ?? "").trim().toLowerCase());
+  if (!m) return null;
+  const h = m[1].replace(/^www\./, "").replace(/:(80|443)$/, "");
+  let p = (m[2] ?? "").replace(/\/+$/, "");
+  if (/^\/[^/]+\/.+\/(apply|application)$/.test(p)) p = p.replace(/\/(apply|application)$/, "").replace(/\/+$/, "");
+  if (/(^|\.)greenhouse\.io$/.test(h)) {
+    const jid = /[?&]gh_jid=([0-9]+)/.exec(m[3] ?? "")?.[1] ?? /\/jobs\/([0-9]+)$/.exec(p)?.[1];
+    if (jid) return "greenhouse.io/jobs/" + jid;
+  }
+  const q = (m[3] ?? "").slice(1).split("&")
+    .filter((x) => x !== "" && !/^(utm_[a-z_]*|gh_src|src|source|ref|referrer|lever-[a-z-]*)(=|$)/.test(x))
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join("&");
+  return h + p + (q ? "?" + q : "");
+}
+export interface LogRow { user_id: string; job_id: string; company: string; at: number; state: string; url?: string }
+// D-MS-3: refused only when this exact posting (its job id, or its canonical link) is already sent or in flight for this
+// person. Two roles at one company are two postings. D-MS-2: no product daily number; only a pace the person set.
+export function admitApplication(log: LogRow[], a: { user_id: string; job_id: string; company: string; url?: string; approval_hash?: string; payload_hash?: string }, now: number, limits?: Limits): { ok: boolean; reason: string | null } {
   if (a.approval_hash !== undefined || a.payload_hash !== undefined) {
     if (!a.approval_hash || a.approval_hash !== a.payload_hash) return { ok: false, reason: "not_approved" };
   }
   const mine = log.filter((x) => x.user_id === a.user_id && COUNTED.has(x.state));
-  if (mine.some((x) => x.job_id === a.job_id)) return { ok: false, reason: "duplicate_job" };
-  const co = normCompany(a.company);
-  if (co && mine.some((x) => normCompany(x.company) === co && now - x.at < COMPANY_COOLDOWN_DAYS * DAY)) return { ok: false, reason: "company_cooldown" };
+  const key = postingKey(a.url);
+  if (mine.some((x) => x.job_id === a.job_id || (key !== null && postingKey(x.url) === key))) return { ok: false, reason: "duplicate_job" };
   if (limits?.unreadable !== undefined || Number.isNaN(dailyLimit(limits))) return { ok: false, reason: 'pace_unreadable' } as any;
   const own = dailyLimit(limits);
   if (Number.isFinite(own) && mine.filter((x) => x.at > now - DAY).length >= own) return { ok: false, reason: "daily_cap" };
@@ -202,7 +226,7 @@ export interface Answer { value: string; factId: string }
 export interface PlannedField { name: string; label: string; value: string; factId: string }
 // location: the posting's own location text as the employer wrote it (WO-053); without it, a question that depends on
 // where the job is (an office with no place named, work rights "in the country where this job is located") is asked.
-export interface PlanPosting { job_id: string; company: string; title: string; fields: FormField[]; location?: string }
+export interface PlanPosting { job_id: string; company: string; title: string; fields: FormField[]; location?: string; url?: string }
 export const normLabel = (l: string) => String(l || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 const yesNo = (v: string) => (/^(y|yes|true)$/i.test(v.trim()) ? "yes" : /^(n|no|false)$/i.test(v.trim()) ? "no" : null);
 
@@ -834,7 +858,7 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
   const skipped: { job_id: string; reason: string }[] = [];
   const log = o.log.slice();
   for (const p of o.postings) {
-    const admit = admitApplication(log, { user_id: o.userId, job_id: p.job_id, company: p.company }, o.now, o.limits);
+    const admit = admitApplication(log, { user_id: o.userId, job_id: p.job_id, company: p.company, url: p.url }, o.now, o.limits);
     if (!admit.ok) { skipped.push({ job_id: p.job_id, reason: admit.reason! }); continue; }
     const filled: PlannedField[] = [];
     let blocked = false;
@@ -916,7 +940,7 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
     }
     if (blocked) { skipped.push({ job_id: p.job_id, reason: "needs_answers" }); continue; }
     ready.push({ job_id: p.job_id, company: p.company, title: p.title, fields: filled });
-    log.push({ user_id: o.userId, job_id: p.job_id, company: p.company, at: o.now, state: "planned" });
+    log.push({ user_id: o.userId, job_id: p.job_id, company: p.company, url: p.url, at: o.now, state: "planned" });
   }
   return { ready, needs: [...needs.values()].map(({ label, key, job_ids, field_name }) => ({ label, key, job_ids, ...(field_name !== undefined ? { field_name } : {}) })), skipped };
 }

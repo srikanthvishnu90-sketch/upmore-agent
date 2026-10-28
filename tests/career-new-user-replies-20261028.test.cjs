@@ -212,7 +212,7 @@ test("(e2e #227) 'my name is Priya Raman' is saved as the person's fact and ackn
   await setup();
   const p = account("u-priya");
   const { out } = p.say("my name is Priya Raman");
-  assert.match(String(out.reply), /Nice to meet you, Priya — I've saved your name\./, String(out.reply));
+  assert.match(String(out.reply), /Nice to meet you, Priya — I'll use that name with you\./, String(out.reply));
   assert.ok(!/did not catch|not sure which part/i.test(String(out.reply)), String(out.reply));
   const persisted = JSON.stringify(p.snap()) + JSON.stringify(p.account());
   const facts = (p.account().statedFacts || p.snap().stores?.statedFacts || {}).facts || [];

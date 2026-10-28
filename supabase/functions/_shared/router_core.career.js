@@ -19966,7 +19966,7 @@ const CareerRouter = (() => {
     if (interest.filters.remote_ok === false) facts.push("Remote postings are left out, as you asked.");
     else if (interest.filters.remote_choice === "stated") facts.push("Remote postings are included, as you asked — those open to where you are.");
     else facts.push("Remote postings for this role are included too, as long as they are open to where you are; say \"no remote\" to leave them out.");
-    if (interest.filters.remote_ok !== false && !homeKnown) facts.push("A remote posting limited to a country is held until I know where you are.");
+    if (interest.filters.remote_ok !== false && !homeKnown) facts.push("A remote posting limited to a country is held until I know where you are — tell me your city and country.");
     if (userWords) facts.push("That title is not a standard category, so the watch keys on your own words exactly as you stated them — postings whose titles carry those words are what it can match.");
     facts.push(alertDeliveryLine(ctx));
     if (wp.opt_out && wp.opt_out.global) facts.push("Your job alerts are currently paused, so this watch is recorded but will not remind until you resume alerts.");
@@ -22406,7 +22406,7 @@ const CareerRouter = (() => {
     const all = statedFactsOf(ctx);
     if (added.length === 1 && added[0].kind === "name") {
       const first = s(added[0].value).split(" ")[0];
-      const reply = compose({ headline: `Nice to meet you, ${first} — I've saved your name.`, facts: [], nextStep: resumeOnRecord(ctx) ? "What role should I look for?" : "Want to send me your resume next? Paste it here or attach the file." });
+      const reply = compose({ headline: `Nice to meet you, ${first} — I'll use that name with you.`, facts: [], nextStep: resumeOnRecord(ctx) ? "What role should I look for?" : "Want to send me your resume next? Paste it here or attach the file." });
       return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all };
     }
     try { const m = threadMirrorForWrite(ctx); if (m) m.affirmRecord = { at: nowOf(ctx) }; } catch {   }

@@ -448,7 +448,7 @@ export async function cardTurn(
     let c = batchFor(pending);
     if (!c) {
       return {
-        reply: "Nothing is prepared yet. Prepare applications on your computer first; they show up here.",
+        reply: 'Nothing is ready for you to approve yet. Send me a job link with "apply me to" and I\'ll prepare it and send its card here; "where are my applications" says what is being prepared.',
         status: "empty",
       };
     }

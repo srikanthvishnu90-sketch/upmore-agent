@@ -64,15 +64,30 @@ export function routerKept(env: Env): Set<string> {
   return new Set(String(env.get("CAREER_BRAIN_ROUTER_INTENTS") ?? "").split(/[\s,]+/).map((s) => s.trim()).filter(Boolean));
 }
 
-// A disposable copy of a turn's state for the probe: every plain value deep-copied, so nothing the router writes during
-// the probe reaches the real turn. A value that cannot be copied (an object holding a function, such as the batch
-// board seam) is copied one level. The probe's containment records are its own.
-export function probeCtx<T extends Record<string, unknown>>(ctx: T): T {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(ctx)) {
-    if (k === "containmentRecords") { out[k] = []; continue; }
-    try { out[k] = structuredClone(v); } catch { out[k] = v && typeof v === "object" ? (Array.isArray(v) ? [...v] : { ...(v as object) }) : v; }
+// A deep copy of the turn's state: plain objects and arrays all the way down (cycles kept), functions shared (they are
+// seams, not state), anything else structured-cloned or shared as is. The probe's writes can never reach the real
+// turn: probeCtx used to copy an object that holds a function one level only, so a probe of "resume my job alerts" resumed
+// the real alerts through the shared watch state (launch readiness 2026-10-26; tests/career-bundle-reachability.test.cjs
+// caught it on the pool probe).
+export function deepTurnCopy<T>(v: T, seen = new Map<unknown, unknown>()): T {
+  if (v === null || typeof v !== "object") return v;
+  if (seen.has(v)) return seen.get(v) as T;
+  if (Array.isArray(v)) { const out: unknown[] = []; seen.set(v, out); for (const x of v) out.push(deepTurnCopy(x, seen)); return out as T; }
+  const proto = Object.getPrototypeOf(v);
+  if (proto === Object.prototype || proto === null) {
+    const out: Record<string, unknown> = proto === null ? Object.create(null) : {};
+    seen.set(v, out);
+    for (const [k, x] of Object.entries(v as Record<string, unknown>)) out[k] = deepTurnCopy(x, seen);
+    return out as T;
   }
+  try { const c = structuredClone(v); seen.set(v, c); return c; } catch { return v; }
+}
+
+// A disposable copy of a turn's state for the probe: deep, so nothing the router writes during the probe reaches the real
+// turn, nested state included; functions (the batch board seam) are shared. The probe's containment records are its own.
+export function probeCtx<T extends Record<string, unknown>>(ctx: T): T {
+  const out = deepTurnCopy(ctx) as Record<string, unknown>;
+  out.containmentRecords = [];
   return out as T;
 }
 

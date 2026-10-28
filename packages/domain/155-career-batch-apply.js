@@ -889,8 +889,37 @@ const CareerBatchApply = (() => {
     };
   }
 
+  // Launch readiness Q3 (2026-10-26): a stop reaches the person in plain
+  // words; its code stays on the record (app.stop.code, the summary's
+  // stops), never in the reply. A code with no sentence here says only
+  // what is always true of a stop.
+  const STOP_WORDS = {
+    BOARD_NOT_WIRED: "Trainee can't reach this employer's application site from here, so nothing was filled or sent",
+    UNCOVERED_QUESTION: "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer",
+    CAPTCHA_HANDOFF: "a captcha appeared, so the last step is yours",
+    EXECUTION_ERROR: "it stopped with an error, so it is not counted as submitted",
+    DRIVER_ERROR: "it stopped with an error before it was submitted",
+    NO_RESULT: "the employer's site gave no result, so it is not counted as submitted",
+    UNKNOWN_OUTCOME: "the submit gave no readable result, so it is recorded as unknown and will not be sent again on its own",
+    NOT_PREPARED: "it is selected but not prepared yet",
+    NOT_SUBMITTED: "it reached the final review but was not in what you approved, so it was not sent",
+    CAP_REACHED: "today's application limit was reached, so it waits for the next day",
+    COUNT_DEFERRED: "it is beyond the number you asked for, so it stays in the queue",
+    KNOCKOUT_UNMET: "it has a requirement you don't meet",
+    JOB_CLOSED: "the posting is closed",
+  };
+  function plainStop(code) {
+    return STOP_WORDS[code] || "it was stopped, so it is not counted as submitted";
+  }
+  // "Found 1 role", "Found 3 data analyst roles": the family is a noun
+  // phrase that may already end in role(s).
+  function rolesPhrase(n, familyText) {
+    const fam = String(familyText || "").replace(/\s*\broles?$/i, "").trim();
+    return `${n} ${fam ? `${fam} ` : ""}${n === 1 ? "role" : "roles"}`;
+  }
+
   // The first line of every batch reply: the fraction that came
-  // through, then each one that did not, named once with its code.
+  // through, then each one that did not, named once in plain words.
   function coverageLines(run) {
     const acc = accountRun(run);
     const verb = acc.phase === "submitted" ? "submitted" : "ready for your yes";
@@ -906,12 +935,12 @@ const CareerBatchApply = (() => {
       if (unconfirmed.length) {
         const confirmed = selApps.filter((a) => a.stage === "submitted" && a.confirmationId).length;
         lines[0] = `${confirmed}/${acc.total} applications submitted with employer confirmations.`;
-        for (const a of unconfirmed) lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}: SENT_WITHOUT_CONFIRMATION — the employer's system took the application but recorded no confirmation; it is not counted as submitted.`);
+        for (const a of unconfirmed) lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}: the employer's system took the application but recorded no confirmation, so it is not counted as submitted.`);
       }
     }
     for (const o of acc.outcomes) {
       if (o.through) continue;
-      lines.push(`- ${o.company || "a company"} — ${o.role || "a role"}: ${o.code} — ${o.reason}`);
+      lines.push(`- ${o.company || "a company"} — ${o.role || "a role"}: ${plainStop(o.code)}.`);
     }
     return lines;
   }
@@ -919,9 +948,9 @@ const CareerBatchApply = (() => {
   function speakSummary(run) {
     const sm = run.summary || summarizeRun(run);
     const lines = coverageLines(run);
-    lines.push(`Found ${sm.found} ${run.familyText} roles${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
-    if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : x.code})`).join("; ")}.`);
-    lines.push(`${sm.eligible} were eligible; I took the ${sm.selected} you named.`);
+    lines.push(`Found ${rolesPhrase(sm.found, run.familyText)}${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
+    if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : plainStop(x.code)})`).join("; ")}.`);
+    lines.push(`${sm.eligible} ${sm.eligible === 1 ? "was" : "were"} eligible; I took the ${sm.selected} you named.`);
     // MUSE-F-001 (ported from the loop-writer package, muse/2026-10-20-loop-writer): the selection by name — company,
     // role, the posting's own link and where each one stands — from the run's own application records, never re-derived.
     const selApps = (run.selected || []).map((k) => run.apps[k]).filter(Boolean);
@@ -950,7 +979,7 @@ const CareerBatchApply = (() => {
       }
     }
     if (sm.confirmations.length) lines.push(`Submitted ${sm.confirmations.length} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
-    for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${st.code} — ${st.reason}`}`);
+    for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${plainStop(st.code)}.`}`);
     const capDef = sm.deferred.filter((x) => x.code === "CAP_REACHED");
     const countDef = sm.deferred.filter((x) => x.code === "COUNT_DEFERRED");
     if (capDef.length) lines.push(`${capDef.length} hit today's application cap and are queued for ${capDef[0].resumeOn || "tomorrow"} — they resume automatically, they are not lost.`);

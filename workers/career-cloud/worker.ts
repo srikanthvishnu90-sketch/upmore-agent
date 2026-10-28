@@ -19,6 +19,7 @@ import { approvedQuestionsAfterRefusal, assertApprovedPayload, factsFromPayload,
 import { questionsToStore } from "../career-browser/ask-once.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { authorizeCurrentCloudJob } from "./current_sources.ts";
+import { dbHostGate, fileJournal, handBack, type HostGate, type Journal, massRun, type Pacing, pacingFrom } from "../career-browser/mass-run.ts";
 
 export interface CloudJob {
   id: string;
@@ -45,6 +46,9 @@ export interface CloudQueue {
   // rows Messages asks), for the job this worker holds the lease on (career_apply_cloud_ask). Returns how many were kept.
   ask(job: CloudJob, questions: Record<string, unknown>[]): Promise<number>;
   gatePresent(): Promise<boolean>;
+  // Many instances (the database lane's leased claim, docs/launch/CLOUD-RUNNER.md "Many instances"): a claim that only
+  // leases, and the begin that turns the leases this round starts into drives. Absent: the claim starts drives itself.
+  begin?(jobs: CloudJob[]): Promise<Set<string>>;
 }
 // "interrupted": the worker was stopped on purpose (systemctl stop, Ctrl+C) while the engine ran. The application is
 // unknown and never re-driven, but a deliberate shutdown is not a failure the employer saw, so the throttle skips it.
@@ -73,6 +77,8 @@ export function settle(result: { state?: string; reason?: string } | null): { st
     return { state: "unknown_outcome", reason: "the engine gave no result after it started; not retried", outcome: "error", errorKind: "ENGINE_NO_RESULT" };
   }
   if (BOT_CHECK(state, reason)) return { state: "needs_user", reason: "bot_check", outcome: "bot_check", errorKind: reason };
+  // The employer's sign-in wall: the person signs in and finishes it at the link (never retried; not a failure the employer saw).
+  if (handBack({ state, reason }) === "login_required") return { state: "needs_user", reason: "login_required", outcome: "not_sent", errorKind: reason };
   if (state === "confirmed" || state === "submitted_unconfirmed") return { state, reason, outcome: "submitted", errorKind: null };
   if (state === "not_submitted" && BY_DESIGN.has(reason)) return { state, reason, outcome: "not_sent", errorKind: reason };
   return { state, reason, outcome: "error", errorKind: reason || state };
@@ -117,6 +123,7 @@ export async function evidenceOf(job: CloudJob, run: any, s: ReturnType<typeof s
     started_at: new Date(t.started).toISOString(),
     finished_at: new Date(t.finished).toISOString(),
     ...(s.outcome === "bot_check" ? { link: job.url, handed_back: "a verification check appeared; the person finishes it at the link" } : {}),
+    ...(s.reason === "login_required" ? { link: job.url, handed_back: "the employer's site asks the person to sign in; they finish it at the link" } : {}),
     // WO-102: a question the engine stopped on (needs_answers) goes back with the job in the form's own terms, so it is
     // asked of the person rather than lost. Never an answer.
     ...(s.reason === "needs_answers" ? { questions } : {}),
@@ -135,6 +142,9 @@ export async function runCloudJob(job: CloudJob, d: {
   now?: () => number;
   log?: (line: string) => void;
   stopping?: () => boolean;
+  // Mass submission: awaited right before the engine starts (the scheduler's durable journal line). If it throws, the
+  // engine never starts and the job is recorded not_submitted: nothing was sent.
+  beforeEngine?: () => Promise<void>;
 }) {
   // Capture the claimed job and lease before asynchronous work; the child never selects its authority.
   job = structuredClone(job);
@@ -168,6 +178,7 @@ export async function runCloudJob(job: CloudJob, d: {
     await Deno.writeFile(resumePath, bytes, { mode: 0o600 });
     await Deno.writeTextFile(factsPath, JSON.stringify(factsFromPayload(p)), { mode: 0o600 });
     await authorize("before_engine");
+    if (d.beforeEngine) await d.beforeEngine();
     let effectRequested = false, effectAuthorized = false;
     began = true;
     run = await d.runEngine(["--url", job.url, "--facts", factsPath, "--resume", resumePath, "--submit", "--approved", p.engine_approval], undefined, {
@@ -222,46 +233,83 @@ export async function runCloudJob(job: CloudJob, d: {
   return { id: job.id, user_id: job.user_id, ...s, recorded };
 }
 
-// The loop: up to `contexts` applications at a time (default 3, at most 6), one per engine process and so one per
-// browser context; a slot that frees is filled from the next claim. A queue that cannot be read waits and asks again.
-// stop() ends claiming; the applications in flight finish and are recorded.
+// The loop (owner D-MS-2, 2026-10-27: no product volume cap, safety pacing only): claims approved applications in
+// batches (MASS_SUBMIT_CLAIM_BATCH) and runs up to `concurrency` at once (MASS_SUBMIT_CONCURRENCY, or CLOUD_CONTEXTS as
+// before), one engine process and so one browser context per job, each employer host paced (MASS_SUBMIT_HOST_MAX at once,
+// MASS_SUBMIT_HOST_SPACING_MS between starts, widened after a verification check; mass-run.ts). A queue that cannot be
+// read waits and asks again. stop() ends claiming; the applications in flight finish and are recorded, and any claimed
+// but not started is recorded not_submitted (nothing was sent). With a journal (CLOUD_JOURNAL_DIR) a worker that died
+// leaves each started job recorded unknown_outcome on its next start (never re-driven) and each claimed-but-unstarted one
+// run under its lease, or ended as not sent when its lease has no time left.
 export async function cloudLoop(o: {
   queue: CloudQueue;
   runEngine: RunEngine;
   stop: () => boolean;
   contexts?: number;
+  pacing?: Partial<Pacing>;
+  journal?: Journal<CloudJob>;
+  // The hosts' refusals shared by every instance (mass-run.ts dbHostGate); absent, this process's own.
+  gate?: HostGate;
+  drain?: boolean;
   idleMs?: number;
   tmpRoot?: string;
   sleep?: (ms: number) => Promise<void>;
   log?: (line: string) => void;
 }) {
-  const n = Math.max(1, Math.min(6, Math.floor(o.contexts ?? 3)));
-  const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const log = o.log ?? ((l: string) => console.log(l));
-  const inFlight = new Set<Promise<unknown>>();
+  // How many at once: `contexts` or the pacing's concurrency; unset, this machine's capacity (mass-run.ts machineSlots).
+  const pacing = pacingFrom(() => undefined, { ...(o.contexts !== undefined ? { concurrency: Math.max(1, Math.floor(o.contexts)) } : {}), ...o.pacing });
   const done: Awaited<ReturnType<typeof runCloudJob>>[] = [];
-  while (!o.stop()) {
-    const free = n - inFlight.size;
-    let jobs: CloudJob[] = [];
-    if (free > 0) {
+  const finishOnce = async (job: CloudJob, state: string, reason: string, outcome: Outcome, errorKind: string) => {
+    const evidence = { reason, by: "cloud" };
+    for (let i = 0; i < 4; i++) {
       try {
-        jobs = await o.queue.claim(free);
+        await o.queue.finish(job, state, evidence, outcome, errorKind);
+        return true;
       } catch (e: any) {
-        log(`The queue could not be read (${e?.message ?? e}); asking again shortly. Nothing was run.`);
+        // A claim the database already closed (its 15-minute sweep): nothing is left to record.
+        if (/invalid apply (claim|transition)/i.test(String(e?.body ?? e?.message ?? ""))) return true;
+        if (i < 3) await new Promise((r) => setTimeout(r, 50 * 2 ** i));
       }
     }
-    for (const job of jobs.slice(0, free)) {
-      const p: Promise<unknown> = runCloudJob(job, { queue: o.queue, runEngine: o.runEngine, tmpRoot: o.tmpRoot, log, stopping: o.stop })
-        .then((r) => { done.push(r); })
-        .finally(() => inFlight.delete(p));
-      inFlight.add(p);
-    }
-    if (!jobs.length) {
-      if (inFlight.size >= n || free <= 0) await Promise.race(inFlight);
-      else await Promise.race([sleep(o.idleMs ?? 15_000), ...inFlight]);
-    }
-  }
-  await Promise.all(inFlight);
+    return false;
+  };
+  await massRun<CloudJob>({
+    claim: (n) => o.queue.claim(n),
+    onClaimError: (e: any) => {
+      log(`The queue could not be read (${e?.message ?? e}); asking again shortly. Nothing was run.`);
+      return "wait";
+    },
+    run: async (job, onStart) => {
+      const r = await runCloudJob(job, { queue: o.queue, runEngine: o.runEngine, tmpRoot: o.tmpRoot, log, stopping: o.stop, beforeEngine: onStart });
+      done.push(r);
+      return { state: r.state, reason: r.reason, recorded: r.recorded };
+    },
+    unstarted: async (job, why) => {
+      const recorded = await finishOnce(job, "not_submitted", why, "not_sent", why);
+      log(`${job.id}: not_submitted (not_sent, ${why})${recorded ? "" : "; NOT RECORDED: the queue marks it unknown after 15 minutes"}`);
+      const r = { id: job.id, user_id: job.user_id, state: "not_submitted", reason: why, outcome: "not_sent" as Outcome, errorKind: why, recorded };
+      done.push(r);
+      return r;
+    },
+    orphaned: async (job) => {
+      const reason = "the worker stopped while this application ran; not retried";
+      const recorded = await finishOnce(job, "unknown_outcome", reason, "interrupted", "WORKER_STOPPED");
+      log(`${job.id}: unknown_outcome (interrupted, WORKER_STOPPED)${recorded ? "" : "; NOT RECORDED: the queue marks it unknown after 15 minutes"}`);
+      const r = { id: job.id, user_id: job.user_id, state: "unknown_outcome", reason, outcome: "interrupted" as Outcome, errorKind: "WORKER_STOPPED", recorded };
+      done.push(r);
+      return r;
+    },
+    ...(typeof o.queue.begin === "function" ? { begin: (jobs: CloudJob[]) => o.queue.begin!(jobs) } : {}),
+    pacing,
+    stop: o.stop,
+    journal: o.journal,
+    gate: o.gate,
+    drain: o.drain,
+    idleMs: o.idleMs ?? 15_000,
+    sleep: o.sleep,
+    log,
+  });
   return done;
 }
 
@@ -414,8 +462,9 @@ export async function preflight(o: { queue: CloudQueue; key: string; envFile?: s
   return { ok: true as const };
 }
 
-// deno run -A workers/career-cloud/worker.ts, with SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CLOUD_CONTEXTS (3),
-// CLOUD_EVIDENCE_DIR and UPMORE_CLOUD_ENV_FILE from the systemd env file (docs/launch/CLOUD-WORKER.md).
+// deno run -A workers/career-cloud/worker.ts, with SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CLOUD_EVIDENCE_DIR and
+// UPMORE_CLOUD_ENV_FILE from the systemd env file (docs/launch/CLOUD-WORKER.md); the pacing names MASS_SUBMIT_* (or
+// CLOUD_CONTEXTS for how many at once) and CLOUD_JOURNAL_DIR are optional (docs/launch/CLOUD-RUNNER.md).
 if (import.meta.main) {
   const env = (k: string) => Deno.env.get(k) || "";
   const url = env("SUPABASE_URL"), key = env("SUPABASE_SERVICE_ROLE_KEY");
@@ -440,7 +489,19 @@ if (import.meta.main) {
       console.log("Stopping: no new claims; the applications in flight finish and are recorded (systemd: KillMode=mixed).");
     });
   }
-  const contexts = Number(env("CLOUD_CONTEXTS") || 3);
-  console.log(`Cloud worker up: ${contexts} contexts. The kill switch and the gate are read from the database on every claim.`);
-  await cloudLoop({ queue, runEngine: cloudEngineRunner({ root, evidenceRoot }), stop: () => stopping, contexts });
+  // No number of ours (owner, 2026-10-27): as many at once as this machine holds unless the owner sets one; a site slows
+  // only when it refuses. Many instances may run this at once (docs/launch/CLOUD-RUNNER.md "Many instances").
+  const pacing = pacingFrom((k) => Deno.env.get(k), /^\d+$/.test(env("CLOUD_CONTEXTS")) ? { concurrency: Number(env("CLOUD_CONTEXTS")) } : {});
+  const journalDir = env("CLOUD_JOURNAL_DIR") || `${evidenceRoot}/journal`;
+  console.log(`Cloud worker up: up to ${pacing.concurrency} at once on this machine; a site that refuses is backed off for every instance. ` +
+    "The kill switch and the gate are read from the database on every claim.");
+  // Every instance shares the hosts' refusals through the database (career_apply_host_backoff_*; until the database lane
+  // ships them, each instance backs off on its own and says so once).
+  const gateRpc = { rpc: async (name: string, args?: unknown) => {
+    const r = await fetch(`${url.replace(/\/$/, "")}/rest/v1/rpc/${name}`, { method: "POST",
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify(args ?? {}) });
+    const text = await r.text();
+    return r.ok ? { data: text ? JSON.parse(text) : null, error: null } : { data: null, error: { message: `${r.status} ${text.slice(0, 200)}` } };
+  } };
+  await cloudLoop({ queue, runEngine: cloudEngineRunner({ root, evidenceRoot }), stop: () => stopping, pacing, journal: fileJournal<CloudJob>(journalDir), gate: dbHostGate(gateRpc) });
 }

@@ -143,6 +143,49 @@ export function meterAdd(m: TurnMeter | undefined, cfg: ModelConfig, usage: any,
   const c = costMicros(cfg.model, usage); if (c === null) m.unpriced++; else m.usd_micros += c;
 }
 
+// Every user turn leaves one cost row, so a missing row can never be read as zero spend (2026-10-28).
+//   metered, calls = 0   the turn made no model call (the row says zero, in so many words);
+//   metered, calls > 0   the turn's calls, tokens and estimated cost;
+//   unrecorded           the sink was missing or refused the write, so how many calls the turn made is NOT KNOWN
+//                        (calls is null, never 0). A reader must count these turns as unknown, not as free.
+// Meters are tracked, so a turn that throws after calling the model is still recorded. finish() runs once, at the end of
+// the turn, whatever the reply was. It returns what the turn is now recorded as. Recording never breaks a reply.
+export type TurnRecord = "metered" | "zero" | "unrecorded" | "skipped";
+export function turnLedger(admin: any, userId: string, threadId: string | null) {
+  const tracked: TurnMeter[] = [], done = new Set<TurnMeter>();
+  let wrote = 0, failed = false, skipped = false;
+  const put = async (row: Record<string, unknown>): Promise<string | null> => {
+    if (!admin || typeof admin.from !== "function") return "no cost sink is wired";
+    try { const r = await admin.from("agent_turn_costs").insert({ user_id: userId, thread_id: threadId, ...row }); return r && r.error ? String(r.error.message || r.error) : null; }
+    catch (e) { return e instanceof Error ? e.message : String(e); }
+  };
+  const record = async (m: TurnMeter) => {
+    if (!m.calls || done.has(m)) return; // a meter with no calls adds nothing; the turn's zero row says so
+    done.add(m);
+    const err = await put({ meter_state: "metered", provider: m.provider, models: m.models, calls: m.calls, failed: m.failed, input_tokens: m.input_tokens, output_tokens: m.output_tokens, cached_tokens: m.cached_tokens, usd_micros: m.usd_micros, unpriced: m.unpriced });
+    if (err) { failed = true; console.error("turn cost not recorded:", err); } else wrote++;
+  };
+  return {
+    track(m: TurnMeter): TurnMeter { tracked.push(m); return m; },
+    record,
+    // A replayed turn (same turn key) is the first run's answer again: its row is the first run's.
+    skip() { skipped = true; },
+    async finish(): Promise<TurnRecord> {
+      if (skipped) return "skipped";
+      for (const m of tracked) await record(m);
+      if (!failed && wrote > 0) return "metered";
+      if (!failed) {
+        const err = await put({ meter_state: "metered", calls: 0 });
+        if (!err) return "zero";
+        console.error("turn cost not recorded:", err);
+      }
+      const err = await put({ meter_state: "unrecorded", calls: null });
+      if (err) console.error("turn marked unrecorded failed (the turn is unrecorded and has no row):", err);
+      return "unrecorded";
+    },
+  };
+}
+
 // Health events: one row per provider call outcome, so a dead key shows within minutes (model-health reads them).
 export type HealthSink = (e: { provider: Provider; model: string; role: ModelRole; ok: boolean; status: number | null; error_type: string | null; detail: string | null; latency_ms: number }) => Promise<void> | void;
 export function adminHealthSink(admin: any): HealthSink {

@@ -78,3 +78,66 @@ test("(3) a lowercase '<role> jobs in <city>' is a role search", async () => {
   const o = convo()("data analyst jobs in chicago");
   assert.equal(o.intent, "career_discovery", String(o.reply).slice(0, 200));
 });
+
+// ---------- PRODUCT AUDIT 2026-10-28 items 5, 6, 8, 10 ----------
+const fs = require("node:fs");
+const POSTINGS = [
+  { id: "gh:1", job_id: "gh:1", company: "Acme", title: "Data Analyst", location: "Chicago, IL", url: "https://boards.greenhouse.io/acme/jobs/1", description: "SQL Python dashboards", first_seen_at: "2026-10-25T00:00:00Z" },
+  { id: "gh:2", job_id: "gh:2", company: "Globex", title: "Junior Data Analyst", location: "Remote", url: "https://jobs.lever.co/globex/2", description: "SQL Excel", first_seen_at: "2026-10-26T00:00:00Z" },
+];
+
+test("(5) a new person's job list is not 'ranked by your profile', says no 'caveat: no tradeoff', and Remote is never 'relocating'", async () => {
+  await setup();
+  const o = convo()("find me jobs", { postings: POSTINGS });
+  const r = String(o.reply);
+  assert.equal(o.intent, "career_discovery", r);
+  assert.ok(!/ranked by fit with your profile|closest fit on your profile|no tradeoff stated|gaps named in the caveat/.test(r), r);
+  assert.ok(!/Remote, outside the places|in Remote/.test(r), r);
+  assert.match(r, /resume/i, "the next step asks for the resume");
+});
+
+test("(6) 'can u help me get a job' is a job search, not a Summer internship search", async () => {
+  await setup();
+  for (const m of ["can u help me get a job", "i need a job asap"]) {
+    const o = convo()(m, { postings: POSTINGS });
+    assert.notEqual(o.intent, "career_internship_discovery", `${m}: ${o.reply}`);
+    assert.ok(!/Summer 20\d\d|internship/i.test(String(o.reply)), `${m}: ${o.reply}`);
+  }
+  assert.equal(convo()("i need a summer internship", { postings: POSTINGS }).intent, "career_internship_discovery", "an internship ask keeps its band");
+});
+
+test("(8) 'what do you know about me' after a confirmed resume reads the resume, never 'Nothing is on your record'", async () => {
+  await setup();
+  const RESUME = fs.readFileSync(path.join(ROOT, "packages/career-data/fixtures/test-resume.txt"), "utf8");
+  // the account record carries the confirmed profile across turns, as agent-chat's host commit does
+  let snap = null, account = { version: 0, epoch: 0 };
+  const say = (text) => {
+    const ctx = host.createTurnCtx({ userId: "u-recall", threadId: "t-recall", now: Date.parse("2026-10-28T15:00:00Z"), accountPersistence: true, accountMemory: true, snapshot: copy(snap), account: copy(account), watchState: {}, postings: [] });
+    const out = host.runTurn(text, ctx);
+    snap = copy(host.extractSnapshot(ctx)); account = { ...account, ...copy(ctx._hostPatch || {}), version: account.version + 1 };
+    return out;
+  };
+  say(`here is my resume:\n${RESUME}`);
+  assert.equal(say("yes thats my resume").resultStatus, "completed");
+  const r = String(say("what do you know about me").reply);
+  assert.ok(!/Nothing is on your record/.test(r), r);
+  assert.match(r, /resume you confirmed: \d+ entries/, r);
+});
+
+test("(8) 'remind me tomorrow to follow up' is not a read-back of the record", async () => {
+  await setup();
+  const say = convo();
+  say("i want a job in marketing");
+  const o = say("remind me tomorrow to follow up");
+  assert.notEqual(o.intent, "conversation_recall", String(o.reply));
+});
+
+test("(10) pause replies are plain words", async () => {
+  await setup();
+  const say = convo();
+  const r1 = String(say("stop").reply), r2 = String(say("help").reply);
+  for (const r of [r1, r2]) {
+    assert.ok(!/uncertain/i.test(r), r);
+    assert.match(r, /resume career work/, r);
+  }
+});

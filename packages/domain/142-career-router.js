@@ -344,8 +344,12 @@ const CareerRouter = (() => {
 
   function locationCaveat(adapted, profile) {
     if (!adapted || adapted.remote === "remote") return null;
+    // PRODUCT AUDIT 2026-10-28 (#5): a posting whose location reads "Remote" is remote, never "relocating"; and with no
+    // place on the profile at all there is nothing for a role to be "outside of".
+    if (/^\s*(fully\s+)?remote\b/i.test(s(adapted.location))) return null;
     const prefs = (((profile || {}).preferences || {}).locations || []).map((x) => lc(x).split(",")[0].trim());
     const home = lc((((profile || {}).basics || {}).location || "").split("(")[0].split(",")[0].trim());
+    if (!prefs.filter(Boolean).length && !home) return null;
     const city = lc((adapted.location || "").split(",")[0].split("—")[0].trim());
     if (!city || prefs.some((x) => x && (city.includes(x) || x.includes(city))) || (home && city.includes(home))) return null;
     return `the role is in ${adapted.location}, outside the places on your profile, so it means relocating`;
@@ -357,7 +361,8 @@ const CareerRouter = (() => {
     if (loc) return loc;
     if (item.missing_required && item.missing_required.length) return `${item.missing_required.join(", ")} named in the posting and not yet on your profile`;
     if (p.deadline) return `apply by ${p.deadline}`;
-    return "no tradeoff stated in the posting";
+    // PRODUCT AUDIT 2026-10-28 (#5): nothing to flag is said by saying nothing ("caveat: no tradeoff stated" was noise).
+    return null;
   }
 
   // ---------- discovery / shortlist (131 plan + 121 scoring) ----------
@@ -394,7 +399,7 @@ const CareerRouter = (() => {
     if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch { kept = scored; } }
     let rows = kept.map((it) => {
       const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null, url: postingUrlOf(it.posting) });
-      item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : "closest fit on your profile, with the gaps named in the caveat";
+      item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : (profile && ((profile.facts || []).length) ? "closest to your profile" : "matches your search");
       item.caveat = caveatFor(item, profile);
       return item;
     });
@@ -434,7 +439,7 @@ const CareerRouter = (() => {
     const pay = item.posting.salary && item.posting.salary.raw ? `, ${item.posting.salary.raw}` : "";
     const url = item.url || postingUrlOf(item.posting);
     // The link rides inside the role's own sentence: the composer keeps one sentence per role.
-    return `${item.title} at ${item.company}${url ? ` (${url})` : ""} — ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
+    return `${item.title} at ${item.company}${url ? ` (${url})` : ""} — ${where}${pay}: ${item.reason}${item.caveat ? `; heads-up: ${item.caveat}` : ""}.`;
   }
 
   // The role families an ASK names. "Design / portfolio-first" is pinned to
@@ -532,7 +537,10 @@ const CareerRouter = (() => {
       const reply = compose({ headline: "I found no roles in the current list that pass your profile's hard filters.", facts: excluded.length ? [`${excluded.length} postings were excluded, mostly for: ${excluded[0].reasons[0]}.`] : [], nextStep: "Widen the location or role and I will search again." });
       return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
     }
-    const reply = compose({ headline: o.headline || `Here are the ${top.length} roles most worth applying to, ranked by fit with your profile.`, facts: top.map(roleSentence), nextStep: o.nextStep || "Tell me one to tailor your resume for, and I will do that next." });
+    // PRODUCT AUDIT 2026-10-28 (#5): with nothing on the profile, the list is not "ranked by fit with your profile".
+    const profiled = !!(profile && (profile.facts || []).length);
+    const reply = compose({ headline: o.headline || (profiled ? `Here are the ${top.length} roles most worth applying to, ranked by fit with your profile.` : `Here ${top.length === 1 ? "is 1 role" : `are ${top.length} roles`} that match your search.`), facts: top.map(roleSentence),
+      nextStep: o.nextStep || (profiled ? "Tell me one to tailor your resume for, and I will do that next." : "Want me to rank them against your resume? Paste it here or attach the file.") });
     return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
   }
 
@@ -12913,7 +12921,10 @@ const CareerRouter = (() => {
       return handleDiscovery(text, c, {});
     }
     if (/\b(need|want|looking for|searching for)\b[^.]*\b(internships?|jobs?|roles?)\b|\binternships?\b[^.]*\b(help|next summer|summer)\b|\bhelp\b[^.]*\b(internships?|jobs?)\b/.test(t)) {
-      return handleInternship(text, c);
+      // PRODUCT AUDIT 2026-10-28 (#6): "can u help me get a job" / "i need a job asap" were answered as a Summer 2027
+      // internship search. Only an ask that names internships, new-grad or a summer gets the internship band.
+      if (/\b(internships?|intern|new[- ]grad|summer)\b/.test(t)) return handleInternship(text, c);
+      return handleDiscovery(text, c, {});
     }
     if (/\bfind\b|\bshortlist\b|\broles worth\b/.test(t)) {
       // BUG-266: the same head-noun rule on the bare-find tail — an
@@ -14133,7 +14144,7 @@ const CareerRouter = (() => {
     // (c) Company-scoped recall: "what do you remember about my
     // <Co> plans?" — every fact keyed to, valued with, or evidenced
     // by that company, plus the target-firm fact when it matches.
-    if (/\bwhat\s+do\s+you\s+(remember|know)\b/.test(t) || /\bwhat\s+have\s+you\s+(got|recorded|saved)\b/.test(t) || /\bremind\s+me\b(?!\s+to\s+\w)/.test(t)) {
+    if (/\bwhat\s+do\s+you\s+(remember|know)\b/.test(t) || /\bwhat\s+have\s+you\s+(got|recorded|saved)\b/.test(t) || /\bremind\s+me\b(?![^.?!]*\bto\s+\w)/.test(t)) {
       const named = all.filter((f) => f.value && t.includes(coKey(f.value)) && coKey(f.value).length > 2)
         .map((f) => coKey(f.value));
       const keyed = all.map((f) => f.key).filter(Boolean);
@@ -14146,6 +14157,20 @@ const CareerRouter = (() => {
       const pool = company
         ? all.filter((f) => coKey(f.key) === company || coKey(f.value) === company || (f.evidence && lc(f.evidence).includes(company)))
         : all;
+      if (!pool.length && !company) {
+        // PRODUCT AUDIT 2026-10-28 (#8): "what do you know about me" after a confirmed resume said "Nothing is on your
+        // record yet". The confirmed resume entries are on the record: counted by kind, from the profile itself.
+        let confirmed = [];
+        try { confirmed = ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(ctx && ctx.profile) : []; } catch { confirmed = []; }
+        if (confirmed.length) {
+          const kinds = {};
+          for (const f of confirmed) { const k = s(f && f.kind) || "other"; kinds[k] = (kinds[k] || 0) + 1; }
+          const label = { education: "school", experience: "job", project: "project", leadership: "leadership role", skill: "skill" };
+          const parts = Object.entries(kinds).map(([k, n]) => `${n} ${label[k] || k}${n === 1 ? "" : (label[k] || k).endsWith("s") ? "" : "s"}`);
+          const reply = compose({ headline: `From the resume you confirmed: ${confirmed.length} entries — ${parts.join(", ")}.`, facts: [], nextStep: "Want me to read any of them back, or fix something that's wrong?" });
+          return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+        }
+      }
       if (!pool.length) {
         const reply = compose({ headline: company ? `Nothing is on your record about ${company} yet.` : "Nothing is on your record yet.", facts: ["The record holds only what you state in chat — a target company, a recruiter contact, an interview day, a preference — and nothing is assumed to fill it."], nextStep: "State the fact in your own words and it is recorded in this turn." });
         return { intent: "conversation_recall", reply, resultStatus: "awaiting_user", sends: 0 };

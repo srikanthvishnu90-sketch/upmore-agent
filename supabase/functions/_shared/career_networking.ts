@@ -15,6 +15,8 @@
 // would be written to and that nothing was drafted.
 import { type ContactRow, contactsOf, firmKey, importContactsCsv, importContactsFile, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
+import { type PeopleDeps, type PersonRec, peopleTurn } from "./career_people.ts";
+import { companyKey } from "./career_people_import.ts";
 import { batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type KeyedContact, type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
@@ -169,6 +171,7 @@ export interface NetworkingDeps {
   // would reach this person on (null: none linked). Injected, never read from the environment here.
   reminderPush?: boolean;
   textingChannel?: () => Promise<string | null>;
+  people?: PeopleDeps | null; // D-033 people finding, wired by the caller; absent or null: no people turn
 }
 export interface NetworkingResult { reply: string; intent: string; status: string; parts?: string[] }
 
@@ -204,6 +207,18 @@ function bookOf(o: NetworkingDeps): Book {
   return b;
 }
 function makeBook(o: NetworkingDeps): Book {
+  const b = makeBookInner(o);
+  const isNamed = (r: ContactRow, k: string) => { const n = plain(r.name); return !!k && (n === k || n.startsWith(`${k} `)); };
+  return {
+    ...b,
+    atFirm: async (firm) => uniq([...await b.atFirm(firm), ...await savedPeople(o, { firm })]),
+    named: async (k, every) => {
+      const rows = [...await b.named(k, every), ...(await savedPeople(o, { name: k })).filter((r) => isNamed(r, k))];
+      return every ? rows : uniq(rows);
+    },
+  };
+}
+function makeBookInner(o: NetworkingDeps): Book {
   // People the router kept from an earlier export (the profile's connections and graph people), given the same checks.
   let legacyP: Promise<ContactRow[]> | null = null;
   const legacy = () => legacyP ??= (async () => {
@@ -306,6 +321,8 @@ async function forgetTurn(o: NetworkingDeps, a: NonNullable<ReturnType<typeof fo
 }
 
 async function networkingTurnInner(o: NetworkingDeps): Promise<NetworkingResult | null> {
+  // PEOPLE FINDING (D-033): the LinkedIn export kept per person, Gmail correspondents, public pages, job emails, intros.
+  const people = await peopleTurn(o); if (people) return people;
   const files = (o.attachments ?? []).slice(0, MAX_FILES);
   const pasted = files.length ? null : pastedCsv(o.message);
   if (files.length || pasted) return await importTurn(o, files, pasted);
@@ -371,6 +388,22 @@ function summarizeSkipped(skipped: { row: number; why: string }[]): string[] {
   const by = new Map<string, number[]>();
   for (const s of skipped) by.set(s.why, [...(by.get(s.why) ?? []), s.row]);
   return [...by.entries()].map(([why, rows]) => `${rows.length === 1 ? "row" : "rows"} ${rows.slice(0, 5).join(", ")}${rows.length > 5 ? ` and ${rows.length - 5} more` : ""}: ${why}`);
+}
+
+// NO LIMITS: the thread's copy of an export is capped; the person's whole saved export lives in career_people, so a firm
+// or name asked about is also read there (indexed), and someone past the copy's first rows is still found.
+async function savedPeople(o: NetworkingDeps, want: { firm?: string | null; name?: string | null }): Promise<ContactRow[]> {
+  const store = o.people?.store;
+  if (!store || (!want.firm && !want.name)) return [];
+  const recs: PersonRec[] = [];
+  if (want.name) recs.push(...await store.named(o.userId, want.name).catch(() => []));
+  if (want.firm) recs.push(...await store.atCompany(o.userId, companyKey(normalizeFirm(want.firm))).catch(() => []));
+  const firm = want.firm ? normalizeFirm(want.firm) : null;
+  const rows = recs.filter((r) => r.name && (!firm || sameFirm(normalizeFirm(r.company), firm))).map((r): ContactRow => ({
+    file: r.source_ref.replace(/, row \d+$/, "") || r.source, row: Number(/row (\d+)$/.exec(r.source_ref)?.[1] ?? 0), name: r.name!, email: r.email,
+    firm: normalizeFirm(r.company), firm_raw: r.company, company: normalizeFirm(r.company), title: r.position, school: r.school, connected_on: r.connected_on,
+  }));
+  return rows.length ? await verifyRows(rows, o.mx ?? MX_NOT_WIRED) : [];
 }
 
 async function whoTurn(o: NetworkingDeps, firmAsked: string): Promise<NetworkingResult> {

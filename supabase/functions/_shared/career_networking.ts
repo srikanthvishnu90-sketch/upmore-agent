@@ -15,7 +15,7 @@
 // would be written to and that nothing was drafted.
 import { type ContactRow, contactsOf, firmKey, importContactsCsv, importContactsFile, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
-import { BATCH_MAX, batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
+import { batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type KeyedContact, type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
 import { trackTurn } from "./career_outreach_track.ts";
@@ -424,7 +424,8 @@ async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>
       return { reply: `${t.role ? `No ${t.role} at ${firmName}` : `No one at ${firmName}`} is in your ${plural(all.total, "contact")}.${there} ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "none_at_firm" };
     }
   }
-  const want = Math.max(1, Math.min(BATCH_MAX, t.by === "group" && t.count ? t.count : BATCH_MAX));
+  // NO LIMITS: a group draft covers everyone asked for (or everyone matching), not a batch of Trainee's size.
+  const want = Math.max(1, t.by === "group" && t.count ? t.count : pool.length);
   const [dnc, contacted] = await Promise.all([o.store.dnc(o.userId), o.store.contacted(o.userId)]);
   // FAMILY NETWORKING: who was already written to, and how far it went. A by-name ask for someone whose only draft is
   // still waiting (never approved or sent) replaces that draft: the person changed their mind about what to say.

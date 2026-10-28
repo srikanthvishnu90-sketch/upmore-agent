@@ -59,6 +59,7 @@ export interface OutreachStore {
   // FAMILY NETWORKING (2026-10-26): every draft of the person's, newest first (who they reached out to and where each
   // stands), and their follow-up reminders (career_watch_kv 'career:outreach:followups', erased with the account).
   history?(userId: string, limit?: number): Promise<OutreachDraft[]>;
+  approvedDrafts?(userId: string): Promise<OutreachDraft[]>; // every approved draft, read in pages (the send rail's check)
   // Exactly these drafts of the person's, by id (the primary key): the bounded read the reminder run and the sending rail use.
   drafts?(userId: string, ids: string[]): Promise<OutreachDraft[]>;
   followups?(userId: string): Promise<Followup[]>;
@@ -486,6 +487,8 @@ export async function outreachTurn(o: {
   // A batch yes (D-MN-2) counts only while the batch is the thread's last word: the check just below, as for "send all".
   const r: OutreachReply | null = parseOutreachReply(o.message) ?? parseBatchYes(o.message);
   if (!r) return null;
+  // D-MN-2: a question ("send them all?", "send 3?") is never an approval; with D-MN-1 an approval now sends.
+  if (r.kind === "send" && /\?\s*$/.test(String(o.message ?? "").trim())) return null;
   // A take-back ("cancel 1") counts at any time, but only for a draft of the newest batch still waiting or approved.
   const anytime = r.kind === "skip" && !!r.anytime;
   if (r.kind !== "show" && r.kind !== "lapsed" && !anytime && (await o.store.lastAssistantIntent(o.threadId)) !== OUTREACH_INTENT) return null;
@@ -577,9 +580,9 @@ export async function outreachTurn(o: {
   if (not.length) lines.push(`Not approved: ${not.join(", ")}.`);
   if (left.length) lines.push(`Not sent: ${left.join(", ")}.`);
   if (approved.length) {
-    const own = prefs.daily_cap ?? DEFAULT_DAILY;
     const connected = o.gmailConnected ? await o.gmailConnected().catch(() => false) : false;
-    if (connected) lines.push(`They go from your Gmail one at a time, at least 90 seconds apart, at most ${own} a day${own > WARMUP_DAILY ? ` (${WARMUP_DAILY} a day in your first week of sending)` : ""}. ${LAPSE_NOTE}`);
+    // NO LIMITS: no pacing or daily number of Trainee's own is promised; only Gmail's own refusal slows sending.
+    if (connected) lines.push(`They go from your Gmail. If Gmail asks to slow down, the rest wait and go on when it allows, and I'll tell you. ${LAPSE_NOTE}`);
     // FAMILY NETWORKING: no promise of a send that can't happen. Sending from the person's own address is not available
     // (gmail.send is deferred), so the reply says nothing went, and gives the ways to send it themselves, exactly as approved.
     else lines.push(`Nothing has gone out. Nothing can go out until your Gmail is connected for sending, and sending from your own address isn't available in Trainee yet.\n\n${sendYourselfText(approved)}${o.connectAsk ? `\n\n${o.connectAsk}` : ""}`);
@@ -591,7 +594,8 @@ export interface ApprovedItem { draftId: string; approvalHash: string; n: number
 // The person's drafts approved and not yet sent, each with the hash it was approved against: the read the sending rail
 // uses to check that a queued {draftId, approvalHash} is still exactly what was approved (status approved, hash unchanged).
 export async function approvedOutreach(store: OutreachStore, userId: string): Promise<(ApprovedItem & { approvedAt: string | null })[]> {
-  const rows = store.history ? await store.history(userId, 500) : await store.latestBatch(userId);
+  // NO LIMITS: every approved draft, however many (no newest-500 window).
+  const rows = store.approvedDrafts ? await store.approvedDrafts(userId) : store.history ? await store.history(userId, Number.MAX_SAFE_INTEGER) : await store.latestBatch(userId);
   return rows.filter((d) => d.status === "approved" && !!d.approved_hash && d.approved_hash === d.hash)
     .map((d) => ({ draftId: d.id, approvalHash: d.approved_hash!, n: d.n, batchId: d.batch_id, to: d.recipient.email, approvedAt: d.approved_at }));
 }
@@ -798,6 +802,7 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
       return copy(drafts.filter((d) => d.status === "sent" && d.sent_at && d.sent_at >= since).slice(0, limit).map((d) => ({ user_id: d.user_id, draft: d })));
     },
     async lastAssistantIntent(threadId: string) { return intents[threadId] ?? null; },
+    async approvedDrafts(u: string) { return copy(drafts.filter((d) => d.user_id === u && d.status === "approved").sort((a, z) => String(z.created_at).localeCompare(String(a.created_at)) || z.n - a.n)); },
     async history(u: string, limit = 200) { return copy(drafts.filter((d) => d.user_id === u).sort((a, z) => String(z.created_at).localeCompare(String(a.created_at)) || z.n - a.n).slice(0, limit)); },
     async drafts(u: string, ids: string[]) { const want = new Set(ids); return copy(drafts.filter((d) => d.user_id === u && want.has(d.id))); },
     async followups(u: string) { return copy(follow[u] ?? []); },
@@ -877,11 +882,24 @@ export function supabaseOutreachStore(admin: any): OutreachStore {
       return (must(await q.select("id"), "update a draft") ?? []).length === 1;
     },
     async contacted(u) {
-      const rows = must(await admin.from("career_outreach_drafts").select("recipient_email").eq("user_id", u).neq("status", "skipped").limit(5000), "read who was contacted");
-      return new Set((rows ?? []).map((r: any) => String(r.recipient_email).toLowerCase()));
+      // Every address, in pages: a silent cut here would let someone be emailed twice.
+      const out = new Set<string>();
+      for (let from = 0; ; from += 1000) {
+        const rows = must(await admin.from("career_outreach_drafts").select("recipient_email").eq("user_id", u).neq("status", "skipped").order("id").range(from, from + 999), "read who was contacted") ?? [];
+        for (const r of rows) out.add(String(r.recipient_email).toLowerCase());
+        if (rows.length < 1000) return out;
+      }
     },
     async lapsed(u) {
       return (must(await admin.from("career_outreach_drafts").select(COLS).eq("user_id", u).eq("status", "skipped").eq("result", "expired").order("created_at").limit(200), "read the lapsed drafts") ?? []).map(fromRow);
+    },
+    async approvedDrafts(u) {
+      const out: OutreachDraft[] = [];
+      for (let from = 0; ; from += 1000) {
+        const rows = must(await admin.from("career_outreach_drafts").select(COLS).eq("user_id", u).eq("status", "approved").order("created_at", { ascending: false }).order("n", { ascending: false }).order("id").range(from, from + 999), "read your approved drafts") ?? [];
+        out.push(...rows.map(fromRow));
+        if (rows.length < 1000) return out;
+      }
     },
     async history(u, limit = 200) {
       return (must(await admin.from("career_outreach_drafts").select(COLS).eq("user_id", u).order("created_at", { ascending: false }).order("n", { ascending: false }).limit(limit), "read your outreach") ?? []).map(fromRow);

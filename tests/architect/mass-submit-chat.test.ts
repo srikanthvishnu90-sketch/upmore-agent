@@ -45,7 +45,9 @@ Deno.test("D-MS-1/1 every texted answer, messy phrasings included: yes / subset 
   // "not Acme" alone says what to leave out, not that the rest should go: confirmed first, never approved.
   for (const m of ["not Acme", "not 3", "skip 3", "except 2 and 4"]) eq(parseCardReply(m)?.kind, "except_only", m);
   // Not a card answer at all: the carrier's opt-out, questions, other asks.
-  for (const m of ["stop", "STOP", "what is on 2?", "yes I want alerts for data jobs", "3", "how many are there?", "show me remote jobs"]) eq(parseCardReply(m), null, m);
+  for (const m of ["stop", "STOP", "what is on 2?", "yes I want alerts for data jobs", "3", "how many are there?", "show me remote jobs",
+    // A yes that is a sentence about something else (a resume confirmation, a different ask) stays the brain's turn.
+    "Yes, that's my resume.", "yes, that's me", "yes please do", "Approve and submit", "Apply on my behalf"]) eq(parseCardReply(m), null, m);
 });
 
 // -------------------------------------------------------------------------------------------------- one batch, one yes

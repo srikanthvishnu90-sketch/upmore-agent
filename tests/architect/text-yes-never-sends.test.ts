@@ -126,7 +126,7 @@ Deno.test("SERIAL-1442 exact payloads: whatever changed since the card was shown
   };
   const r = await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW, store, replyTo: "msg-card-7" });
   ok(r?.status === "answered" && /^1 approved exactly as shown/.test(r!.reply), r?.reply);
-  for (const [n, why] of [[1, "it changed after the card was shown"], [2, "your details changed after it was prepared"], [3, "you applied to them in the last 30 days"], [4, "you already applied to this posting"], [5, "today's daily limit is already used"], [6, "the queue refused it"], [8, "your saved daily pace could not be read"]] as const) {
+  for (const [n, why] of [[1, "it changed after the card was shown"], [2, "your details changed after it was prepared"], [3, "you applied to them in the last 30 days"], [4, "you already applied to this posting"], [5, "it is over the daily pace you set yourself"], [6, "the queue refused it"], [8, "your saved daily pace could not be read"]] as const) {
     ok(new RegExp(`^${n}\\. [A-Za-z ]+: not sent: ${why.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "m").test(r!.reply), `${n}: ${why}: ${r!.reply}`);
   }
   ok(/^7\. Fine Co: approved/m.test(r!.reply), r!.reply);

@@ -213,13 +213,13 @@ export const BLOCK_BUDGET = 4500;
 // Rendering is not a confirmation operation. A missing/unknown status cannot become confirmed merely because a
 // flag is absent, and a rejected row must not return as either a goal or a pending fact. Ignore malformed stored rows
 // rather than letting one row prevent the entire context block from being built.
-const factRows = (profile: any): any[] => {
+export const factRows = (profile: any): any[] => {
   const denied = personalSourceGuard([profile]);
   return (Array.isArray(profile?.facts) && !denied(profile) ? profile.facts : []).filter((f: any) =>
     f && typeof f === "object" && !Array.isArray(f) && typeof f.id === "string" && !!f.id.trim() && typeof f.kind === "string" && !!f.kind.trim() &&
     typeof f.text === "string" && !!f.text.trim() && f.status !== "rejected" && !denied(f));
 };
-const confirmedRow = (f: any) => f.status === "confirmed" && f.needs_confirmation === false;
+export const confirmedRow = (f: any) => f.status === "confirmed" && f.needs_confirmation === false;
 // A stored value is one row's data, never another prompt heading. Preserve its words while making embedded line and
 // control separators explicit; otherwise a draft can print a second "Confirmed facts" heading inside its own text.
 const memoryLine = (s: string) => s.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, (c) =>

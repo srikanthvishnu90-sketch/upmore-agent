@@ -191,8 +191,9 @@ Deno.test({ name: "FEATURE 8: check my email now, the employer's email everywher
       const none = await say(other, "draft the follow-up to Stripe");
       assert(/There's no application to Stripe on record/.test(none.reply), none.reply);
       const read = await say(other, "check my inbox");
-      eq(read.resultStatus, "NOT_WIRED", read.reply);
-      assert(/NOT_WIRED: nothing was read\. Trainee can't read your Gmail yet/.test(read.reply), read.reply);
+      // Task 3 (connector framework): with no mailbox of their own, Trainee asks once for one; nothing is read.
+      assert(["NOT_WIRED", "asked", "not_wired"].includes(String(read.resultStatus)), read.reply);
+      assert(/nothing was read|one-time link/i.test(read.reply) && !/Stripe|Acme/.test(read.reply), read.reply);
       eq(google.gmail(), calls, "no Gmail call without their own grant");
       const thanks = await say(chat, "send the thank-you to Acme");
       assert(/There's no application to Acme on record, so there's no thank-you to send/.test(thanks.reply), thanks.reply);

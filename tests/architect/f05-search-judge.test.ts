@@ -99,7 +99,7 @@ Deno.test("f05 judge prompt: kept as one standing instruction, replaced, shown, 
   eq(await say("find me data analyst jobs"), null);
   const s = await say("judge prompt: weigh SQL above everything");
   eq(s?.status, "saved");
-  assert(/off right now/.test(s!.reply), "says the judge is off");
+  assert(/as soon as judging is switched on/.test(s!.reply) && !/model judge/.test(s!.reply), "says judging is not on yet, in plain words (OWNER LIST #6, 2026-10-28)");
   eq((await say("when you judge jobs, prefer small teams"))?.status, "saved");
   eq((await memory.standing("u")).map((x) => x.text), ["I need visa sponsorship", "Judge: prefer small teams"]);
   assert(/prefer small teams/.test((await say("what's my judge prompt?"))!.reply));

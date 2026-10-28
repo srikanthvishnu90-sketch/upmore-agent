@@ -50,6 +50,7 @@ import { mockTurn, supabaseMockStore as supabaseMockStoreUncapped } from "../_sh
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
 import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_status.ts";
+import { outreachStatusTurn } from "../_shared/career_send_rail.ts"; // "where are my emails"
 import { standingTurn, supabaseStanding } from "../_shared/career_standing.ts";
 // FEATURE 14: receipts
 import { receiptTurn, supabaseReceipts } from "../_shared/career_apply_receipt_read.ts";
@@ -64,6 +65,8 @@ import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
 import { feature1Deps, resumeOnFileReader } from "../_shared/career_apply_from_chat.ts"; // FEATURE 1; FEATURE 16: resumeOnFileReader
+import { cancelTurn, prepareAfterAnswers, withPending } from "../_shared/career_hosted_prepare.ts"; // FEATURE 17
+import { statusAsk } from "../_shared/career_apply_status.ts"; // FEATURE 17
 import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { codePending, readSituation } from "../_shared/career_situation.ts";
 import { statusRecordsFrom } from "../_shared/career_capabilities.ts";
@@ -74,20 +77,23 @@ import { EMAIL_INTENT, emailTurn, supabaseEmailStore, supabaseResumes } from "..
 import { CAREER_SEND_SCOPE, careerTokenFor, sendMail } from "../_shared/career_mail_gmail.ts";
 import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_brief_store.ts";
 import { draftFor, outreachTurn, supabaseOutreachStore } from "../_shared/career_outreach.ts";
+import { queueApprovedOutreach, sendRailOn } from "../_shared/career_send_rail.ts"; // MASS NETWORKING M1
 import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.ts";
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
 import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
-import { disconnectGoogle, disconnectReply, isGoogleDisconnect } from "../_shared/google_disconnect.ts"; // FEATURE GV
+import { connectorAsk, connectorChatTurn, connectorFailure } from "../_shared/connectors.ts"; // Task 3 (FEATURE GV's disconnect included)
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
+import { CAREER_READ_SCOPE as PEOPLE_READ_SCOPE, supabasePeopleDeps } from "../_shared/career_people.ts"; // D-033
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
 // FEATURE 8: inbox check and follow-ups that can be sent.
 import { careerGrant, followupTurn, gmailReadNow, mailNow, supabaseFollowupStores } from "../_shared/career_inbox_followups.ts";
 import { gmailSender } from "../_shared/career_outreach_gmail.ts";
 import { fileUploadFor } from "../_shared/channel_resume_upload.ts"; // FEATURE 16
+import { outlookAsk, outlookChatTurn } from "../_shared/outlook_connector.ts"; // M4: Outlook
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
@@ -398,7 +404,22 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // SERIAL-1461: the id of the message this text replies to, when the channel passes one (a string or a number). A
       // text yes approves a card only in direct reply to the message that carried it.
       const replyTo = typeof body.reply_to_message_id === "string" || typeof body.reply_to_message_id === "number" ? body.reply_to_message_id : null;
-      const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      // M4: Outlook (Microsoft Graph) as a peer of Gmail, from any channel: "connect my outlook" / "use my work email" makes a
+      // one-time link bound to this person, channel and thread; "disconnect outlook" deletes the access and what was read
+      // from it and cancels its pending sends (_shared/outlook_connector.ts). Code's, before every other turn.
+      // Task 3: the connector framework (_shared/connectors.ts), before every other turn: "what's connected" (each connector,
+      // its state and use, and what waits on it), "connect gmail" (a one-time link from any channel), "disconnect gmail" /
+      // "disconnect outlook" (revoke where possible, erase, cancel pending sends, read back), and a task that needs a
+      // connector not connected ("check my outlook"): asked once with the link, parked, resumed by the connect callback.
+      const connAns = !careerTask && !careerBatch && connectorAsk(message)
+        ? await connectorChatTurn({ admin, env: Deno.env, fetch, now: Date.now, message, userId: user.id, threadId: tid, bridge: isBridgeCall })
+          .catch((e) => { console.error("connector turn:", e?.message ?? e); return connectorFailure(message); })
+        : null;
+      const outlookAns = !connAns && !careerTask && !careerBatch && outlookAsk(message)
+        ? await outlookChatTurn({ admin, message, userId: user.id, threadId: tid, bridge: isBridgeCall, now: Date.now(), env: Deno.env })
+          .catch((e) => { console.error("outlook turn:", e?.message ?? e); return null; })
+        : null;
+      const card = !connAns && !outlookAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         // FEATURE 16: OWNER RULE (2026-10-26): no card without a confirmed resume on file (resumeReady).
         ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
         : null;
@@ -419,6 +440,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin), situation,
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
         : null;
+      // FEATURE 17: hosted preparation. Their answers saved and nothing left open: their queued postings are prepared
+      // again now (the hosted door), and the reply says that instead of "on your computer" (career_hosted_prepare.ts).
+      if (asked) await prepareAfterAnswers(asked, { admin, userId: user.id, env: Deno.env, fetch: (i, init) => fetch(i, init) })
+        .catch((e) => console.error("feature 17 prepare after answers:", (e as Error)?.message ?? e));
+      // END FEATURE 17
       // WO-032: the number that says which application an employer's email confirmed (only while that ask is the thread's
       // last word), and applying by email: "apply by email to Acme" shows the whole email drafted from confirmed facts,
       // and "yes" while it is the last word sends exactly that email once from the person's Gmail, only with
@@ -468,7 +494,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const outreachAns = !card && !mock && !asked && !which && !emailed && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await outreachTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: outreachStore, events, tz: undefined,
             redraft: (d) => draftFor({ model: outreachModel, facts: ((ctx as any).profile?.facts ?? []), r: d.recipient, previous: d.body }),
-            gmailConnected: () => careerGrantHas(admin, user.id, GMAIL_SEND_SCOPE), connectAsk: missingIntegration("gmail") })
+            gmailConnected: () => careerGrantHas(admin, user.id, GMAIL_SEND_SCOPE), connectAsk: missingIntegration("gmail"),
+            // MASS NETWORKING M1: with the sending rail on, exactly the drafts this answer approved are queued, each bound to its
+            // approval hash (career_send_rail.ts re-reads and re-hashes every draft; the career-send function sends them).
+            ...(sendRailOn(Deno.env) ? { onApproved: async (u: string, items: { draftId: string; approvalHash: string }[]) => {
+              const res = await queueApprovedOutreach({ rpc: (name, args) => admin.rpc(name, args), drafts: (uu, ids) => outreachStore.drafts!(uu, ids) }, u, items);
+              const refused = res.filter((r) => r.status === "refused");
+              if (refused.length) console.error("send rail: approved drafts not queued:", refused.map((r) => r.reason).join(", "));
+            } } : {}) })
           .catch((e) => { console.error("outreach turn:", e?.message ?? e); return null; })
         : null;
       if (outreachMeter.calls) await recordTurnCost(admin, user.id, tid, outreachMeter);
@@ -515,7 +548,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // (career_apply_answers_for reads it). Nothing is approved or sent here: only the card's tap does that.
       const feature1 = feature1Deps({ admin, userId: user.id, env: Deno.env, fetch: (i, init) => fetch(i, init), posting: (id) => supabasePostingsDb(admin).get(id) });
       // FEATURE 1 end
-      const queued = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      // FEATURE 17: "cancel my application to X" / "don't apply to X": withdrawn before it is sent (career_hosted_prepare.ts).
+      const cancelled = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await cancelTurn({ message, userId: user.id, admin }).catch((e) => { console.error("feature 17 cancel:", (e as Error)?.message ?? e); return null; })
+        : null;
+      // END FEATURE 17
+      const queued = !cancelled && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applyTurn({
           ...feature1.apply,
           // FEATURE E2E: a pasted posting link (or a role at a registered board) read from the ATS's public API on demand
@@ -564,6 +602,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const status = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
         : null;
+      // FEATURE 17: a status answer also says where each posting they asked for stands before it is on the queue.
+      await withPending(stood ?? status, message, { admin, userId: user.id, statusAsk }).catch((e) => console.error("feature 17 pending:", (e as Error)?.message ?? e));
+      // END FEATURE 17
       // FEATURE 10: networking from chat. A contacts CSV pasted or attached (`attachments`: [{ name, mime, text }]) is
       // imported into the thread's contacts; "who do I know at X" answers from them; "email Maya at X about ..." drafts
       // from confirmed facts (draftFor) onto the outreach batch that outreachTurn answers, one approval per exact message.
@@ -577,7 +618,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
             previousAsk: async () => {
               const r = await admin.from("agent_messages").select("content").eq("thread_id", tid).eq("role", "user").order("id", { ascending: false }).limit(1);
               return r.error ? null : (r.data?.[0]?.content ?? null);
-            } })
+            },
+            // R2: a follow-up reminder is promised as a text only when the scheduled push is on AND the person has a
+            // channel it can reach (career_outbox_claim delivers only through channel_target).
+            reminderPush: Deno.env.get("CAREER_OUTREACH_FOLLOWUPS") === "on",
+            textingChannel: async () => {
+              const r = await admin.from("channel_contacts").select("channel").eq("user_id", user.id).eq("opted_out", false).order("home", { ascending: false }).limit(1);
+              if (r.error) throw new Error(`read your texting channel: ${r.error.message}`);
+              return r.data?.[0]?.channel ?? null;
+            },
+            // D-033 people finding: the LinkedIn export, Gmail correspondents (the career grant's read scope), pages, intros.
+            people: supabasePeopleDeps(admin, { fetch, token: careerTokenFor(f08Grant, PEOPLE_READ_SCOPE), introPush: Deno.env.get("CAREER_INTRO_REMINDERS") === "on" }) })
           .catch((e) => { console.error("networking turn:", e?.message ?? e); return null; })
         : null;
       if (netMeter.calls) await recordTurnCost(admin, user.id, tid, netMeter);
@@ -594,21 +645,36 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (offered?.state) (ctx as any).offerBenchmark = offered.state;
       const offerAns = offered?.answer ?? null;
       // END FEATURE 12
+      // MASS NETWORKING M1: "where are my emails" / "what's the status of my emails?": the send rail's own counts
+      // (career_send_status) and the approved emails not on the rail; read only, nothing is sent or changed.
+      const outreachStatus = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !networking && !offerAns && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await outreachStatusTurn({ message, userId: user.id, rail: { rpc: (name, args) => admin.rpc(name, args) }, approvedNotQueued: async (u) => {
+            const d = await admin.from("career_outreach_drafts").select("id").eq("user_id", u).eq("status", "approved").limit(1000);
+            if (d.error) throw new Error(`read approved drafts: ${d.error.message}`);
+            const ids = (d.data ?? []).map((r: any) => r.id);
+            const onRail = new Set<string>();
+            for (let i = 0; i < ids.length; i += 100) { // short request URLs: 100 ids per read
+              const q = await admin.from("career_send_queue").select("source_id").eq("user_id", u).eq("kind", "outreach").in("source_id", ids.slice(i, i + 100));
+              if (q.error) throw new Error(`read the send queue: ${q.error.message}`);
+              for (const r of q.data ?? []) onRail.add(r.source_id);
+            }
+            return ids.length - onRail.size;
+          } }).catch((e) => { console.error("outreach status turn:", e?.message ?? e); return null; })
+        : null;
       // FEATURE 13: staged brain release. With CAREER_BRAIN=staged, a turn that every code-first turn above passed on, and
       // that the router itself would answer only with advice or conversation, goes to the brain (career_staged.ts); every
       // action stays code's and the router still answers a model failure. Unset or CAREER_BRAIN=router, it is never
       // taken and the router answers exactly as before. Read lazily, only when the brain test below is reached.
       const staged = stagedRoute({ env: Deno.env, message, ctx: ctx as unknown as Record<string, unknown>, host, structured: !!(careerTask || careerBatch) });
-      // FEATURE GV: Google verification (2026-10-26). "disconnect gmail" disconnects, on every channel: each Google grant
-      // revoked at Google, its tokens and row deleted (the mail rows read from that Gmail go with the career row), every
-      // result checked and read back (_shared/google_disconnect.ts). The reply says only what the read-back shows. Before
-      // any other turn: a person's own privacy ask is never a card answer, a question or the router's doorstep.
-      const googleOff = !careerTask && !careerBatch && isGoogleDisconnect(message)
-        ? await disconnectGoogle(admin, user.id, { fetch })
-        : null;
-      // END FEATURE GV
-      if (googleOff) {
-        out = { reply: disconnectReply(googleOff), intent: "career_google_disconnect", resultStatus: googleOff.ok ? (googleOff.had.length || googleOff.mailErased ? "completed" : "nothing") : "failed", contained: false, handler: "google_disconnect" };
+      // FEATURE GV (Google verification, 2026-10-26): "disconnect gmail" is answered by the connector framework above
+      // (connAns), through the same _shared/google_disconnect.ts: revoked at Google, tokens, rows and mail rows deleted,
+      // read back, and now pending sends cancelled. Before any other turn, on every channel.
+      if (connAns) {
+        out = { reply: connAns.reply, intent: connAns.intent, resultStatus: connAns.resultStatus, contained: false, handler: connAns.handler };
+        if (connAns.meta) agentMeta = { ...(agentMeta || {}), ...connAns.meta };
+      } else if (outlookAns) {
+        out = { reply: outlookAns.reply, intent: outlookAns.intent, resultStatus: outlookAns.resultStatus, contained: false, handler: outlookAns.handler };
+        if (outlookAns.meta) agentMeta = { ...(agentMeta || {}), ...outlookAns.meta };
       } else if (card) {
         // A card still waiting for its answer stays this thread's last word (D-MS-1: also after "wait", an unclear reply
         // or a number not on it); an answered one does not.
@@ -647,6 +713,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: employerAns.reply, intent: employerAns.intent, resultStatus: employerAns.status, contained: false, handler: "apply_employer" };
         agentMeta = { ...(employerAns.answers?.length ? { employer_answers: employerAns.answers } : {}), ...(employerAns.pending?.length ? { employer_question: employerAns.pending } : {}) };
         if (employerAns.intent === EMPLOYER_ANSWER_INTENT && !employerAns.answers?.length) agentMeta = null;
+      } else if (cancelled) { // FEATURE 17
+        out = { reply: cancelled.reply, intent: cancelled.intent, resultStatus: cancelled.status, contained: false, handler: "apply_cancel" };
       } else if (queued) {
         // SERIAL-1490: a posting held back by "is X where you work now?" makes the question this thread's last word, with
         // the postings it is about on the reply, so the next yes or no answers exactly them.
@@ -670,6 +738,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       } else if (offerAns) { // FEATURE 12: the offer turn's answer; the counter's card rides the reply's meta.
         out = { reply: offerAns.reply, intent: offerAns.intent, resultStatus: offerAns.status, contained: false, handler: "offer", parts: offerAns.parts };
         if (offerAns.card) agentMeta = { offer_card: offerAns.card };
+      } else if (outreachStatus) {
+        out = { reply: outreachStatus.reply, intent: outreachStatus.intent, resultStatus: outreachStatus.status, contained: false, handler: "outreach_status" };
       } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || staged.toBrain()) && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };

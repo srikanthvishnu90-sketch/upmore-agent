@@ -178,6 +178,7 @@ MIGRATIONS=(
   20261027160000_career_outreach_followup_claim.sql
   20261027160100_career_account_contacts.sql
   20261027170000_career_people_scale.sql
+  20261027170100_career_people_gmail_sweep.sql
   20261027200000_career_send_queue.sql
 )
 MIGRATION_MARK=(
@@ -260,6 +261,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_outreach_followups_claim') and to_regclass('public.career_watch_kv_followups_due') is not null"
   "to_regclass('public.career_account_contacts') is not null and exists (select 1 from pg_proc where proname = 'career_account_contacts_put')"
   "to_regprocedure('public.career_people_import_part(uuid,text,text,text,jsonb,integer,integer,boolean,bigint)') is not null and to_regclass('public.agent_flow_state_user') is not null"
+  "to_regclass('public.career_people_gmail_sweeps') is not null and exists (select 1 from pg_proc where proname = 'career_people_sweep_claim')"
   "to_regclass('public.career_send_queue') is not null and exists (select 1 from pg_proc where proname = 'career_send_complete_one') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_send_rail')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

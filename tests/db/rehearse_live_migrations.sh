@@ -54,7 +54,8 @@ LIVE_MISSING_DEFAULT="20261026120018_career_resume_one_record.sql 20261020110000
   20261026140000_career_apply_receipt_store.sql 20261026200011_google_disconnect_erase.sql
   20261026210016_career_resume_required.sql 20261026210017_career_resume_on_file_one_record.sql 20261026220016_channel_telegram_login.sql
   20261026230100_career_erase_complete.sql 20261026230300_career_turn_gate.sql
-  20261026230400_career_kb_postings_recency_index.sql"
+  20261026230400_career_kb_postings_recency_index.sql
+  20261027140000_career_apply_host_backoff.sql 20261027141000_career_apply_mass_submit.sql"
 # 20261026210016 and 20261026220016 (FEATURE 16, NOT APPLIED) are new here, not live; 20261026210016 reads
 # career_apply_profile_for, created by 20261025120000 (missing above).
 [[ -n "${LIVE_MISSING:-}" ]] && LIVE_MISSING_GIVEN=1

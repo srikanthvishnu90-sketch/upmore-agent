@@ -13,6 +13,7 @@ import { handleProactive } from "./handler.ts";
 import { runOutreachReplies, runOutreachSends, supabaseOutreachStore } from "../_shared/career_outreach.ts";
 import { peopleSink, supabasePeopleDeps } from "../_shared/career_people.ts";
 import { gmailSender, gmailThreadReader } from "../_shared/career_outreach_gmail.ts";
+import { runOutreachFollowupsGated } from "../_shared/career_outreach_track.ts";
 
 // The career Google grant (vault oauth_google_career_<uid>), read the same way by mail tracking and outreach.
 const grant = (admin: any): TokenDeps => ({
@@ -81,15 +82,25 @@ serve((req) => {
     } : undefined,
     // Outreach (WO-033) sends from people's own Gmail, so it runs only once the owner turns it on (CAREER_OUTREACH_SEND=on):
     // one approved send per person per run, then the replies on threads already sent ("stop", bounces, answers).
-    outreach: Deno.env.get("CAREER_OUTREACH_SEND") === "on" ? async (now) => {
-      const store = supabaseOutreachStore(admin), events = supabaseEventStore(admin), deps = grant(admin);
+    // FAMILY NETWORKING: follow-up reminders on networking mail the person sent (career_outreach_track.ts), once each, to
+    // their outbox; they need no Gmail, so they run with CAREER_OUTREACH_FOLLOWUPS=on even while sending is off.
+    outreach: Deno.env.get("CAREER_OUTREACH_SEND") === "on" || Deno.env.get("CAREER_OUTREACH_FOLLOWUPS") === "on" ? async (now) => {
+      const store = supabaseOutreachStore(admin);
+      const quiet = async (ids: string[]) => {
+        const { data, error } = await admin.rpc("career_quiet_users", { p_users: ids });
+        if (error) throw new Error(`read who is paused: ${error.message}`);
+        return new Set<string>((data ?? []).map((r: any) => String(r.user_id ?? r)));
+      };
+      const followups = await runOutreachFollowupsGated(Deno.env, { store, outbox: supabaseAlertStore(admin), now, quiet }).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
+      if (Deno.env.get("CAREER_OUTREACH_SEND") !== "on") return { followups };
+      const events = supabaseEventStore(admin), deps = grant(admin);
       const token = (u: string, scope: string) => careerTokenFor(deps, scope)(u);
       const tz = async (u: string) => { const { data } = await admin.from("career_alert_prefs").select("tz").eq("user_id", u).maybeSingle(); return data?.tz ?? undefined; };
       // WO-091c: the sends and the replies each run on their own; a failure in one is reported and the other still runs.
       const msg = (e: unknown) => ({ error: e instanceof Error ? e.message : String(e) });
       const sends = await runOutreachSends({ store, sender: gmailSender({ fetch, token }), now, tz, events }).catch(msg);
       const replies = await runOutreachReplies({ store, read: gmailThreadReader({ fetch, token }), now, events }).catch(msg);
-      return { ...sends, replies };
+      return { ...sends, replies, ...(followups ? { followups } : {}) };
     } : undefined,
     // Introduction reminders (D-033) queue the reminder a person asked for to the outbox at its date; the run record's
     // count needs 20261027020000_career_intro_reminder_push.sql, so this runs only once the owner turns it on at

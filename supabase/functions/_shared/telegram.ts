@@ -19,6 +19,7 @@
 // Only private chats are read; a group's messages are ignored.
 import { equalSecret } from "./message_service.ts";
 import { type ChannelAdapter, type InboundMessage, packMessages, pacer, type ParseResult, type SendResult } from "./channel_adapters.ts";
+import { nativeRender, telegramPlain } from "./channel_voice.ts";
 
 export const TELEGRAM_API = "https://api.telegram.org";
 export const TELEGRAM_CHARS = 4096;
@@ -92,9 +93,16 @@ export function parseTelegramUpdate(u: any): { message: InboundMessage | null; i
   return { message: { ...base, kind: "text", text: m.text } };
 }
 
+// V1 TEXTING VOICE (CAREER_TEXTING_NATIVE=on, `native`): messages split on the reply's own words (channel_voice.ts), light
+// formatting sent with parse_mode HTML (bold, italic, code; everything else escaped), sent again as plain text if Telegram
+// refuses the markup (a 400 "can't parse entities" means nothing was delivered); and the typing indicator, sendChatAction
+// "typing", which "is set for 5 seconds or less (when a message arrives from your bot, Telegram clients clear its typing
+// status)" (https://core.telegram.org/bots/api#sendchataction, read through docs.aiogram.dev/en/latest/api/methods/
+// send_chat_action.html, which mirrors it; core.telegram.org is not reachable from the build environment). The Bot API has
+// no read receipt for a private chat (readBusinessMessage is for business connections only), so none is sent.
 export function telegramAdapter(o: {
   token: string; webhookSecret?: string; fetch?: typeof fetch; timeoutMs?: number;
-  clock?: () => number; sleep?: (ms: number) => Promise<void>;
+  clock?: () => number; sleep?: (ms: number) => Promise<void>; native?: boolean;
 }): ChannelAdapter {
   const f = o.fetch ?? fetch, timeout = o.timeoutMs ?? 15000;
   const pace = pacer({ perChatMs: 1000, overallPerSecond: 30, clock: o.clock, sleep: o.sleep });
@@ -110,7 +118,12 @@ export function telegramAdapter(o: {
     channel: "telegram", provider: "telegram",
     limits: { chars: TELEGRAM_CHARS, packChars: PACK, perChatGapMs: 1000, overallPerSecond: 30, windowMs: null, dailyContacts: null, dailyTemplates: null },
     capabilities: { buttons: true, documents: true, previews: true, templates: false },
-    render: (text) => packMessages(text, PACK),
+    render: o.native ? nativeRender("telegram", PACK) : (text) => packMessages(text, PACK),
+    typingEveryMs: 4000,
+    async typing(address): Promise<boolean> {
+      const r = await call("sendChatAction", { chat_id: Number(address), action: "typing" });
+      return !("error" in r) && r.status === 200 && r.body?.ok === true;
+    },
     async parseInbound(req): Promise<ParseResult> {
       if (req.method !== "POST") return { response: json({ error: "Method not allowed" }, 405) };
       const secret = o.webhookSecret ?? "";
@@ -181,7 +194,11 @@ export function telegramAdapter(o: {
           ? { reply_markup: { inline_keyboard: opts.buttons.map((row) => row.map((b) => b.loginUrl
             ? { text: b.text.slice(0, 64), login_url: { url: b.loginUrl, request_write_access: true } }
             : { text: b.text.slice(0, 64), callback_data: String(b.data ?? "").slice(0, 64) })) } } : {};
-        const r = await call("sendMessage", { chat_id: Number(address), text: bubbles[i].slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...keyboard });
+        let r = await call("sendMessage", { chat_id: Number(address), text: bubbles[i].slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...(o.native ? { parse_mode: "HTML" } : {}), ...keyboard });
+        // V1: Telegram refused the markup, so nothing went out; the same words go again as plain text.
+        if (o.native && !("error" in r) && r.status === 400 && /parse entities|can't find end|unsupported start tag/i.test(String(r.body?.description ?? ""))) {
+          r = await call("sendMessage", { chat_id: Number(address), text: telegramPlain(bubbles[i]).slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...keyboard });
+        }
         if ("error" in r) {
           const e = r.error, timedOut = e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError");
           return timedOut ? { ok: false, error: `Telegram timed out (it may have been delivered)${after}`, retryable: false }

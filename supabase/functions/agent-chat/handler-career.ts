@@ -89,6 +89,7 @@ import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.t
 import { careerGrant, followupTurn, gmailReadNow, mailNow, supabaseFollowupStores } from "../_shared/career_inbox_followups.ts";
 import { gmailSender } from "../_shared/career_outreach_gmail.ts";
 import { fileUploadFor } from "../_shared/channel_resume_upload.ts"; // FEATURE 16
+import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -856,6 +857,23 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // nothing is committed, the run is not kept, and the reply says exactly what happened and where applying runs.
         delete (ctx as any).batchApplyState;
         out = { ...out, reply: BATCH_NOT_STARTED_REPLY, resultStatus: "not_started" };
+      }
+      // V1 TEXTING VOICE (_shared/career_reply_writer.ts; PRODUCT AUDIT 2026-10-28): the final reply, written in Trainee's
+      // texting voice and checked against this turn's facts (D-007); a rejected or failed write falls back to today's reply
+      // with its boilerplate and internal sentences taken out. CAREER_REPLY_WRITER=on only; turns that show an exact
+      // payload the person approves are never rewritten. Nothing upstream changes.
+      if (replyWriterOn(Deno.env) && writable(out, agentMeta, { structured: !!(careerTask || careerBatch) })) {
+        const wMeter = newMeter();
+        const wCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+        const written = await writeReply({ on: true, message, channel: writerChannel((body as any)?.channel),
+          facts: factsForTurn({ reply: out.reply, intent: out.intent, resultStatus: out.resultStatus ?? null, effects: turnEffects, situation }),
+          model: (payload) => callModel(wCfg, payload, { meter: wMeter, role: "chat" }) })
+          .catch((e) => { console.error("reply writer: today's reply stands:", e?.message ?? e); return null; });
+        if (written && written.text.trim()) {
+          if (written.text !== out.reply) out = { ...out, reply: written.text };
+          agentMeta = { ...(agentMeta || {}), reply_writer: { source: written.source, rejected: written.rejected.slice(0, 8) } };
+        }
+        if (wMeter.calls) await recordTurnCost(admin, user.id, tid, wMeter);
       }
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       // CHANNEL-DOC-1: documents the turn produced (the tailored

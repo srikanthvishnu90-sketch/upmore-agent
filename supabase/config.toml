@@ -31,3 +31,8 @@ verify_jwt = false
 # F-RUNNER: the dispatcher (shared secret header) and the job bridge (per-job HMAC token) authenticate themselves.
 [functions.career-cloud-runner]
 verify_jwt = false
+
+# M4: the Outlook connect link and Microsoft's redirect carry no Upmore JWT; the one-time link, the signed state and
+# the jobs secret authenticate in the handler (_shared/outlook_connector.ts).
+[functions.outlook-oauth]
+verify_jwt = false

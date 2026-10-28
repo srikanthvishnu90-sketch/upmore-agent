@@ -129,7 +129,7 @@ const CareerRouter = (() => {
   // happen to sit one edit from the vocabulary (they→the, have→wave,
   // list→lift, step→stop, left→lift). The set below is the common
   // function words plus the ordinary words of this domain.
-  const COMMON_WORDS = new Set(["sample", "samples", "tracked", "tracking", "contact", "contacts", "content", "contents", "field", "fields", "held", "reason", "reasons", "format", "formats", "formatted", "honesty", "honestly", "bounces", "bounced", "bouncing", "lifts", "lifted", "tue", "mon", "wed", "thu", "fri", "sat", "sun", "approved", "approval", "rule", "rules", "round", "rounds", "score", "scores", "prep", "comes", "back", "hiring", "manager", "deeper", "versus", "earlier", "changes", "change", "changed", "adjusted", "logged", "roadmap", "brief", "briefs", "final", "versus", "actual", "actually", "assessment", "assessments", "paused", "interviews", "companies", "schools", "resumes", "packets", "trackers", "seasons", "timelines", "passwords", "scored", "counters", "closes", "funding", "funded", "they", "them", "then", "than", "this", "that", "these", "those", "there", "their", "have", "gave", "has", "had", "having", "with", "from", "your", "yours", "what", "when", "where", "which", "while", "would", "could", "should", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can", "cannot", "did", "do", "does", "doing", "done", "down", "during", "each", "few", "for", "further", "get", "got", "gets", "go", "goes", "going", "gone", "he", "her", "here", "hers", "him", "his", "how", "i", "if", "in", "into", "is", "it", "its", "itself", "just", "know", "known", "let", "like", "make", "makes", "many", "may", "me", "might", "more", "most", "must", "my", "no", "nor", "not", "now", "of", "off", "on", "once", "only", "or", "other", "our", "ours", "out", "over", "own", "per", "same", "she", "so", "some", "such", "take", "takes", "tell", "the", "through", "to", "too", "under", "until", "up", "very", "was", "way", "we", "were", "will", "you",
+  const COMMON_WORDS = new Set([/* PRODUCT AUDIT 2026-10-28: texting shorthand is never "corrected" ("thx" was read as "the") */ "thx", "ty", "tysm", "lol", "lmao", "nvm", "idk", "pls", "plz", "ur", "wat", "kk", "omg", "btw", "sample", "samples", "tracked", "tracking", "contact", "contacts", "content", "contents", "field", "fields", "held", "reason", "reasons", "format", "formats", "formatted", "honesty", "honestly", "bounces", "bounced", "bouncing", "lifts", "lifted", "tue", "mon", "wed", "thu", "fri", "sat", "sun", "approved", "approval", "rule", "rules", "round", "rounds", "score", "scores", "prep", "comes", "back", "hiring", "manager", "deeper", "versus", "earlier", "changes", "change", "changed", "adjusted", "logged", "roadmap", "brief", "briefs", "final", "versus", "actual", "actually", "assessment", "assessments", "paused", "interviews", "companies", "schools", "resumes", "packets", "trackers", "seasons", "timelines", "passwords", "scored", "counters", "closes", "funding", "funded", "they", "them", "then", "than", "this", "that", "these", "those", "there", "their", "have", "gave", "has", "had", "having", "with", "from", "your", "yours", "what", "when", "where", "which", "while", "would", "could", "should", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can", "cannot", "did", "do", "does", "doing", "done", "down", "during", "each", "few", "for", "further", "get", "got", "gets", "go", "goes", "going", "gone", "he", "her", "here", "hers", "him", "his", "how", "i", "if", "in", "into", "is", "it", "its", "itself", "just", "know", "known", "let", "like", "make", "makes", "many", "may", "me", "might", "more", "most", "must", "my", "no", "nor", "not", "now", "of", "off", "on", "once", "only", "or", "other", "our", "ours", "out", "over", "own", "per", "same", "she", "so", "some", "such", "take", "takes", "tell", "the", "through", "to", "too", "under", "until", "up", "very", "was", "way", "we", "were", "will", "you",
     "step", "steps", "list", "lists", "listed", "left", "life", "live", "lives", "half", "close", "closed", "fund", "funds", "top", "week", "weeks", "send", "sent", "sends", "work", "works", "word", "words", "world", "team", "teams", "deal", "deals", "call", "calls", "meet", "talk", "walk", "week", "year", "years", "time", "times", "day", "days", "thing", "things", "people", "person", "place", "point", "case", "cases", "part", "parts", "week", "group", "groups", "play", "plays", "area", "areas", "book", "books", "money", "story", "stories", "fact", "facts", "month", "months", "lot", "door", "doors", "side", "sides", "kind", "kinds", "head", "heads", "hand", "hands", "life", "part", "week", "child", "week", "eye", "eyes", "woman", "week", "place", "week", "work", "week", "case", "week", "point", "week", "number", "numbers", "night", "nights", "water", "room", "rooms", "mother", "father", "power", "city", "cities", "week", "story", "young", "fact", "month", "different", "lot", "right", "study", "book", "eye", "job", "jobs", "word", "though", "business", "issue", "issues", "side", "kind", "head", "far", "black", "long", "both", "little", "house", "yes", "after", "since", "long", "provide", "service", "around", "friend", "important", "father", "sit", "away", "until", "power", "hour", "game", "often", "yet", "line", "political", "end", "among", "ever", "stand", "bad", "lose", "however", "member", "pay", "law", "meet", "car", "nearly", "include", "nothing", "either", "still", "once", "least", "letter", "become", "left", "found", "role", "roles", "firm", "firms", "week", "help", "next", "early", "several", "occur", "least", "alone", "win", "wins", "won", "past", "last", "best", "rest", "test", "fast", "cost", "post", "host", "vast", "lost", "just", "must", "cast", "dust", "exit", "exam", "text", "sex", "next", "context", "firms", "forms", "farms", "first", "fish", "firm", "girl", "girls", "visit", "list", "lift", "left", "gift", "shift", "draft", "daft", "craft", "graft", "wave", "waves", "cave", "gave", "have", "save", "pave", "wage", "wake", "wale", "wane", "want", "ward", "ware", "warm", "warn", "warp", "wars", "wash", "wasp", "weak", "wear", "webs", "week", "weep", "well", "went", "were", "west", "what", "when", "stop", "step", "shop", "shot", "show", "slot", "slow", "snap", "snow", "soap", "sock", "soda", "sofa", "soft", "soil", "sold", "sole", "some", "song", "soon", "sort", "soul", "soup", "sour", "span", "spar", "spin", "spot", "star", "stay", "stem", "step", "stir", "stop", "such", "suit", "sure", "surf", "halt", "hall", "halo", "half", "halved", "salt", "malt", "balt", "talk", "tall", "call", "fall", "wall", "ball", "mall", "gall", "pall", "fall", "sell", "tell", "well", "bell", "cell", "fell", "hell", "yell", "never", "newer", "lever", "fever", "sever", "every", "even", "ever", "oven", "over", "eves", "deny", "defy", "very", "pause", "cause", "clause", "pauses", "mouse", "house", "phase", "praise", "please", "closed", "close", "closes", "closet", "cloned", "crosed", "cancel", "cancer", "cancels", "chancel", "channel", "panel", "camel", "came", "camp", "cane", "cans", "cape", "card", "care", "cart", "case", "cash", "cast", "cats", "cave"]);
   // 2026-10-23: real English words one edit away from a routing word, which detypo used to "correct" into that word:
   // "analysis" -> "analysts" sent "get into data analysis" to the banking outreach plan, "fine" -> "find" and "states" ->
@@ -1428,19 +1428,9 @@ const CareerRouter = (() => {
   }
   function campaignOf(c) { return (c && (c.campaign || c.outreachCampaign)) || null; }
   function poolOf(c) { return (c && (c.candidateRecords || c.records || c.pool)) || null; }
-  // SERIAL-1500: the words say what the send path ENFORCES today (career_outreach.ts and career_outreach_claim): 10 a day
-  // in the first 7 days of sending, then the person's own number (20 unless they set one, never above 30), at least 90
-  // seconds apart, at most 3 emails to one address in 30 days, and nobody who said stop. The planner's caps in module 124
-  // (a 12-a-day start with a +5-every-3-days ramp, per-firm, per-domain, breakers, a first wave of 40) are planned, not
-  // enforced, and are said so. Days of sending for n first emails at the enforced pace; `own` is their number when known.
-  function sendDays(n, own) {
-    const cap = Math.min(30, Math.max(1, Math.floor(own) || 20));
-    let sent = 0, day = 0;
-    while (sent < n && day < 3650) { day++; sent += day <= 7 ? Math.min(cap, 10) : cap; }
-    return day;
-  }
-  const SEND_RULE = "sends go from your own Gmail at 10 a day in your first week of sending, then 20 a day unless you set your own number (up to 30, never more), at least 90 seconds apart; at most 3 emails reach one address in 30 days, and anyone who says stop is never written to again.";
-  const PLANNED_CAPS = "A per-firm cap (15 first emails to one firm in 30 days), a per-domain cap, a daily ramp and bounce breakers are planned, not enforced today.";
+  // NO LIMITS (owner, 2026-10-27): the words say what the send rail does (career_send_rail.ts): Trainee sets no daily
+  // number, ramp, spacing or per-firm cap of its own; only Gmail refusing slows an account, and the person is told.
+  const SEND_RULE = "sends go from your own Gmail once you approve each exact email; Trainee sets no volume limit of its own, so only Gmail's own sending limit can slow them, and I tell you plainly if Gmail refuses; anyone who says stop is never written to again, and a bounced address is never retried.";
 
   // ---------- SC-300's other half: the pause gates every action path -------
   function handlePauseGate(text, ctx) {
@@ -1600,9 +1590,8 @@ const CareerRouter = (() => {
     // "firms in the set" unless the user actually named them.
     const firmCount = q && ((q.firms_named && q.firms.length >= 2) || (q.firms_source === "set" && q.firms.length >= 2) || (q.firms_source === "default" && !isCategoryProposal && Array.isArray(q.firms) && q.firms.length >= 2)) ? q.firms.length : null;
     // The composer keeps one sentence per fact, so each statement about the caps is its own fact.
-    const capsFact = `The caps shape the calendar: ${SEND_RULE}`;
-    const capsFacts = [capsFact, ...(population ? [] : [`So the running total passes ${count} on day ${sendDays(count)} at the default pace${firmCount ? ` across the ${firmCount} firms ${q.firms_named ? "named" : "in the set"}` : ""}.`]),
-      PLANNED_CAPS, "The true reachable count is whatever the sources actually yield."];
+    const capsFact = `How sending works: ${SEND_RULE}`;
+    const capsFacts = [capsFact, "The true reachable count is whatever the sources actually yield."];
     // WORDING-BACKLOG (BUG-125): the plan reply SPEAKS its target.
     // Every parsed facet gets its own sentence (the old if/else lead
     // chain spoke at most one filter and silently dropped the rest),
@@ -1665,11 +1654,6 @@ const CareerRouter = (() => {
     else if (q && q.purpose && /advising/.test(q.purpose)) filterFacts.push("The ask on each is an advising chat — their path through it and what they would do differently.");
     if (q && q.tone === "peer") filterFacts.push("The tone is peer to peer: you write as a VP moving into PE, so every draft speaks as a peer — a lateral move between equals, never student to banker.");
     if (q && q.warm_paths_ranked) filterFacts.push(`Warm paths rank the list: the ${count} are ordered by the strength of the path in, strongest first.`);
-    if (q && q.firms_named && q.firms.length === 1) {
-      filterFacts.push(population
-        ? `One firm: a per-firm cap (at most 15 first emails to ${q.firms[0]} in any 30 days) is planned, not enforced today; what paces this is your daily number (10 a day in your first week, then 20 unless you set up to 30).`
-        : `One firm: a per-firm cap (at most 15 first emails to ${q.firms[0]} in any 30 days) is planned, not enforced today; what paces this is your daily number, so ${count} people run over about ${sendDays(count)} days at the default pace.`);
-    }
     if (q && q.geography && !filterFacts.length) filterFacts.push(`Geography is a hard filter on the plan: only ${q.geography} names count toward the ${count} — out-of-area names are excluded, not ranked lower.`);
     const singleFirm = !!(q && q.firms_named && q.firms.length === 1);
     // WORDING-BACKLOG (BUG-204): a category-shaped plan names the
@@ -2891,14 +2875,67 @@ const CareerRouter = (() => {
     // canned specifics.
     const ENTITLEMENT = /\b(unemployment|benefits?|severance|disability|workers'? comp|fmla|overtime|minimum wage)\b/;
     const hasAnchor = /\b(at|for|with) [A-Z][a-z]/.test(raw) || /\b(january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|next week|next month|this week|this month)\b/.test(t);
-    const facts = [];
-    if (ENTITLEMENT.test(t)) facts.push("On that topic the specifics depend on where you live — deadlines and amounts are set by your state, and your state agency for it is the source for them, not me.");
-    facts.push(CAPABILITY_LINE);
-    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: compose({
-      headline: "I did not catch what to do with that one.",
-      facts,
-      nextStep: hasAnchor ? "Do you want the general picture, or help acting on your specific case?" : "Which role or company is it about, and what date does it turn on?",
-    }) };
+    if (ENTITLEMENT.test(t)) {
+      return { intent: "career_catchall", resultStatus: "awaiting_user", reply: compose({
+        headline: "On that one the specifics depend on where you live — your state agency sets the deadlines and amounts, not me.",
+        facts: [],
+        nextStep: hasAnchor ? "Do you want the general picture, or help acting on your specific case?" : "Want help with the job-search side of it?",
+      }) };
+    }
+    // PRODUCT AUDIT 2026-10-28 (#1): the catch-all used to open with "I did not catch what to do with that one.", dump
+    // every capability and ask "what date does it turn on?" to a "thx" or a "yes". It now answers what it can from the
+    // kind of message and the person's own record (is a resume confirmed?), in a few short lines, with one question.
+    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: catchAllReply(raw, ctx) };
+  }
+
+  // PRODUCT AUDIT 2026-10-28: whether the person has confirmed resume entries (education, work, projects, skills) on
+  // their profile; a stated goal or preference alone is not a resume.
+  function resumeOnRecord(ctx) {
+    try {
+      const facts = ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(ctx && ctx.profile) : [];
+      return facts.some((f) => f && ["education", "experience", "project", "leadership", "skill"].includes(f.kind));
+    } catch { return false; }
+  }
+  // PRODUCT AUDIT 2026-10-28 (#1): the catch-all's reply. Nothing here claims an action or a fact: it reads only whether
+  // the person has confirmed resume facts on record, and asks one question.
+  function catchAllReply(raw, ctx) {
+    const t = lc(raw).replace(/[!?.]+$/, "").trim();
+    const hasResume = resumeOnRecord(ctx);
+    const next = hasResume
+      ? "Want me to find roles that fit your resume?"
+      : "Want to start by sending me your resume? Paste the text here or attach the file.";
+    // The composer keeps one sentence per headline and per fact: the first sentence leads, the rest are facts.
+    const say = (text, nextStep) => { const [h, ...rest] = String(text).split(/(?<=[.!?])\s+/); return compose({ headline: h, facts: rest, nextStep }); };
+    if (/^(thx|thanks|thank you|thank u|ty|tysm|cool|nice|great|awesome|perfect|lol|lmao|haha|ok|okay|k|kk|got it|sounds good|alright|nvm|never ?mind|nevermind)\b/.test(t)) {
+      return say("Anytime.", next);
+    }
+    if (/^(yes|yeah|yep|yup|sure|no|nope|nah|idk|i don'?t know|not sure|maybe)\b/.test(t)) {
+      return say("No problem — there's nothing waiting on your answer right now.", next);
+    }
+    if (/\b(cost|price|pricing|free|pay for|subscription|charge|billing)\b/.test(t)) {
+      return say("I can't see pricing or billing from this chat, so I won't guess at it.", next);
+    }
+    if (/\b(don'?t|do not|dont) have (a |an )?(resume|cv)\b|\bno (resume|cv)\b/.test(t)) {
+      return say("That's fine — we can build one together.", "What was your most recent job or school, and what kind of role do you want next?");
+    }
+    if (/\b(upload|send|attach|add|share)\b.*\b(resume|cv)\b|^(resume|cv)$/.test(t)) {
+      return say("Paste your resume text right here, or attach the PDF or Word file. I'll read it back to you before anything is used.", "Want to send it now?");
+    }
+    if (/\b(cancel|undo|that was wrong|that'?s wrong|wrong|mistake|stop that)\b/.test(t)) {
+      return say("Okay — nothing goes out without your yes.", "What should I change or undo?");
+    }
+    if (/\b(status|replies|reply|heard back|hear back|what happened|update)\b/.test(t)) {
+      return say("I can check on that.", "Which application — the company name is enough?");
+    }
+    if (/\b(network|networking|reach out|outreach|recruiter|referral)\b/.test(t)) {
+      return say("I can help you reach people at the companies you want.", "Which company should we start with?");
+    }
+    if (/^(jobs?|apply|applying|roles?|work|positions?|find jobs?|search)$/.test(t)) {
+      return say(hasResume ? "Sure." : "Sure — I'll search as soon as I know what you're after.", "What role, and which city or remote?");
+    }
+    return say("I'm not sure which part of your search that's about — I find roles, track your applications and prep you for interviews.", hasResume
+      ? "Which of those should we do?"
+      : "Which of those should we do, or do you want to send me your resume first?");
   }
 
   function handlePendingAffirmation(text, ctx) {
@@ -3050,7 +3087,7 @@ const CareerRouter = (() => {
     else if (plan) facts.push("What exists is the plan — its list has not been built, no draft has been approved, and there is no wave standing ready to go.");
     else if (frameMarksOf(ctx).draft) facts.push("What exists is a held draft from this conversation — it has not been sent, and it goes only when you approve its exact words here.");
     else facts.push("Nothing is built in this conversation to send: no list, no draft, no approved plan — so there is no wave that could go out.");
-    facts.push("Every send in this product is approval-gated: the list's counts return first, you approve the whole plan once, and only then does a wave send — inside the daily cap. That gate is not skipped by asking in chat.");
+    facts.push("Every send in this product is approval-gated: the list's counts return first, you approve the whole plan once, and only then does a wave send. That gate is not skipped by asking in chat.");
     const reply = compose({ headline: "Nothing was sent — here is exactly where it stands.", facts, nextStep: plan ? "Approve the plan and the list builds; the counts come back here before the first send." : "Name the target and I will build the plan the send has to stand on." });
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0 };
   }
@@ -3310,7 +3347,7 @@ const CareerRouter = (() => {
     const res = handleCampaignPlan(newAsk, ctx);
     if (!res) return null;
     const facts = [`The correction is recorded against the plan itself: ${oldFirm ? `${oldFirm} is out, ` : ""}${newFirm} is the target now — no list, draft, or wave is built against the old target after a correction.`];
-    facts.push(`The caps shape the calendar: ${SEND_RULE}`, PLANNED_CAPS, "The true reachable count is whatever the sources actually yield.");
+    facts.push(`How sending works: ${SEND_RULE}`, "The true reachable count is whatever the sources actually yield.");
     facts.push("Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address.");
     const reply = compose({ headline: `Plan corrected: ${newFirm}${oldFirm ? `, not ${oldFirm}` : ""}.`, facts, nextStep: "Approve the corrected plan and the list builds against the new target — counts first, drafts after." });
     return Object.assign({}, res, { reply });
@@ -3468,29 +3505,11 @@ const CareerRouter = (() => {
     const startIso = new Date(nowOf(ctx)).toISOString();
     const planIn = ctx.plan || ctx.campaignPlan || { scheduled: 0, days: 0, deferred: [] };
     const sp = Outreach.safetyPlan(campaignOf(ctx), planIn, { startDateIso: startIso });
-    // WORDING-BACKLOG (BUG-131): each fact is its own entry — the
-    // composer speaks one sentence per fact, so a cap sentence
-    // packed behind a channel sentence was silently truncated and
-    // the safety-plan reply never stated the daily cap at all.
-    // WORDING-BACKLOG (BUG-190): the ramp is stated ONCE, in one
-    // arithmetic (124's ramp string now reads "+5 every 3 days,
-    // never above 30" — the old "+5/day every 3 days" plus this
-    // card's own second ceiling made the cap read two ways); and
-    // the finish date is given as DATED ramp arithmetic — the
-    // completion dates for the ramp's own cumulative sends from
-    // today — never deferred to "fills in later".
-    const fmtDay = (d) => { try { return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(d); } catch { return d.toISOString().slice(0, 10); } };
-    const startD = new Date(nowOf(ctx));
-    // WORDING-BACKLOG (BUG-204): the milestone anchor is STATED —
-    // counting from tomorrow — so the dates can be checked against
-    // the calendar instead of implying an unstated day one.
-    const anchorD = new Date(startD.getTime() + 86400000);
-    const finishFor = (n) => fmtDay(new Date(anchorD.getTime() + (sendDays(n) - 1) * 86400000));
+    // Each fact is its own entry (the composer speaks one sentence per fact). NO LIMITS: no daily number, ramp or finish
+    // date from a pace; the channel line says what the send rail does.
     const facts = [
-      `Channel: your own Gmail only — what runs today: 10 a day in your first week of sending, then 20 a day unless you set your own number (up to 30, never more), at least 90 seconds apart; at most 3 emails reach one address in 30 days; anyone who says stop is never written to again.`,
-      `Planned, not enforced today (the planner's caps): a start at ${sp.daily_cap_start} a day that rises ${sp.ramp}; at most ${sp.per_domain_per_day} a day to one domain and ${sp.per_firm_per_30_days} to one firm in 30 days; per person, ${sp.per_person}.`,
+      `Channel: your own Gmail only — ${SEND_RULE}`,
       `Stop rules planned, not enforced today: ${sp.stop_rules.slice(0, 3).join("; ")}.`,
-      sp.scheduled ? `${sp.scheduled} emails sit in the plan across ${sp.days} days, finishing ${sp.finish_date}.` : `Finish date, from the pace that runs today, counting from tomorrow (${fmtDay(anchorD)}): the first 87 first-emails clear by ${finishFor(87)}, the first 153 by ${finishFor(153)} — and the built list's own finish date is that same arithmetic on its size, printed on this card before you approve it.`,
     ];
     // SERIAL-1511: never general campaign permission; an approval is the exact messages reviewed, within the approved scope, until the 7-day lapse.
     const reply = compose({ headline: "Here is the safety plan card for this campaign.", facts, nextStep: "Your approval will cover only the exact messages you review, within the scope you approve, until it lapses after 7 days — never the campaign in general or messages you have not seen; nothing outside what you approved goes out." });
@@ -3516,7 +3535,7 @@ const CareerRouter = (() => {
     const num = (re) => { const m = t.match(re); return m ? { n: Number(m[1].replace(/,/g, "")), raw: m[1] } : null; };
     const found = num(/([\d,]+)\s*found/), trusted = num(/([\d,]+)\s*trust\w*/), sendable = num(/([\d,]+)\s*sendable/);
     const quoted = found && trusted && sendable ? `You quoted ${found.raw} found, ${trusted.raw} trustworthy, ${sendable.raw} sendable — those are the right three numbers, in the right order.` : "The three numbers that matter are found, trustworthy, and sendable.";
-    const reply = compose({ headline: "Honest yield means three numbers that can never inflate each other.", facts: [quoted, "Found counts every sourced name; trustworthy counts verified emails only; sendable is what survives the caps and the never-contact list — so sendable never exceeds trustworthy, and trustworthy never exceeds found."], nextStep: "Open the built list and I will show all three from the records, not from memory." });
+    const reply = compose({ headline: "Honest yield means three numbers that can never inflate each other.", facts: [quoted, "Found counts every sourced name; trustworthy counts verified emails only; sendable is what survives the never-contact list and the bounce checks — so sendable never exceeds trustworthy, and trustworthy never exceeds found."], nextStep: "Open the built list and I will show all three from the records, not from memory." });
     // BUG-108: the quoted yield is a typed record, its source named —
     // user-quoted numbers are never presented as list-read numbers.
     const yrec = { kind: "yield_report", found: found ? found.n : null, trustworthy: trusted ? trusted.n : null, sendable: sendable ? sendable.n : null, source: "user_quoted" };
@@ -3565,9 +3584,9 @@ const CareerRouter = (() => {
   }
 
   function handleFirmCap(text, ctx) {
-    const reply = compose({ headline: "The per-firm cap is checked twice — once when the list is built and again when emails are queued.", facts: ["The list builder caps a firm at 15 names, and the queue refuses the 16th email to one firm inside any 30 days — it is not a promise, it is a check that runs at selection and again at queue time.", "So 60 emails to one desk cannot be queued; the names past the cap wait in reserve for the next window."], nextStep: "Want the per-firm breakdown of the current list?" });
+    const reply = compose({ headline: "There is no per-firm cap.", facts: ["Trainee sets no volume limit of its own: every email you approve to one firm can go, from your own Gmail.", "What stays: each email goes only as you approved it, nobody who said stop is written to again, and a bounced address is never retried."], nextStep: "Want the per-firm breakdown of the current list?" });
     // BUG-108: the locked cap values are the typed record.
-    const cap = { kind: "firm_cap", per_firm_cap: 15, window_days: 30, enforced_at: ["selection", "queue"], queue_refuses_nth: 16 };
+    const cap = { kind: "firm_cap", per_firm_cap: null, window_days: null, enforced_at: [], queue_refuses_nth: null };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: cap, artifact: cap };
   }
 
@@ -3817,13 +3836,13 @@ const CareerRouter = (() => {
     const dismissalFabricate = dismissal && /\b(add|put|write|include)\b/.test(t);
     if (!falseClaim && !blast && !fabricate && !unverifiedClaim && !massApply && !dismissalFabricate) return null;
     const facts = [];
-    if (blast) facts.push("The blast is outside every cap that runs today: sends go 10 a day in your first week of sending, then your own number and never past 30 a day, so the honest version of this campaign runs across weeks, not hours.");
+    if (blast) facts.push("A blast to people nobody checked is not a mode this product has: each email goes only after you approve its exact words, to an address with a source.");
     if (massApply) facts.push("Applying in bulk, unseen, is not a mode this product has: there is no daily cap on applications beyond the pace you set yourself, but each one is built from your confirmed facts and stopped at its doorstep for your approval. There is no while-you-sleep queue — 'everything, right now, without seeing it' is exactly the ask those rules exist for.");
     if (unverifiedClaim) facts.push("That claim is not on your confirmed record, and materials carry only what the record proves. The moment a claim is confirmed — a transcript line, an offer letter, or your own statement that it is TRUE — it goes in; an admitted guess or an unrecorded credential stays out, however well it fits the story.");
     if (falseClaim) facts.push("And I will not claim a Goldman MD referred you when none did — a borrowed name that turns out false ends the relationship, and it can end the account.");
     if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.", `Grounded in your own confirmed profile facts, as of ${asOfMonthYear(ctx)} — the real fast path is built from those, and only those.`);
     if (dismissalFabricate) facts.push("\"Nobody checks\" is exactly when it matters: an invented claim on your materials surfaces in the first real conversation, and the check is not the only way it ends — the record is. What is true and confirmed goes in the moment it is on your record; what is not stays out, checked or not.");
-    facts.push("The true path: a shortlist built from real sources, verified emails, drafts in your voice, your one approval — then a paced wave inside the caps.");
+    facts.push("The true path: a shortlist built from real sources, verified emails, drafts in your voice, your one approval — then the approved emails go from your Gmail.");
     const reply = compose({ headline: "I won't do that — here is what I will do instead.", facts, nextStep: "Say the word and I build the shortlist first." });
     // BUG-108: the refusal decision is a typed record — what was
     // refused and the safe alternative offered. A refusal turn's
@@ -10890,7 +10909,7 @@ const CareerRouter = (() => {
     const t = lc(raw).replace(/[’]/g, "'");
     if (!t) return null;
     // Identity and capability: who or what this is, what it does. The greeting's own answer.
-    if (/^(?:(?:hi|hey|hello|yo|ok|okay|so|um)[\s,!.]+)*(?:who (?:are you|is this)|what (?:exactly )?(?:are you|is this|is trainee)|what(?:'s| is) this(?: thing| app)?|what do you do|what can you (?:do|help with)(?: for me)?|how does (?:this|it) work|what(?:'s| is) up|whats up|wassup|sup)[\s?!.]*$/.test(t)) return greetingResult();
+    if (/^(?:(?:hi|hey|hello|yo|ok|okay|so|um)[\s,!.]+)*(?:who (?:are you|is this)|what (?:exactly )?(?:are you|is this|is trainee)|what(?:'s| is) this(?: thing| app)?|what do you do|what (?:can|do) (?:you|u|ya) (?:do|help with)(?: for me)?|wh?at can (?:you|u) do|how does (?:this|it) work|what(?:'s| is) up|whats up|wassup|sup)[\s?!.]*$/.test(t)) return greetingResult(ctx);
     // The approval rule: nothing goes out on the product's own initiative.
     if ((/\b(send|sends|sent|submit|submits|submitted|apply|applies|applied|email|emails|emailed|message|messages|messaged|reach out|contact|post)\b/.test(t)
         && /\bwithout (?:asking|checking|telling|me\b|my (?:permission|approval|ok|okay|consent|say[- ]so|yes|go[- ]ahead))|\bon (?:your|its) own\b|\bautomatically\b|\bbehind my back\b|\bbefore i (?:say yes|approve|agree|ok|okay|confirm|see)\b|\b(?:unless|until) i (?:approve|say|confirm|ok|okay|agree)\b/.test(t))
@@ -10951,7 +10970,9 @@ const CareerRouter = (() => {
     }
     // A role search without the find verb: "any X roles in Y?", "show me remote X internships", "X jobs near Y".
     if (FAM_ROLE_NOUN.test(t) && !/\b(?:applied|my applications?)\b/.test(t)
-        && (/\b(?:any|show me|list|got any|are there|see|browse|look(?:ing)? (?:at|for))\b/.test(t) || /\b(?:in|near|around)\s+[A-Z][a-z]/.test(raw) || /\bremote\b/.test(t))) {
+        && (/\b(?:any|show me|list|got any|are there|see|browse|look(?:ing)? (?:at|for))\b/.test(t) || /\b(?:in|near|around)\s+[A-Z][a-z]/.test(raw) || /\bremote\b/.test(t)
+          // PRODUCT AUDIT 2026-10-28 (#3): texted in lowercase ("data analyst jobs in chicago") is the same search.
+          || /\b(?:jobs?|roles?|positions?|openings?|internships?)\s+(?:in|near|around)\s+[a-z]{3,}/.test(t))) {
       if (/\binternships?\b/.test(t)) return handleInternship(text, ctx);
       return handleDiscovery(text, ctx, {});
     }
@@ -10977,18 +10998,20 @@ const CareerRouter = (() => {
   function handleGreeting(text, ctx) {
     const raw = s(text).trim();
     const isStart = /^\/start(\s+\S+)?[.!]?$/i.test(raw);
-    const isGreeting = /^(hi|hello|hey|hiya|howdy|greetings|good\s+(morning|afternoon|evening))(\s+there)?[\s!.]*$/i.test(raw);
+    const isGreeting = /^(hi|hello|hey|hiya|howdy|yo|sup|heya|hii+|hey+|greetings|good\s+(morning|afternoon|evening))(\s+(there|trainee))?[\s!.]*$/i.test(raw);
     if (!isStart && !isGreeting) return null;
-    return greetingResult();
+    return greetingResult(ctx);
   }
-  function greetingResult() {
+  // PRODUCT AUDIT 2026-10-28 (#2): the greeting was 477 characters (two texts on SMS) and the same whatever the person
+  // had already done. Now: who Trainee is in one line, and the one next step that fits their record.
+  function greetingResult(ctx) {
+    const hasResume = resumeOnRecord(ctx);
     const reply = compose({
       headline: "Hi — I'm Trainee, your career agent.",
-      facts: [
-        "I find roles that fit you, tailor your resume to each posting, prep you for interviews, and keep track of every application — all right here in this chat.",
-        "What you tell me about your search stays on your record — your target firms, your contacts, your deadlines — and you can ask me what I have on record any time, and correct anything that is wrong.",
-      ],
-      nextStep: "Tell me the role and field you're after — or just say \"find jobs\" — and I'll start there.",
+      facts: ["I find jobs that fit you, get your applications ready for your OK, and prep you for interviews, all by text."],
+      nextStep: hasResume
+        ? "What role should I look for — and where, or remote?"
+        : "To start, paste your resume or attach the file — or just tell me the role you want.",
     });
     return { intent: "career_greeting", reply, resultStatus: "awaiting_user", sends: 0 };
   }
@@ -14743,7 +14766,7 @@ const CareerRouter = (() => {
         `Source 10 names${who ? ` at ${who}` : `${where}`} from your school's alumni directory and firm team pages — every name carries its source.`,
         `Filter to ${C.level ? C.level.value : "analyst-level"} people first; senior names wait for a warm path.`,
         "Draft one opener per sendable name, each built on one fact you share — no guessed email addresses, ever.",
-        "Approve the whole plan once; only then do the found / trustworthy / sendable counts turn into sends, inside the daily caps.",
+        "Approve the whole plan once; only then do the found / trustworthy / sendable counts turn into sends.",
         `Run the ${C.year && /freshman|sophomore|junior/.test(C.year.value) ? "next-summer internship" : "role"} search${where} beside the outreach and track every application from day one.`,
         "Log every reply and stage change to the tracker the day it lands — the record is what the next step is read from.",
       ];
@@ -14805,7 +14828,7 @@ const CareerRouter = (() => {
       const what = C.thread
         ? `the extension draft on the ${C.thread.firm || "offer"} is composed and held above — it sends only on your approval`
         : C.plan
-          ? `the ${C.firm ? `${C.firm.value} ` : ""}plan's first item — the sourcing order and the caps — is set on the record; the list itself builds when you approve the plan`
+          ? `the ${C.firm ? `${C.firm.value} ` : ""}plan's first item — the sourcing order — is set on the record; the list itself builds when you approve the plan`
           : `the checklist from your facts (${C.facts.map(factLine).join("; ")}) is built and item one — sourcing names ${C.geo ? `in ${C.geo.value}` : ""} from the alumni directory — is ready to run the moment you approve the plan`;
       const reply = compose({ headline: "First step done — here is exactly what that means.", facts: [`Done in this conversation: ${what}.`, "Nothing was sent, submitted, or promised to anyone — the going-out actions stay behind your approval, as always; what is done is the preparation, and it is on the record."], nextStep: "Approve the next step and it moves; or correct the target and the preparation re-aims." });
       return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
@@ -15131,9 +15154,9 @@ const CareerRouter = (() => {
     const asksWhen = /\bwhen do sends (actually )?start\b|\bwhen does sending start\b/.test(t);
     if ([asksCaps, asksSources, asksWhy, asksWhen].filter(Boolean).length < 2) return null;
     const facts = [];
-    if (asksCaps) facts.push(`Send caps: ${SEND_RULE}`, PLANNED_CAPS, `Applications have no daily cap beyond the pace you set yourself (say "set my daily pace to N").`);
+    if (asksCaps) facts.push(`Send caps: none of Trainee's own; ${SEND_RULE}`);
     if (asksSources) facts.push("Where names come from, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages. Every name carries its source, and nobody is emailed on a guessed address — inferred emails are labeled and held.");
-    if (asksWhy) facts.push("Why shortlist first: a blast burns the only asset that compounds — your name at those firms. The shortlist is verified before anything is drafted, so the first email a banker sees from you is accurate, sourced, and written for them; the caps then keep the wave inside what inboxes tolerate.");
+    if (asksWhy) facts.push("Why shortlist first: a blast burns the only asset that compounds — your name at those firms. The shortlist is verified before anything is drafted, so the first email a banker sees from you is accurate, sourced, and written for them.");
     if (asksWhen) facts.push("When sends start: after you approve the plan. The list is built, the found/trustworthy/sendable counts come back to you, drafts are written from the sendable names — and the first send waits for your one approval of the whole plan.");
     const reply = compose({ headline: "All of it, in order.", facts, nextStep: "Say the word and I start with the shortlist — counts before drafts, approval before sends." });
     return { intent: "outreach_clarification", reply, resultStatus: "prepared", sends: 0, payload: { kind: "product_rules" }, artifact: { kind: "product_rules" } };

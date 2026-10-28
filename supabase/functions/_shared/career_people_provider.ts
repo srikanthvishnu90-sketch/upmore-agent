@@ -1,295 +1,228 @@
-// PEOPLE PROVIDER (D-MN-3, owner 2026-10-27): finding people at scale through a paid people/email data provider, into
-// the same career_people store as the person's own sources (career_people.ts). One adapter interface, two providers:
-//   hunter   Domain Search (GET https://api.hunter.io/v2/domain-search) for the people a company's domain publishes,
-//            then Email Verifier (GET https://api.hunter.io/v2/email-verifier) for any address Domain Search did not
-//            already mark "valid". Auth: the api_key query parameter.
-//   apollo   People API Search (POST https://api.apollo.io/api/v1/mixed_people/api_search: no credits, no emails), then
-//            Bulk People Enrichment (POST https://api.apollo.io/api/v1/people/bulk_match, 10 people a call, the endpoint's
-//            own maximum) for the people Apollo says have an email. Auth: the x-api-key header.
-// Docs read and cited: docs/architect/PEOPLE-PROVIDER-2026-10-27.md.
-//
-// Rules this file keeps (and the tests break each one on purpose):
-//   - No key, no provider: NOT_WIRED with a plain reply, and no HTTP call. Never a made-up person or address.
-//   - An address is sendable only when the provider itself verified it (Hunter "valid", Apollo "verified"). Anything else
-//     (accept_all, unknown, unverified, likely_to_engage, a 202 still-checking) is stored, shown, and never sendable.
-//     No address is ever built from a name and a pattern.
-//   - Everything the provider wrote is someone else's text: cleaned like a CSV cell; a field that reads as an instruction
-//     is dropped (a name that does: the person is dropped); a profile link (LinkedIn included) is kept as text only and
-//     never fetched; nothing here writes to the person's profile or memory.
-//   - Trainee sets no volume limit of its own (owner, 2026-10-27 19:55). The provider's refusal (429, out of credits) is
-//     the only brake: shared through the database (career_provider_state) so every instance backs off, and said plainly.
-//   - One company is looked up once for everyone within the cache window (career_provider_cache, no user id); each person
-//     gets their own copy in career_people, deduped against what they already have. Every lookup is on the ledger.
+// PEOPLE DISCOVERY AT SCALE (D-MN-3 as REPLACED by the owner, 2026-10-27 21:32: "don't use Hunter or Apollo ... so we can
+// do it with anyone"). No paid people/email provider. One adapter interface (PeopleProvider), one implementation (web):
+//   1. search    OpenAI's web_search tool (Responses API, through the gateway's OpenAI config: modelConfig, OpenAI only),
+//                with the search recipe below (company + role + "team", engineering blog, campus recruiting, speakers). Only
+//                the result URLs are used: what the model writes is never taken as a fact about anyone.
+//   2. read      each result page with N1's SSRF-guarded page reader (career_people_page.ts readPage: HTTPS only, public
+//                addresses only, robots.txt honored, 2 MB / 8 s, schema.org Person and named mailto links only). LinkedIn,
+//                Indeed and Handshake are never fetched (neverOpen): a result there is kept as text only.
+//   3. a person  exists only when a page names them AND establishes their employer (the page is on the company's domain,
+//                or its Person says worksFor the company, or the page's Organization is the company). Each keeps that
+//                page's URL. No page, no person: nothing is invented.
+//   4. emails    published on that page ("published"); else, at delivery, the person's own address for them ("known":
+//                their Gmail or export row wins, the discovered one isn't stored again); else inferred from the domain's
+//                format learned from 2+ addresses at that exact domain ("inferred", with the evidence count), only for a
+//                plain ASCII name. The domain's MX is checked over DNS-over-HTTPS; no SMTP/RCPT probing, ever.
+//   5. learning  formats (never addresses) are shared across everyone (career_email_formats) and move with bounces and
+//                replies (career_email_feedback); a bounced address is never inferred or sent again.
+// Trainee sets no volume limit of its own (owner, 2026-10-27 19:55); the only brake is the search service refusing (429,
+// quota), shared through the database so every instance backs off, and said plainly. One company is discovered once for
+// everyone inside the cache window. Docs: docs/architect/PEOPLE-PROVIDER-2026-10-27.md.
 import { cleanCell, cleanEmail, companyKey, isFormula, readsAsInstruction } from "./career_people_import.ts";
 import { neverOpen } from "./career_people_sites.ts";
+import { type PageRead, readPage, type Resolver } from "./career_people_page.ts";
+import { domainLabelOf, registrable } from "./career_people_gmail.ts";
+import { dohMx, type MxResolver, ROLE_LOCALS } from "./career_contacts.ts";
+import { costMicros, modelConfig } from "./model_gateway.ts";
 
-export type ProviderName = "hunter" | "apollo";
-export const PROVIDERS: ProviderName[] = ["hunter", "apollo"];
-export const KEY_SECRET: Record<ProviderName, string> = { hunter: "HUNTER_API_KEY", apollo: "APOLLO_API_KEY" };
-export const LABEL: Record<ProviderName, string> = { hunter: "Hunter", apollo: "Apollo" };
-// The providers' own page sizes (technical: the most one response carries), not a product limit.
-export const HUNTER_PAGE = 100, APOLLO_PAGE = 100, APOLLO_ENRICH_BATCH = 10;
+export type ProviderName = "web";
+export const LABEL: Record<ProviderName, string> = { web: "web search" };
 export const DEFAULT_CACHE_DAYS = 30;
+export const DEFAULT_SEARCH_MODEL = "gpt-4.1-mini"; // listed for the Responses web_search tool (OpenAI's guide, 2026-10-27)
+// Hosts the search is told to leave out (and that are never fetched if they come back anyway).
+export const BLOCKED_SEARCH_DOMAINS = ["linkedin.com", "indeed.com", "joinhandshake.com", "lnkd.in"];
 
-export interface FindQuery {
-  company?: string | null; domain?: string | null;
-  titles?: string[]; seniority?: string[]; location?: string | null;
-  limit?: number | null; // only when the person named a number ("10 engineering managers"); absent: everything the provider has
-}
+export interface FindQuery { company?: string | null; domain?: string | null; titles?: string[]; seniority?: string[]; location?: string | null }
 export interface ProviderPerson {
-  provider: ProviderName; provider_id: string; name: string; email: string | null; email_status: string; email_confidence: number | null;
-  sendable: boolean; company: string; company_key: string; position: string; location: string;
-  source_ref: string; source_url: string | null; profile_text: string | null;
+  provider: ProviderName; provider_id: string; name: string; email: string | null; company: string; company_key: string;
+  position: string; source_ref: string; source_url: string; profile_text: string | null;
 }
 export type FindResult =
-  | { status: "ok"; people: ProviderPerson[]; company: string; http_calls: number; credits: number | null; note: string | null }
+  | { status: "ok"; people: ProviderPerson[]; company: string; domain: string | null; mx: "pass" | "fail" | "not_run"; http_calls: number; cost_usd: number | null; text_only: string[] }
   | { status: "rate_limited"; retry_after_s: number; http_calls: number; detail: string }
   | { status: "out_of_credits"; http_calls: number; detail: string }
   | { status: "not_wired"; reason: string; http_calls: number }
   | { status: "error"; detail: string; http_calls: number };
-export interface PeopleProvider {
-  name: ProviderName;
-  supportsSchool: false; // neither provider's people search filters by school (docs); alumni come from the person's own sources
-  findPeople(q: FindQuery): Promise<FindResult>;
-}
+export interface PeopleProvider { name: ProviderName; supportsSchool: false; findPeople(q: FindQuery): Promise<FindResult> }
 
 // ------------------------------------------------------------------------------------------------ config
-export interface ProviderConfig { provider: ProviderName | null; apiKey: string | null; cacheSeconds: number; leaseSeconds: number; asked: string | null }
-// CAREER_PEOPLE_PROVIDER=hunter|apollo picks the provider; its key is read from the function secret named in KEY_SECRET
-// (never logged, never returned). CAREER_PEOPLE_PROVIDER_CACHE_DAYS (default 30) is how long one company's lookup is reused.
+export interface ProviderConfig { provider: ProviderName | null; apiKey: string | null; model: string; cacheSeconds: number; leaseSeconds: number; switchedOn: boolean }
+// CAREER_PEOPLE_SEARCH=on switches discovery on (model spend: the owner's to approve); the key is the gateway's own
+// (OPENAI_API_KEY through modelConfig, OpenAI only). CAREER_PEOPLE_SEARCH_MODEL picks the model; CAREER_PEOPLE_CACHE_DAYS
+// (default 30) is how long one company's discovery is reused for everyone.
 export function providerConfig(env: (k: string) => string | undefined): ProviderConfig {
-  const asked = (env("CAREER_PEOPLE_PROVIDER") ?? "").trim().toLowerCase() || null;
-  const provider = (PROVIDERS as string[]).includes(asked ?? "") ? asked as ProviderName : null;
-  const key = provider ? (env(KEY_SECRET[provider]) ?? "").trim() : "";
-  const days = Number(env("CAREER_PEOPLE_PROVIDER_CACHE_DAYS"));
-  return { provider, apiKey: key || null, asked, cacheSeconds: Math.round((Number.isFinite(days) && days >= 0 ? days : DEFAULT_CACHE_DAYS) * 86400), leaseSeconds: 120 };
+  const switchedOn = (env("CAREER_PEOPLE_SEARCH") ?? "").trim().toLowerCase() === "on";
+  const gw = modelConfig({ get: env });
+  const key = gw.provider === "openai" && gw.apiKey ? gw.apiKey : null;
+  const days = Number(env("CAREER_PEOPLE_CACHE_DAYS"));
+  return {
+    provider: switchedOn && key ? "web" : null, apiKey: switchedOn ? key : null, switchedOn,
+    model: (env("CAREER_PEOPLE_SEARCH_MODEL") ?? "").trim() || DEFAULT_SEARCH_MODEL,
+    cacheSeconds: Math.round((Number.isFinite(days) && days >= 0 && env("CAREER_PEOPLE_CACHE_DAYS") !== undefined ? days : DEFAULT_CACHE_DAYS) * 86400), leaseSeconds: 120,
+  };
 }
-export function notWiredReply(c: Pick<ProviderConfig, "provider" | "asked">): string {
-  if (!c.provider) return "Finding new people through a people-data service isn't set up yet, so I only looked through the contacts you've given me. I won't guess names or email addresses.";
-  return `Finding new people through ${LABEL[c.provider]} isn't connected yet (its key hasn't been added), so I only looked through the contacts you've given me. I won't guess names or email addresses.`;
-}
-export function makeProvider(c: ProviderConfig, f: typeof fetch): PeopleProvider | null {
-  if (!c.provider || !c.apiKey) return null;
-  return c.provider === "hunter" ? hunterProvider({ fetch: f, apiKey: c.apiKey }) : apolloProvider({ fetch: f, apiKey: c.apiKey });
+export function notWiredReply(c: Pick<ProviderConfig, "switchedOn">): string {
+  return c.switchedOn
+    ? "Searching the web for new people isn't available right now (the AI service it uses isn't set up), so I only looked through the contacts you've given me. I won't guess names or email addresses."
+    : "Searching the web for new people isn't switched on yet, so I only looked through the contacts you've given me. I won't guess names or email addresses.";
 }
 
-// ------------------------------------------------------------------------------------------------ provider text, cleaned
+// ------------------------------------------------------------------------------------------------ text from others
 const URLISH = /https?:|www\.|\/\//i;
-// A field someone else wrote: cleaned; a formula, or text that reads as an instruction, is no field at all.
+// A field someone else wrote: cleaned; a formula, or text that reads as an instruction (before or after cleaning), is none.
 export function field(v: unknown, max: number): string {
   const raw = String(v ?? "");
   if (isFormula(raw) || readsAsInstruction(raw)) return "";
   const c = cleanCell(raw, max);
   return readsAsInstruction(c) ? "" : c;
 }
-// A person's name: a field, with a letter in it, and not a link.
 export function personName(v: unknown): string {
   const n = field(v, 200);
-  return n && /\p{L}/u.test(n) && !URLISH.test(n) ? n : "";
+  return n && /\p{L}/u.test(n) && !URLISH.test(n) && !/@/.test(n) ? n : "";
 }
-// A profile link kept as text only (never fetched, never a source_url): LinkedIn and every other one.
-export function profileText(v: unknown): string | null {
-  const s = cleanCell(v, 600);
-  return s && /^https?:\/\/\S+$/i.test(s) && !readsAsInstruction(s) ? s : null;
-}
-// A public page an address was found on, as the source to cite: https, never a site Trainee never opens. Never fetched here.
-export function citeUrl(v: unknown): string | null {
-  const s = cleanCell(v, 2048);
-  if (!/^https:\/\/\S+$/i.test(s)) return null;
-  try { const u = new URL(s); return neverOpen(u.hostname) ? null : u.toString(); } catch { return null; }
-}
-const confidence = (v: unknown): number | null => { const n = Number(v); return v !== null && v !== undefined && v !== "" && Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null; };
-const domainOf = (v: unknown): string => { const d = String(v ?? "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/[/?#].*$/, ""); return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d) ? d : ""; };
+const nameKey = (n: string) => n.toLowerCase().replace(/[’']/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
-// ------------------------------------------------------------------------------------------------ refusals
-// The provider refusing, by its own documented codes (docs/architect/PEOPLE-PROVIDER-2026-10-27.md):
-//   Hunter  401 a key it refused; 403 its per-second/per-minute rate limit; 429 the plan's monthly credits used up.
-//   Apollo  401/403 a key it refused; 429 its rate limit (error_details.context.window: minute, hour or day); a 4xx
-//           body that speaks of credits is out of credits.
-function refusal(provider: ProviderName, status: number, body: string, retryAfter: string | null, calls: number): FindResult | null {
-  const after = Math.max(1, Math.min(Number(retryAfter) || 0, 86400));
-  if (provider === "hunter") {
-    if (status === 401) return { status: "not_wired", reason: "Hunter refused the key (HTTP 401)", http_calls: calls };
-    if (status === 403) return { status: "rate_limited", retry_after_s: Number(retryAfter) ? after : 60, http_calls: calls, detail: "Hunter: HTTP 403 (rate limit)" };
-    if (status === 429) return { status: "out_of_credits", http_calls: calls, detail: "Hunter: HTTP 429 (usage limit)" };
-    return null;
-  }
-  if (/credit|usage limit|upgrade your plan/i.test(body.slice(0, 600)) && status >= 400 && status < 500 && status !== 401) return { status: "out_of_credits", http_calls: calls, detail: `Apollo: HTTP ${status} (credits)` };
-  if (status === 429) {
-    const win = /"window"\s*:\s*"(minute|hour|day)"/i.exec(body)?.[1]?.toLowerCase();
-    return { status: "rate_limited", retry_after_s: Number(retryAfter) ? after : win === "day" ? 86400 : win === "hour" ? 3600 : 60, http_calls: calls, detail: `Apollo: HTTP 429${win ? ` (per ${win})` : ""}` };
-  }
-  if (status === 401 || status === 403) return { status: "not_wired", reason: `Apollo refused the key (HTTP ${status})`, http_calls: calls };
-  return null;
+// ------------------------------------------------------------------------------------------------ the search
+export type SearchOut = { status: "ok"; urls: { url: string; title: string }[]; cost_usd: number | null }
+  | { status: "rate_limited"; retry_after_s: number; detail: string } | { status: "out_of_credits"; detail: string }
+  | { status: "not_wired"; reason: string } | { status: "error"; detail: string };
+export type SearchFn = (query: string) => Promise<SearchOut>;
+// The repo's search recipe for finding people at a company: the role asked for, the team page, the engineering blog,
+// campus recruiting, conference speakers, press. One search each; their URLs are read, not their snippets.
+export function searchRecipe(company: string, titles: string[]): string[] {
+  const c = `"${cleanCell(company, 120).replace(/"/g, "")}"`;
+  const roles = titles.length ? titles.map((t) => `${c} ${cleanCell(t, 80)}`) : [`${c} team`];
+  return [...new Set([...roles, `${c} team page`, `${c} engineering blog author`, `${c} campus recruiting recruiter`, `${c} conference speaker`, `${c} press contact`])];
 }
-
-// ------------------------------------------------------------------------------------------------ Hunter
-const HUNTER = "https://api.hunter.io/v2";
-const HUNTER_SENIORITY = new Set(["junior", "senior", "executive"]);
-export function hunterProvider(o: { fetch: typeof fetch; apiKey: string }): PeopleProvider {
-  return {
-    name: "hunter", supportsSchool: false,
-    async findPeople(q) {
-      let calls = 0;
-      const domain = domainOf(q.domain);
-      const company = cleanCell(q.company, 200);
-      if (!domain && !company) return { status: "error", detail: "no company or domain to look up", http_calls: 0 };
-      const want = q.limit && q.limit > 0 ? Math.floor(q.limit) : Infinity;
-      const raw: any[] = [];
-      let org = "", offset = 0, total = Infinity;
-      while (raw.length < want && offset < total) {
-        const u = new URL(`${HUNTER}/domain-search`);
-        if (domain) u.searchParams.set("domain", domain); else u.searchParams.set("company", company);
-        u.searchParams.set("type", "personal");
-        u.searchParams.set("limit", String(Math.min(HUNTER_PAGE, want - raw.length)));
-        u.searchParams.set("offset", String(offset));
-        const sen = (q.seniority ?? []).map((s) => s.toLowerCase()).filter((s) => HUNTER_SENIORITY.has(s));
-        if (sen.length) u.searchParams.set("seniority", sen.join(","));
-        if (q.titles?.length) u.searchParams.set("job_titles", q.titles.map((t) => cleanCell(t, 80)).filter(Boolean).join(","));
-        u.searchParams.set("api_key", o.apiKey);
-        let r: Response;
-        try { calls++; r = await o.fetch(u.toString(), { headers: { accept: "application/json" } }); }
-        catch (e) { return { status: "error", detail: `Hunter: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200), http_calls: calls }; }
-        if (!r.ok) {
-          const body = await r.text().catch(() => "");
-          return refusal("hunter", r.status, body, r.headers.get("retry-after"), calls) ?? { status: "error", detail: `Hunter: HTTP ${r.status}`, http_calls: calls };
-        }
-        const j: any = await r.json().catch(() => null);
-        const emails = Array.isArray(j?.data?.emails) ? j.data.emails : [];
-        org ||= field(j?.data?.organization, 200);
-        total = Number.isFinite(Number(j?.meta?.results)) ? Number(j.meta.results) : offset + emails.length;
-        raw.push(...emails);
-        if (!emails.length) break;
-        offset += emails.length;
+// OpenAI's web_search tool through the Responses API (https://developers.openai.com/api/docs/guides/tools-web-search):
+// POST /v1/responses { model, tools: [{ type: "web_search", filters: { blocked_domains } }], tool_choice: "required",
+// include: ["web_search_call.action.sources"], input }. URLs come from web_search_call.action.sources[].url and the
+// message's url_citation annotations. 429 insufficient_quota: out of credits; other 429: rate limit; 401/403: key refused.
+export function openAiWebSearch(o: { fetch: typeof fetch; apiKey: string; model: string }): SearchFn {
+  return async (query) => {
+    let r: Response;
+    try {
+      r = await o.fetch("https://api.openai.com/v1/responses", {
+        method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${o.apiKey}` }, signal: AbortSignal.timeout(45_000),
+        body: JSON.stringify({
+          model: o.model, tool_choice: "required", include: ["web_search_call.action.sources"],
+          tools: [{ type: "web_search", filters: { blocked_domains: BLOCKED_SEARCH_DOMAINS } }],
+          input: `Search the web for public pages that name people who work at this company, for: ${query}\nList the pages you found.`,
+        }),
+      });
+    } catch (e) { return { status: "error", detail: `search: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200) }; }
+    if (!r.ok) {
+      const body = (await r.text().catch(() => "")).slice(0, 800);
+      if (r.status === 429 && /insufficient_quota|exceeded your current quota|billing/i.test(body)) return { status: "out_of_credits", detail: "search: HTTP 429 (quota)" };
+      if (r.status === 429) return { status: "rate_limited", retry_after_s: Math.max(1, Math.min(Number(r.headers.get("retry-after")) || 60, 86400)), detail: "search: HTTP 429" };
+      if (r.status === 401 || r.status === 403) return { status: "not_wired", reason: `the AI service refused the key (HTTP ${r.status})` };
+      return { status: "error", detail: `search: HTTP ${r.status}` };
+    }
+    const j: any = await r.json().catch(() => null);
+    const urls: { url: string; title: string }[] = [];
+    for (const item of Array.isArray(j?.output) ? j.output : []) {
+      if (item?.type === "web_search_call") for (const s of Array.isArray(item?.action?.sources) ? item.action.sources : []) if (s?.url) urls.push({ url: String(s.url), title: "" });
+      if (item?.type === "message") for (const c of Array.isArray(item.content) ? item.content : []) for (const a of Array.isArray(c?.annotations) ? c.annotations : []) {
+        if (a?.type === "url_citation" && a.url) urls.push({ url: String(a.url), title: cleanCell(a.title, 200) });
       }
-      const companyName = org || company || domain;
-      const people: ProviderPerson[] = [];
-      let note: string | null = null;
-      for (const e of raw.slice(0, want)) {
-        const email = cleanEmail(e?.value);
-        const name = personName([e?.first_name, e?.last_name].filter((x) => x && String(x).trim()).join(" "));
-        if (!email || !name) continue; // no person without a name, no Hunter row without its address
-        let status = String(e?.verification?.status ?? "").toLowerCase() || "unverified";
-        let score = confidence(e?.confidence);
-        if (status === "unverified" && !note) {
-          // Email Verifier: Hunter's own check of an address Domain Search carried no verification for (a status it
-          // already gave, valid or not, is Hunter's word: not paid for twice).
-          const v = new URL(`${HUNTER}/email-verifier`);
-          v.searchParams.set("email", email);
-          v.searchParams.set("api_key", o.apiKey);
-          let r: Response | null = null;
-          try { calls++; r = await o.fetch(v.toString(), { headers: { accept: "application/json" } }); } catch { r = null; }
-          if (r && r.status === 202) status = "checking";
-          else if (r && r.ok) { const j: any = await r.json().catch(() => null); status = String(j?.data?.status ?? "unknown").toLowerCase(); score = confidence(j?.data?.score) ?? score; }
-          else if (r) {
-            const ref = refusal("hunter", r.status, await r.text().catch(() => ""), r.headers.get("retry-after"), calls);
-            // The rest stay unverified (stored, never sendable); the people found are kept, not thrown away.
-            if (ref && (ref.status === "rate_limited" || ref.status === "out_of_credits")) note = ref.status;
-          }
-        }
-        const src = Array.isArray(e?.sources) ? e.sources.map((s: any) => citeUrl(s?.uri)).find(Boolean) ?? null : null;
-        people.push({
-          provider: "hunter", provider_id: email, name, email, email_status: status.slice(0, 40), email_confidence: score, sendable: status === "valid",
-          company: companyName, company_key: companyKey(companyName), position: field(e?.position, 300), location: "",
-          source_ref: `Hunter Domain Search, ${domain || company}`.slice(0, 600), source_url: src, profile_text: profileText(e?.linkedin),
-        });
-      }
-      return { status: "ok", people, company: companyName, http_calls: calls, credits: null, note };
-    },
+    }
+    const micros = costMicros(o.model, j?.usage);
+    return { status: "ok", urls, cost_usd: micros === null ? null : micros / 1e6 };
   };
 }
 
-// ------------------------------------------------------------------------------------------------ Apollo
-const APOLLO = "https://api.apollo.io/api/v1";
-const APOLLO_SENIORITY = new Set(["owner", "founder", "c_suite", "partner", "vp", "head", "director", "manager", "senior", "entry", "intern"]);
-export function apolloProvider(o: { fetch: typeof fetch; apiKey: string }): PeopleProvider {
-  const post = async (path: string, body: unknown) => o.fetch(`${APOLLO}/${path}`, {
-    method: "POST", headers: { "content-type": "application/json", accept: "application/json", "cache-control": "no-cache", "x-api-key": o.apiKey }, body: JSON.stringify(body),
-  });
+// ------------------------------------------------------------------------------------------------ the web provider
+const hostOf = (u: string) => { try { return new URL(u).hostname.toLowerCase(); } catch { return ""; } };
+const stripUtm = (u: string) => { try { const x = new URL(u); [...x.searchParams.keys()].filter((k) => /^utm_/i.test(k)).forEach((k) => x.searchParams.delete(k)); x.hash = ""; return x.toString(); } catch { return u; } };
+export function webProvider(o: { search: SearchFn; fetch: typeof fetch; resolve?: Resolver; mx?: MxResolver; read?: (f: typeof fetch, url: string, r?: Resolver) => Promise<PageRead> }): PeopleProvider {
+  const read = o.read ?? readPage;
+  const mx = o.mx ?? dohMx(o.fetch);
   return {
-    name: "apollo", supportsSchool: false,
+    name: "web", supportsSchool: false,
     async findPeople(q) {
-      let calls = 0;
-      const domain = domainOf(q.domain);
       const company = cleanCell(q.company, 200);
-      if (!domain && !company) return { status: "error", detail: "no company or domain to look up", http_calls: 0 };
-      const want = q.limit && q.limit > 0 ? Math.floor(q.limit) : Infinity;
-      const ids: string[] = [];
-      let page = 1, total = Infinity;
-      const fail = async (r: Response) => refusal("apollo", r.status, await r.text().catch(() => ""), r.headers.get("retry-after"), calls) ?? { status: "error" as const, detail: `Apollo: HTTP ${r.status}`, http_calls: calls };
-      // 1. search (free, no emails): the ids of the people Apollo says have an email
-      while (ids.length < want && (page - 1) * APOLLO_PAGE < total) {
-        const body: Record<string, unknown> = { page, per_page: APOLLO_PAGE };
-        if (domain) body.q_organization_domains_list = [domain]; else body.q_organization_name = company;
-        if (q.titles?.length) { body.person_titles = q.titles.map((t) => cleanCell(t, 80)).filter(Boolean); body.include_similar_titles = true; }
-        const sen = (q.seniority ?? []).map((s) => s.toLowerCase()).filter((s) => APOLLO_SENIORITY.has(s));
-        if (sen.length) body.person_seniorities = sen;
-        if (q.location) body.person_locations = [cleanCell(q.location, 100)];
-        let r: Response;
-        try { calls++; r = await post("mixed_people/api_search", body); }
-        catch (e) { return { status: "error", detail: `Apollo: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200), http_calls: calls }; }
-        if (!r.ok) return await fail(r);
-        const j: any = await r.json().catch(() => null);
-        const ppl = Array.isArray(j?.people) ? j.people : [];
-        total = Number.isFinite(Number(j?.total_entries)) ? Number(j.total_entries) : Number.isFinite(Number(j?.pagination?.total_entries)) ? Number(j.pagination.total_entries) : (page - 1) * APOLLO_PAGE + ppl.length;
-        for (const p of ppl) if (p?.id && p.has_email !== false && ids.length < want) ids.push(String(p.id).slice(0, 300));
-        if (ppl.length < APOLLO_PAGE) break;
-        page++;
+      if (!company && !q.domain) return { status: "error", detail: "no company to look for", http_calls: 0 };
+      const key = companyKey(company || q.domain);
+      const label = domainLabelOf(company || String(q.domain).split(".")[0]);
+      let calls = 0, cost: number | null = null;
+      // 1. search, every query of the recipe at once
+      const outs = await Promise.all(searchRecipe(company || String(q.domain), q.titles ?? []).map(async (s) => { calls++; return await o.search(s); }));
+      for (const x of outs) {
+        if (x.status === "rate_limited") return { status: "rate_limited", retry_after_s: x.retry_after_s, detail: x.detail, http_calls: calls };
+        if (x.status === "out_of_credits") return { status: "out_of_credits", detail: x.detail, http_calls: calls };
+        if (x.status === "not_wired") return { status: "not_wired", reason: x.reason, http_calls: calls };
       }
-      // 2. enrich (credits): name, title, email and Apollo's own email_status, 10 at a time
-      const people: ProviderPerson[] = [];
-      let credits = 0, sawCredits = false, companyName = company || domain, note: string | null = null;
-      for (let i = 0; i < ids.length; i += APOLLO_ENRICH_BATCH) {
-        let r: Response;
-        try { calls++; r = await post("people/bulk_match?reveal_personal_emails=false", { details: ids.slice(i, i + APOLLO_ENRICH_BATCH).map((id) => ({ id })) }); }
-        catch (e) { return { status: "error", detail: `Apollo: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200), http_calls: calls }; }
-        if (!r.ok) {
-          const f = await fail(r);
-          // what was already enriched is kept (its credits are spent); the refusal is said
-          if (people.length && (f.status === "rate_limited" || f.status === "out_of_credits")) { note = f.status; break; }
-          return f;
-        }
-        const j: any = await r.json().catch(() => null);
-        if (Number.isFinite(Number(j?.credits_consumed))) { credits += Number(j.credits_consumed); sawCredits = true; }
-        for (const m of Array.isArray(j?.matches) ? j.matches : []) {
-          if (!m || !m.id) continue;
-          const name = personName(m.name || [m.first_name, m.last_name].filter(Boolean).join(" "));
+      const ok = outs.filter((x): x is Extract<SearchOut, { status: "ok" }> => x.status === "ok");
+      if (!ok.length) return { status: "error", detail: (outs.find((x) => x.status === "error") as any)?.detail ?? "search failed", http_calls: calls };
+      for (const x of ok) if (x.cost_usd !== null) cost = (cost ?? 0) + x.cost_usd;
+      const urls = [...new Map(ok.flatMap((x) => x.urls).map((u) => [stripUtm(u.url), u])).keys()].filter((u) => /^https?:\/\//i.test(u));
+      // the company's own domain: given, or the most common result host whose registrable label is the company's name
+      let domain = q.domain ? registrable(String(q.domain).toLowerCase().replace(/^https?:\/\//, "").replace(/[/?#].*$/, "")).full : "";
+      if (!domain && label.length >= 2) {
+        const tally = new Map<string, number>();
+        for (const u of urls) { const r = registrable(hostOf(u)); if (r.label === label) tally.set(r.full, (tally.get(r.full) ?? 0) + 1); }
+        domain = [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+      }
+      // 2. read every result page (never a site Trainee never opens: those are text only)
+      const textOnly = urls.filter((u) => neverOpen(hostOf(u)));
+      const pages = await Promise.all(urls.filter((u) => !neverOpen(hostOf(u)) && /^https:\/\//i.test(u)).map(async (u) => { calls++; return await read(o.fetch, u, o.resolve).catch(() => null); }));
+      // 3. a person: named on a page that establishes the employer
+      const byId = new Map<string, ProviderPerson>();
+      for (const p of pages) {
+        if (!p || !p.ok) continue;
+        const onDomain = !!domain && registrable(hostOf(p.url)).full === domain;
+        const orgIs = !!p.org && companyKey(p.org) === key;
+        for (const x of p.people) {
+          const name = personName(x.name);
           if (!name) continue;
-          const email = cleanEmail(m.email);
-          const status = email ? (String(m.email_status ?? "").toLowerCase().slice(0, 40) || "unverified") : "none";
-          const org = field(m.organization?.name, 200) || companyName;
-          companyName = org;
-          people.push({
-            provider: "apollo", provider_id: String(m.id).slice(0, 300), name, email, email_status: status, email_confidence: null,
-            sendable: !!email && status === "verified",
-            company: org, company_key: companyKey(org), position: field(m.title, 300),
-            location: field([m.city, m.state, m.country].filter(Boolean).join(", "), 200),
-            source_ref: `Apollo person ${String(m.id).slice(0, 80)}`, source_url: null, profile_text: profileText(m.linkedin_url),
+          // Their own worksFor decides when they have one (a speakers page lists several companies); else the page's.
+          const employer = x.company ? companyKey(x.company) === key : (onDomain || orgIs);
+          if (!employer) continue;
+          let email = cleanEmail(x.email);
+          if (email && ROLE_LOCALS.has(email.split("@")[0])) {
+            if (x.how === "mailto link") continue; // "Careers Team" <careers@>: an inbox, not a person
+            email = null;
+          }
+          const pid = `${domain || key}:${nameKey(name)}`.slice(0, 300);
+          const prev = byId.get(pid);
+          if (prev && (prev.email || !email)) continue;
+          byId.set(pid, {
+            provider: "web", provider_id: pid, name, email, company: company || domain, company_key: key, position: field(x.title, 300),
+            source_ref: `public page, ${hostOf(p.url)}`.slice(0, 600), source_url: p.url, profile_text: null,
           });
         }
       }
-      return { status: "ok", people, company: companyName, http_calls: calls, credits: sawCredits ? credits : null, note };
+      // 4. the domain's mail server, over DNS-over-HTTPS (no SMTP probing)
+      let mxState: "pass" | "fail" | "not_run" = "not_run";
+      if (domain) { calls++; const m = await mx(domain).catch(() => null); mxState = m?.status === "ok" ? "pass" : m?.status === "none" ? "fail" : "not_run"; }
+      return { status: "ok", people: [...byId.values()], company: company || domain, domain: domain || null, mx: mxState, http_calls: calls, cost_usd: cost, text_only: textOnly };
     },
   };
+}
+export function makeProvider(c: ProviderConfig, f: typeof fetch, o: { resolve?: Resolver; mx?: MxResolver; search?: SearchFn } = {}): PeopleProvider | null {
+  if (c.provider !== "web" || !c.apiKey) return null;
+  return webProvider({ search: o.search ?? openAiWebSearch({ fetch: f, apiKey: c.apiKey, model: c.model }), fetch: f, resolve: o.resolve, mx: o.mx });
 }
 
 // ------------------------------------------------------------------------------------------------ the store (RPC only)
 export interface Job { id: number; provider: ProviderName; query_key: string; query: FindQuery & { company_key?: string }; lease_token: string; attempts: number }
+export interface Candidate {
+  id: number; source: string; name: string | null; email: string | null; company: string; company_key: string; position: string; school: string;
+  source_ref: string; source_url: string | null; provider: ProviderName | null; provider_id: string | null; domain: string | null; email_status: string | null;
+  email_evidence: number | null; email_confidence: number | null; mx: string | null; sendable: boolean; fetched_at: string | null; same_as: number | null;
+  connected_on: string | null; profile_text: string | null;
+}
 export interface ProviderStore {
   request(userId: string, provider: ProviderName, key: string, query: FindQuery, cacheSeconds: number): Promise<{ state: "cached" | "queued"; job_id?: number; inserted?: number; already_known?: number }>;
   claim(n: number, leaseSeconds: number, userId: string | null): Promise<Job[]>;
   reclaim(): Promise<number>;
-  complete(job: Job, company: string, people: ProviderPerson[], httpCalls: number, credits: number | null): Promise<{ state: string; results?: number }>;
+  complete(job: Job, r: Extract<FindResult, { status: "ok" }>): Promise<{ state: string; results?: number }>;
   fail(job: Job, kind: "rate_limited" | "out_of_credits" | "error" | "not_wired", detail: string, retrySeconds: number, httpCalls: number, failAfter: number): Promise<{ state: string }>;
   status(userId: string, provider: ProviderName): Promise<{ waiting: number; failed: { job_id: number; outcome: string }[]; blocked_until: string | null; blocked_reason: string | null }>;
   candidates(userId: string, keys: string[], after: number, page: number): Promise<Candidate[]>;
   appliedCompanies(userId: string): Promise<string[]>;
   forget(userId: string): Promise<number>;
-}
-export interface Candidate {
-  id: number; source: string; name: string | null; email: string | null; company: string; company_key: string; position: string; school: string;
-  source_ref: string; source_url: string | null; provider: ProviderName | null; provider_id: string | null; email_status: string | null;
-  email_confidence: number | null; sendable: boolean; fetched_at: string | null; same_as: number | null; connected_on: string | null;
+  feedback(email: string, name: string, outcome: "bounce" | "reply"): Promise<{ format: string | null; rows_marked: number }>;
 }
 // deno-lint-ignore no-explicit-any
 const must = (r: { data: any; error: any }, what: string): any => { if (r.error) throw new Error(`${what}: ${r.error.message ?? r.error}`); return r.data; };
@@ -297,53 +230,50 @@ const must = (r: { data: any; error: any }, what: string): any => { if (r.error)
 export function supabaseProviderStore(admin: { rpc: (f: string, a?: any) => Promise<{ data: any; error: any }> }): ProviderStore {
   return {
     async request(userId, provider, key, query, cacheSeconds) {
-      return must(await admin.rpc("career_provider_request", { p_user: userId, p_provider: provider, p_query_key: key, p_query: query, p_cache_seconds: cacheSeconds }), "ask for a lookup");
+      return must(await admin.rpc("career_provider_request", { p_user: userId, p_provider: provider, p_query_key: key, p_query: query, p_cache_seconds: cacheSeconds }), "ask for a search");
     },
-    async claim(n, lease, userId) { return must(await admin.rpc("career_provider_claim", { p_n: n, p_lease_seconds: lease, p_user: userId }), "claim lookups") ?? []; },
-    async reclaim() { return must(await admin.rpc("career_provider_reclaim", {}), "reclaim lookups") ?? 0; },
-    async complete(job, company, people, httpCalls, credits) {
-      return must(await admin.rpc("career_provider_complete", { p_job: job.id, p_lease: job.lease_token, p_company: company, p_company_key: companyKey(company) || job.query.company_key || "", p_people: people, p_http_calls: httpCalls, p_credits: credits }), "save a lookup");
+    async claim(n, lease, userId) { return must(await admin.rpc("career_provider_claim", { p_n: n, p_lease_seconds: lease, p_user: userId }), "claim searches") ?? []; },
+    async reclaim() { return must(await admin.rpc("career_provider_reclaim", {}), "reclaim searches") ?? 0; },
+    async complete(job, r) {
+      return must(await admin.rpc("career_provider_complete", { p_job: job.id, p_lease: job.lease_token, p_company: r.company, p_company_key: companyKey(r.company) || job.query.company_key || "",
+        p_domain: r.domain, p_mx: r.mx, p_people: r.people, p_http_calls: r.http_calls, p_cost_usd: r.cost_usd }), "save a search");
     },
     async fail(job, kind, detail, retry, httpCalls, failAfter) {
-      return must(await admin.rpc("career_provider_fail", { p_job: job.id, p_lease: job.lease_token, p_kind: kind, p_detail: detail, p_retry_seconds: retry, p_http_calls: httpCalls, p_fail_after: failAfter }), "record a refused lookup");
+      return must(await admin.rpc("career_provider_fail", { p_job: job.id, p_lease: job.lease_token, p_kind: kind, p_detail: detail, p_retry_seconds: retry, p_http_calls: httpCalls, p_fail_after: failAfter }), "record a refused search");
     },
-    async status(userId, provider) { return must(await admin.rpc("career_provider_status", { p_user: userId, p_provider: provider }), "read the lookups"); },
+    async status(userId, provider) { return must(await admin.rpc("career_provider_status", { p_user: userId, p_provider: provider }), "read the searches"); },
     async candidates(userId, keys, after, page) { return must(await admin.rpc("career_provider_candidates", { p_user: userId, p_keys: keys, p_after: after, p_page: page }), "read the people") ?? []; },
     async appliedCompanies(userId) { return must(await admin.rpc("career_provider_applied_companies", { p_user: userId }), "read your applications") ?? []; },
     async forget(userId) { return must(await admin.rpc("career_provider_forget", { p_user: userId }), "forget the people found for you") ?? 0; },
+    async feedback(email, name, outcome) { return must(await admin.rpc("career_email_feedback", { p_email: email, p_name: name, p_outcome: outcome }), "record what happened to an email"); },
   };
 }
 
-// ------------------------------------------------------------------------------------------------ the query key
-// One lookup per (provider, normalized query): the same company asked by anyone is the same key, whatever the casing.
+// One discovery per normalized query: the same company and roles asked by anyone is the same key.
 export async function queryKey(q: FindQuery): Promise<{ key: string; norm: FindQuery & { company_key: string } }> {
-  const domain = domainOf(q.domain), company = cleanCell(q.company, 200);
+  const company = cleanCell(q.company, 200);
   const norm = {
-    domain: domain || null, company: domain ? null : company || null, company_key: companyKey(company || domain.split(".")[0] || ""),
+    company: company || null, domain: cleanCell(q.domain, 253).toLowerCase() || null, company_key: companyKey(company || q.domain),
     titles: [...new Set((q.titles ?? []).map((t) => cleanCell(t, 80).toLowerCase()).filter(Boolean))].sort(),
-    seniority: [...new Set((q.seniority ?? []).map((t) => t.toLowerCase()).filter(Boolean))].sort(),
-    location: cleanCell(q.location, 100).toLowerCase() || null, limit: q.limit && q.limit > 0 ? Math.floor(q.limit) : null,
+    seniority: [...new Set((q.seniority ?? []).map((t) => t.toLowerCase()).filter(Boolean))].sort(), location: cleanCell(q.location, 100).toLowerCase() || null,
   };
-  const canon = JSON.stringify([norm.domain, norm.company && companyKey(norm.company), norm.titles, norm.seniority, norm.location, norm.limit]);
+  const canon = JSON.stringify([norm.company_key, norm.domain, norm.titles, norm.location]);
   const sha = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canon)))].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return { key: `${(norm.company_key || domain).slice(0, 120)}|${sha.slice(0, 40)}`, norm };
+  return { key: `${norm.company_key.slice(0, 120)}|${sha.slice(0, 40)}`, norm };
 }
 
 // ------------------------------------------------------------------------------------------------ the worker
-// Claims queued lookups (any instance, any number at once: SKIP LOCKED leases), runs them concurrently, and completes
-// or fails each under its lease. The provider's refusal blocks that provider for every instance until it allows again.
-// `batch` is how many this one call takes at a time (a worker's size, not a limit on the work: the next call takes more).
+// Claims queued discoveries (any instance, any number at once: SKIP LOCKED leases), runs them concurrently, completes or
+// fails each under its lease. `batch` is one call's take (the next call takes more), not a limit on the work.
 export async function runLookups(o: { store: ProviderStore; provider: PeopleProvider | null; batch: number; leaseSeconds: number; userId?: string | null; failAfter?: number }):
   Promise<{ claimed: number; done: number; refused: string | null; failed: number }> {
   await o.store.reclaim();
   const jobs = await o.store.claim(o.batch, o.leaseSeconds, o.userId ?? null);
   let done = 0, failed = 0, refused: string | null = null;
   await Promise.all(jobs.map(async (job) => {
-    if (!o.provider || o.provider.name !== job.provider) {
-      await o.store.fail(job, "not_wired", `${LABEL[job.provider]} is not connected`, 1, 0, 1); failed++; return;
-    }
+    if (!o.provider) { await o.store.fail(job, "not_wired", "web search is not switched on", 1, 0, 1); failed++; return; }
     const r = await o.provider.findPeople(job.query);
-    if (r.status === "ok") { await o.store.complete(job, r.company, r.people, r.http_calls, r.credits); done++; if (r.note) refused ??= r.note; return; }
+    if (r.status === "ok") { await o.store.complete(job, r); done++; return; }
     if (r.status === "rate_limited") { refused ??= "rate_limited"; await o.store.fail(job, "rate_limited", r.detail, r.retry_after_s, r.http_calls, o.failAfter ?? 3); return; }
     if (r.status === "out_of_credits") { refused ??= "out_of_credits"; await o.store.fail(job, "out_of_credits", r.detail, 3600, r.http_calls, o.failAfter ?? 3); return; }
     if (r.status === "not_wired") { await o.store.fail(job, "not_wired", r.reason, 1, r.http_calls, 1); failed++; return; }
@@ -358,12 +288,12 @@ export type TargetAsk =
   | { kind: "role_at"; titles: string[]; seniority: string[]; company: string }
   | { kind: "alumni"; school: string; company: string };
 const SENIORITY_WORDS: [RegExp, string][] = [[/\b(vp|vice president)s?\b/, "vp"], [/\bdirectors?\b/, "director"], [/\b(head)s? of\b/, "head"], [/\bmanagers?\b/, "manager"],
-  [/\b(founder|co-?founder)s?\b/, "founder"], [/\b(cto|ceo|cfo|coo|chief)\b/, "c_suite"], [/\bsenior\b/, "senior"], [/\binterns?\b/, "intern"], [/\b(recruiter|recruiting|talent)\b/, ""]];
+  [/\b(founder|co-?founder)s?\b/, "founder"], [/\b(cto|ceo|cfo|coo|chief)\b/, "c_suite"], [/\bsenior\b/, "senior"], [/\binterns?\b/, "intern"]];
 function rolesOf(phrase: string): { titles: string[]; seniority: string[] } {
   const p = phrase.toLowerCase().replace(/\b(people|folks|anyone|someone|everyone|the)\b/g, " ").replace(/\s+/g, " ").trim();
   if (!p) return { titles: [], seniority: [] };
   const titles = p.split(/\s*(?:,|\bor\b|\band\b|\/)\s*/).map((t) => t.replace(/s\b$/, "").trim()).filter((t) => t.length >= 2 && t.length <= 80);
-  const seniority = [...new Set(SENIORITY_WORDS.filter(([rx]) => rx.test(p)).map(([, s]) => s).filter(Boolean))];
+  const seniority = [...new Set(SENIORITY_WORDS.filter(([rx]) => rx.test(p)).map(([, s]) => s))];
   return { titles, seniority };
 }
 // "people at every company I applied to", "engineering managers at every company I've applied to", "engineering managers
@@ -384,7 +314,11 @@ export function parseTargetAsk(message: string): TargetAsk | null {
   return null;
 }
 
-export interface Target { id: number; name: string; title: string; company: string; email: string | null; sendable: boolean; source: string; reason: string }
+export type AddressLabel = "published" | "known" | "inferred" | null;
+export interface Target {
+  id: number; name: string; title: string; company: string; email: string | null; address: AddressLabel; evidence: number | null;
+  sendable: boolean; source: string; source_url: string | null; reason: string;
+}
 export interface TargetsResult {
   status: "ok" | "NOT_WIRED" | "waiting" | "refused" | "none" | "no_companies";
   reply: string; candidates: Target[]; companies: string[]; waiting: number;
@@ -392,8 +326,8 @@ export interface TargetsResult {
 export interface TargetDeps { store: ProviderStore; config: ProviderConfig; provider: PeopleProvider | null; now: () => number; workerBatch?: number }
 
 const plainWords = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-function titleMatch(title: string, ask: { titles: string[]; seniority: string[] }): string | null {
-  if (!ask.titles.length && !ask.seniority.length) return "works there";
+function titleMatch(title: string, ask: { titles: string[] }): string | null {
+  if (!ask.titles.length) return "works there";
   const tl = ` ${plainWords(title)} `;
   for (const want of ask.titles) {
     const w = plainWords(want).split(" ").filter((x) => x.length > 1);
@@ -401,73 +335,83 @@ function titleMatch(title: string, ask: { titles: string[]; seniority: string[] 
   }
   return null;
 }
+const labelOf = (c: Candidate): AddressLabel => !c.email ? null : c.source !== "provider" ? "known" : c.email_status === "inferred" ? "inferred" : c.email_status === "published" ? "published" : null;
+const addressLine = (c: Candidate, l: AddressLabel) =>
+  l === "published" ? `email published on that page${c.sendable ? "" : c.mx === "fail" ? " (its domain has no mail server: not used)" : ""}`
+  : l === "inferred" ? `email inferred from ${c.domain}'s format (${c.email_evidence} addresses seen there)${c.sendable ? ", sent only if you approve it" : c.mx === "fail" ? " (its domain has no mail server: not used)" : ""}`
+  : l === "known" ? "email from your own contacts"
+  : c.email_status === "bounced" ? "their address bounced before: not used" : "no email address";
 const fromLine = (c: Candidate) => c.source === "provider"
-  ? `found by ${LABEL[c.provider as ProviderName] ?? "the data provider"}${c.fetched_at ? ` on ${c.fetched_at.slice(0, 10)}` : ""}${c.email ? (c.sendable ? `, email verified by ${LABEL[c.provider as ProviderName]}` : `, email not verified (${c.email_status}): not used for sending`) : ", no email address"}`
+  ? `named on ${c.source_url}${c.fetched_at ? ` (read ${c.fetched_at.slice(0, 10)})` : ""}`
   : c.source === "linkedin_export" ? "from your LinkedIn export" : c.source === "gmail" ? "from your Gmail" : c.source === "company_page" ? `published on ${c.source_url}` : "from your contacts";
-const reasonOf = (c: Candidate, why: string) => `${c.position ? `${c.position} at ${c.company}` : `at ${c.company}`}; ${why}; ${fromLine(c)}.`;
 
-// findTargets(userId, ask): candidates with a reason line each (their title and why they match), for later drafting.
-// The provider is asked once per company (shared cache, or one queued lookup for everyone asking); this person's own
-// queued lookups run right here, concurrently; what the provider refused or hasn't answered yet is said, not hidden.
+// findTargets(userId, ask): candidates with a reason line each (their title and why they match, where they were found,
+// what the address is), for later drafting. One discovery per company (shared cache, or one queued job for everyone);
+// this person's own queued discoveries run here, concurrently; a refusal or a wait is said, not hidden.
 export async function findTargets(userId: string, ask: TargetAsk, d: TargetDeps): Promise<TargetsResult> {
-  let companies: string[];
-  if (ask.kind === "applied") companies = await d.store.appliedCompanies(userId);
-  else companies = [ask.company];
+  let companies = ask.kind === "applied" ? await d.store.appliedCompanies(userId) : [ask.company];
   companies = [...new Map(companies.map((c) => [companyKey(c), cleanCell(c, 120)])).entries()].filter(([k]) => k).map(([, c]) => c);
   if (!companies.length) {
     return { status: "no_companies", reply: "You haven't applied anywhere I have on record yet, so there are no companies to look for people at. Tell me a company and the roles you want, like \"engineering managers at Stripe\".", candidates: [], companies: [], waiting: 0 };
   }
-  const roles = ask.kind === "alumni" ? { titles: [], seniority: [] } : { titles: ask.titles, seniority: ask.seniority };
+  const roles = ask.kind === "alumni" ? { titles: [] as string[], seniority: [] as string[] } : { titles: ask.titles, seniority: ask.seniority };
   const wired = !!(d.config.provider && d.config.apiKey && d.provider);
   const notes: string[] = [];
-  if (ask.kind === "alumni") notes.push(`Neither people-data service I can use filters by school, so alumni come only from the schools on your own contacts.`);
+  if (ask.kind === "alumni") notes.push("Public pages rarely say where someone studied, so alumni come only from the schools on your own contacts.");
   if (wired && ask.kind !== "alumni") {
     for (const c of companies) {
-      const { key, norm } = await queryKey({ company: c, titles: roles.titles, seniority: roles.seniority });
-      await d.store.request(userId, d.config.provider!, key, norm, d.config.cacheSeconds);
+      const { key, norm } = await queryKey({ company: c, titles: roles.titles });
+      await d.store.request(userId, "web", key, norm, d.config.cacheSeconds);
     }
-    // This person's own queued lookups, now, many at once; other people's are the scheduled drain's.
     for (;;) {
       const r = await runLookups({ store: d.store, provider: d.provider, batch: d.workerBatch ?? 25, leaseSeconds: d.config.leaseSeconds, userId });
       if (!r.claimed || r.refused) break;
     }
   } else if (!wired && ask.kind !== "alumni") notes.push(notWiredReply(d.config));
-  // Read every match, page by page (indexed keyset reads, bounded per call).
   const keys = companies.map((c) => companyKey(c));
   const out: Target[] = [];
-  const seen = new Set<number>();
+  const byId = new Map<number, Target>();
   for (let after = 0; ;) {
     const page = await d.store.candidates(userId, keys, after, 1000);
     if (!page.length) break;
     after = page[page.length - 1].id;
     for (const c of page) {
-      if (seen.has(c.id)) continue;
       let why: string | null;
       if (ask.kind === "alumni") {
         const a = plainWords(c.school), b = plainWords(ask.school);
         why = a && b && (a.includes(b) || b.includes(a)) ? `went to ${c.school}` : null;
       } else why = titleMatch(c.position, roles);
+      // A discovered row linked to the person's own contact is the same person: its published address fills theirs.
+      const own = c.same_as ? byId.get(c.same_as) : undefined;
+      if (own) {
+        if (!own.email && c.email) {
+          const l = labelOf(c);
+          Object.assign(own, { email: c.email, address: l, evidence: c.email_evidence, sendable: c.sendable, source_url: c.source_url, reason: `${own.reason.replace(/\.$/, "")}; ${addressLine(c, l)}, ${fromLine(c)}.` });
+        }
+        continue;
+      }
       if (!why) continue;
-      // A provider row linked to the person's own contact: one person, the own row named, the found address added.
-      if (c.same_as) seen.add(c.same_as);
-      seen.add(c.id);
-      out.push({ id: c.id, name: c.name ?? c.email ?? "", title: c.position, company: c.company, email: c.email, sendable: c.sendable, source: c.source, reason: reasonOf(c, why) });
+      const l = labelOf(c);
+      const t: Target = { id: c.id, name: c.name ?? c.email ?? "", title: c.position, company: c.company, email: c.email, address: l, evidence: c.email_evidence,
+        sendable: c.sendable, source: c.source, source_url: c.source_url,
+        reason: `${c.position ? `${c.position} at ${c.company}` : `at ${c.company}`}; ${why}; ${fromLine(c)}; ${addressLine(c, l)}.` };
+      byId.set(c.id, t);
+      out.push(t);
     }
   }
   let waiting = 0;
   if (wired) {
-    const s = await d.store.status(userId, d.config.provider!);
+    const s = await d.store.status(userId, "web");
     waiting = s.waiting;
-    const label = LABEL[d.config.provider!];
-    if (s.blocked_reason === "out_of_credits") notes.push(`${label} says the account is out of lookup credits, so ${s.waiting ? `${s.waiting} ${s.waiting === 1 ? "lookup is" : "lookups are"} waiting` : "new lookups wait"} until the owner adds credits; I'll finish them then.`);
-    else if (s.blocked_reason === "rate_limited") notes.push(`${label} asked me to slow down, so ${s.waiting} ${s.waiting === 1 ? "lookup is" : "lookups are"} waiting; they run again after ${new Date(s.blocked_until!).toISOString().slice(11, 16)} UTC.`);
-    else if (s.waiting) notes.push(`${s.waiting} ${s.waiting === 1 ? "lookup is" : "lookups are"} still running; ask again shortly for the rest.`);
-    if (s.failed.length) notes.push(`${s.failed.length} ${s.failed.length === 1 ? "lookup" : "lookups"} couldn't be done by ${label}.`);
+    if (s.blocked_reason === "out_of_credits") notes.push(`The web search service says its account is out of credit, so ${s.waiting ? `${s.waiting} ${s.waiting === 1 ? "search is" : "searches are"} waiting` : "new searches wait"} until it's topped up; I'll finish them then.`);
+    else if (s.blocked_reason === "rate_limited") notes.push(`The web search service asked me to slow down, so ${s.waiting} ${s.waiting === 1 ? "search is" : "searches are"} waiting; they run again after ${new Date(s.blocked_until!).toISOString().slice(11, 16)} UTC.`);
+    else if (s.waiting) notes.push(`${s.waiting} ${s.waiting === 1 ? "search is" : "searches are"} still running; ask again shortly for the rest.`);
+    if (s.failed.length) notes.push(`${s.failed.length} ${s.failed.length === 1 ? "search" : "searches"} couldn't be done.`);
   }
-  const sendable = out.filter((x) => x.sendable).length;
+  const sendable = out.filter((x) => x.sendable || x.address === "known").length;
   const head = out.length
-    ? `${out.length} ${out.length === 1 ? "person" : "people"} at ${companies.length === 1 ? companies[0] : `${companies.length} companies`}, ${sendable} with an address verified for sending.`
+    ? `${out.length} ${out.length === 1 ? "person" : "people"} at ${companies.length === 1 ? companies[0] : `${companies.length} companies`}, ${sendable} with an address I could use (each one labeled published, known or inferred).`
     : `No one matching at ${companies.length === 1 ? companies[0] : `${companies.length} companies`} yet.`;
-  const status: TargetsResult["status"] = !wired && ask.kind !== "alumni" ? "NOT_WIRED" : notes.some((n) => /out of lookup credits|slow down/.test(n)) ? "refused" : waiting ? "waiting" : out.length ? "ok" : "none";
+  const status: TargetsResult["status"] = !wired && ask.kind !== "alumni" ? "NOT_WIRED" : notes.some((n) => /out of credit|slow down/.test(n)) ? "refused" : waiting ? "waiting" : out.length ? "ok" : "none";
   return { status, reply: [head, ...notes].join(" "), candidates: out, companies, waiting };
 }

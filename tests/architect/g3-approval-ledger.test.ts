@@ -177,7 +177,8 @@ Deno.test({
           values ('${u}', 'Acme Corporation', 'Analyst', 'https://jobs.lever.co/acme/3', 'Thanks for applying', '{}', now() - interval '1 day')`);
         const email = (job: string, company: string) => ({
           kind: "email", version: 1, user_id: u, job_id: job, company, url: `https://example.org/${job}`, to: "jobs@example.org",
-          subject: "Application", body: "TEST application body", attachment: { sha256: "c".repeat(64) },
+          // OWNER RULE (20261026210016): an emailed application goes into driving only with the person's resume, stored for them.
+          subject: "Application", body: "TEST application body", attachment: { sha256: "d".repeat(64) }, resume_sha256: "d".repeat(64),
         });
         const reserve = async (p: any) => {
           const h = await hashOf(p);

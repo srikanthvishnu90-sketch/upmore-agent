@@ -222,6 +222,20 @@ test("(e2e #227) 'my name is Priya Raman' is saved as the person's fact and ackn
   assert.match(String(p2.say("what's my name?").out.reply), /haven't told me your name/, "never invented");
 });
 
+test("(coordinator B) a new person's first 'find jobs' with nothing on the list is pointed at onboarding, and no fact is invented", async () => {
+  await setup();
+  let snap = null;
+  const ctx = host.createTurnCtx({ userId: "u-first", threadId: "t-first", now: Date.parse("2026-10-28T15:00:00Z"), snapshot: null, postings: [] });
+  const o = host.runTurn("find jobs", ctx);
+  snap = copy(host.extractSnapshot(ctx));
+  const r = String(o.reply);
+  assert.match(r, /resume/i, `onboarding next step: ${r}`);
+  assert.ok(!/built from the boards|will be invented|something real/.test(r), r);
+  const stated = (ctx.statedFacts && ctx.statedFacts.facts) || [];
+  assert.equal(stated.length, 0, `no fact invented: ${JSON.stringify(stated)}`);
+  assert.ok(!(snap.stores && snap.stores.profile && (snap.stores.profile.facts || []).length), "no profile facts");
+});
+
 test("(owner 5) search + tailor + alert in one message: every part is acknowledged, the alert is saved", async () => {
   await setup();
   const p = account("u-owner5");

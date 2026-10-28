@@ -13248,9 +13248,10 @@ const CareerRouter = (() => {
       excluded, resultStatus: "prepared",
     };
     if (!top.length && dedupedTo === 0 && !ranked.length) {
-      const facts = ["The list is built from the boards as they connect — today it holds no roles at all, so there is nothing to rank, and no role will be invented to fill it."];
-      if (fams && fams.length) facts.push(`Your ask is on record exactly as stated — ${fams.map(familyLabel).join(" + ")} — and this search runs first the moment matching roles land on the list.`);
-      const reply = compose({ headline: o.headline || "Nothing to rank yet — the current list is empty.", facts, nextStep: o.nextStep || "Paste a posting you found, or name a company to watch, and we start from something real." });
+      const facts = ["I don't have open roles on my list right now, and I won't make any up."];
+      if (fams && fams.length) facts.push(`I've kept your ask (${fams.map(familyLabel).join(" + ")}) and will run it as soon as matching roles come in.`);
+      const newPerson = !(profile && (profile.facts || []).length);
+      const reply = compose({ headline: o.headline || "Nothing to show yet.", facts, nextStep: o.nextStep || (newPerson ? "Meanwhile, send me your resume — paste it here or attach the file." : "Paste a posting you found, or name a company to watch, and I'll start there.") });
       return Object.assign({ intent: o.intent || "career_discovery", reply, requested_families: fams || [] }, publicFacts);
     }
     if (!top.length && fams && fams.length && family && family.onList > 0) {

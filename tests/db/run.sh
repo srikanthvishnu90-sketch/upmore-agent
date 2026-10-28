@@ -470,13 +470,6 @@ echo "== career_turn_gate_race.py (two real sessions enter at once: the second w
 python3 "$HERE/career_turn_gate_race.py" "${PSQL[@]}"
 echo "== career_kb_postings_recency_index.test.sql (the pool read walks the posted_at index, no sort)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_kb_postings_recency_index.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
-# MASS NETWORKING M5 (20261027240000): replies understood as a conversation, follow-ups, calls; applied twice (idempotent).
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027240000_career_outreach_replies.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027240000_career_outreach_replies.sql"
-echo "== career_outreach_replies.test.sql (a stop is final; one follow-up after the person's own interval, never past a reply or before an OOO return; one event; leases; fairness)"
-"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outreach_replies.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
-echo "== career_outreach_replies_load.py (10,000 people, 50,000 approved actions, 20 concurrent workers: exactly once, fair)"
-python3 "$HERE/career_outreach_replies_load.py" "${PSQL[@]}"
 echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 if [[ -f "$BRIDGE_PATH" ]]; then
@@ -530,6 +523,13 @@ echo "== career_outreach_followup_claim.test.sql (due reminders claimed in lease
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027200000_career_send_queue.sql"
 echo "== career_send_queue.test.sql (exactly once per approval; skip-locked account leases; Gmail's own backoff; opt-out, bounce, disconnect, erase; no volume number)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_send_queue.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# MASS NETWORKING M5 (20261027240000, after M1's rail, which it hands every approved email to): replies understood as a conversation, follow-ups, calls; applied twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027240000_career_outreach_replies.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027240000_career_outreach_replies.sql"
+echo "== career_outreach_replies.test.sql (a stop is final; one follow-up after the person's own interval, never past a reply or before an OOO return; one event; leases; fairness)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outreach_replies.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== career_outreach_replies_load.py (10,000 people, 50,000 approved actions, 20 concurrent workers: exactly once, fair)"
+python3 "$HERE/career_outreach_replies_load.py" "${PSQL[@]}"
 # LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left
 # (the card-cloud bridge included). The test applies it (twice) over production's shape, then checks the whole schema:
 # no SECURITY DEFINER function anon can run, none without a fixed search_path.

@@ -13,15 +13,17 @@
 //      (conversationFor) and by "what's happened with my outreach" / "who replied" / "who wants to talk".
 //   4. Follow-ups: the person's own sequence, any length and spacing (no Trainee default or cap; unset, asked once with
 //      three touches suggested), each drafted under the outreach fact-lock and approved by one yes on the exact batch
-//      (D-MN-2), sent through the send rail; the sequence stops at any reply, a stop, a bounce, the person's own follow-up
-//      or their no, and waits past an out-of-office return date.
+//      (D-MN-2), handed to the sending rail (career_send_rail.ts queueApproved, M1) bound to that same hash; the sequence
+//      stops at any reply, a stop, a bounce, the person's own follow-up or their no, and waits past an out-of-office
+//      return date. A reply that lands while a follow-up still waits on the rail cancels it there (reply_apply).
 //   5. Calls: a contact who wants to talk gets three times that are free on the person's calendar and inside working hours
 //      in both time zones, in a reply the person approves; when the contact confirms one, the calendar event (Meet or Teams
 //      link where the provider gives one) is created only after the person approves that exact event, once.
 // No volume limit of Trainee's own (owner, 2026-10-27): the only brakes are an outside system's refusal (429, quota), met
 // by backing off that mailbox and resuming.
 import { type ModelFn, outreachLock, payloadHash, confirmed, factText, parseNumbers, OPT_OUT_LINE, sha256 } from "./career_outreach.ts";
-import { buildRaw, ONE_ADDRESS } from "./career_outreach_gmail.ts";
+import { ONE_ADDRESS } from "./career_outreach_gmail.ts";
+import { queueApproved, type Rpc } from "./career_send_rail.ts";
 import { type Busy, type CalendarProvider, fmtIn, googleCalendar, isFree, type OutlookCalendarPort, outlookCalendar, proposeSlots, type Slot, validZone } from "./career_calendar.ts";
 
 // ------------------------------------------------------------------------------------------------ shapes
@@ -68,15 +70,22 @@ export interface MailboxReader {
   changes(userId: string, cursor: string | null, threads: (ids: string[]) => Promise<Set<string>>): Promise<MailChanges>;
   thread(userId: string, providerThread: string): Promise<MailChanges>;
 }
-export type SendOut = { status: "sent"; id: string; thread_id: string } | { status: "NOT_WIRED"; reason: string } | { status: "RATE_LIMITED"; detail: string } | { status: "ERROR"; detail: string };
-// The send rail (M1's for Gmail, M4's for Outlook): one approved message, on the thread it answers.
-export interface ReplyRail { send(userId: string, provider: Provider, m: { to: string; subject: string; text: string; thread: string | null }): Promise<SendOut> }
+// queued: the sending rail took it (exactly once, by the approval's hash) and sends it from the person's own mailbox;
+// sent: a provider that sends at once (Outlook through #226). REFUSED: never sent and never will be (opted out, bounced
+// address, changed after approval).
+export type SendOut = { status: "sent"; id: string; thread_id: string } | { status: "queued"; id: string; thread_id: string } | { status: "NOT_WIRED"; reason: string } | { status: "RATE_LIMITED"; detail: string }
+  | { status: "REFUSED"; detail: string } | { status: "ERROR"; detail: string };
+// One approved message, bound to the action that approved it: the action's id is the rail's source id and its approved
+// hash is the rail's approval hash, so the rail re-hashes the exact text and takes it at most once.
+export interface ReplyRail { send(userId: string, provider: Provider, m: { to: string; subject: string; text: string; thread: string | null }, approval: { sourceId: string; approvalHash: string }): Promise<SendOut> }
 
 export interface RepliesStore {
   adopt(limit: number): Promise<number>;
   claimSync(worker: string, limit: number, now: number, leaseS: number): Promise<SyncRow[]>;
   releaseSync(userId: string, provider: Provider, worker: string, cursor: string | null, nextAt: number, error: string | null): Promise<boolean>;
-  threadsByProvider(userId: string, provider: Provider, ids: string[]): Promise<ThreadRow[]>;
+  // The watched threads among these provider thread ids: a thread's own id, or one its follow-ups and replies were sent on
+  // (the rail sends each as a new message, so a reply to it lands on a new provider thread). matched: the id that matched.
+  threadsByProvider(userId: string, provider: Provider, ids: string[]): Promise<(ThreadRow & { matched?: string })[]>;
   openThreads(userId: string, provider: Provider, limit: number): Promise<ThreadRow[]>;
   thread(userId: string, id: string): Promise<ThreadRow | null>;
   threadsOf(userId: string, limit: number): Promise<ThreadRow[]>;
@@ -311,7 +320,7 @@ export async function runReplySync(o: SyncRun) {
     try {
       if (!reader) { stats.not_wired++; await o.store.releaseSync(row.user_id, row.provider, o.worker, null, o.now + 3600_000, "not_wired: this mailbox is not connected"); continue; }
       const tz = (await o.tz(row.user_id).catch(() => null)) || "America/New_York";
-      const watched = async (ids: string[]) => new Set((await o.store.threadsByProvider(row.user_id, row.provider, ids)).map((t) => String(t.provider_thread)));
+      const watched = async (ids: string[]) => new Set((await o.store.threadsByProvider(row.user_id, row.provider, ids)).map((t) => String(t.matched ?? t.provider_thread)));
       let got = await reader.changes(row.user_id, row.cursor, watched);
       if (got.status === "CURSOR_EXPIRED") got = await reader.changes(row.user_id, null, watched);
       if (got.status === "NOT_WIRED") { stats.not_wired++; await o.store.releaseSync(row.user_id, row.provider, o.worker, null, o.now + 3600_000, `not_wired: ${got.reason}`.slice(0, 300)); continue; }
@@ -325,7 +334,7 @@ export async function runReplySync(o: SyncRun) {
         if (whole.status === "ok") msgs = msgs.concat(whole.messages);
       }
       const ids = [...new Set(msgs.map((m) => m.thread))];
-      const byThread = new Map((await o.store.threadsByProvider(row.user_id, row.provider, ids)).map((t) => [String(t.provider_thread), t]));
+      const byThread = new Map((await o.store.threadsByProvider(row.user_id, row.provider, ids)).map((t) => [String(t.matched ?? t.provider_thread), t]));
       const seen = new Set<string>();
       for (const m of msgs.sort((a, b) => a.at.localeCompare(b.at))) {
         if (seen.has(m.id)) continue;
@@ -375,7 +384,10 @@ export function gmailMailbox(d: { fetch: typeof fetch; token: (userId: string, s
   };
   const refused = async (r: Response): Promise<MailChanges | null> => {
     if (r.status === 429 || (r.status === 403 && /rateLimit|quota/i.test(await r.clone().text()))) return { status: "RATE_LIMITED", retry_after_s: Number(r.headers.get("retry-after")) || undefined, detail: `HTTP ${r.status}` };
+    // 401: the grant was revoked; 403 without a rate reason: Google refuses this app the mailbox (no gmail.readonly on the
+    // grant, or the account is not on the unverified app's test-user list). Said plainly (mailboxLines), never worked around.
     if (r.status === 401) return { status: "NOT_WIRED", reason: "the Google grant was revoked" };
+    if (r.status === 403) return { status: "NOT_WIRED", reason: "Google refused read access to this mailbox" };
     return r.ok ? null : { status: "ERROR", detail: `HTTP ${r.status}` };
   };
   const full = async (userId: string, id: string) => { const g = await get(userId, `/messages/${encodeURIComponent(id)}?format=full`); return !g.nw && g.r.ok ? gmailMsg(await g.r.json()) : null; };
@@ -425,21 +437,20 @@ export function outlookMailbox(port: OutlookMailPort | null): MailboxReader | un
     thread: (userId, id) => port.outlookThread(userId, id),
   };
 }
-// An interim Gmail reply rail until M1's rail takes a thread: the same one-recipient, no-Cc/Bcc message (buildRaw), sent
-// on the thread it answers. Outlook replies go through M4's rail.
-export function gmailReplyRail(d: { fetch: typeof fetch; token: (userId: string, scope: string) => Promise<string | null> }, outlook?: ReplyRail): ReplyRail {
+// Every approved email of this lane leaves through the sending rail (M1, career_send_rail.ts): queued as kind "general"
+// with the action's id as its source and the action's approved hash as its approval, so the rail re-hashes the exact text,
+// refuses an opted-out or bounced address, takes it at most once, checks Sent before any retry, and backs off only when
+// Gmail refuses. Outlook threads go through #226's send when it is passed in; otherwise NOT_WIRED, plainly.
+export function sendRailReplyRail(d: Rpc, outlook?: ReplyRail): ReplyRail {
   return {
-    async send(userId, provider, m) {
-      if (provider === "outlook") return outlook ? outlook.send(userId, provider, m) : { status: "NOT_WIRED", reason: "sending from Outlook is not connected in Trainee yet" };
-      let raw: string;
-      try { raw = buildRaw({ to: m.to, subject: m.subject, text: m.text }); } catch (e) { return { status: "ERROR", detail: e instanceof Error ? e.message : String(e) }; }
-      const token = await d.token(userId, "https://www.googleapis.com/auth/gmail.send");
-      if (!token) return { status: "NOT_WIRED", reason: "no career Google grant with gmail.send" };
-      const r = await d.fetch(`${GMAIL}/messages/send`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ raw, ...(m.thread ? { threadId: m.thread } : {}) }) });
-      if (r.status === 429 || (r.status === 403 && /rateLimit|quota/i.test(await r.clone().text()))) return { status: "RATE_LIMITED", detail: `HTTP ${r.status}` };
-      if (!r.ok) return { status: "ERROR", detail: `send: HTTP ${r.status}` };
-      const j: any = await r.json().catch(() => ({}));
-      return j?.id ? { status: "sent", id: String(j.id), thread_id: String(j.threadId ?? m.thread ?? "") } : { status: "ERROR", detail: "send: no message id" };
+    async send(userId, provider, m, approval) {
+      if (provider === "outlook") return outlook ? outlook.send(userId, provider, m, approval) : { status: "NOT_WIRED", reason: "sending from Outlook is not connected in Trainee yet" };
+      const [r] = await queueApproved(d, userId, [{ kind: "general", sourceId: approval.sourceId, approvalHash: approval.approvalHash, to: m.to, subject: m.subject, text: m.text }]);
+      if (r?.status === "queued" || r?.status === "already_queued") return { status: "queued", id: String(r.id ?? ""), thread_id: "" };
+      if (r?.reason === "not_connected" || r?.reason === "not_wired") return { status: "NOT_WIRED", reason: "Gmail is not connected for sending" };
+      if (r?.reason === "opted_out" || r?.reason === "bad_address") return { status: "REFUSED", detail: "do_not_contact" };
+      if (r?.reason === "changed") return { status: "REFUSED", detail: "changed" };
+      return { status: "ERROR", detail: `send rail: ${r?.reason ?? "no answer"}` };
     },
   };
 }
@@ -486,7 +497,7 @@ export const SUGGESTED_STEPS = [3, 4, 7]; // the same, as waits between touches
 export const FOLLOWUP_ASK = "When someone doesn't reply to an outreach email, when should I draft follow-ups for your approval? Most replies come within three touches, so I suggest follow-ups 3, 7 and 14 days after the first email: say \"use the suggested\". Or set your own, like \"follow up after 5 days\", \"follow up after 2, 5, 9 and 20 days\" or \"4 follow-ups a week apart\", or say \"no follow-ups\".";
 export async function runFollowupDrafts(o: { store: RepliesStore; outbox: Outbox; model: ModelFn | null; person: (userId: string) => Promise<Person>; now: number; worker: string; limit?: number; leaseS?: number }) {
   const stats = { asked: 0, due: 0, drafted: 0, failed: 0, batches: 0 };
-  for (const u of await o.store.askDue(500, o.now)) if (await o.outbox.enqueue(u, { key: "outreach:followup-interval-ask", kind: "status", text: FOLLOWUP_ASK, at: o.now })) stats.asked++;
+  for (const u of await o.store.askDue(500, o.now)) if (await o.outbox.enqueue(u, { key: "status:outreach-followup-interval-ask", kind: "status", text: FOLLOWUP_ASK, at: o.now })) stats.asked++;
   const due = await o.store.followupsDue(o.worker, o.limit ?? 200, o.now, o.leaseS ?? 300);
   stats.due = due.length;
   const byUser = new Map<string, ThreadRow[]>();
@@ -508,9 +519,29 @@ export async function runFollowupDrafts(o: { store: RepliesStore; outbox: Outbox
     const saved = await o.store.saveActions(userId, items, o.now);
     for (const t of threads) if (saved.some((a) => a.thread_id === t.id)) await o.store.releaseThread(t.id, o.worker, "drafted");
     stats.drafted += saved.length; stats.batches++;
-    await o.outbox.enqueue(userId, { key: `outreach:actions:${saved[0].batch_id}`, kind: "followup", text: actionsText(saved, await threadsMap(o.store, userId, saved)), at: o.now });
+    await enqueueParts(o.outbox, userId, `followup:outreach-actions:${saved[0].batch_id}`, "followup", actionsText(saved, await threadsMap(o.store, userId, saved)), o.now);
   }
   return stats;
+}
+// A batch of any size, as messages the outbox takes (each at most OUTBOX_MAX characters; career_outbox holds 4,000), split
+// between items so every item is shown whole; each part's key is the batch's key and its number (once per key, ever).
+export const OUTBOX_MAX = 3800;
+export function outboxParts(text: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  for (const block of text.split("\n\n")) {
+    const add = cur ? `${cur}\n\n${block}` : block;
+    if (add.length <= OUTBOX_MAX) { cur = add; continue; }
+    if (cur) out.push(cur);
+    cur = block;
+    while (cur.length > OUTBOX_MAX) { out.push(cur.slice(0, OUTBOX_MAX)); cur = cur.slice(OUTBOX_MAX); }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+async function enqueueParts(outbox: Outbox, userId: string, key: string, kind: "status" | "followup", text: string, at: number) {
+  const parts = outboxParts(text);
+  for (const [i, t] of parts.entries()) await outbox.enqueue(userId, { key: parts.length === 1 ? key : `${key}:${i + 1}`, kind, text: t, at });
 }
 async function threadsMap(store: RepliesStore, userId: string, as: Action[]) {
   const m = new Map<string, ThreadRow>();
@@ -560,9 +591,13 @@ export async function runScheduling(o: { store: RepliesStore; outbox: Outbox; ca
     const r = cal ? await draftScheduling({ store: o.store, userId: t.user_id, thread: t, calendar: cal, model: o.model, person: await o.person(t.user_id), tz, now: o.now }) : { status: "not_wired" as const };
     stats[r.status] = (stats[r.status] ?? 0) + 1;
     if (r.status === "drafted") fresh.push(r.action);
+    // The calendar can't be read: the person is told once per conversation, plainly (Google's unverified-app screen and the
+    // beta's 100-test-user cap included); no times are guessed and nothing is drafted.
+    if (r.status === "not_wired") await o.outbox.enqueue(t.user_id, { key: `status:outreach-calendar-not-wired:${t.id}`, kind: "status",
+      text: `${firstName(t)}${t.recipient_firm ? ` (${t.recipient_firm})` : ""} wants to talk, but ${t.provider === "outlook" ? OUTLOOK_CALENDAR_NOT_CONNECTED : CALENDAR_NOT_CONNECTED}`, at: o.now });
   }
   // Every action a person has waiting (scheduling replies and confirmed events) goes out as one message per batch.
-  for (const a of fresh) await o.outbox.enqueue(a.user_id, { key: `outreach:actions:${a.batch_id}`, kind: "status", text: actionsText([a], await threadsMap(o.store, a.user_id, [a])), at: o.now });
+  for (const a of fresh) await enqueueParts(o.outbox, a.user_id, `status:outreach-actions:${a.batch_id}`, "status", actionsText([a], await threadsMap(o.store, a.user_id, [a])), o.now);
   return stats;
 }
 
@@ -592,15 +627,17 @@ export async function runOutreachActions(o: { store: RepliesStore; rail: ReplyRa
       else { await o.store.finishAction(a.id, o.worker, "failed", null, null, `error: ${r.detail}`); stats.failed++; }
       continue;
     }
-    const r = await o.rail.send(a.user_id, t!.provider, { to: p.to, subject: p.subject, text: p.text, thread: p.thread ?? t!.provider_thread }).catch((e) => ({ status: "ERROR", detail: String(e) }) as SendOut);
-    if (r.status === "sent") {
-      await o.store.finishAction(a.id, o.worker, "done", r.id, null, "sent");
+    const r = await o.rail.send(a.user_id, t!.provider, { to: p.to, subject: p.subject, text: p.text, thread: p.thread ?? t!.provider_thread }, { sourceId: a.id, approvalHash: String(a.approved_hash) })
+      .catch((e) => ({ status: "ERROR", detail: String(e) }) as SendOut);
+    if (r.status === "sent" || r.status === "queued") {
+      await o.store.finishAction(a.id, o.worker, "done", r.id, null, r.status === "queued" ? "queued on the sending rail" : "sent");
       const conv = mergeTurn(t!, { who: "person", asks: [], commitments: a.kind === "schedule_reply" ? ["share times for a call"] : [], at: new Date(o.now).toISOString(), kind: a.kind });
       const status = a.kind === "schedule_reply" ? "call_proposed" : t!.status;
-      await o.store.personTurn(a.user_id, t!.id, r.id, new Date(o.now).toISOString(), { summary: a.kind === "followup" ? "You sent the follow-up." : "You sent three times for a call.",
+      await o.store.personTurn(a.user_id, t!.id, `${r.status}:${a.id}`, new Date(o.now).toISOString(), { summary: a.kind === "followup" ? "You sent the follow-up." : "You sent three times for a call.",
         conversation: { ...conv, next_step: nextStep({ ...t!, ...conv, status, followup_state: a.kind === "followup" ? "none" : t!.followup_state, followups_sent: (t!.followups_sent ?? 0) + (a.kind === "followup" ? 1 : 0) }, { tz: "UTC" }) } }, true);
       stats.sent++;
-    } else if (r.status === "RATE_LIMITED" || r.status === "NOT_WIRED") { await o.store.finishAction(a.id, o.worker, "retry", null, null, `${r.status.toLowerCase()}: ${"reason" in r ? r.reason : r.detail}`); stats.retry++; }
+    } else if (r.status === "REFUSED") { await o.store.finishAction(a.id, o.worker, "failed", null, null, `refused: ${r.detail}`); stats.refused++; }
+    else if (r.status === "RATE_LIMITED" || r.status === "NOT_WIRED") { await o.store.finishAction(a.id, o.worker, "retry", null, null, `${r.status.toLowerCase()}: ${"reason" in r ? r.reason : r.detail}`); stats.retry++; }
     else { await o.store.finishAction(a.id, o.worker, "failed", null, null, `error: ${r.detail}`.slice(0, 300)); stats.failed++; }
   }
   return stats;
@@ -731,6 +768,7 @@ export async function repliesTurn(o: { message: string; userId: string; chatThre
 export function memoryRepliesStore() {
   const threads: ThreadRow[] = [], turns: (TurnRow & { user_id: string })[] = [], sync: (SyncRow & { lease_owner: string | null; lease_until: number | null })[] = [];
   const prefs: Record<string, FollowupPrefs> = {}, actions: Action[] = [], dnc = new Set<string>(), intents: Record<string, string | null> = {};
+  const aliases: { thread_id: string; provider_thread: string }[] = [];
   const leases: Record<string, { owner: string; until: number }> = {}, actionLease: Record<string, { owner: string; until: number }> = {};
   let seq = 0;
   const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -740,6 +778,8 @@ export function memoryRepliesStore() {
     dump: () => copy({ threads, turns, sync, prefs, actions, dnc: [...dnc] }),
     setIntent(id: string, v: string | null) { intents[id] = v; },
     addDnc(email: string) { dnc.add(lower(email)); },
+    // The rail sent a follow-up or a reply with times as a new message on its own provider thread (career_outreach_threads_adopt).
+    alias(threadId: string, providerThread: string) { aliases.push({ thread_id: threadId, provider_thread: providerThread }); },
     async adopt() { return 0; },
     async track(t: any) {
       const hit = threads.find((x) => x.user_id === t.user_id && ((t.draft_id && x.draft_id === t.draft_id) || (t.provider_thread && x.provider === t.provider && x.provider_thread === t.provider_thread)));
@@ -763,7 +803,14 @@ export function memoryRepliesStore() {
       s.next_at = new Date(nextAt).toISOString(); s.lease_owner = null; s.lease_until = null; s.last_error = error;
       return true;
     },
-    async threadsByProvider(u: string, p: Provider, ids: string[]) { return copy(threads.filter((t) => t.user_id === u && t.provider === p && ids.includes(String(t.provider_thread)))); },
+    async threadsByProvider(u: string, p: Provider, ids: string[]) {
+      const out: (ThreadRow & { matched: string })[] = [];
+      for (const id of ids) {
+        const t = threads.find((x) => x.user_id === u && x.provider === p && (x.provider_thread === id || aliases.some((a) => a.thread_id === x.id && a.provider_thread === id)));
+        if (t) out.push({ ...copy(t), matched: id });
+      }
+      return out;
+    },
     async openThreads(u: string, p: Provider, limit: number) { return copy(threads.filter((t) => t.user_id === u && t.provider === p && !["not_interested", "bounced", "call_scheduled"].includes(t.status)).slice(0, limit)); },
     async thread(u: string, id: string) { const t = threads.find((x) => x.id === id && x.user_id === u); return t ? copy(t) : null; },
     async threadsOf(u: string, limit: number) { return copy(threads.filter((t) => t.user_id === u).sort((a, b) => b.status_at.localeCompare(a.status_at)).slice(0, limit)); },
@@ -862,7 +909,7 @@ export function memoryRepliesStore() {
     },
     async claimActions(worker: string, limit: number, perUser: number, now: number, leaseS: number) {
       for (const a of actions) if (a.status === "running" && actionLease[a.id] && actionLease[a.id].until < now) {
-        if (a.kind === "calendar_event") a.status = "approved"; else { a.status = "failed"; a.result = "lease expired during the send: not re-sent; check your sent mail"; const t = threads.find((x) => x.id === a.thread_id); if (a.kind === "followup" && t?.followup_state === "drafted") t.followup_state = "off"; }
+        a.status = "approved"; a.result = "lease expired; taken again (idempotent)";
         delete actionLease[a.id];
       }
       const out: Action[] = [];
@@ -931,7 +978,7 @@ export function supabaseRepliesStore(admin: any): RepliesStore {
     adopt: async (limit) => Number(await rpc("career_outreach_threads_adopt", { p_limit: limit }, "adopt sent outreach")) || 0,
     claimSync: async (w, limit, now, leaseS) => (await rpc("career_outreach_sync_claim", { p_worker: w, p_limit: limit, p_now: iso(now), p_lease_seconds: leaseS }, "claim mailboxes")) ?? [],
     releaseSync: async (u, p, w, cursor, nextAt, error) => !!(await rpc("career_outreach_sync_release", { p_user: u, p_provider: p, p_worker: w, p_cursor: cursor, p_next_at: iso(nextAt), p_error: error }, "release a mailbox")),
-    threadsByProvider: async (u, p, ids) => ids.length ? (must(await admin.from("career_outreach_threads").select(TCOLS).eq("user_id", u).eq("provider", p).in("provider_thread", ids.slice(0, 500)), "read watched threads") ?? []) : [],
+    threadsByProvider: async (u, p, ids) => ids.length ? ((await rpc("career_outreach_threads_watched", { p_user: u, p_provider: p, p_ids: ids.slice(0, 500) }, "read watched threads")) ?? []) : [],
     openThreads: async (u, p, limit) => must(await admin.from("career_outreach_threads").select(TCOLS).eq("user_id", u).eq("provider", p).not("status", "in", "(not_interested,bounced,call_scheduled)").order("sent_at", { ascending: false }).limit(limit), "read open threads") ?? [],
     thread: async (u, id) => must(await admin.from("career_outreach_threads").select(TCOLS).eq("user_id", u).eq("id", id).maybeSingle(), "read a thread") ?? null,
     threadsOf: async (u, limit) => must(await admin.from("career_outreach_threads").select(TCOLS).eq("user_id", u).order("status_at", { ascending: false }).limit(limit), "read your outreach") ?? [],
@@ -968,8 +1015,10 @@ export function supabaseRepliesStore(admin: any): RepliesStore {
     claimActions: async (w, limit, per, now, leaseS) => (await rpc("career_outreach_action_claim", { p_worker: w, p_limit: limit, p_per_user: per, p_now: iso(now), p_lease_seconds: leaseS }, "claim actions")) ?? [],
     finishAction: async (id, w, outcome, ref, link, result, event) => !!(await rpc("career_outreach_action_finish", { p_id: id, p_worker: w, p_outcome: outcome, p_ref: ref, p_link: link, p_result: result, p_event: event ?? null }, "finish an action")),
     async isDnc(email) {
+      // Opted out (career_outreach_dnc) or bounced (career_send_bad_addresses, M1's list: never emailed again by anyone).
       const h = await sha256(email.trim().toLowerCase());
-      return (must(await admin.from("career_outreach_dnc").select("email_hash").eq("email_hash", h).limit(1), "read the do-not-contact list") ?? []).length > 0;
+      if ((must(await admin.from("career_outreach_dnc").select("email_hash").eq("email_hash", h).limit(1), "read the do-not-contact list") ?? []).length > 0) return true;
+      return (must(await admin.from("career_send_bad_addresses").select("email_hash").eq("email_hash", h).limit(1), "read the bounced addresses") ?? []).length > 0;
     },
     mailboxes: async (u) => must(await admin.from("career_outreach_sync").select("provider,last_error,last_ok_at").eq("user_id", u), "read your mailboxes") ?? [],
     wantingCall: async (limit) => (await rpc("career_outreach_wanting_call", { p_limit: limit }, "read who wants a call")) ?? [],
@@ -1002,7 +1051,7 @@ export async function runRepliesLane(o: {
   readers.outlook = outlookMessagesMailbox(o.admin); // #226's inbox delta rows; NOT_WIRED when Outlook is not connected
   const ports = o.outlook?.graph ? outlookPortsFrom226(o.outlook.graph) : null;
   const calendars = { gmail: googleCalendar({ fetch: o.fetch, token: o.token }), outlook: outlookCalendar(ports?.calendar ?? null) };
-  const rail = gmailReplyRail({ fetch: o.fetch, token: o.token }, ports?.rail);
+  const rail = sendRailReplyRail({ rpc: (name, args) => o.admin.rpc(name, args) }, ports?.rail);
   const out: Record<string, unknown> = {};
   const step = async (name: string, f: () => Promise<unknown>) => { try { out[name] = await f(); } catch (e) { out[name] = { error: (e instanceof Error ? e.message : String(e)).slice(0, 300) }; } };
   await step("sync", () => runReplySync({ store, readers, model: o.model, now: o.now, worker, tz }));
@@ -1017,6 +1066,8 @@ export async function runRepliesLane(o: {
 // read now; the beta runs inside Google's 100-test-user cap with the app not yet verified, and the reply must say so when
 // that is what blocks the person's Google account). Only a mailbox whose last read was refused gets a line.
 export const GMAIL_NOT_CONNECTED = "I can't read replies in your Gmail yet, so replies that landed there aren't counted above. Your Google account isn't connected to Trainee with permission to read mail. While Trainee is in its beta, Google lets only accounts on Trainee's test list connect (Google caps that list at 100 people) and shows the app as not yet verified; if Google said \"access blocked\" or \"this app isn't verified\" when you tried, that is the reason, not anything you did. Say \"connect gmail\" to try again, or connect Outlook instead.";
+export const CALENDAR_NOT_CONNECTED = "I can't read your Google Calendar, so I can't propose times. Your Google account isn't connected to Trainee with calendar access. While Trainee is in its beta, Google lets only accounts on Trainee's test list connect (Google caps that list at 100 people) and shows the app as not yet verified; if Google said \"access blocked\" or \"this app isn't verified\", that is the reason, not anything you did. Say \"connect my calendar\" to try again, or reply to them with times yourself.";
+export const OUTLOOK_CALENDAR_NOT_CONNECTED = "I can't read your Outlook calendar, so I can't propose times: it isn't connected to Trainee (or Microsoft stopped accepting the connection). Text \"connect my outlook\" for a link, or reply to them with times yourself.";
 export const OUTLOOK_NOT_CONNECTED = "I can't read replies in your Outlook yet, so replies that landed there aren't counted above: it isn't connected to Trainee (or Microsoft stopped accepting the connection). Text \"connect my outlook\" for a link.";
 export function mailboxLines(rows: { provider: Provider; last_error?: string | null }[]): string[] {
   const out: string[] = [];
@@ -1086,8 +1137,9 @@ export function outlookPortsFrom226(g: Graph226): { calendar: OutlookCalendarPor
     },
   };
   const rail: ReplyRail | undefined = g.send ? {
-    async send(userId, _provider, m) {
-      const r = await g.send!(userId, { to: m.to, subject: m.subject, text: m.text }, { idemKey: await sha256(`${userId}:${m.to}:${m.subject}:${m.text}`), purpose: "followup" });
+    async send(userId, _provider, m, approval) {
+      // #226 sends only what hashes to the approval it is given; the idempotency key is the action and its approved hash.
+      const r = await g.send!(userId, { to: m.to, subject: m.subject, text: m.text }, { idemKey: await sha256(`${approval.sourceId}:${approval.approvalHash}`), purpose: "followup" });
       if (r?.status === "sent") return { status: "sent", id: String(r.id ?? ""), thread_id: String(r.thread_id ?? m.thread ?? "") };
       if (r?.status === "already_sent") return { status: "sent", id: "already_sent", thread_id: String(m.thread ?? "") };
       return graphRefusal(r);

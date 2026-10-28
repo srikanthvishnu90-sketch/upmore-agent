@@ -79,7 +79,7 @@ select t.ok((select count(*) = 0 from career_outreach_action_claim('w1', 10, 10,
 select t.ok((select result = 'replied' from career_outreach_actions where batch_id = '00000000-0000-4000-8000-00000000ab02'),
   'the claim refuses a follow-up on a thread with a reply');
 
--- 5. A call: the scheduling reply, then the confirmed event, created once; an email lease that expires is never re-sent.
+-- 5. A call: the scheduling reply, then the confirmed event, created once; an action whose lease expires is taken again.
 select t.ok(career_outreach_reply_apply('00000000-0000-4000-8000-0000000c5a01', (select id from ids where k='call'), 'o-m1', 'wants_call', now(),
   '{"who":"contact","contact_tz":"Europe/London","their_times":["2026-11-03T15:00:00Z"]}') = 'wants_call', 'wants a call');
 select t.ok((select count(*) = 1 from career_outreach_wanting_call(10)), 'it is on the scheduling list');
@@ -88,9 +88,9 @@ insert into career_outreach_actions(user_id,thread_id,kind,batch_id,n,payload,ha
 select t.ok((select count(*) = 0 from career_outreach_wanting_call(10)), 'with a scheduling reply waiting it is off the list');
 select t.ok((select count(*) = 1 from career_outreach_action_claim('w1', 10, 10, now(), 60)), 'the approved scheduling reply is claimed');
 select t.ok((select count(*) = 0 from career_outreach_action_claim('w2', 10, 10, now(), 60)), 'never by a second worker while leased');
--- The lease expires mid-send: failed, never re-sent automatically.
-select t.ok((select count(*) = 0 from career_outreach_action_claim('w2', 10, 10, now() + interval '5 minutes', 60)), 'the expired email is not claimed again');
-select t.ok((select status = 'failed' and result like 'lease expired%' from career_outreach_actions where batch_id = '00000000-0000-4000-8000-00000000ab03'), 'an email whose lease expired is marked failed, not re-sent');
+-- The lease expires mid-hand-off: the next claim takes it again (the rail's key makes a second hand-off the same row).
+select t.ok((select count(*) = 1 from career_outreach_action_claim('w2', 10, 10, now() + interval '5 minutes', 60)), 'the expired action is claimed again');
+select t.ok((select status in ('approved', 'running') and result like 'lease expired%' from career_outreach_actions where batch_id = '00000000-0000-4000-8000-00000000ab03'), 'an action whose lease expired is taken again (the rail and the calendar make that idempotent)');
 select t.ok(not career_outreach_action_finish((select id from career_outreach_actions where batch_id = '00000000-0000-4000-8000-00000000ab03'), 'w1', 'done', 'x', null, 'sent'), 'the old lease holder cannot finish it afterwards');
 -- Again, finished properly: the thread moves to call_proposed with the offered slots.
 update career_outreach_actions set status = 'approved', result = null where batch_id = '00000000-0000-4000-8000-00000000ab03';

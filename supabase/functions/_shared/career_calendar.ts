@@ -44,6 +44,7 @@ export function googleCalendar(d: GoogleCalDeps): CalendarProvider {
       const r = await d.fetch(`${GCAL}/freeBusy`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
         body: JSON.stringify({ timeMin: startIso, timeMax: endIso, timeZone: tz, items: [{ id: "primary" }] }) });
       if (await limited(r)) return { status: "RATE_LIMITED", detail: `HTTP ${r.status}` };
+      if (r.status === 401 || r.status === 403) return { status: "NOT_WIRED", reason: `Google refused calendar access (HTTP ${r.status})` };
       if (!r.ok) return { status: "ERROR", detail: `free/busy: HTTP ${r.status}` };
       const j: any = await r.json().catch(() => ({}));
       const cal = j?.calendars?.primary;
@@ -66,6 +67,7 @@ export function googleCalendar(d: GoogleCalDeps): CalendarProvider {
         return { status: "ok", id, link: linkOf(j), html: j?.htmlLink ?? null };
       }
       if (await limited(r)) return { status: "RATE_LIMITED", detail: `HTTP ${r.status}` };
+      if (r.status === 401 || r.status === 403) return { status: "NOT_WIRED", reason: `Google refused calendar access (HTTP ${r.status})` };
       if (!r.ok) return { status: "ERROR", detail: `create event: HTTP ${r.status}` };
       const j: any = await r.json().catch(() => ({}));
       return { status: "ok", id: String(j?.id ?? id), link: linkOf(j), html: j?.htmlLink ?? null };

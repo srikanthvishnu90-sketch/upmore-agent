@@ -4,10 +4,11 @@
 // are faked at the HTTP boundary; the model is scripted; state is asserted on the store and the fake mailbox, not on
 // reply text. Run: deno test -A --no-check tests/architect/
 import {
-  ACTIONS_INTENT, type Action, conversationFor, gmailMailbox, gmailReplyRail, intervalAsk, memoryRepliesStore, mergeTurn, nextStep, type Outbox, proposeEvent,
-  type ReplyRail, repliesTurn, returnDate, rulePass, runFollowupDrafts, runOutreachActions, runReplySync, runScheduling, summaryAsk, understandPayload,
+  ACTIONS_INTENT, type Action, conversationFor, gmailMailbox, intervalAsk, memoryRepliesStore, mergeTurn, nextStep, type Outbox, proposeEvent,
+  type ReplyRail, repliesTurn, returnDate, rulePass, runFollowupDrafts, runOutreachActions, runReplySync, runScheduling, sendRailReplyRail, summaryAsk, understandPayload,
 } from "../../supabase/functions/_shared/career_outreach_replies.ts";
 import { googleCalendar, isFree, proposeSlots, wall } from "../../supabase/functions/_shared/career_calendar.ts";
+import { payloadHash } from "../../supabase/functions/_shared/career_outreach.ts";
 
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
@@ -77,6 +78,30 @@ function fakeGoogle() {
 }
 const token = async () => "tok";
 
+// ------------------------------------------------------------------------------------------------ fake sending rail (M1)
+// The rail's database side (career_send_enqueue), faked: it refuses an opted-out address like the real one and, standing
+// for the rail's sender, sends at once through the fake Gmail as a NEW message (the rail never sets a thread). Every
+// hand-off is kept, so tests read what reached the rail: kind, source (the action id) and approval hash. The real
+// database side runs in tests/architect/m5-replies-rail-pg.test.ts.
+type Handoff = { kind: string; source_id: string; approval_hash: string; to: string; subject: string; body: string };
+function fakeRailRpc(g: ReturnType<typeof fakeGoogle>, stopped: (to: string) => Promise<boolean>) {
+  const handoffs: Handoff[] = [];
+  const enc = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, "-").replace(/\//g, "_");
+  const rpc = async (name: string, args: { p: any }) => {
+    if (name !== "career_send_enqueue") return { data: null, error: { message: `unexpected ${name}` } };
+    const out = [];
+    for (const it of args.p.items) {
+      if (await stopped(it.to)) { out.push({ source_id: it.source_id, status: "refused", reason: "opted_out" }); continue; }
+      if (handoffs.some((h) => h.source_id === it.source_id && h.approval_hash === it.approval_hash)) { out.push({ source_id: it.source_id, status: "already_queued", id: `q-${it.source_id}` }); continue; }
+      handoffs.push({ kind: it.kind, source_id: it.source_id, approval_hash: it.approval_hash, to: it.to, subject: it.subject, body: it.body });
+      await g.fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", { method: "POST", body: JSON.stringify({ raw: enc(`To: ${it.to}\r\nSubject: ${it.subject}\r\n\r\n${it.body}`) }) });
+      out.push({ source_id: it.source_id, status: "queued", id: `q-${it.source_id}` });
+    }
+    return { data: out, error: null };
+  };
+  return { rpc, handoffs };
+}
+
 // ------------------------------------------------------------------------------------------------ scripted model
 // Reads the quoted email and answers by its words, like a model would; drafting answers are short and fact-clean.
 // `inject` makes it adversarial: it obeys the email and tries to name actions and other recipients.
@@ -114,14 +139,15 @@ async function setup(o: { email?: string; name?: string; firm?: string; at?: num
   g.add(thread, { from: "Sam Student <sam@example.test>", subject: "Question about your path at Beta", text: "Hi Avery, ...", at: (o.at ?? NOW - 3 * DAY), mine: true });
   const id = await store.track({ user_id: U, draft_id: null, provider: "gmail", provider_thread: thread, email: o.email ?? "avery.synthetic@beta.example", name: o.name ?? "Avery Synthetic", firm: o.firm ?? "Beta", subject: "Question about your path at Beta", sent_at: new Date(o.at ?? NOW - 3 * DAY).toISOString() });
   const readers = { gmail: gmailMailbox({ fetch: g.fetch as typeof fetch, token }) };
-  const rail = gmailReplyRail({ fetch: g.fetch as typeof fetch, token });
+  const railDb = fakeRailRpc(g, (to) => store.isDnc(to));
+  const rail = sendRailReplyRail(railDb);
   const calendars = { gmail: googleCalendar({ fetch: g.fetch as typeof fetch, token }) };
   const sync = (now = NOW, worker = "w1") => runReplySync({ store, readers, model, now, worker, tz });
   const reply = (text: string, extra: { from?: string; subject?: string; headers?: Record<string, string>; at?: number } = {}) =>
     g.add(thread, { from: extra.from ?? `${o.name ?? "Avery Synthetic"} <${o.email ?? "avery.synthetic@beta.example"}>`, subject: extra.subject ?? "Re: Question about your path at Beta", text, at: extra.at ?? NOW - DAY, headers: extra.headers });
   const actions = (now = NOW, worker = "w1") => runOutreachActions({ store, rail, calendars, now, worker });
   const say = async (message: string, now = NOW) => { const r = await repliesTurn({ message, userId: U, chatThreadId: CHAT, now, store, tz: "America/Chicago" }); if (r) store.setIntent(CHAT, r.intent); return r; };
-  return { g, store, model, thread, id, readers, rail, calendars, sync, reply, actions, say, t: () => store.thread(U, id) };
+  return { g, store, model, thread, id, readers, rail, handoffs: railDb.handoffs, calendars, sync, reply, actions, say, t: () => store.thread(U, id) };
 }
 
 // ------------------------------------------------------------------------------------------------ the rule pre-pass
@@ -253,7 +279,9 @@ Deno.test("M5/F1 no sequence set: asked once (three touches suggested), nothing 
   eq((await s.say("yes maybe"))!.status, "ambiguous", "an ambiguous answer approves nothing");
   eq(await send(NOW + DAY), 1);
   eq((await s.actions(NOW + DAY + 600_000)).sent, 0, "sent once");
-  eq([s.g.sent.length, s.g.sent[0].threadId, s.g.sent[0].to], [1, s.thread, "avery.synthetic@beta.example"], "on the thread, to the contact only");
+  eq([s.g.sent.length, s.g.sent[0].to], [1, "avery.synthetic@beta.example"], "to the contact only");
+  eq(s.handoffs.map((h) => [h.kind, h.source_id, h.approval_hash, h.to]), [["general", batch[0].id, batch[0].hash, "avery.synthetic@beta.example"]],
+    "handed to the sending rail, bound to the action and the exact hash approved");
   eq([(await s.t())!.followups_sent, (await s.t())!.followup_state], [1, "none"]);
   // Step 2 waits 4 days after the touch before it; step 3 another 7.
   eq((await run(NOW + 4 * DAY)).drafted, 0, "3 days after the first follow-up: not yet");
@@ -400,7 +428,7 @@ Deno.test("M5/S2 wants a call → 3 free slots → the approved reply sent once 
   await s.say("send all");
   eq((await s.actions(NOW + 60_000)).sent, 1);
   eq((await s.actions(NOW + 120_000)).sent, 0, "sent once");
-  eq([s.g.sent.length, s.g.sent[0].threadId, (await s.t())!.status], [1, s.thread, "call_proposed"]);
+  eq([s.g.sent.length, s.handoffs.length, s.handoffs[0].approval_hash, (await s.t())!.status], [1, 1, batch[0].hash, "call_proposed"]);
   // They confirm the second time.
   s.reply(`That time works for me: ${slots[1].start}. See you then.`, { at: NOW + 3600_000 });
   await s.sync(NOW + 7200_000);
@@ -496,13 +524,41 @@ Deno.test("M5/Q1 \"what's happened with my outreach\", \"who replied\", \"who wa
   assert(/1 of 2 replied/.test(rep.reply), rep.reply);
 });
 
-Deno.test("M5/Q2 Gmail's reply rail sends one recipient, no Cc/Bcc, on the thread; Outlook without M4's rail is NOT_WIRED", async () => {
-  const g = fakeGoogle();
-  const rail: ReplyRail = gmailReplyRail({ fetch: g.fetch as typeof fetch, token });
-  eq((await rail.send(U, "gmail", { to: "a@b.example", subject: "Re: hi", text: "x", thread: "T9" })).status, "sent");
-  assert(!/^(?:Cc|Bcc):/im.test(g.sent[0].raw) && g.sent[0].threadId === "T9");
-  eq((await rail.send(U, "gmail", { to: "a@b.example, c@d.example", subject: "Re: hi", text: "x", thread: null })).status, "ERROR", "a list of recipients is refused");
-  eq((await rail.send(U, "outlook", { to: "a@b.example", subject: "Re: hi", text: "x", thread: null })).status, "NOT_WIRED");
+Deno.test("M5/Q2 every approved email goes through the sending rail by its exact hash; a changed text, a list, an opt-out never queue; Outlook without #226 is NOT_WIRED", async () => {
+  const g = fakeGoogle(), dnc = new Set(["stopped@b.example"]);
+  const db = fakeRailRpc(g, async (to) => dnc.has(to));
+  const rail: ReplyRail = sendRailReplyRail(db);
+  const m = { to: "a@b.example", subject: "Re: hi", text: "Hi,\n\nfollowing up." };
+  const hash = await payloadHash(m);
+  eq((await rail.send(U, "gmail", { ...m, thread: "T9" }, { sourceId: "A1", approvalHash: hash })).status, "queued");
+  eq((await rail.send(U, "gmail", { ...m, thread: "T9" }, { sourceId: "A1", approvalHash: hash })).status, "queued", "the same approval again: the same row");
+  eq([db.handoffs.length, g.sent.length], [1, 1], "taken once");
+  eq(await rail.send(U, "gmail", { ...m, text: m.text + " PS", thread: null }, { sourceId: "A2", approvalHash: hash }), { status: "REFUSED", detail: "changed" }, "text changed after the yes");
+  const list = { ...m, to: "a@b.example, c@d.example" };
+  eq((await rail.send(U, "gmail", { ...list, thread: null }, { sourceId: "A3", approvalHash: await payloadHash(list) })).status, "ERROR", "a list of recipients is refused");
+  const stop = { ...m, to: "stopped@b.example" };
+  eq(await rail.send(U, "gmail", { ...stop, thread: null }, { sourceId: "A4", approvalHash: await payloadHash(stop) }), { status: "REFUSED", detail: "do_not_contact" });
+  eq((await rail.send(U, "outlook", { ...m, thread: null }, { sourceId: "A5", approvalHash: hash })).status, "NOT_WIRED");
+  eq([db.handoffs.length, g.sent.length], [1, 1], "nothing else reached the rail or Gmail");
+});
+
+Deno.test("M5/A1 a reply to a follow-up the rail sent on a new thread is read as this conversation's (alias)", async () => {
+  const s = await setup({ at: NOW - 10 * DAY });
+  await s.store.setPrefs(U, { steps: [3] });
+  await s.sync(NOW - DAY); // the mailbox cursor exists before the follow-up
+  await runFollowupDrafts({ store: s.store, outbox: outbox(), model: s.model, person, now: NOW, worker: "w1" });
+  s.store.setIntent(CHAT, ACTIONS_INTENT);
+  await s.say("send all");
+  eq((await s.actions(NOW + 60_000)).sent, 1);
+  const newThread = s.g.msgs.find((x) => x.labelIds.includes("SENT") && x.threadId !== s.thread)!.threadId;
+  const answer = (at: number) => s.g.add(newThread, { from: "Avery Synthetic <avery.synthetic@beta.example>", subject: "Re: Question about your path at Beta", text: "Glad to help, send me your resume.", at });
+  answer(NOW + 3600_000);
+  await s.sync(NOW + 2 * 3600_000);
+  eq((await s.t())!.status, "awaiting", "a thread nobody linked to this conversation is not read into it");
+  s.store.alias(s.id, newThread); // career_outreach_threads_adopt, once the rail has sent it
+  answer(NOW + 4 * 3600_000);
+  await s.sync(NOW + 5 * 3600_000);
+  eq([(await s.t())!.status, (await s.t())!.followup_state], ["interested", "done"]);
 });
 
 // ------------------------------------------------------------------------------------------------ races (each guard alone)

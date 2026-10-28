@@ -1,5 +1,8 @@
--- MASS NETWORKING M5 (2026-10-27): what happens after outreach is sent. Replies understood, one approved follow-up per
--- non-reply, and calls scheduled from the person's own calendar. Code enforces; the model only classifies and writes.
+-- MASS NETWORKING M5 (2026-10-27): what happens after outreach is sent. Replies understood, the person's own follow-up
+-- sequence (any length) on a non-reply, and calls scheduled from the person's own calendar. Code enforces; the model only
+-- classifies and writes. Needs M1's sending rail (20261027200000_career_send_queue.sql): every approved email here is
+-- handed to career_send_queue (kind 'general', source_id = the action's id, approval_hash = its approved hash), and a
+-- bounce lands on career_send_bad_addresses (never emailed again by anyone).
 --   career_outreach_threads        one row per sent outreach thread (Gmail or Outlook): the contact's status and next step
 --   career_outreach_turns          the whole conversation: every message once, who said it, what was asked or promised
 --   career_outreach_sync           one cursor per person and mailbox (Gmail history id / Graph delta link), leased
@@ -9,9 +12,12 @@
 -- No product volume limit anywhere (owner, 2026-10-27 "never set a limit"): p_limit arguments are how many rows one worker
 -- call leases, so many workers share the queue; they bound a turn, never a person.
 -- Rules that are not limits and hold here: a "stop"/"not interested" or a bounce puts the address on the do-not-contact list
--- (career_outreach_dnc, kept through an erase) and nothing is ever sent to it again; at most one follow-up per thread, never
--- after a reply; an out-of-office pushes the follow-up past the return date; a calendar event is created at most once per
--- thread and only from an approved exact payload; an email whose lease expired mid-send is never re-sent automatically.
+-- (career_outreach_dnc, kept through an erase; a bounce also on career_send_bad_addresses) and nothing is ever sent to it
+-- again; each step of the person's follow-up sequence at most once per thread, never after a reply (one still waiting on
+-- the rail is cancelled there); an out-of-office pushes the follow-up past the return date; a calendar event is created at most once per
+-- thread and only from an approved exact payload; an action whose lease expired is taken again, which is safe because each
+-- effect is idempotent by the action itself (the rail's key is the action id and its approved hash; the event's id is
+-- derived from the action id; #226's send key is the same pair).
 
 -- ---------------------------------------------------------------------------------------------- threads
 create table if not exists public.career_outreach_threads (
@@ -164,6 +170,25 @@ grant select on public.career_outreach_actions to authenticated;
 grant all on public.career_outreach_actions to service_role;
 drop policy if exists career_outreach_actions_owner_read on public.career_outreach_actions;
 create policy career_outreach_actions_owner_read on public.career_outreach_actions for select to authenticated using ((select auth.uid()) = user_id);
+-- When the rail's row for an approved email was looked at for its provider thread (career_outreach_threads_adopt).
+alter table public.career_outreach_actions add column if not exists rail_seen_at timestamptz;
+create index if not exists career_outreach_actions_rail_unseen on public.career_outreach_actions (done_at)
+ where status = 'done' and kind in ('followup', 'schedule_reply') and rail_seen_at is null;
+
+-- The rail sends each follow-up and each reply with times as a new message, so a reply to one lands on a new provider
+-- thread: that thread is this conversation's too, and the sync reads it as such.
+create table if not exists public.career_outreach_thread_aliases (
+ user_id uuid not null references public.profiles(id) on delete cascade,
+ provider text not null check (provider in ('gmail', 'outlook')),
+ provider_thread text not null check (length(provider_thread) between 1 and 300),
+ thread_id uuid not null references public.career_outreach_threads(id) on delete cascade,
+ created_at timestamptz not null default now(),
+ primary key (user_id, provider, provider_thread)
+);
+create index if not exists career_outreach_thread_aliases_thread on public.career_outreach_thread_aliases (thread_id);
+alter table public.career_outreach_thread_aliases enable row level security;
+revoke all on public.career_outreach_thread_aliases from public, anon, authenticated;
+grant all on public.career_outreach_thread_aliases to service_role;
 
 -- The do-not-contact list is read by address across every person (a stop to anyone stops everyone's mail to it): its
 -- primary key leads with user_id, so the hot lookup gets its own index.
@@ -216,10 +241,39 @@ begin
     coalesce(d.recipient->>'name', ''), coalesce(d.recipient->>'firm', ''), d.subject, d.sent_at, nullif(d.recipient->>'tz', ''));
   n := n + 1;
  end loop;
+ -- Emails this lane handed to the rail: once the rail has sent one, its provider thread becomes the conversation's alias;
+ -- one the rail never sent (refused, cancelled, failed) is recorded on the action so the person's view says so.
+ for d in select a.id, a.user_id, a.thread_id, q.state, q.gmail_thread, q.result from public.career_outreach_actions a
+   join public.career_send_queue q on a.provider_ref ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' and q.id = a.provider_ref::uuid
+   where a.status = 'done' and a.kind in ('followup', 'schedule_reply') and a.rail_seen_at is null
+     and q.state in ('sent', 'replied', 'bounced', 'refused', 'cancelled', 'failed')
+   order by a.done_at limit greatest(coalesce(p_limit, 1), 1) loop
+  if d.gmail_thread is not null then
+   insert into public.career_outreach_thread_aliases(user_id, provider, provider_thread, thread_id)
+   values (d.user_id, 'gmail', d.gmail_thread, d.thread_id) on conflict do nothing;
+  end if;
+  update public.career_outreach_actions set rail_seen_at = now(), updated_at = now(),
+    result = case when d.state in ('refused', 'cancelled', 'failed') then left('not sent by the rail: ' || coalesce(d.result, d.state), 300) else result end
+   where id = d.id;
+  n := n + 1;
+ end loop;
  return n;
 end $$;
 revoke all on function public.career_outreach_threads_adopt(int) from public, anon, authenticated;
 grant execute on function public.career_outreach_threads_adopt(int) to service_role;
+
+-- The watched threads among a mailbox's provider thread ids (a thread's own id or an alias), each with the id it matched.
+create or replace function public.career_outreach_threads_watched(p_user uuid, p_provider text, p_ids text[])
+returns jsonb language sql stable security definer set search_path = public, pg_temp as $$
+ select coalesce(jsonb_agg(to_jsonb(t) || jsonb_build_object('matched', m.id)), '[]'::jsonb)
+ from (select distinct on (x.id) x.id, coalesce(
+         (select t1.id from public.career_outreach_threads t1 where t1.user_id = p_user and t1.provider = p_provider and t1.provider_thread = x.id),
+         (select a.thread_id from public.career_outreach_thread_aliases a where a.user_id = p_user and a.provider = p_provider and a.provider_thread = x.id)) tid
+       from unnest(p_ids[1:500]) x(id)) m
+ join public.career_outreach_threads t on t.id = m.tid
+$$;
+revoke all on function public.career_outreach_threads_watched(uuid, text, text[]) from public, anon, authenticated;
+grant execute on function public.career_outreach_threads_watched(uuid, text, text[]) to service_role;
 
 -- ---------------------------------------------------------------------------------------------- mailbox sync leases
 -- Due mailboxes, each leased to one worker (FOR UPDATE SKIP LOCKED): many workers on many instances share the queue, an
@@ -254,6 +308,32 @@ end $$;
 revoke all on function public.career_outreach_sync_release(uuid, text, text, text, timestamptz, text) from public, anon, authenticated;
 grant execute on function public.career_outreach_sync_release(uuid, text, text, text, timestamptz, text) to service_role;
 
+-- What this lane handed to the sending rail on a thread and the rail has not sent yet (still queued): taken back on the
+-- rail, and its action marked cancelled, so it never goes and is never counted as sent. Followups only, or every email.
+-- Returns how many follow-ups were taken back (the thread's count goes down by as many).
+create or replace function public.career_outreach_rail_takeback(p_thread uuid, p_followups_only boolean, p_why text)
+returns int language plpgsql security definer set search_path = public, pg_temp as $$
+declare k int;
+begin
+ with q as (
+  update public.career_send_queue set state = 'cancelled', result = left(p_why, 300), updated_at = now()
+  where state = 'queued' and kind = 'general' and id in (select x.provider_ref::uuid from public.career_outreach_actions x
+    where x.thread_id = p_thread and x.status = 'done' and x.provider_ref ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      and (not p_followups_only or x.kind = 'followup'))
+  returning source_id
+ ), a as (
+  update public.career_outreach_actions x set status = 'cancelled', result = left('not sent: ' || p_why, 300), updated_at = now()
+  from q where x.id = q.source_id returning x.kind
+ )
+ select count(*) filter (where kind = 'followup') into k from a;
+ if k > 0 then
+  update public.career_outreach_threads set followups_sent = greatest(followups_sent - k, 0), updated_at = now() where id = p_thread;
+ end if;
+ return k;
+end $$;
+revoke all on function public.career_outreach_rail_takeback(uuid, boolean, text) from public, anon, authenticated;
+grant execute on function public.career_outreach_rail_takeback(uuid, boolean, text) to service_role;
+
 -- ---------------------------------------------------------------------------------------------- a reply understood
 -- One provider message, once. Returns 'seen' (already counted), 'terminal' (the contact already said stop or bounced; it
 -- stays so), or the thread's new status. A stop or not-interested, and a bounce, put the address on the do-not-contact
@@ -261,7 +341,7 @@ grant execute on function public.career_outreach_sync_release(uuid, text, text, 
 -- is cancelled. An out-of-office keeps the thread open and records the return date (the follow-up waits past it).
 create or replace function public.career_outreach_reply_apply(p_user uuid, p_thread uuid, p_msg text, p_class text, p_at timestamptz, p_detail jsonb)
 returns text language plpgsql security definer set search_path = public, pg_temp as $$
-declare t public.career_outreach_threads; n int; d jsonb := coalesce(p_detail, '{}'::jsonb); s text; back timestamptz;
+declare t public.career_outreach_threads; n int; d jsonb := coalesce(p_detail, '{}'::jsonb); s text; back timestamptz; k int;
 begin
  if p_class not in ('interested', 'wants_call', 'confirms_time', 'not_interested', 'out_of_office', 'bounce', 'referral', 'other') then
   raise exception 'unknown reply class'; end if;
@@ -285,11 +365,16 @@ begin
   insert into public.career_outreach_dnc(user_id, email_hash, reason, at)
    values (p_user, public.career_outreach_email_hash(t.recipient_email), case when p_class = 'bounce' then 'bounced: the address does not work' else 'recipient asked to stop' end, now())
    on conflict (user_id, email_hash) do nothing;
+  if p_class = 'bounce' then
+   insert into public.career_send_bad_addresses(email_hash, reason) values (public.career_send_email_hash(t.recipient_email), 'bounced')
+   on conflict (email_hash) do nothing;
+  end if;
   update public.career_outreach_actions set status = 'cancelled', result = 'cancelled: ' || p_class, lease_owner = null, lease_until = null, updated_at = now()
    where thread_id = p_thread and status in ('shown', 'approved');
+  k := public.career_outreach_rail_takeback(p_thread, false, case when p_class = 'bounce' then 'bad_address' else 'opted_out' end);
   s := case when p_class = 'bounce' then 'bounced' else 'not_interested' end;
   update public.career_outreach_threads set status = s, status_at = now(), replied_at = case when p_class = 'bounce' then replied_at else coalesce(replied_at, p_at) end,
-   followup_state = case when followup_state = 'done' then 'done' else 'off' end, summary = left(coalesce(d->>'summary', summary), 400), updated_at = now()
+   followup_state = case when followup_state = 'done' and k = 0 then 'done' else 'off' end, summary = left(coalesce(d->>'summary', summary), 400), updated_at = now()
    where id = p_thread;
   return s;
  end if;
@@ -305,13 +390,15 @@ begin
  -- A person answered: no follow-up after this, ever.
  update public.career_outreach_actions set status = 'cancelled', result = 'cancelled: they replied', lease_owner = null, lease_until = null, updated_at = now()
   where thread_id = p_thread and kind = 'followup' and status in ('shown', 'approved');
+ -- and a follow-up already handed to the rail but not sent yet never goes (and is not counted as sent).
+ k := public.career_outreach_rail_takeback(p_thread, true, 'they replied');
  s := case
   when p_class = 'confirms_time' then (case when t.status in ('call_proposed', 'call_scheduled') then t.status else 'wants_call' end)
   when t.status = 'call_scheduled' then 'call_scheduled'
   when t.status = 'call_proposed' and p_class in ('wants_call', 'interested', 'other') then 'call_proposed'
   else p_class end;
  update public.career_outreach_threads set status = s, status_at = now(), replied_at = coalesce(replied_at, p_at), ooo_until = null,
-  followup_state = case when followup_state = 'done' then 'done' else 'off' end,
+  followup_state = case when followup_state = 'done' and k = 0 then 'done' else 'off' end,
   summary = left(coalesce(d->>'summary', summary), 400),
   referral = case when p_class = 'referral' and jsonb_typeof(d->'referral') = 'object' then d->'referral' else referral end,
   their_times = case when jsonb_typeof(d->'their_times') = 'array' then d->'their_times' else their_times end,
@@ -328,10 +415,19 @@ grant execute on function public.career_outreach_reply_apply(uuid, uuid, text, t
 -- no automatic follow-up is drafted after it, and an open one is cancelled.
 create or replace function public.career_outreach_person_turn(p_user uuid, p_thread uuid, p_msg text, p_at timestamptz, p_detail jsonb, p_by_trainee boolean)
 returns text language plpgsql security definer set search_path = public, pg_temp as $$
-declare t public.career_outreach_threads; n int; d jsonb := coalesce(p_detail, '{}'::jsonb);
+declare t public.career_outreach_threads; n int; d jsonb := coalesce(p_detail, '{}'::jsonb); by_trainee boolean := coalesce(p_by_trainee, false); rail_src uuid;
 begin
  select * into t from public.career_outreach_threads where id = p_thread and user_id = p_user for update;
  if not found then raise exception 'no such outreach thread'; end if;
+ -- A message the sending rail sent (its Gmail id is on the rail's row, found through the rail's (user, recipient) index) is
+ -- Trainee's, never the person's own follow-up; one this lane already recorded when it handed it over ('queued:<action>')
+ -- is not counted twice.
+ select q.source_id into rail_src from public.career_send_queue q
+  where q.user_id = p_user and q.recipient_email = t.recipient_email and q.gmail_id = p_msg limit 1;
+ if rail_src is not null then
+  by_trainee := true;
+  if exists (select 1 from public.career_outreach_turns x where x.thread_id = p_thread and x.provider_msg = 'queued:' || rail_src) then return 'seen'; end if;
+ end if;
  insert into public.career_outreach_turns(thread_id, provider_msg, user_id, who, class, summary, asks, commitments, at)
   values (p_thread, p_msg, p_user, 'person', 'sent', left(d->>'summary', 400), '[]'::jsonb,
    case when jsonb_typeof(d->'commitments') = 'array' then d->'commitments' else '[]'::jsonb end, coalesce(p_at, now()))
@@ -342,10 +438,10 @@ begin
   open_asks = case when jsonb_typeof(d->'conversation'->'open_asks') = 'array' then d->'conversation'->'open_asks' else open_asks end,
   commitments = case when jsonb_typeof(d->'conversation'->'commitments') = 'array' then d->'conversation'->'commitments' else commitments end,
   next_step = coalesce(left(d->'conversation'->>'next_step', 300), next_step),
-  followup_state = case when not p_by_trainee and t.turns > 0 and followup_state = 'none' then 'off' else followup_state end,
+  followup_state = case when not by_trainee and t.turns > 0 and followup_state = 'none' then 'off' else followup_state end,
   updated_at = now()
   where id = p_thread;
- if not p_by_trainee and t.turns > 0 then
+ if not by_trainee and t.turns > 0 then
   update public.career_outreach_actions set status = 'cancelled', result = 'cancelled: you followed up yourself', updated_at = now()
    where thread_id = p_thread and kind = 'followup' and status in ('shown', 'approved');
  end if;
@@ -371,6 +467,7 @@ begin
          and (t2.ooo_until is null or t2.ooo_until + interval '1 day' <= p_now)
          and (t2.lease_until is null or t2.lease_until < p_now)
          and not exists (select 1 from public.career_outreach_dnc x where x.email_hash = public.career_outreach_email_hash(t2.recipient_email))
+         and not exists (select 1 from public.career_send_bad_addresses b where b.email_hash = public.career_send_email_hash(t2.recipient_email))
        order by t2.sent_at limit greatest(coalesce(p_limit, 1), 1) for update of t2 skip locked) due
  where t.id = due.id
  returning t.*;
@@ -427,13 +524,12 @@ declare a public.career_outreach_actions; t public.career_outreach_threads; why 
   per int := greatest(coalesce(p_per_user, 1), 1); start uuid := gen_random_uuid(); cur uuid; u uuid; wrapped boolean := false; steps int := 0; took_before int; round_done boolean;
 begin
  if p_worker is null or p_now is null or coalesce(p_lease_seconds, 0) < 1 then raise exception 'invalid action claim'; end if;
- update public.career_outreach_actions set status = case when kind = 'calendar_event' then 'approved' else 'failed' end,
-   result = case when kind = 'calendar_event' then result else 'lease expired during the send: not re-sent; check your sent mail' end,
+ -- A worker that died mid-action: back to approved, checked again by this claim. Taking it again never doubles the effect
+ -- (the rail's enqueue answers already_queued for the same action and hash; the calendar event id comes from the action id).
+ update public.career_outreach_actions set status = 'approved', result = 'lease expired; taken again (idempotent)',
    lease_owner = null, lease_until = null, updated_at = now()
-  where status = 'running' and lease_until < p_now;
- update public.career_outreach_threads t set followup_state = 'off', updated_at = now()
-  where t.followup_state = 'drafted' and exists (select 1 from public.career_outreach_actions x where x.thread_id = t.id and x.kind = 'followup'
-    and x.status = 'failed' and x.result like 'lease expired%' and x.updated_at >= now() - interval '1 minute');
+  where id in (select id from public.career_outreach_actions where status = 'running' and lease_until < p_now
+               order by lease_until limit 1000 for update skip locked);
  -- People in turn, from a random point round the user ids (each step one index probe on the approved partial index),
  -- p_per_user of each person's oldest approvals per pass: no person, however many approvals they hold, starves another.
  -- When a pass has gone round everyone and the call still has room, another pass fills it (fairness, never a cap: one
@@ -459,6 +555,7 @@ begin
    why := null;
    if a.approved_hash is null or a.approved_hash <> a.hash then why := 'changed';
    elsif a.kind <> 'calendar_event' and exists (select 1 from public.career_outreach_dnc d where d.email_hash = public.career_outreach_email_hash(t.recipient_email)) then why := 'do_not_contact';
+   elsif exists (select 1 from public.career_send_bad_addresses b where b.email_hash = public.career_send_email_hash(t.recipient_email)) then why := 'bad_address';
    elsif t.status in ('not_interested', 'bounced') then why := 'do_not_contact';
    elsif a.kind = 'followup' and (t.replied_at is not null or t.status not in ('awaiting', 'out_of_office')) then why := 'replied';
    elsif a.kind = 'followup' and (t.followup_state in ('off', 'done') or coalesce(a.step, 0) <= t.followups_sent

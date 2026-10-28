@@ -48,6 +48,24 @@ import {
   startAllowed,
 } from "./career.ts";
 import { disconnectGoogle, disconnectReply } from "../_shared/google_disconnect.ts";
+// Task 3 (2026-10-28): the connector framework. "connect gmail" from any channel sends a one-time link served here
+// (GET ?t= peeks, a form POST is the person's tap, then Google's consent with this function's own signed state), so the
+// OAuth client's redirect URI does not change; after a career grant is stored, the person is told in the chat the link
+// came from and the tasks that waited for Gmail resume (_shared/connectors.ts).
+import { afterConnect, handleConnectorLink } from "../_shared/connectors.ts";
+import { chatThroughAgent, deliverer } from "../_shared/channel_runtime.ts";
+
+// deno-lint-ignore no-explicit-any
+const later = (p: Promise<unknown>) => { const rt = (globalThis as any).EdgeRuntime; if (rt?.waitUntil) rt.waitUntil(p); };
+
+// Google's consent URL for a purpose, with a state signed for this person (career.ts issueState) and only the scopes the
+// verification submission allows (requestScopesFor).
+async function consentUrlFor(userId: string, purpose: "gmail" | "career", clientId: string, stateSecret: string): Promise<string> {
+  const state = await issueState(userId, purpose, stateSecret);
+  const asked = requestScopesFor(purpose, Deno.env.get("GOOGLE_APPROVED_EXTRA_SCOPES"));
+  const q = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri(), response_type: "code", scope: asked.scopes.join(" "), access_type: "offline", prompt: "consent", state });
+  return "https://accounts.google.com/o/oauth2/v2/auth?" + q.toString();
+}
 
 const APP_URL = "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app";
 const ALLOWED_ORIGINS = new Set([
@@ -87,6 +105,14 @@ serve(async (req) => {
     const clientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") || "";
     const clientSecret = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET") || "";
     const stateSecret = Deno.env.get("OAUTH_STATE_SECRET") || "";
+
+    // ---- Task 3: the one-time link "connect gmail" sends from any channel (no JWT: the hashed, once-only token is the
+    // authentication; the consent's state is signed for the link's own person) ----
+    const linked = await handleConnectorLink(req, {
+      admin: createClient(supabaseUrl, serviceKey), env: Deno.env,
+      consentUrl: async (userId) => (clientId && stateSecret ? await consentUrlFor(userId, "career", clientId, stateSecret) : null),
+    });
+    if (linked) return linked;
 
     // ---- Google callback (GET, no JWT — trust comes from signed state) ----
     const url = new URL(req.url);
@@ -145,6 +171,14 @@ serve(async (req) => {
           email, scopes: grantedScopes, connected_at: new Date().toISOString(),
         }, { onConflict: "user_id,provider" });
         if (uerr) throw new Error("could not record connection");
+        if (purpose === "career") {
+          // Task 3: told where the link came from, then the tasks that waited for Gmail resume, after the response.
+          const run = chatThroughAgent(supabaseUrl, serviceKey);
+          const deliver = deliverer(admin, Deno.env);
+          later(afterConnect({ admin, env: Deno.env, fetch, now: Date.now, deliver, log: (l) => console.log(l),
+            runTurn: async (t) => ({ reply: (await run(t)).reply, persisted: true }) }, userId, "gmail", { email, scopes: grantedScopes.split(" ") })
+            .catch((e) => console.error("[gmail-oauth] resume failed:", String((e as Error)?.message || e).slice(0, 120))));
+        }
         return done(true);
       } catch (e) {
         console.error("[gmail-oauth] callback failed:", String((e as Error)?.message || e));

@@ -103,6 +103,12 @@ export interface ChannelAdapter extends DeliveryAdapter {
   answerCallback?(callbackId: string, text: string): Promise<boolean>;
   // FEATURE 16: a document (the tailored resume PDF) as a file in the chat.
   sendDocument?(address: string, doc: { bytes: Uint8Array; filename: string; mime: string }): Promise<SendResult>;
+  // V1 TEXTING VOICE (channel_voice.ts): the platform's typing indicator while Trainee works, shown once (the platform
+  // clears it after a few seconds or when the reply arrives), for the message `inboundId` the person just sent; where the
+  // platform ties it to that message (WhatsApp), showing it also marks the message read. true: the platform took it.
+  // Absent: the platform (or this integration) has none.
+  typing?(address: string, inboundId: string | null): Promise<boolean>;
+  typingEveryMs?: number; // how often to show it again while the turn runs
 }
 
 // One message carries at most `max` characters: paragraphs travel together while they fit, a longer paragraph is split

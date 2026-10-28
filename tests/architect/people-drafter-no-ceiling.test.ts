@@ -27,7 +27,7 @@ Deno.test("DRAFTER/1 a saved person beyond the thread's copy is drafted to, foun
     people: { store, gmail: null, fetch } });
   eq(r?.status, "drafting_off", r?.reply);
   nodeAssert.match(r!.reply, /Zoe Quinlan.*<p1500@acme\.example>/);
-  nodeAssert.ok(calls.some((c) => c.startsWith("named:")), "the saved people were read");
+  nodeAssert.ok(calls.some((c) => c.startsWith("named:") || c.startsWith("at:")), "the saved people were read");
 });
 
 Deno.test("DRAFTER/2 without the saved people (no store) the same ask finds no one: the copy alone is not the source of truth", async () => {

@@ -177,6 +177,8 @@ MIGRATIONS=(
   20261027020000_career_intro_reminder_push.sql
   20261027140000_career_apply_host_backoff.sql
   20261027141000_career_apply_mass_submit.sql
+  20261027160000_career_outreach_followup_claim.sql
+  20261027160100_career_account_contacts.sql
   20261027170000_career_people_scale.sql
   20261027170100_career_people_gmail_sweep.sql
   20261027230000_career_outlook_connector.sql
@@ -261,6 +263,8 @@ MIGRATION_MARK=(
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_proactive_runs' and column_name = 'intro_reminders')"
   "to_regclass('public.career_apply_host_backoff') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_mass_submit_install') and to_regclass('public.career_apply_claim_turns') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_outreach_followups_claim') and to_regclass('public.career_watch_kv_followups_due') is not null"
+  "to_regclass('public.career_account_contacts') is not null and exists (select 1 from pg_proc where proname = 'career_account_contacts_put')"
   "to_regprocedure('public.career_people_import_part(uuid,text,text,text,jsonb,integer,integer,boolean,bigint)') is not null and to_regclass('public.agent_flow_state_user') is not null"
   "to_regclass('public.career_people_gmail_sweeps') is not null and exists (select 1 from pg_proc where proname = 'career_people_sweep_claim')"
   "to_regclass('public.career_outlook_sends') is not null and exists (select 1 from pg_proc where proname = 'career_outlook_claim') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_outlook_erase')"
@@ -756,6 +760,11 @@ else
   for v in "${CHANNEL_HIDDEN[@]}" "${CHANNEL_PLAIN[@]}"; do
     if [[ -n "${!v:-}" ]]; then add "$v" "${!v}" "***"; else echo "  kept: $v (not given; what is set stays, and with nothing set that channel is NOT_WIRED)"; fi
   done
+  # Networking follow-up reminders (architect ruling R2, 2026-10-27): on for launch, so the chat's promise of a texted
+  # reminder is kept. career-proactive queues each due one once to career_outbox; trainee-deliver texts it. A person with
+  # no texting channel is told plainly that no message comes (career_outreach_track.ts reminderWords). Before the brain
+  # lines: CAREER_BRAIN stays the env file's last name, as F13-10 reads it.
+  add CAREER_OUTREACH_FOLLOWUPS on on
   # The router answers unless the owner asks for the agent brain on this run (D-008); the environment never decides it.
   if [[ "$BRAIN" == agent ]]; then add CAREER_BRAIN agent agent; fi
   # FEATURE 13: the staged release (question and advice turns to the brain, every action to code) only with --brain staged.

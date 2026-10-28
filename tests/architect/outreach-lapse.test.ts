@@ -38,13 +38,15 @@ async function runDay(store: any, sender: Sender, at: number) {
 }
 const say = (store: any, message: string, now: number) => outreachTurn({ message, userId: U, threadId: TH, now, store, gmailConnected: async () => true });
 
-Deno.test("(a) the approval reply says the pace and that unsent approvals lapse after 7 days; (c) the windows are unchanged", async () => {
+Deno.test("(a) the approval reply states no pace of Trainee's own, says that unsent approvals lapse after 7 days; (c) the windows are unchanged", async () => {
   const store = memoryOutreachStore();
   await store.setPrefs(U, { daily_cap: MAX_DAILY, signature: "Sam Student" });
   await page(store, 1, T0);
   const r = (await say(store, "send all", T0 + 1000))!;
   eq(r.status, "approved");
-  assert(/at most 30 a day \(10 a day in your first week of sending\)\. Any not sent within 7 days of your approval lapse unsent; when you next ask I'll say how many, and you can approve them again\./.test(r.reply), r.reply);
+  // NO LIMITS (owner, 2026-10-27): no pace or daily number of Trainee's own is promised; only Gmail's refusal slows sending.
+  assert(!/a day|seconds apart|first week/.test(r.reply), r.reply);
+  assert(/If Gmail asks to slow down, the rest wait and go on when it allows, and I'll tell you\. Any not sent within 7 days of your approval lapse unsent; when you next ask I'll say how many, and you can approve them again\./.test(r.reply), r.reply);
   eq(APPROVAL_TTL_MS, 7 * DAY, "no extension");
   eq(BATCH_TTL_MS, 72 * 3600_000, "no extension");
   eq(parseOutreachReply("show lapsed"), { kind: "lapsed" });

@@ -130,6 +130,8 @@ Deno.test({ name: "people finding and intros at the real handler: import, who, a
     const count = async (tbl: string, u: string, extra = "") => Number(await q(`select count(*) from public.${tbl} where user_id = '${u}' ${extra}`));
     const intro = async (n: number) => q(`select to_jsonb(i) from public.career_intro_requests i where user_id = '${A}' and n = ${n}`);
     const stateContacts = async () => q(`select coalesce(state->'career'->'stores'->'contacts', '[]') from public.agent_flow_state where user_id = '${A}' order by updated_at desc limit 1`);
+    // Architect ruling R1 (#225): the drafter's contacts are the account's (career_account_contacts), never a chat's copy.
+    const accountContacts = async (u = A, more = "") => Number(await q(`select count(distinct person_key) from public.career_account_contacts where user_id = '${u}' ${more}`));
 
     await t.step("a new person asks who they know before sending anything: the one ask (why, three steps), recorded once", async () => {
       const r = await say("who do I know at Ramp?");
@@ -158,7 +160,8 @@ Deno.test({ name: "people finding and intros at the real handler: import, who, a
       assert(!JSON.stringify(rows).includes("linkedin.com") && !JSON.stringify(rows).includes("HYPERLINK") && !JSON.stringify(rows).includes("cmd|"), JSON.stringify(rows));
       eq(rows.find((x: any) => x.name === "Sam Rivera").company, "");
       eq(await q(`select jsonb_build_object('read', rows_read, 'imported', imported, 'skipped', skipped, 'with_email', with_email) from public.career_people_imports where user_id = '${A}'`), { read: 11, imported: 8, skipped: 2, with_email: 3 });
-      eq((await stateContacts()).length, 8, "the drafter's copy in the thread");
+      eq(await accountContacts(), 8, "the drafter's copy, on the account");
+      eq((await stateContacts()).length, 0, "no copy in the chat");
       // the same file again (a retry): replaced, never doubled
       const again = await say("here's my linkedin export", { attachments: [{ name: "Connections.csv", mime: "text/csv", text: FIXTURE }] });
       assert(/imported 8\/11 rows/.test(again.reply), again.reply);
@@ -362,13 +365,14 @@ Deno.test({ name: "people finding and intros at the real handler: import, who, a
       const threadA = web.thread()!, threadB = second.thread()!;
       assert(threadA && threadB && threadA !== threadB, "two chats");
       const copies = async (tid: string) => (await q(`select coalesce(state->'career'->'stores'->'contacts', '[]') from public.agent_flow_state where thread_id = '${tid}'`)).filter((r: any) => /Connections/.test(r.file)).length;
-      eq([await copies(threadA), await copies(threadB)], [8, 8]);
+      // R1 (#225): no chat holds a copy; the account holds the export's 8 people once each (by person).
+      eq([await copies(threadA), await copies(threadB), await accountContacts()], [0, 0, 8]);
       // forgotten from the second chat: every copy goes, and the reply counts all of them
       const f = await second.say("forget my LinkedIn contacts");
       eq([f.intent, f.resultStatus], ["career_people_forget", "forgotten"], f.reply);
-      assert(/Deleted your LinkedIn contacts: 8 people from your export and 16 from your chats' lists \(2 chats\)/.test(f.reply) && /intro requests are kept/.test(f.reply), f.reply);
+      assert(/Deleted your LinkedIn contacts: 8 people from your export/.test(f.reply) && /intro requests are kept/.test(f.reply), f.reply);
       eq([await count("career_people", A, "and source = 'linkedin_export'"), await count("career_people_imports", A, "and source = 'linkedin_export'")], [0, 0]);
-      eq([await copies(threadA), await copies(threadB)], [0, 0], "no copy left in either chat");
+      eq([await copies(threadA), await copies(threadB), await accountContacts()], [0, 0, 0], "no copy left in either chat or on the account");
       // back in the first chat, nobody from the export is listed
       const who = await say("who do I know at Ramp?");
       assert(!/Lee Park|Alex O'Brien|Priya Shah/.test(who.reply), who.reply);

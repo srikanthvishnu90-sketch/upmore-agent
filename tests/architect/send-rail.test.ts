@@ -271,7 +271,8 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       const ds = await approvedDrafts(db, u, [at("unsub")]);
       await queueApprovedOutreach(outreachDeps, u, ds);
       const gmail = new FakeGmail();
-      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-u" });
+      // Other steps' people share this database and the claim is fair across people: run until this one's email went.
+      for (let i = 0; i < 10 && !gmail.to(at("unsub")).length; i++) await runSendWorker(railDeps(db, c1, gmail), { worker: `w-u-${i}` });
       ok(gmail.to(at("unsub"))[0].headers.includes("List-Unsubscribe: <mailto:me@example.test?subject=unsubscribe>"));
       gmail.received(u, `Someone <${at("unsub")}>`, "unsubscribe");
       eq((await runReplyCheck(railDeps(db, c1, gmail))).stops, 1);
@@ -279,7 +280,7 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       // An application email carries no List-Unsubscribe (it is not cold outreach).
       const app = { to: at("jobs"), subject: "Application", text: "Please find my application below." };
       await queueApproved(rpc, u, [{ kind: "application", sourceId: crypto.randomUUID(), approvalHash: await payloadHash(app), ...app }]);
-      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-u2" });
+      for (let i = 0; i < 10 && !gmail.to(at("jobs")).length; i++) await runSendWorker(railDeps(db, c1, gmail), { worker: `w-u2-${i}` });
       ok(!gmail.to(at("jobs"))[0].headers.some((h) => /^List-Unsubscribe/i.test(h)));
     });
 
@@ -288,7 +289,7 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       await person(db, u); await person(db, fine);
       await queueApprovedOutreach(outreachDeps, u, await approvedDrafts(db, u, addrs("bnc", 10)));
       const gmail = new FakeGmail();
-      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-p" });
+      for (let i = 0; i < 10 && gmail.sent.filter((m) => m.account === u).length < 10; i++) await runSendWorker(railDeps(db, c1, gmail), { worker: `w-p-${i}` });
       eq(gmail.sent.filter((m) => m.account === u).length, 10);
       for (const n of [1, 2, 3, 4, 5]) gmail.reply(gmail.to(at(`bnc${n}`))[0].threadId, "mailer-daemon@googlemail.com", "Delivery Status Notification (Failure)", "Address not found");
       const r = await runReplyCheck(railDeps(db, c1, gmail), { pause: { window: 50, bounces: 5, rate: 0.1 } });

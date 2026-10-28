@@ -15,7 +15,7 @@
 // would be written to and that nothing was drafted.
 import { type ContactRow, contactsOf, firmKey, importContactsCsv, importContactsFile, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
-import { type PeopleDeps, type PersonRec, peopleTurn } from "./career_people.ts";
+import { parsePeopleAsk, type PeopleDeps, type PersonRec, peopleTurn } from "./career_people.ts";
 import { companyKey } from "./career_people_import.ts";
 import { batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type KeyedContact, type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
@@ -320,9 +320,41 @@ async function forgetTurn(o: NetworkingDeps, a: NonNullable<ReturnType<typeof fo
   return { reply: `Deleted ${what ?? `${n} ${"linkedin" in a ? "LinkedIn " : ""}contact${n === 1 ? "" : "s"}`} from your contacts, in every conversation. They won't come back unless you send them to me again. Emails already drafted or sent stay on record.`, intent: FORGET_INTENT, status: "forgotten" };
 }
 
+// The people turn (#222) reads and writes a contacts list on the chat; contacts belong to the account (R1, #225). So it
+// sees the account's rows for the firm or name asked about (never the whole list), what it adds goes to the account, no
+// copy stays on the chat, and its "forget my LinkedIn contacts" forgets them on the account too.
+async function peopleWithBook(o: NetworkingDeps): Promise<NetworkingResult | null> {
+  if (!o.people) return null;
+  const ask = parsePeopleAsk(o.message), book = bookOf(o);
+  const pre: ContactRow[] = [];
+  if (ask?.kind === "who" || ask?.kind === "alumni") pre.push(...await book.atFirm(ask.firm).catch(() => []));
+  if (ask?.kind === "intro") {
+    if (ask.firm) pre.push(...await book.atFirm(ask.firm).catch(() => []));
+    if (ask.name) pre.push(...await book.named(plain(ask.name).split(" ")[0], true).catch(() => []));
+  }
+  const preKeys = new Set(pre.map(rowKey));
+  const had = o.state.contacts;
+  if (pre.length) o.state.contacts = pre;
+  let r: NetworkingResult | null;
+  try {
+    r = await peopleTurn(o);
+  } finally {
+    const added = contactsOf(o.state).filter((x) => !preKeys.has(rowKey(x)));
+    if (had === undefined) delete o.state.contacts; else o.state.contacts = had;
+    if (added.length) {
+      const files = [...new Set(added.map((x) => x.file))];
+      await book.put(added, files.length === 1 ? { replaceFile: files[0] } : {}).catch((e) => { console.error("networking: keep the imported contacts on the account:", e instanceof Error ? e.message : e); return false; });
+    }
+  }
+  if (r && ask?.kind === "forget" && (ask.what === "linkedin" || ask.what === "all")) {
+    await book.forget(ask.what === "all" ? { all: true } : { linkedin: true }).catch(() => null);
+  }
+  return r;
+}
+
 async function networkingTurnInner(o: NetworkingDeps): Promise<NetworkingResult | null> {
   // PEOPLE FINDING (D-033): the LinkedIn export kept per person, Gmail correspondents, public pages, job emails, intros.
-  const people = await peopleTurn(o); if (people) return people;
+  const people = await peopleWithBook(o); if (people) return people;
   const files = (o.attachments ?? []).slice(0, MAX_FILES);
   const pasted = files.length ? null : pastedCsv(o.message);
   if (files.length || pasted) return await importTurn(o, files, pasted);

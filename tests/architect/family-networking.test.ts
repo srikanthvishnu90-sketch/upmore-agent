@@ -445,11 +445,11 @@ Deno.test("FAMILY networking guards: send it, cancel, sent, reminders, the ladde
   // A message too long for a link: the link carries the address and subject only, and says to paste the text.
   const long = mailtoOf({ to: "a@b.example", subject: "S", text: "x ".repeat(2000) });
   eq([long.full, long.url.length <= MAILTO_MAX], [false, true]);
-  // Connected for sending: the pace, no ladder.
+  // Connected for sending: from their Gmail, no pace of Trainee's own (NO LIMITS), no ladder.
   const con = memoryOutreachStore();
   await batch(con, ["Maya Chen"]);
   const c = await outreachTurn({ message: "send 1", userId: U, threadId: TH, now: T0, store: con, gmailConnected: async () => true });
-  assert(/They go from your Gmail one at a time/.test(c!.reply) && !/mailto:/.test(c!.reply), c!.reply);
+  assert(/They go from your Gmail\./.test(c!.reply) && !/a day|seconds apart/.test(c!.reply) && !/mailto:/.test(c!.reply), c!.reply);
 
   // A take-back counts at any time, but only for a draft of the newest batch still waiting or approved.
   two.setIntent(TH, "something_else");

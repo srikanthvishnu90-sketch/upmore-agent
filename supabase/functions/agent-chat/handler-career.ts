@@ -606,11 +606,6 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // action stays code's and the router still answers a model failure. Unset or CAREER_BRAIN=router, it is never
       // taken and the router answers exactly as before. Read lazily, only when the brain test below is reached.
       const staged = stagedRoute({ env: Deno.env, message, ctx: ctx as unknown as Record<string, unknown>, host, structured: !!(careerTask || careerBatch) });
-<<<<<<< HEAD
-      if (outlookAns) {
-        out = { reply: outlookAns.reply, intent: outlookAns.intent, resultStatus: outlookAns.resultStatus, contained: false, handler: outlookAns.handler };
-        if (outlookAns.meta) agentMeta = { ...(agentMeta || {}), ...outlookAns.meta };
-=======
       // FEATURE GV: Google verification (2026-10-26). "disconnect gmail" disconnects, on every channel: each Google grant
       // revoked at Google, its tokens and row deleted (the mail rows read from that Gmail go with the career row), every
       // result checked and read back (_shared/google_disconnect.ts). The reply says only what the read-back shows. Before
@@ -621,7 +616,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // END FEATURE GV
       if (googleOff) {
         out = { reply: disconnectReply(googleOff), intent: "career_google_disconnect", resultStatus: googleOff.ok ? (googleOff.had.length || googleOff.mailErased ? "completed" : "nothing") : "failed", contained: false, handler: "google_disconnect" };
->>>>>>> 5f0394e206f876096c667a09a21d7d0d19f4cae0
+      } else if (outlookAns) {
+        out = { reply: outlookAns.reply, intent: outlookAns.intent, resultStatus: outlookAns.resultStatus, contained: false, handler: outlookAns.handler };
+        if (outlookAns.meta) agentMeta = { ...(agentMeta || {}), ...outlookAns.meta };
       } else if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);

@@ -229,19 +229,6 @@ export const employerQuestion = (company: string) => `is ${company} where you wo
 // Their knowing go-ahead, in their own words this turn ("I know I work there, apply anyway").
 const GO_AHEAD = /\b(anyway|regardless|even though|internal(ly)?|knowing|i know (i|it|that|they|this))\b/i;
 
-const isoDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
-const SOURCE: Record<string, string> = { tracker: "in their tracker", queue: "through Trainee", mail: "found in their mail" };
-// D-011: one application per company per 30 days. Their applications from every source the server reads (the tracker in
-// every thread and Trainee's own sends: mail.applications, as where_do_i_stand reads them). "Saved" was never sent.
-export function recentApplication(company: string, apps: TrackedApp[], now: number): TrackedApp | null {
-  const window = COMPANY_COOLDOWN_DAYS * 86400_000;
-  const at = (a: TrackedApp) => Date.parse(String(a.applied_at ?? ""));
-  return (apps ?? [])
-    .filter((a) => a && a.stage !== "Saved" && (normCompany(a.company) === normCompany(company) || sameCompany(a.company, company)))
-    .filter((a) => !Number.isFinite(at(a)) || now - at(a) < window)
-    .sort((a, b) => (Number.isFinite(at(b)) ? at(b) : Infinity) - (Number.isFinite(at(a)) ? at(a) : Infinity))[0] ?? null;
-}
-
 // Each resolved pick, checked against what the person said this turn (`message`), what the previous turn showed them
 // (`before`; undefined when the caller has no history), their applications and their confirmed facts.
 // `resolved` (SERIAL-1491): the person's answers to the possible-match question in this thread; "no" clears a possible
@@ -277,12 +264,12 @@ export function screenPicks(picks: Pick[], o: { message?: string; before?: strin
       refused.push({ ...refusal(p, `${co} may be where they work now (their confirmed fact: "${String(maybe.text ?? maybe.value ?? "").slice(0, 160)}"); nothing was queued until they answer: ${employerQuestion(co)}`), ask: "employer" });
       continue;
     }
-    const prior = recentApplication(co, o.apps, o.now);
+    // A different posting at the same company is allowed, at any date. A recorded application to this exact
+    // posting is still a duplicate. Only compare real URLs: employer name alone never identifies a posting.
+    const key = p.url && postingKey(p.url);
+    const prior = key && (o.apps ?? []).find((a) => a.stage !== "Saved" && a.url && postingKey(a.url) === key);
     if (prior) {
-      const t = Date.parse(String(prior.applied_at ?? ""));
-      const when = Number.isFinite(t) ? `on ${isoDay(t)}` : "(date not on record)";
-      const next = Number.isFinite(t) ? `; the first day they can apply there again is ${isoDay(t + COMPANY_COOLDOWN_DAYS * 86400_000)}` : "";
-      refused.push(refusal(p, `they already applied to ${prior.company}${prior.role ? ` (${prior.role})` : ""} ${when}, ${SOURCE[prior.source] ?? "on record"} (stage: ${prior.stage}). Trainee applies once per company every ${COMPANY_COOLDOWN_DAYS} days${next}; nothing was queued`));
+      refused.push(refusal(p, `${what} is already in their applications as the same posting; nothing was queued`));
       continue;
     }
     ok.push(p);

@@ -516,7 +516,7 @@ const CareerRouter = (() => {
     const pay = item.posting.salary && item.posting.salary.raw ? `, ${item.posting.salary.raw}` : "";
     const url = item.url || postingUrlOf(item.posting);
     // The link rides inside the role's own sentence: the composer keeps one sentence per role.
-    return `${item.title} at ${item.company}${url ? ` (${url}), ` : " \u2014 "}${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
+    return `${item.title} at ${item.company}${url ? ` (${url})` : ""} \u2014 ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
   }
 
   // The role families an ASK names. "Design / portfolio-first" is pinned to

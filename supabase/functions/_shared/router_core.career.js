@@ -13272,7 +13272,7 @@ const CareerRouter = (() => {
     const where = item.remote === "remote" ? "remote" : item.remote === "hybrid" ? `hybrid in ${s(item.location).split(",")[0]}` : s(item.location);
     const pay = item.posting.salary && item.posting.salary.raw ? `, ${item.posting.salary.raw}` : "";
     const url = item.url || postingUrlOf(item.posting);
-    return `${item.title} at ${item.company}${url ? ` (${url}), ` : " \u2014 "}${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
+    return `${item.title} at ${item.company}${url ? ` (${url})` : ""} \u2014 ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
   }
 
   const FAMILY_LABELS = { PM: "product management (PM)", SWE: "software engineering", "Data/ML": "data and machine learning", Design: "design", Finance: "finance", Consulting: "consulting", Operations: "operations", Marketing: "marketing", Sales: "sales" };
@@ -27863,7 +27863,7 @@ const CareerBatchApply = (() => {
       }
     }
     if (sm.confirmations.length) lines.push(`Submitted ${sm.confirmations.length} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
-    for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : st.code === "BOARD_NOT_WIRED" ? "I cannot send applications to this employer's site from here yet, so nothing was prepared or sent; you can apply on their page yourself" : `${st.code} — ${st.reason}`}`);
+    for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${st.code} — ${st.reason}`}`);
     const capDef = sm.deferred.filter((x) => x.code === "CAP_REACHED");
     const countDef = sm.deferred.filter((x) => x.code === "COUNT_DEFERRED");
     if (capDef.length) lines.push(`${capDef.length} hit today's application cap and are queued for ${capDef[0].resumeOn || "tomorrow"} — they resume automatically, they are not lost.`);

@@ -106,6 +106,9 @@ const HOLD =
   /^(?:wait|wait a (?:sec|second|minute|moment)|hold on|hold up|hang on|not yet|not now|later|one sec(?:ond)?|give me a (?:sec|second|minute|moment)|let me (?:think|check|look)(?: (?:about it|first|again))?|pause|stop,? (?:don'?t|do not) send(?: (?:it|them|anything))?(?: yet)?|wait,? (?:don'?t|do not) send(?: (?:it|them|anything))?(?: yet)?|(?:don'?t|do not) send (?:it|them|anything) yet|wait,? stop|stop,? wait|hold off|hold them|hold it)(?:,? please)?$/;
 const UNCLEAR =
   /^(?:maybe|maybe later|perhaps|possibly|probably|i guess|i think so|not sure|unsure|idk|i don'?t know|dunno|hmm+|um+|ok|okay|k|kk|sure|yes but|yes and no|kind of|sort of|yes no|no yes|only|just|except|but)$/;
+const DEFER_OR_NONE =
+  /\b(?:none|nothing|nobody|no ?one|neither|later|wait|waiting|hold|holding|pause|tomorrow|tonight|today|soon|after|afterwards|next|monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|weekend|morning|evening|not (?:now|yet)|never|don'?t|do not|cancel|stop|maybe|unless|until|if)\b/;
+const CARD_VERB = /^(?:approve|send|submit|go ahead|apply|only|just|all|everything|confirm)\b/;
 const NAME_STOP = new Set([
   "the", "it", "that", "this", "them", "these", "those", "one", "ones", "all", "any", "some", "others", "rest", "me",
   "please", "yes", "no", "yet", "now", "sure", "so", "really", "everything", "i", "you",
@@ -121,7 +124,8 @@ export function parseSelection(raw: string): { nums: number[]; names: string[] }
   t = t.replace(/^(?:numbers?|nos?\.?)\s+/, "");
   const nums: number[] = [], names: string[] = [];
   for (let piece of t.split(/\s*(?:,|;|\band\b|&|\+)\s*/).map((x) => x.trim()).filter(Boolean)) {
-    piece = piece.replace(/^(?:the|number|no\.?|#)\s*/, "").replace(/\s+(?:one|ones|role|job|application|posting)$/, "").trim();
+    // Word-bounded: "none" and "them" must not lose "no"/"the" and turn into a name ("ne", "m").
+    piece = piece.replace(/^(?:(?:the|number|no\.?)\b|#)\s*/, "").replace(/\s+(?:one|ones|role|job|application|posting)$/, "").trim();
     if (/^\d{1,4}(?:\s+\d{1,4})+$/.test(piece)) {
       nums.push(...piece.split(/\s+/).map(Number));
       continue;
@@ -167,6 +171,9 @@ export function parseCardReply(text: string): CardReply | null {
   if (HOLD.test(t)) return { kind: "hold" };
   if (NO.test(t)) return asked ? { kind: "unclear" } : { kind: "no" };
   if (UNCLEAR.test(t)) return { kind: "unclear" };
+  // Fail closed (owner, 2026-10-28): a reply that also says "none", "nothing", "later", "wait", "hold" or names a time
+  // ("approve none", "send it later", "yes but wait", "yes except none") approves nothing.
+  if (DEFER_OR_NONE.test(t) && (YES_WORD.test(t) || CARD_VERB.test(t))) return { kind: "unclear" };
   // A choice ("1 or 2", "yes to 1 or 2") is not an answer anyone can act on.
   if (/^(?:(?:yes|approve|send)(?: to)?\s+)?#?\d{1,4}(?:\s*(?:,|or)\s*#?\d{1,4})*\s+or\s+#?\d{1,4}$/.test(t)) return { kind: "unclear" };
   const c = t.match(/^change (?:number |#)?(\d+)\b/);
@@ -605,6 +612,7 @@ export async function cardTurn(
 
 // The store over the edge function's service client: every call names the person (the _as functions), and every read is
 // scoped to them.
+const PENDING_PAGE = 1000;
 export function supabaseCardStore(admin: any): CardStore {
   const must = (r: any, what: string) => {
     if (r.error) throw new Error(`${what}: ${r.error.message}`);
@@ -612,12 +620,18 @@ export function supabaseCardStore(admin: any): CardStore {
   };
   return {
     async pending(userId) {
-      // D-MS-2: the whole batch, not the first 30.
-      return must(
+      // D-MS-2 and NO LIMITS: the whole batch, read in pages (PostgREST returns at most its max-rows per request), never cut.
+      const out: Prepared[] = [];
+      for (let from = 0; ; from += PENDING_PAGE) {
+      const rows: Prepared[] = must(
         await admin.from("career_apply_prepared").select("id,company,card_lines,created_at,resume_sha256:payload->>resume_sha256").eq("user_id", userId)
-          .in("state", ["ready", "shown"]).order("created_at", { ascending: true }).limit(1000),
+          .in("state", ["ready", "shown"]).order("created_at", { ascending: true }).order("id", { ascending: true })
+          .range(from, from + PENDING_PAGE - 1),
         "read prepared applications",
       ) ?? [];
+      out.push(...rows);
+      if (rows.length < PENDING_PAGE) return out;
+    }
     },
     async open(userId, ids) {
       return must(await admin.rpc("career_apply_card_open_as", { p_user: userId, p_ids: ids }), "open a card");

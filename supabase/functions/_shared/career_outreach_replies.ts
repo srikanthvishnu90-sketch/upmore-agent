@@ -779,7 +779,7 @@ export function memoryRepliesStore() {
   const threads: ThreadRow[] = [], turns: (TurnRow & { user_id: string })[] = [], sync: (SyncRow & { lease_owner: string | null; lease_until: number | null })[] = [];
   const prefs: Record<string, FollowupPrefs> = {}, actions: Action[] = [], dnc = new Set<string>(), intents: Record<string, string | null> = {};
   const aliases: { thread_id: string; provider_thread: string }[] = [];
-  const leases: Record<string, { owner: string; until: number }> = {}, actionLease: Record<string, { owner: string; until: number }> = {};
+  const leases: Record<string, { owner: string; until: number }> = {}, actionLease: Record<string, { owner: string; until: number; at: number }> = {};
   let seq = 0;
   const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x));
   const lower = (s: string) => s.trim().toLowerCase();
@@ -941,7 +941,7 @@ export function memoryRepliesStore() {
         else if (a.kind === "calendar_event" && actions.some((o) => o.id !== a.id && o.thread_id === a.thread_id && o.kind === "calendar_event" && ["running", "done"].includes(o.status))) why = "already_created";
         if (why) { a.status = "refused"; a.result = why; if (a.kind === "followup" && ["none", "drafted"].includes(t.followup_state)) t.followup_state = "off"; continue; }
         if (a.kind === "followup" && t.ooo_until && Date.parse(t.ooo_until) + DAY > now) continue;
-        a.status = "running"; actionLease[a.id] = { owner: worker, until: now + leaseS * 1000 };
+        a.status = "running"; actionLease[a.id] = { owner: worker, until: now + leaseS * 1000, at: now };
         per[a.user_id] = (per[a.user_id] ?? 0) + 1;
         out.push(copy(a));
       }
@@ -952,6 +952,8 @@ export function memoryRepliesStore() {
     async finishAction(id: string, worker: string, outcome: "done" | "retry" | "failed", ref: string | null, link: string | null, result: string, event?: Record<string, unknown> | null) {
       const a = actions.find((x) => x.id === id && x.status === "running" && actionLease[x.id]?.owner === worker);
       if (!a) return false;
+      // The claim's clock, not the wall clock: the store runs on the caller's `now` (a test's fixed day included).
+      const at = new Date(actionLease[id].at).toISOString();
       delete actionLease[id];
       if (outcome !== "done") {
         a.status = outcome === "retry" ? "approved" : "failed"; a.result = result;
@@ -962,12 +964,12 @@ export function memoryRepliesStore() {
       a.status = "done"; a.provider_ref = ref; a.link = link; a.result = result;
       const t = threads.find((x) => x.id === a.thread_id)!;
       if (a.kind === "followup") {
-        t.followups_sent++; t.last_touch_at = new Date().toISOString();
+        t.followups_sent++; t.last_touch_at = at;
         if (t.followup_state !== "off") t.followup_state = t.followups_sent >= (prefs[t.user_id]?.steps?.length ?? 0) ? "done" : "none";
       }
       else if (a.kind === "schedule_reply") { if (t.status !== "call_scheduled") t.status = "call_proposed"; t.offered = a.payload.slots ?? t.offered; }
       else { t.status = "call_scheduled"; t.event = event ?? { ref, link, start: a.payload.start, end: a.payload.end }; }
-      t.status_at = new Date().toISOString();
+      t.status_at = at;
       return true;
     },
     async isDnc(email: string) { return dnc.has(lower(email)); },

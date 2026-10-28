@@ -54,7 +54,10 @@ const FWD_BARE = mailIn("f2", "Sam Lee <sam.lee@gmail.com>", "Fwd: Asana - updat
 // ------------------------------------------------------------------------------------------------ E: off is today
 // sha256 of every committed split's classifications (2564 emails), taken at the branch point 4e79ef0f before any WO-051
 // change. The second opinion lives outside the classifier; this pins that the rules read every email exactly as before.
-const GOLDEN = { n: 2564, sha256: "ee59cb5e1102217cc1f9d64dab60ebd6efa43c38b22b93a100f5fe3a996eaa94" };
+// Family email (2026-10-26): one reading's evidence changed and no kind did. The Spanish "nos gustaría invitarte a una
+// entrevista" became a decisive interview phrase (career_mail_langs.ts), so mail-blind240 C234 (interview before and after)
+// now cites that phrase; every other one of the 2564 readings is byte-identical to the previous golden (ee59cb5e...).
+const GOLDEN = { n: 2564, sha256: "0a951cbc0d8d1654644f25604e0601be9b4f0ca4af1235e2b5539fcdbacc42e0" };
 const FILES = ["mail-labels", "mail-blind", "mail-dev4", "mail-blind160", "mail-dev5", "mail-blind200", "mail-dev6", "mail-blind240", "mail-dev7", "mail-blind300"];
 async function committed(): Promise<{ file: string; mails: any[] }[]> {
   const out = [];

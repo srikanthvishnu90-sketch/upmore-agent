@@ -16,12 +16,15 @@ const admin = () => ({ calls: [] as any[], async rpc(name: string, args: any) { 
 const completion = (message: any, usage: any = { prompt_tokens: 1000, completion_tokens: 500, prompt_tokens_details: { cached_tokens: 200 } }, finish = "stop") =>
   Response.json({ id: "chatcmpl-1", model: "gpt-5-nano", choices: [{ index: 0, finish_reason: finish, message: Object.assign({ role: "assistant", content: null }, message) }], usage });
 
-Deno.test("provider choice: OpenAI gpt-5-nano at minimal reasoning by default; Anthropic only when MODEL_PROVIDER=anthropic is set on purpose", () => {
+Deno.test("provider choice: OpenAI gpt-5-nano at minimal reasoning by default; no secret ever selects Anthropic", () => {
   const o = modelConfig(env({ OPENAI_API_KEY: KEY }));
   eq([o.provider, o.model, o.reasoningEffort, o.apiKey === KEY], ["openai", "gpt-5-nano", "minimal", true]);
   eq(OPENAI_DEFAULT_MODEL, "gpt-5-nano", "the cheapest model with forced tool calls is the default");
-  eq(modelConfig(env({ OPENAI_API_KEY: KEY, MODEL_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "a" })).provider, "anthropic");
-  eq(modelConfig(env({ MODEL_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "a" })).model, "claude-haiku-4-5-20251001");
+  // Q3, 2026-10-28 (SEC11): MODEL_PROVIDER=anthropic used to switch every call to Anthropic with one secret. It is ignored.
+  const asked = modelConfig(env({ OPENAI_API_KEY: KEY, MODEL_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "a", ANTHROPIC_MODEL: "claude-x" }));
+  eq([asked.provider, asked.model, asked.apiKey === KEY], ["openai", "gpt-5-nano", true], "MODEL_PROVIDER=anthropic is ignored");
+  const askedRouter = modelConfig(env({ MODEL_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "a", ANTHROPIC_ROUTER_MODEL: "claude-r" }), "router");
+  eq([askedRouter.provider, askedRouter.model, askedRouter.apiKey], ["openai", "gpt-5-nano", ""], "an Anthropic key and model never reach the config");
   // Owner, 2026-10-12: this app runs on OpenAI only and never spends Anthropic API credits by accident. A missing OpenAI
   // key (or only an Anthropic key in the environment) stays OpenAI and fails as "not configured"; it never falls back.
   const noKey = modelConfig(env({ ANTHROPIC_API_KEY: "a" }));

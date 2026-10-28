@@ -63,6 +63,8 @@ jobs:
           WHATSAPP_TEMPLATE_UPDATES: ${{ secrets.WHATSAPP_TEMPLATE_UPDATES }}
           WHATSAPP_TEMPLATE_LANGUAGE: ${{ secrets.WHATSAPP_TEMPLATE_LANGUAGE }}
           WHATSAPP_DAILY_TEMPLATES: ${{ secrets.WHATSAPP_DAILY_TEMPLATES }}
+          CAREER_PREPARE_AHEAD_URL: ${{ secrets.CAREER_PREPARE_AHEAD_URL }}
+          CAREER_PREPARE_AHEAD_TOKEN: ${{ secrets.CAREER_PREPARE_AHEAD_TOKEN }}
           TRAINEE_GO_LIVE_LOG: ${{ runner.temp }}/go-live/go-live.log
           TRAINEE_DEPLOY_LABEL: github-actions run ${{ github.run_id }}
         run: |
@@ -91,6 +93,8 @@ jobs:
           MASK_15: ${{ secrets.WHATSAPP_TOKEN }}
           MASK_16: ${{ secrets.WHATSAPP_APP_SECRET }}
           MASK_17: ${{ secrets.WHATSAPP_VERIFY_TOKEN }}
+          MASK_18: ${{ secrets.CAREER_PREPARE_AHEAD_URL }}
+          MASK_19: ${{ secrets.CAREER_PREPARE_AHEAD_TOKEN }}
         run: |
           out="$RUNNER_TEMP/deploy-artifacts"; mkdir -p "$out"
           cp "$RUNNER_TEMP/go-live/go-live.log" "$out/" 2>/dev/null || echo "no log was written"

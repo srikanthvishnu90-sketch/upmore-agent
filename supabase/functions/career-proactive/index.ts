@@ -4,14 +4,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { supabasePostingsDb } from "../_shared/career_ingest.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
-import { careerToken, careerTokenFor, readMailSince, type TokenDeps } from "../_shared/career_mail_gmail.ts";
+import { CAREER_READ_SCOPE, careerToken, careerTokenFor, readMailSince, type TokenDeps } from "../_shared/career_mail_gmail.ts";
 import { mailModelWiring } from "../_shared/career_mail_model.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_brief_store.ts";
 import { supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
 import { handleProactive } from "./handler.ts";
 import { runOutreachReplies, runOutreachSends, supabaseOutreachStore } from "../_shared/career_outreach.ts";
+import { peopleSink, supabasePeopleDeps } from "../_shared/career_people.ts";
 import { gmailSender, gmailThreadReader } from "../_shared/career_outreach_gmail.ts";
+import { runOutreachFollowupsGated } from "../_shared/career_outreach_track.ts";
 
 // The career Google grant (vault oauth_google_career_<uid>), read the same way by mail tracking and outreach.
 const grant = (admin: any): TokenDeps => ({
@@ -80,16 +82,43 @@ serve((req) => {
     } : undefined,
     // Outreach (WO-033) sends from people's own Gmail, so it runs only once the owner turns it on (CAREER_OUTREACH_SEND=on):
     // one approved send per person per run, then the replies on threads already sent ("stop", bounces, answers).
-    outreach: Deno.env.get("CAREER_OUTREACH_SEND") === "on" ? async (now) => {
-      const store = supabaseOutreachStore(admin), events = supabaseEventStore(admin), deps = grant(admin);
+    // FAMILY NETWORKING: follow-up reminders on networking mail the person sent (career_outreach_track.ts), once each, to
+    // their outbox; they need no Gmail, so they run with CAREER_OUTREACH_FOLLOWUPS=on even while sending is off.
+    outreach: Deno.env.get("CAREER_OUTREACH_SEND") === "on" || Deno.env.get("CAREER_OUTREACH_FOLLOWUPS") === "on" ? async (now) => {
+      const store = supabaseOutreachStore(admin);
+      const quiet = async (ids: string[]) => {
+        const { data, error } = await admin.rpc("career_quiet_users", { p_users: ids });
+        if (error) throw new Error(`read who is paused: ${error.message}`);
+        return new Set<string>((data ?? []).map((r: any) => String(r.user_id ?? r)));
+      };
+      const followups = await runOutreachFollowupsGated(Deno.env, { store, outbox: supabaseAlertStore(admin), now, quiet }).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
+      if (Deno.env.get("CAREER_OUTREACH_SEND") !== "on") return { followups };
+      const events = supabaseEventStore(admin), deps = grant(admin);
       const token = (u: string, scope: string) => careerTokenFor(deps, scope)(u);
       const tz = async (u: string) => { const { data } = await admin.from("career_alert_prefs").select("tz").eq("user_id", u).maybeSingle(); return data?.tz ?? undefined; };
       // WO-091c: the sends and the replies each run on their own; a failure in one is reported and the other still runs.
       const msg = (e: unknown) => ({ error: e instanceof Error ? e.message : String(e) });
       const sends = await runOutreachSends({ store, sender: gmailSender({ fetch, token }), now, tz, events }).catch(msg);
       const replies = await runOutreachReplies({ store, read: gmailThreadReader({ fetch, token }), now, events }).catch(msg);
-      return { ...sends, replies };
+      return { ...sends, replies, ...(followups ? { followups } : {}) };
     } : undefined,
+    // Introduction reminders (D-033) queue the reminder a person asked for to the outbox at its date; the run record's
+    // count needs 20261027020000_career_intro_reminder_push.sql, so this runs only once the owner turns it on at
+    // deploy, after that migration. The chat reads the same switch for its words (supabasePeopleDeps' introPush, wired in
+    // agent-chat), and both read the same texting-channel check: a person with no texting channel is never queued.
+    introReminders: Deno.env.get("CAREER_INTRO_REMINDERS") === "on" ? (() => {
+      const deps = supabasePeopleDeps(admin, { fetch, token: async () => null, introPush: true });
+      const people = deps.store;
+      return { due: (nowIso: string) => people.dueIntros(nowIso), canText: deps.canText,
+        markReminded: async (userId: string, n: number) => { await people.updateIntro(userId, n, { reminded_at: new Date().toISOString() }); } };
+    })() : undefined,
+    // People finding (follow-up on #222): unfinished Gmail reads ("who do I know at Ramp", job alerts) carried on in leased
+    // batches, read with the career grant's gmail.readonly. Needs 20261027170100_career_people_gmail_sweep.sql, so it runs
+    // only once the owner turns it on at deploy (CAREER_PEOPLE_SWEEP=on); the chat's words read the same switch.
+    peopleSweeps: Deno.env.get("CAREER_PEOPLE_SWEEP") === "on" ? (() => {
+      const deps = supabasePeopleDeps(admin, { fetch, token: careerTokenFor(grant(admin), CAREER_READ_SCOPE), introPush: false, sweepPush: true });
+      return { sweeps: deps.sweeps!, sink: peopleSink(deps.store), gmail: deps.gmail! };
+    })() : undefined,
     // Briefs, interview drafts and the weekly digest (WO-034) need 20261021050000_career_brief_digest.sql, so they run only
     // once the owner turns them on at deploy, after that migration.
     briefs: Deno.env.get("CAREER_BRIEF_DIGEST") === "on" ? {
@@ -148,6 +177,8 @@ serve((req) => {
       // WO-091c: every rail's failure, by rail (the column is 20261022120000_career_control_state.sql's).
       if (r.errors) row.errors = r.errors;
       if (Deno.env.get("CAREER_BRIEF_DIGEST") === "on") Object.assign(row, { briefs: r.briefs ?? 0, brief_ms_max: r.brief_ms_max ?? null, digests: r.digests ?? 0 });
+      if (Deno.env.get("CAREER_INTRO_REMINDERS") === "on") row.intro_reminders = r.intro_reminders ?? 0;
+      if (Deno.env.get("CAREER_PEOPLE_SWEEP") === "on") row.people_sweeps = r.people_sweeps ?? 0;
       const { error } = await admin.from("career_proactive_runs").insert(row);
       if (error) throw new Error(`record run: ${error.message}`);
     },

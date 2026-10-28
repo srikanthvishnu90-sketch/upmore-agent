@@ -11,7 +11,7 @@
 // OPENAI_ROUTER_MODEL. Keys are read from the environment only and never logged. The Anthropic request branch in
 // callModel is reachable only from a hand-built ModelConfig (the finance planner's tests); it is on the removal list.
 import { ModelBudgetBlockedError, ModelUnavailableError, providerError, recordModelUsage, reserveModelCall } from "./model_calls.ts";
-import { type BudgetGate, budgetBlockOfType, budgetPausedByEnv, budgetReply, denoEnvGet, highestPrice, REFUSED_BEFORE_GENERATION, resolveBudgetGate, usageProven, worstCaseMicros } from "./model_budget.ts";
+import { type BudgetGate, budgetBlockOfType, budgetPausedByEnv, budgetReply, denoEnvGet, REFUSED_BEFORE_GENERATION, resolveBudgetGate, usageProven, worstCaseMicros } from "./model_budget.ts";
 
 export type Provider = "openai" | "anthropic";
 export type ModelRole = "chat" | "router" | "planner" | "probe";
@@ -21,6 +21,7 @@ type Env = { get(name: string): string | undefined };
 export const OPENAI_DEFAULT_MODEL = "gpt-5-nano";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+const RESPONSES_URL = "https://api.openai.com/v1/responses";
 const PROVIDER_NAME: Record<Provider, string> = { openai: "OpenAI", anthropic: "Anthropic" };
 
 export function modelConfig(env: Env, role: ModelRole = "chat"): ModelConfig {
@@ -197,6 +198,9 @@ export function adminHealthSink(admin: any): HealthSink {
   return async (e) => { try { await admin.from("agent_provider_events").insert(e); } catch (_) { /* health logging never breaks a reply */ } };
 }
 
+// Voice is OFF for the beta (owner, 2026-10-28): a speech, transcription or realtime model is refused here before anything is reserved or sent.
+export const VOICE_MODEL = /realtime|tts|whisper|transcribe|speech|audio/i;
+export function refuseVoiceModel(model: string) { if (VOICE_MODEL.test(String(model || ""))) throw new ModelUnavailableError(403, "voice_off", "voice and speech models are switched off"); }
 export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeoutMs?: number; meter?: TurnMeter; health?: HealthSink; budget?: BudgetGate }
 // The one call. Returns an Anthropic-shaped message; throws ModelUnavailableError (provider status, type and message,
 // never the key) when the provider refuses, fails or is not configured.
@@ -205,6 +209,7 @@ export interface CallOptions { role?: ModelRole; request?: typeof fetch; timeout
 // paid model, and nothing is sent before the worst-case cost of the request has been reserved in the day's row. Settled to the
 // proven cost after; kept at the full worst case when anything about the call is unproven; given back only for a proven no-call.
 export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions = {}): Promise<any> {
+  refuseVoiceModel(cfg.model);
   const role = o.role || "chat", request = o.request || fetch, started = Date.now();
   const report = async (ok: boolean, status: number | null, type: string | null, detail: string | null) => { if (o.health) await o.health({ provider: cfg.provider, model: cfg.model, role, ok, status, error_type: type, detail, latency_ms: Date.now() - started }); };
   if (!cfg.apiKey) { const e = new ModelUnavailableError(0, "not_configured", `${providerName(cfg)} API key is not configured`); meterAdd(o.meter, cfg, null, true); await report(false, null, e.type, e.detail); throw e; }
@@ -260,57 +265,6 @@ export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions =
   }
 }
 
-// ---- web search (the people finder, career_people_provider.ts) -------------------------------------------------------------
-// OpenAI's hosted web_search tool through the Responses API: the same door and the same budget rule as callModel. Nothing is
-// sent before the worst case is reserved; it is settled to a proven cost only when the provider's usage block is real and the
-// model is priced; a refusal before generation gives it back; anything else keeps the worst case as spent.
-//   worst case = (request bytes + WEB_SEARCH_CONTENT_TOKENS per search) at the model's highest input rate (the table's highest
-//   for an unknown model) + WEB_SEARCH_MAX_OUTPUT output tokens + WEB_SEARCH_CALL_FEE per search, for at most
-//   WEB_SEARCH_MAX_CALLS searches (max_tool_calls caps them). The fee and the content allowance are conservative figures: OpenAI
-//   bills web search per call ($10-$25 per 1,000) and bills the search content as input tokens.
-export const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-export const WEB_SEARCH_MAX_CALLS = 3, WEB_SEARCH_MAX_OUTPUT = 2000, WEB_SEARCH_CONTENT_TOKENS = 32_000, WEB_SEARCH_CALL_FEE = 25_000;
-export type WebSearchResult = { ok: true; json: any } | { ok: false; status: number; body: string; retryAfter: string | null } | { ok: false; status: 0; body: string; retryAfter: null; budget?: string };
-export async function webSearchCall(o: { apiKey: string; model: string; input: string; blockedDomains: string[]; request?: typeof fetch; budget?: BudgetGate; timeoutMs?: number }): Promise<WebSearchResult> {
-  const request = o.request || fetch;
-  const env = denoEnvGet();
-  if (budgetPausedByEnv(env || (() => undefined))) return { ok: false, status: 0, body: "the model budget is switched off", retryAfter: null, budget: "paused" };
-  const gate = resolveBudgetGate(o.budget, env);
-  if (!gate) return { ok: false, status: 0, body: "the budget service is configured without a key", retryAfter: null, budget: "unavailable" };
-  const bodyText = JSON.stringify({
-    model: o.model, tool_choice: "required", include: ["web_search_call.action.sources"], max_tool_calls: WEB_SEARCH_MAX_CALLS, max_output_tokens: WEB_SEARCH_MAX_OUTPUT,
-    tools: [{ type: "web_search", filters: { blocked_domains: o.blockedDomains } }], input: o.input,
-  });
-  const known = PRICES[o.model];
-  const inRate = known ? Math.max(known.input, known.cached, known.cache_write) : highestPrice(PRICES).input;
-  const outRate = known ? known.output : highestPrice(PRICES).output;
-  const tokensIn = new TextEncoder().encode(bodyText).length + WEB_SEARCH_MAX_CALLS * WEB_SEARCH_CONTENT_TOKENS;
-  const worst = Math.ceil(tokensIn * inRate + WEB_SEARCH_MAX_OUTPUT * outRate + WEB_SEARCH_MAX_CALLS * WEB_SEARCH_CALL_FEE);
-  const got = await gate.reserve(worst, { model: o.model, role: "search" });
-  if (!got.ok) return { ok: false, status: 0, body: `budget ${got.reason}`, retryAfter: null, budget: got.reason };
-  let close: { kind: "keep" } | { kind: "actual"; micros: number } | { kind: "release" } = { kind: "keep" };
-  try {
-    let res: Response;
-    try { res = await request(OPENAI_RESPONSES_URL, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${o.apiKey}` }, body: bodyText, signal: AbortSignal.timeout(o.timeoutMs || 45000) }); }
-    catch (e) { return { ok: false, status: 0, body: `search: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200), retryAfter: null }; }
-    if (!res.ok) {
-      if (REFUSED_BEFORE_GENERATION.has(res.status)) close = { kind: "release" };
-      return { ok: false, status: res.status, body: (await res.text().catch(() => "")).slice(0, 800), retryAfter: res.headers.get("retry-after") };
-    }
-    const j: any = await res.json().catch(() => null);
-    const u = j?.usage, fin = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0;
-    const searches = (Array.isArray(j?.output) ? j.output : []).filter((x: any) => x?.type === "web_search_call").length;
-    const tokens = u && fin(u.input_tokens) && fin(u.output_tokens) ? costMicros(o.model, u) : null;
-    if (tokens !== null && Number.isFinite(tokens)) close = { kind: "actual", micros: Math.max(1, tokens + searches * WEB_SEARCH_CALL_FEE) };
-    return { ok: true, json: j };
-  } finally {
-    try {
-      if (close.kind === "release") await gate.release(got.id);
-      else await gate.settle(got.id, close.kind === "actual" ? close.micros : null);
-    } catch (e) { console.error("[model] search budget settle failed; the reservation stays open and expires to its worst case:", e instanceof Error ? e.message : e); }
-  }
-}
-
 // What a person reads when the provider is down: the same sentence everywhere, never planner wording, never silence.
 export const OUTAGE_REPLY = "I can't answer that right now: the AI service Upmore uses isn't responding, so I didn't look anything up and nothing was changed. Try again in a few minutes.";
 
@@ -340,5 +294,52 @@ export async function chatReply(cfg: ModelConfig, payload: any, o: CallOptions =
     console.error(`[model] chat ${e.summary()}`);
     const block = budgetBlockOfType(e.type);
     return { ok: false, reply: block ? budgetReply(block) : OUTAGE_REPLY, model_error: e.summary() };
+  }
+}
+
+// OpenAI's Responses API with the web_search tool (people discovery). The same rule as callModel: nothing is sent before the
+// worst case is reserved in the day's row; settled to the proven cost, kept whole when anything is unproven, given back only for
+// a provider refusal before generation. The worst case adds, for up to WEB_SEARCH_MAX_CALLS searches, the search content and a
+// fee of WEB_SEARCH_FEE_MICROS each (OpenAI lists web search at $10-$25 per 1,000 calls; not read on its pricing page today).
+// Returns the provider's Response untouched; throws ModelBudgetBlockedError when the budget refuses.
+// The search content OpenAI adds to the model's input (billed as input tokens) is reserved as WEB_SEARCH_CONTENT_TOKENS per search
+// at the model's highest input rate; the fee is reserved AND settled at WEB_SEARCH_FEE_MICROS (the conservative figure, since the
+// listed price was not read on OpenAI's page today: a lower unverified number would undercount). max_tool_calls is forced to at
+// most WEB_SEARCH_MAX_CALLS, so the searches a call can make are bounded by what was reserved.
+export const WEB_SEARCH_FEE_MICROS = 25_000, WEB_SEARCH_MAX_CALLS = 1, WEB_SEARCH_CONTENT_TOKENS = 32_000;
+export async function responsesCall(o: { apiKey: string; model: string; body: Record<string, unknown>; request?: typeof fetch; budget?: BudgetGate; timeoutMs?: number; role?: ModelRole }): Promise<Response> {
+  refuseVoiceModel(o.model);
+  const send = o.request || fetch;
+  const env = denoEnvGet();
+  if (budgetPausedByEnv(env || (() => undefined))) throw new ModelBudgetBlockedError("paused", "MODEL_BUDGET_PAUSED is on");
+  const gate = resolveBudgetGate(o.budget, env);
+  if (!gate) throw new ModelBudgetBlockedError("unavailable", "the budget service is configured without a key");
+  const asked = Number(o.body.max_tool_calls);
+  const maxCalls = Number.isInteger(asked) && asked >= 1 ? Math.min(asked, WEB_SEARCH_MAX_CALLS) : WEB_SEARCH_MAX_CALLS;
+  const bodyText = JSON.stringify({ ...o.body, max_tool_calls: maxCalls, model: o.model });
+  const worst = worstCaseMicros(o.model, PRICES, { bytes: new TextEncoder().encode(bodyText).length + maxCalls * WEB_SEARCH_CONTENT_TOKENS, images: 0, maxOutputTokens: Number(o.body.max_output_tokens) || 4096 }) + maxCalls * WEB_SEARCH_FEE_MICROS;
+  const got = await gate.reserve(worst, { model: o.model, role: o.role || "chat" });
+  if (!got.ok) {
+    console.error(`[model] budget ${got.reason}${got.detail ? `: ${got.detail}` : ""}`);
+    throw new ModelBudgetBlockedError(got.reason, got.reason === "limit" ? "the global model budget is used up" : got.reason === "paused" ? "the model budget is switched off" : got.reason === "before" ? "the model budget window has not opened" : got.reason === "after" ? "the model budget window has ended and no new budget is approved" : `the model budget could not be checked${got.detail ? `: ${got.detail}` : ""}`);
+  }
+  let close: { kind: "keep" } | { kind: "actual"; micros: number } | { kind: "release" } = { kind: "keep" };
+  try {
+    const res = await send(RESPONSES_URL, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${o.apiKey}` }, body: bodyText, signal: AbortSignal.timeout(o.timeoutMs || 45000) });
+    if (!res.ok) { if (REFUSED_BEFORE_GENERATION.has(res.status)) close = { kind: "release" }; return res; }
+    // Read a copy: the caller still gets the body. Proven only when the usage block is real and the model has a price.
+    const raw = await res.clone().text().catch(() => ""), j: any = (() => { try { return JSON.parse(raw); } catch { return null; } })();
+    const u = j && j.usage, num = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0;
+    if (u && num(u.input_tokens) && num(u.output_tokens) && Array.isArray(j.output)) {
+      const tokens = costMicros(o.model, u);
+      const searches = j.output.filter((x: any) => x && x.type === "web_search_call").length;
+      if (tokens !== null && Number.isFinite(tokens)) close = { kind: "actual", micros: Math.max(1, tokens + searches * WEB_SEARCH_FEE_MICROS) }; // the truth, even above the reservation (the day records an overrun)
+    }
+    return res;
+  } finally {
+    try {
+      if (close.kind === "release") await gate.release(got.id);
+      else await gate.settle(got.id, close.kind === "actual" ? close.micros : null);
+    } catch (e) { console.error("[model] budget settle failed; the reservation stays open and expires to its worst case:", e instanceof Error ? e.message : e); }
   }
 }

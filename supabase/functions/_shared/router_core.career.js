@@ -13045,6 +13045,15 @@ const CareerRouter = (() => {
       const a = Date.parse(`${f.start}-01T00:00:00Z`), b = f.end ? Date.parse(`${f.end}-01T00:00:00Z`) : a;
       if (Number.isFinite(a) && Number.isFinite(b) && b >= a) months += Math.round((b - a) / 2592000000) + 1;
     }
+    if (!months) {
+      let said = 0;
+      for (const f of ((profile && profile.facts) || [])) {
+        if (f.kind !== "experience" || f.needs_confirmation || f.status === "draft") continue;
+        const m = /\b(\d{1,2})\+?\s*(?:years?|yrs?)\b/i.exec(s(f.text));
+        if (m) said = Math.max(said, Number(m[1]));
+      }
+      return said;
+    }
     return Math.floor(months / 12);
   }
   function scoringProfile(profile) {
@@ -13128,14 +13137,75 @@ const CareerRouter = (() => {
     return reasons;
   }
 
+  function seedCarry(c) {
+    const carry = c && c.carry;
+    const places = carry && carry.alert && Array.isArray(carry.alert.places) ? carry.alert.places : [];
+    const facts = carry && Array.isArray(carry.facts) ? carry.facts : [];
+    if (!facts.length && !places.length) { if (c && c.profile && c.profile._carryPlaces) delete c.profile._carryPlaces; return; }
+    if (!c.profile && facts.length) { c.profile = ProfileMod.createProfile({}); c.profile._fromStatedFacts = true; }
+    const p = c.profile;
+    if (!p) return;
+    const key = (f) => `${f.kind}:${lc(f.text || f.value || f.title || "")}`;
+    const have = new Set((p.facts || []).map(key));
+    for (const f of facts) {
+      if (!f || !f.kind || !f.text || have.has(`${f.kind}:${lc(f.text)}`)) continue;
+      ProfileMod.addFact(p, { kind: f.kind, text: f.text, source: "account", status: "confirmed", needs_confirmation: false, confirmed_from: f.source || null });
+    }
+    p._carryPlaces = places.map((x) => lc(x).split(",")[0].trim()).filter(Boolean);
+  }
+  function knownPlacesOf(profile) {
+    const p = profile || {};
+    const out = new Set();
+    const add = (x) => { const v = lc(s(x)).replace(/\(.*?\)/g, "").split(",")[0].replace(/^(?:i am|i'm|based|living|live|located|lives|from|in|near|around)\s+(?:in\s+|near\s+|at\s+)?/g, "").trim(); if (v) out.add(v); };
+    add((p.basics || {}).location);
+    for (const x of (p.preferences || {}).locations || []) add(x);
+    for (const f of p.facts || []) if (f && (f.kind === "location" || f.kind === "geography") && !f.needs_confirmation) add(f.text || f.value);
+    for (const x of p._carryPlaces || []) add(x);
+    return [...out];
+  }
   function locationCaveat(adapted, profile) {
     if (!adapted || adapted.remote === "remote") return null;
-    const prefs = (((profile || {}).preferences || {}).locations || []).map((x) => lc(x).split(",")[0].trim());
-    const home = lc((((profile || {}).basics || {}).location || "").split("(")[0].split(",")[0].trim());
+    const known = knownPlacesOf(profile);
     const city = lc((adapted.location || "").split(",")[0].split("—")[0].trim());
-    if (!city || prefs.some((x) => x && (city.includes(x) || x.includes(city))) || (home && city.includes(home))) return null;
-    return `the role is in ${adapted.location}, outside the places on your profile, so it means relocating`;
+    if (!city || !known.length || known.some((x) => city.includes(x) || x.includes(city))) return null;
+    return `the role is in ${adapted.location}, not in ${known.slice(0, 2).map(placeCase).join(" or ")}, where you told me you are`;
   }
+  function rulesFromText(txt) {
+    const all = lc(txt), rules = [];
+    if (/\bremote only\b|\bonly (?:do |want |work |apply to |consider )?(?:to )?remote\b|\bfully remote only\b|\bcan only do remote\b|\bremote,? (?:will|and) not relocate|\bwill not relocate\b|\bno relocation\b|\bnot relocating\b/.test(all)) rules.push({ kind: "remote", label: "remote only" });
+    const fl = /(?:minimum(?: salary| pay| base)?|min\.?|floor|nothing under|nothing below|no less than|at least|not under|not below)\D{0,30}?\$?\s?(\d{2,3}(?:,\d{3})+|\d{2,3}\s?k|\d{5,6})/.exec(all);
+    if (fl) { const raw = fl[1].replace(/[,\s]/g, ""); const n = /k$/.test(raw) ? Number(raw.slice(0, -1)) * 1000 : Number(raw); if (n >= 20000) rules.push({ kind: "floor", n, label: `pay of at least $${n.toLocaleString("en-US")}` }); }
+    if (/\bnight shifts?\b|\bnights only\b|\bonly (?:want )?nights?\b/.test(all)) rules.push({ kind: "nights", label: "night shifts" });
+    if (/\bno weekends?\b/.test(all)) rules.push({ kind: "noweekend", label: "no weekends" });
+    if (/\b(?:need|needs|require|requires|requiring)\b[^.;]{0,30}\b(?:visa )?sponsorship\b|\bsponsorship\b[^.;]{0,20}\b(?:needed|required)\b|\bf-?1\b|\bopt\b|\bh-?1b\b/.test(all)) rules.push({ kind: "sponsor", label: "you need sponsorship" });
+    return rules;
+  }
+  function standingRulesOf(ctx, profile) {
+    const carry = (ctx && ctx.carry) || {};
+    const rules = [], unenforced = [];
+    for (const x of Array.isArray(carry.standing) ? carry.standing : []) { const r = rulesFromText(s(x)); if (r.length) rules.push(...r); else if (s(x).trim()) unenforced.push(s(x).trim()); }
+    for (const f of ((profile && profile.facts) || [])) if (f && f.kind === "preference" && !f.needs_confirmation && f.status !== "draft") rules.push(...rulesFromText(s(f.text)));
+    const seen = new Set(), out = rules.filter((r) => { const k = `${r.kind}:${r.n || ""}`; if (seen.has(k)) return false; seen.add(k); return true; });
+    out.unenforced = unenforced;
+    return out;
+  }
+  function ruleBreak(row, rules) {
+    const p = row.posting || {};
+    const text = `${s(row.title)} ${s(p.jd_text)} ${s(p.salary && p.salary.raw)}`;
+    for (const r of rules) {
+      if (r.kind === "remote" && row.remote !== "remote") return r;
+      if (r.kind === "floor") {
+        const amounts = [...text.replace(/,/g, "").matchAll(/\$\s?(\d{5,6})\b/g)].map((m) => Number(m[1]));
+        if (Number.isFinite(p.salary_max)) amounts.push(Number(p.salary_max));
+        if (amounts.length && Math.max(...amounts) < r.n) return r;
+      }
+      if (r.kind === "sponsor" && /\b(?:no|not|unable to|cannot|can't|will not|won't|does not|doesn't|do not|don't)\s+(?:\w+\s+){0,3}sponsor|without (?:the need for )?(?:visa )?sponsorship|sponsorship (?:is )?not (?:available|offered|provided)/i.test(text)) return r;
+      if (r.kind === "noweekend" && /\bweekends?\s+(?:are\s+)?required\b|\brequired\s+weekends?\b/i.test(text)) return r;
+      if (r.kind === "nights" && (/\(days\)|\bday shift\b|\bdays only\b/i.test(text) && !/\bnights?\b/i.test(text))) return r;
+    }
+    return null;
+  }
+  const placeCase = (x) => s(x).replace(/\b([a-z])([a-z]*)/g, (m, a, b) => a.toUpperCase() + b);
   function caveatFor(item, profile) {
     const p = item.posting;
     if (p.tradeoff) return s(p.tradeoff).replace(/^[^:]+:\s*/, "");
@@ -13171,7 +13241,7 @@ const CareerRouter = (() => {
     if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch { kept = scored; } }
     let rows = kept.map((it) => {
       const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null, url: postingUrlOf(it.posting) });
-      item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : "closest fit on your profile, with the gaps named in the caveat";
+      item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : "none of its listed skills is on your record yet";
       item.caveat = caveatFor(item, profile);
       return item;
     });
@@ -13180,8 +13250,10 @@ const CareerRouter = (() => {
     if (o.company) dropped("company", (r) => lc(r.company).includes(o.company));
     if (o.locations && o.locations.size) dropped("location", (r) => o.locations.has(lc((r.location || "").split(",")[0].split("—")[0].trim())) || (o.locations.has("remote") && r.remote === "remote"));
     if (o.bands) dropped("band", (r) => o.bands.has(r.posting.seniority_band));
+    const rules = standingRulesOf(ctx, profile), left = [];
+    if (rules.length) rows = rows.filter((r) => { const br = ruleBreak(r, rules); if (br) left.push(br.label); return !br; });
     rows.sort((a, b) => (b.score - a.score) || s(a.deadline || "9999").localeCompare(s(b.deadline || "9999")) || s(a.title).localeCompare(s(b.title)));
-    return { ranked: rows, excluded, dedupedFrom: adapted.length, dedupedTo: deduped.length, family };
+    return { ranked: rows, excluded, dedupedFrom: adapted.length, dedupedTo: deduped.length, family, left: { n: left.length, rules: [...new Set(left)], checked: rules.map((r) => r.label), unenforced: rules.unenforced || [] } };
   }
 
   function ensureNextStepText(joined) {
@@ -13200,7 +13272,7 @@ const CareerRouter = (() => {
     const where = item.remote === "remote" ? "remote" : item.remote === "hybrid" ? `hybrid in ${s(item.location).split(",")[0]}` : s(item.location);
     const pay = item.posting.salary && item.posting.salary.raw ? `, ${item.posting.salary.raw}` : "";
     const url = item.url || postingUrlOf(item.posting);
-    return `${item.title} at ${item.company}${url ? ` (${url})` : ""} — ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
+    return `${item.title} at ${item.company}${url ? ` (${url})` : ""}, ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
   }
 
   const FAMILY_LABELS = { PM: "product management (PM)", SWE: "software engineering", "Data/ML": "data and machine learning", Design: "design", Finance: "finance", Consulting: "consulting", Operations: "operations", Marketing: "marketing", Sales: "sales" };
@@ -13211,14 +13283,28 @@ const CareerRouter = (() => {
   }
   const familyLabel = (f) => FAMILY_LABELS[f] || lc(f);
 
+  const GENERIC_ASK = new Set("find me some any new a an the my show get give search list look for looking jobs job roles role positions position openings opening work please can you could i would like to want see what are there is good best top matches match more other open".split(" "));
   function handleDiscovery(text, ctx, opts) {
     const o = opts || {};
     const profile = ctx.profile;
     const t = lc(text);
     const countM = t.match(/(\d+)\s*(?:roles|jobs|internships)/);
     const limit = o.limit || (countM ? Number(countM[1]) : 5);
-    const fams = o.families !== undefined ? o.families : discoveryFamilies(text);
-    const { ranked, excluded, dedupedTo, family } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
+    let fams = o.families !== undefined ? o.families : discoveryFamilies(text);
+    const saved = ctx.carry && ctx.carry.alert;
+    let usedSaved = null;
+    if (saved && o.families === undefined && !o.locations && (!fams || !fams.length) && !/\b(in|near|around)\s+[A-Z][a-z]+|\bremote\b/.test(s(text)) && !lc(text).replace(/[^a-z ]/g, " ").split(/\s+/).some((w) => w && !GENERIC_ASK.has(w)) && !/\b(jobs?|roles?|positions?)\s+(?:at|for|with)\s+[A-Z]/.test(s(text))) {
+      const roleText = (saved.roles || []).join(" or ");
+      const sf = roleText ? discoveryFamilies(`${roleText} roles`) : [];
+      const places = new Set((saved.places || []).map((x) => lc(x).split(",")[0].trim()).filter(Boolean));
+      if (saved.remote) places.add("remote");
+      if (sf.length || places.size) {
+        if (sf.length) fams = sf;
+        if (places.size) o.locations = places;
+        usedSaved = `${roleText || "any role"}${(saved.places || []).length || saved.remote ? ` in ${[...(saved.places || []).map(placeCase), ...(saved.remote ? ["remote"] : [])].join(" or ")}` : ""}`;
+      }
+    }
+    const { ranked, excluded, dedupedTo, family, left } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
     try {
       const prevP = (ctx.discovery && ctx.discovery.lastParams) || null;
       const cleanedAsk = s(text).replace(/^\s*(wait|actually|ok|okay|so|eh|and)[ ,]+/i, "").replace(/^.*?\bi meant\s+/i, "").replace(/^(find|show|get|give|search|list)(\s+me)?\s+/i, "");
@@ -13272,7 +13358,9 @@ const CareerRouter = (() => {
       const reply = compose({ headline: "I found no roles in the current list that pass your profile's hard filters.", facts: excluded.length ? [`${excluded.length} postings were excluded, mostly for: ${excluded[0].reasons[0]}.`] : [], nextStep: "Widen the location or role and I will search again." });
       return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
     }
-    const reply = compose({ headline: o.headline || `Here are the ${top.length} roles most worth applying to, ranked by fit with your profile.`, facts: top.map(roleSentence), nextStep: o.nextStep || "Tell me one to tailor your resume for, and I will do that next." });
+    const unenforcedLine = left && left.unenforced.length ? [`You told me: ${left.unenforced.join("; ")}. I cannot filter on that yet, so check each role against it before you apply.`] : [];
+    const leftLine = unenforcedLine.concat(left && left.checked.length ? [`I checked each role against what you told me (${left.checked.join("; ")}) and ${left.n ? `left out ${left.n} that break${left.n === 1 ? "s" : ""} it` : "none breaks it"}.`] : []);
+    const reply = compose({ headline: o.headline || `${top.length === 1 ? "One role fits" : `${top.length} roles fit`}, best match first.`, facts: (() => { const extra = [...(usedSaved ? [`You gave me no role or place, so this is your saved search: ${usedSaved}.`] : []), ...leftLine]; return [...extra, ...top.map(roleSentence).slice(0, Math.max(1, 6 - extra.length))]; })(), nextStep: o.nextStep || `Want me to tailor your resume for the ${top[0].company} role?` });
     return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
   }
 
@@ -14878,16 +14966,37 @@ const CareerRouter = (() => {
       related = develop && asksOrOwns;
     }
     if (!related) return null;
+    const own = answerFromRecord(raw, ctx);
+    if (own) return own;
     const ENTITLEMENT = /\b(unemployment|benefits?|severance|disability|workers'? comp|fmla|overtime|minimum wage)\b/;
-    const hasAnchor = /\b(at|for|with) [A-Z][a-z]/.test(raw) || /\b(january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|next week|next month|this week|this month)\b/.test(t);
     const facts = [];
     if (ENTITLEMENT.test(t)) facts.push("On that topic the specifics depend on where you live — deadlines and amounts are set by your state, and your state agency for it is the source for them, not me.");
-    facts.push(CAPABILITY_LINE);
+    const quoted = raw.length > 80 ? `${raw.slice(0, 77).trim()}...` : raw;
     return { intent: "career_catchall", resultStatus: "awaiting_user", reply: compose({
-      headline: "I did not catch what to do with that one.",
+      headline: `I could not match \u201c${quoted.replace(/[\u201c\u201d"]/g, "")}\u201d to anything I can act on from here, and I changed nothing.`,
       facts,
-      nextStep: hasAnchor ? "Do you want the general picture, or help acting on your specific case?" : "Which role or company is it about, and what date does it turn on?",
+      nextStep: `If \u201c${quoted.replace(/[\u201c\u201d"]/g, "")}\u201d is about a particular role or company, name it and I will take it from there.`,
     }) };
+  }
+  function answerFromRecord(raw, ctx) {
+    const t = lc(raw);
+    if (!/\b(i|my|me|mine)\b/.test(t) || !(/\?\s*$/.test(raw) || /^(what|which|how|where|who|do|does|did|am|have|tell)\b/.test(t))) return null;
+    const facts = ((ctx && ctx.profile && ctx.profile.facts) || []).filter((f) => f && !f.needs_confirmation && f.status !== "draft" && s(f.text).trim());
+    if (!facts.length) return null;
+    const STOP = new Set(["how", "many", "much", "what", "which", "where", "when", "who", "does", "did", "have", "has", "had", "the", "and", "for", "with", "that", "this", "your", "you", "are", "was", "were", "any", "tell", "about", "years", "year", "long", "mine", "my"]);
+    const words = t.replace(/[^a-z0-9+#. ]/g, " ").split(/\s+/).filter((w) => w.length >= 2 && !STOP.has(w));
+    const KIND = { experience: /\b(experience|worked|work|job|jobs|years|employer|role|career)\b/, education: /\b(degree|school|university|college|studied|study|education|graduat\w*|bsn|major)\b/, certification: /\b(certif\w*|licen[cs]\w*|certified|acls|bls)\b/, skill: /\b(skills?|know|tools?|software)\b/, location: /\b(live|living|based|located|city|where)\b/, preference: /\b(want|prefer\w*|shifts?|nights?)\b/, goal: /\b(goal|aiming|moving)\b/ };
+    const scored = facts.map((f) => {
+      const ft = lc(`${f.text} ${f.title || ""}`);
+      let n = words.filter((w) => w.length >= 3 && ft.includes(w)).length;
+      if (KIND[f.kind] && KIND[f.kind].test(t)) n += 1;
+      return { f, n };
+    }).filter((x) => x.n >= 2 || (x.n >= 1 && words.length <= 2));
+    if (!scored.length) return null;
+    scored.sort((a, b) => b.n - a.n);
+    const best = scored[0].n;
+    const hits = scored.filter((x) => x.n === best).map((x) => s(x.f.text).trim().replace(/[.]+$/, ""));
+    return { intent: "conversation_recall", resultStatus: "completed", sends: 0, reply: compose({ headline: "From your record:", facts: hits.map((h) => `${h}.`), nextStep: "Say so if any of that has changed and I will update it." }) };
   }
 
   function handlePendingAffirmation(text, ctx) {
@@ -20582,9 +20691,29 @@ const CareerRouter = (() => {
     const isStart = /^\/start(\s+\S+)?[.!]?$/i.test(raw);
     const isGreeting = /^(hi|hello|hey|hiya|howdy|greetings|good\s+(morning|afternoon|evening))(\s+there)?[\s!.]*$/i.test(raw);
     if (!isStart && !isGreeting) return null;
-    return greetingResult();
+    return greetingResult(ctx);
   }
-  function greetingResult() {
+  function carriedLines(ctx) {
+    const out = [];
+    const order = { experience: 0, location: 1, preference: 2, education: 3, certification: 4, skill: 5, goal: 6 };
+    const facts = ((ctx && ctx.profile && ctx.profile.facts) || []).filter((f) => f && !f.needs_confirmation && f.status !== "draft" && s(f.text).trim());
+    facts.slice().sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9)).forEach((f) => out.push(s(f.text).trim().replace(/[.]+$/, "")));
+    const carry = (ctx && ctx.carry) || {};
+    for (const x of Array.isArray(carry.standing) ? carry.standing : []) if (s(x).trim()) out.push(`you asked me to keep in mind: ${s(x).trim().replace(/[.]+$/, "")}`);
+    const a = carry.alert;
+    if (a && ((a.roles || []).length || (a.places || []).length)) out.push(`your saved job alert looks for ${(a.roles || []).join(" or ") || "any role"}${(a.places || []).length || a.remote ? ` in ${[...(a.places || []), ...(a.remote ? ["remote"] : [])].join(" or ")}` : ""}`);
+    return out;
+  }
+  function greetingResult(ctx) {
+    const known = ctx ? carriedLines(ctx) : [];
+    if (known.length) {
+      const a = (ctx.carry || {}).alert;
+      return { intent: "career_greeting", resultStatus: "awaiting_user", sends: 0, reply: compose({
+        headline: "Hi, welcome back.",
+        facts: [`What I have on your record: ${known.slice(0, 4).join("; ")}.`],
+        nextStep: a && (a.roles || []).length ? `Want me to look for new ${a.roles.join(" or ")} roles${(a.places || []).length ? ` in ${a.places.join(" or ")}` : ""}?` : "What would you like to work on today?",
+      }) };
+    }
     const reply = compose({
       headline: "Hi — I'm Trainee, your career agent.",
       facts: [
@@ -21005,6 +21134,7 @@ const CareerRouter = (() => {
     capturePastedPosting(text, c);
     captureStatedFacts(rawText, c);
     { const bp = profileFromStatedFacts(c); if (bp) { if (!c.profile || c.profile._fromStatedFacts) c.profile = bp; } else if (c.profile && c.profile._fromStatedFacts) c.profile = null; }
+    seedCarry(c);
     { const gr = handleGreeting(text, c); if (gr) return gr; }
     { const mg = handleFactGroundedDraft(text, c); if (mg) return mg; }
     const replyFramed = /^\s*reply handling:/i.test(s(text)) || /\brelayed reply\b|\ba reply (came|arrived|landed)\b/.test(t);
@@ -22451,6 +22581,12 @@ const CareerRouter = (() => {
       const pool = company
         ? all.filter((f) => coKey(f.key) === company || coKey(f.value) === company || (f.evidence && lc(f.evidence).includes(company)))
         : all;
+      const carried = company ? [] : carriedLines(ctx);
+      if (carried.length) {
+        const lines = [...pool.map((f) => `${factLine(f)}.`), ...carried.map((x) => `${x.charAt(0).toUpperCase()}${x.slice(1)}.`)];
+        const reply = compose({ headline: "Here is what I have on your record, from every conversation.", facts: lines, nextStep: "Correct any of it by telling me, or tell me what to run on it first." });
+        return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+      }
       if (!pool.length) {
         const reply = compose({ headline: company ? `Nothing is on your record about ${company} yet.` : "Nothing is on your record yet.", facts: ["The record holds only what you state in chat — a target company, a recruiter contact, an interview day, a preference — and nothing is assumed to fill it."], nextStep: "State the fact in your own words and it is recorded in this turn." });
         return { intent: "conversation_recall", reply, resultStatus: "awaiting_user", sends: 0 };
@@ -22590,6 +22726,11 @@ const CareerRouter = (() => {
         for (const g of failed.slice(0, 4)) facts.push(`Not met: ${g.requirement} — ${g.reason}`);
         for (const g of required.slice(0, 4)) facts.push(`Required and not evidenced: ${g.requirement}.`);
         if (!failed.length && !required.length) facts.push("Every hard requirement and required skill the posting states is evidenced on your record.");
+        const sponsorNeed = ((ctx.carry && ctx.carry.standing) || []).find((x) => /sponsor|visa|f-?1|opt\b|work authori[sz]ation|h-?1b/i.test(s(x)));
+        if (sponsorNeed && /sponsor|visa|work authori[sz]ation|eligible to work|h-?1b/i.test(t)) {
+          const says = /[^.]*\b(sponsor\w*|visa)\b[^.]*\./i.exec(jdText);
+          facts.push(`You told me: ${s(sponsorNeed).trim().replace(/[.]+$/, "")}. ${says ? `The posting says: ${says[0].trim()}` : "This posting does not say whether it sponsors, so confirm that with the employer before you apply."}`);
+        }
         const reply = compose({ headline: `Graded against the posting's own text${posting && posting.company ? ` — ${posting.title || "the role"} at ${posting.company}` : ""}.`, facts, nextStep: "Want the tailored packet for it — the gaps travel with the document, named, never hidden — or another posting graded the same way?" });
         return { intent: "eligibility_check", reply, resultStatus: "prepared", sends: 0, eligibility: { status: verdict.status, gaps } };
       } catch {   }

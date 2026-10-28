@@ -393,6 +393,9 @@ const CareerHost = (() => {
         // `memory` patch key); off, the profile and tracker stay per
         // thread exactly as before.
         accountMemory: o.accountPersistence === true && o.accountMemory === true,
+        // WO-110: what the person's other threads and their account hold (confirmed facts, standing instructions, the saved
+        // alert), read by the router for this turn only. It is not a STATE_KEY: it is never saved into the thread.
+        carry: o.carry && typeof o.carry === "object" ? cloneJson(o.carry) : null,
       };
       if (o.snapshot && o.snapshot.scope && o.snapshot.scope.userId !== ctx.userId) throw new Error("career_snapshot_owner_mismatch");
       const stores = o.snapshot && typeof o.snapshot === "object" ? o.snapshot.stores : null;

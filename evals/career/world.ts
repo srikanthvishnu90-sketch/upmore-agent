@@ -103,7 +103,7 @@ export async function openWorld(file: any, o: { postings?: any[]; fail?: Set<str
     career_outreach_drafts: () => outreach.dump().drafts.filter((d) => d.user_id === USER),
     career_alert_prefs: async () => { const r = await alerts.get(USER); return r ? [{ prefs: r.prefs, tz: r.tz }] : []; },
     career_watch_kv: async () => [{ key: "career:standing", value: { items: await memory.standing(USER) } }],
-    agent_flow_state: () => [...threads.entries()].map(([thread_id, t]) => ({ thread_id, rows: t.snapshot?.stores?.trackStore?.rows ?? null })),
+    agent_flow_state: () => [...threads.entries()].map(([thread_id, t]) => ({ thread_id, updated_at: new Date(now).toISOString(), rows: t.snapshot?.stores?.trackStore?.rows ?? null, facts: t.snapshot?.stores?.profile?.facts ?? null })),
     user_oauth_connections: () => clone(file.connections ?? []),
     career_apply_cloud_optin: () => (file.cloud ? [file.cloud] : []), channel_contacts: () => (file.channel ? [file.channel] : []),
     career_events: () => events.recall(USER, { kinds: ["search"], limit: 1 }),
@@ -127,7 +127,7 @@ export async function worldTurn(w: World, o: { brain: "agent" | "router"; thread
   const situation = S ? await S.readSituation(w.admin, USER, now) : null;
   const input: any = (chatInput as any)(o.message, [], 4000, { codePending: S ? S.codePending(situation) : false });
   const message: string = input.message, note = redactionNote(input.redacted);
-  const ctx: any = w.H.createTurnCtx({ userId: USER, threadId: o.threadId, now, accountPersistence: true, snapshot: t.snapshot, account: w.account, postings: w.kb });
+  const ctx: any = w.H.createTurnCtx({ userId: USER, threadId: o.threadId, now, accountPersistence: true, snapshot: t.snapshot, account: w.account, postings: w.kb, carry: S?.carryFrom ? S.carryFrom(situation) : null });
   if (situation && C) ctx.statusRecords = C.statusRecordsFrom(situation.capabilities);
   const controlled = w.H.isHostControlled(message, ctx);
   let out: { reply: string; intent: string | null; handler: string }, seen: Seen | null = null;

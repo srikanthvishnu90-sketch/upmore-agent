@@ -60,7 +60,7 @@ import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
 import { feature1Deps } from "../_shared/career_apply_from_chat.ts"; // FEATURE 1
 import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
-import { codePending, readSituation } from "../_shared/career_situation.ts";
+import { carryFrom, codePending, readSituation } from "../_shared/career_situation.ts";
 import { statusRecordsFrom } from "../_shared/career_capabilities.ts";
 import { edgeRenderer, supabasePersonaStore, supabaseResumeStore } from "../_shared/career_tailor.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
@@ -348,6 +348,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       };
       // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).
       if (situation) ctx.statusRecords = statusRecordsFrom(situation.capabilities);
+      (ctx as { carry?: unknown }).carry = carryFrom(situation); // WO-110: the router reads the person's facts from every thread
       // WO-002 (D-008): the agent brain answers when CAREER_BRAIN=agent; structured task/batch requests stay on the
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;

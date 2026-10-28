@@ -339,3 +339,43 @@ Deno.test("people turn at scale: more contacts at a company than one page: the c
   eq(r!.status, "listed", r!.reply);
   assert(/^You have 250 contacts at Ramp on file; here are the first 15/.test(r!.reply) && /\nand 235 more\./.test(r!.reply), r!.reply);
 });
+
+// D-MN-3 people discovery wired into the turn (career_people_provider.ts findTargets). Discovery off
+// (CAREER_PEOPLE_SEARCH unset): said plainly, from the person's own contacts, and nothing is asked of the search queue.
+Deno.test("people turn: discovery asks go to findTargets; off, the reply says web search isn't switched on and nothing is searched", async () => {
+  const { providerConfig } = await import("../../supabase/functions/_shared/career_people_provider.ts");
+  const { TARGETS_INTENT } = await import("../../supabase/functions/_shared/career_people.ts");
+  const queued: string[] = [];
+  const own = { id: 7, source: "linkedin_export", name: "Grace Hopper", email: "grace.hopper@stripe.com", company: "Stripe", company_key: "stripe", position: "Engineering Manager",
+    school: "DePaul University", source_ref: "Connections.csv, row 2", source_url: null, provider: null, provider_id: null, domain: null, email_status: null, email_evidence: null,
+    email_confidence: null, mx: null, sendable: false, fetched_at: null, same_as: null, connected_on: null, profile_text: null };
+  const pstore = {
+    request: async (_u: string, _p: string, k: string) => { queued.push(k); return { state: "queued" as const }; },
+    claim: async () => { queued.push("claim"); return []; }, reclaim: async () => 0, complete: async () => ({ state: "done" }), fail: async () => ({ state: "failed" }),
+    status: async () => ({ waiting: 0, failed: [], blocked_until: null, blocked_reason: null }),
+    candidates: async (_u: string, keys: string[], after: number) => after || !keys.includes("stripe") ? [] : [own],
+    appliedCompanies: async () => ["Stripe"], forget: async () => 0, feedback: async () => ({ format: null, rows_marked: 0 }),
+  };
+  const off = providerConfig((k) => ({ OPENAI_API_KEY: "sk-test-not-real" } as Record<string, string>)[k]);
+  const store = memoryStore();
+  const fetched: string[] = [];
+  const f = (async (u: any) => { fetched.push(String(u)); return new Response("no", { status: 599 }); }) as typeof fetch;
+  const deps: PeopleDeps = { store, gmail: null, fetch: f, targets: { store: pstore as any, config: off, provider: null, now: () => NOW } };
+  const say = (message: string, d: PeopleDeps = deps) => peopleTurn({ message, userId: U, threadId: T, now: NOW, state: { profile: { facts } }, store: memoryOutreachStore(), model: null, people: d });
+  for (const m of ["engineering managers at Stripe", "find people at every company I applied to"]) {
+    const r = await say(m);
+    eq(r!.intent, TARGETS_INTENT, m);
+    assert(/Grace Hopper <grace\.hopper@stripe\.com> \(known\): .*from your LinkedIn export/.test(r!.reply), r!.reply);
+    if (!/alumni/.test(m)) { eq(r!.status, "NOT_WIRED"); assert(/Searching the web for new people isn't switched on yet/.test(r!.reply), r!.reply); }
+  }
+  eq(queued, [], "off: nothing queued, nothing claimed");
+  eq(fetched, [], "off: no call at all");
+  // Alumni with web search off: answered from their own contacts by the alumni turn (it says what the export lacks), never
+  // searched.
+  assert((await say("alumni of DePaul at Stripe"))?.intent !== TARGETS_INTENT, "alumni, search off: their own contacts");
+  // "my school alumni" (no school named) stays the alumni turn's (confirmed education); "who do I know" stays the who turn's
+  assert((await say("my school alumni at Stripe"))?.intent !== TARGETS_INTENT);
+  assert((await say("who do I know at Stripe?"))?.intent !== TARGETS_INTENT);
+  // no discovery wired by the caller: answered exactly as before
+  assert((await say("alumni of DePaul at Stripe", { ...deps, targets: null }))?.intent !== TARGETS_INTENT);
+});

@@ -62,6 +62,8 @@ export interface JobDeps {
   now: () => number;
   env: { get(k: string): string | undefined };
   events?: Parameters<typeof tapCard>[0]["events"];
+  // The signed link to the hosted file page for one card (null: not configured, so the card has no file button).
+  fileLink?: (userId: string, ref: string) => Promise<string | null>;
 }
 
 // ---------------------------------------------------------------- refs and buttons
@@ -83,7 +85,8 @@ export function parseJobTap(data: string): JobTap | null {
   return null;
 }
 export const isJobTap = (data: string) => /^jc[adsxeyn]:/.test(String(data ?? ""));
-export const jobButtons = (ref: string): Button[][] => [[{ text: "Apply", data: `jca:${ref}` }, { text: "Details", data: `jcd:${ref}` }, { text: "Save", data: `jcs:${ref}` }]];
+export const jobButtons = (ref: string, fileUrl?: string | null): Button[][] => [[{ text: "Apply", data: `jca:${ref}` }, { text: "Details", data: `jcd:${ref}` }, { text: "Save", data: `jcs:${ref}` }],
+  ...(fileUrl ? [[{ text: "Open file", url: fileUrl }]] : [])];
 export const confirmButtons = (ref: string, tag: string): Button[][] => [[{ text: "Confirm", data: `jcy:${ref}:${tag}` }, { text: "Edit", data: `jce:${ref}` }, { text: "Cancel", data: `jcx:${ref}` }]];
 
 // ---------------------------------------------------------------- the card
@@ -208,7 +211,8 @@ export async function sendJobPage(o: { userId: string; jobs: JobView[]; page: nu
   let photo = 0, text = 0;
   for (const job of slice) {
     const ref = await refOf(o.userId, job.job_id);
-    const caption = captionOf(job, deps.now()), buttons = jobButtons(ref), logo = logoUrl(job, deps.env);
+    const fileUrl = deps.fileLink ? await deps.fileLink(o.userId, ref).catch(() => null) : null;
+    const caption = captionOf(job, deps.now()), buttons = jobButtons(ref, fileUrl), logo = logoUrl(job, deps.env);
     let shownAs: "photo" | "text" = "text";
     if (logo) { const r = await send.photo({ photoUrl: logo, caption, buttons }).catch(() => ({ ok: false })); if (r.ok) { shownAs = "photo"; photo++; } }
     if (shownAs === "text") {
@@ -284,7 +288,7 @@ function pageLines(lines: string[], max = 3800): string[] {
 
 // ---------------------------------------------------------------- taps
 export interface JobTapResult { toast: string; status: string }
-const BLOCKED_HOST = /(^|\.)(linkedin\.com|indeed\.com|joinhandshake\.com)$/i;
+export const BLOCKED_HOST = /(^|\.)(linkedin\.com|indeed\.com|joinhandshake\.com)$/i;
 export const GONE_REPLY = "That card is too old for me to open. Ask me for the postings again and I'll send fresh ones.";
 export const NO_WORKER_REPLY = (company: string, title: string) =>
   `Queued: ${title ? `${title} at ` : ""}${company}. Status: queued, not applied. I haven't prepared this application yet because the prepare worker isn't connected to your account, so there is nothing to approve and nothing has gone to the employer. When it's prepared I'll show you the exact application here with Confirm / Edit / Cancel.`;

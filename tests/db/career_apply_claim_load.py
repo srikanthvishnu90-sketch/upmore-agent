@@ -49,7 +49,8 @@ drop table if exists load.claims;
 create unlogged table load.claims (worker int not null, job uuid not null, user_id uuid not null, lease uuid not null,
  at timestamptz not null, took_ms double precision not null, seq bigserial, call bigint not null default 0);
 create sequence if not exists load.call_seq;
-create unlogged table if not exists load.calls (call bigint primary key, worker int not null, n int not null, took_ms double precision not null);
+drop table if exists load.calls;
+create unlogged table if not exists load.calls (call bigint primary key, worker int not null, n int not null, took_ms double precision not null, done_at timestamptz not null);
 grant all on schema load to postgres;
 """)
 # The people: a heavy one first (HEAVY waiting, queued before anyone else), then PEOPLE light ones with PER each. Each
@@ -138,7 +139,7 @@ declare n int; t0 timestamptz; k bigint; idle int := 0; begin
   insert into load.claims(worker, job, user_id, lease, at, took_ms, call)
    select p_worker, c.id, c.user_id, c.lease_token, t0, 0, k from public.career_apply_claim(clock_timestamp(), p_batch) c;
   get diagnostics n = row_count;
-  insert into load.calls(call, worker, n, took_ms) values (k, p_worker, n, extract(epoch from clock_timestamp() - t0) * 1000);
+  insert into load.calls(call, worker, n, took_ms, done_at) values (k, p_worker, n, extract(epoch from clock_timestamp() - t0) * 1000, clock_timestamp());
   commit;
   -- A worker with nothing this call (the rest locked by other workers) asks again, as a real worker polls; it stops when
   -- the queue is empty (or after 200 empty calls in a row, which would be a failure the assertions below report).
@@ -168,19 +169,20 @@ workers_used = int(sql("select count(distinct worker) from load.claims"))
 calls_needed = TOTAL // BATCH
 ok(workers_used == WORKERS if calls_needed >= 10 * WORKERS else workers_used >= 2,
    f"{workers_used} of {WORKERS} workers claimed in parallel ({calls_needed} batches of work)")
-# Fairness, by claim order: number each person's claims; their k-th claim must come after every other waiting person's
+# Fairness, by claim order (each call's commit, the order the claim's row locks hand turns out; a call's start time
+# is not, since 20 workers' calls overlap): number each person's claims; their k-th claim must come after every other waiting person's
 # (k-1)-th. Measured as: in the first PEOPLE+1 claims, every person appears exactly once.
-first_round = sql(f"select count(distinct user_id) || ',' || count(*) from (select user_id from load.claims order by at, call, seq limit {PEOPLE + 1}) x")
+first_round = sql(f"select count(distinct user_id) || ',' || count(*) from (select user_id from load.claims c join load.calls k using (call) order by k.done_at, c.call, c.seq limit {PEOPLE + 1}) x")
 people_first, n_first = map(int, first_round.split(","))
 ok(people_first >= int((PEOPLE + 1) * 0.99), f"fair: the first {n_first} claims served {people_first} different people of {PEOPLE + 1} (one each before anyone twice)")
-heavy_first = int(sql(f"select count(*) from (select user_id from load.claims order by at, call, seq limit {PEOPLE + 1}) x "
+heavy_first = int(sql(f"select count(*) from (select user_id from load.claims c join load.calls k using (call) order by k.done_at, c.call, c.seq limit {PEOPLE + 1}) x "
                       "where user_id = '10000000-0000-4000-8000-000000000000'"))
 ok(heavy_first <= 2, f"the heavy person ({HEAVY} queued first) got {heavy_first} of the first round, not the whole queue")
 # Across the run: the spread of each person's k-th claim. A light person's last claim comes within a few rounds of the
 # others', never after the heavy person's backlog.
-lag = sql(f"""select max(r) from (select user_id, max(rk) r from (select user_id, row_number() over (order by at, call, seq) rk from load.claims) z
+lag = sql(f"""select max(r) from (select user_id, max(rk) r from (select c.user_id, row_number() over (order by k.done_at, c.call, c.seq) rk from load.claims c join load.calls k using (call)) z
  where user_id <> '10000000-0000-4000-8000-000000000000' group by user_id) y""")
-heavy_last = sql("select max(rk) from (select user_id, row_number() over (order by at, call, seq) rk from load.claims) z "
+heavy_last = sql("select max(rk) from (select c.user_id, row_number() over (order by k.done_at, c.call, c.seq) rk from load.claims c join load.calls k using (call)) z "
                  "where user_id = '10000000-0000-4000-8000-000000000000'")
 ok(int(lag) < int(heavy_last), f"no light person waits behind the heavy one: the last light claim is #{lag}, the heavy person's last is #{heavy_last}")
 

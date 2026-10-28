@@ -13432,7 +13432,8 @@ const CareerRouter = (() => {
     const cityAsk = citiesIn(text, ctx);
     if (cityAsk.length && /\b(too|also|as well|instead|what about|how about|and)\b/.test(t)) {
       const instead = /\binstead\b/.test(t);
-      cities = instead ? cityAsk : [...cities, ...named];
+      const base = cities.length ? cities : knownPlacesOf(ctx.profile).filter((x) => poolCities(ctx).has(x));
+      cities = instead ? cityAsk : [...new Set([...base, ...named])];
       whereText = cities.map(placeCase).join(" or ");
       changes.push(instead ? `the place is ${whereText} now, replacing the earlier one` : `${named.map(placeCase).join(" or ") || whereText} is in alongside the earlier place`);
     }
@@ -13448,9 +13449,9 @@ const CareerRouter = (() => {
       return Object.assign({}, res, { reply });
     }
     const changeLine = `Updated: ${changes.join("; ")}.`;
-    const facts = [changeLine, scopeLine];
+    const facts = [changeLine, scopeLine, ...((res.shortlist || []).slice(0, 3).map((r) => `${r.title} at ${r.company}, ${r.location || "location not stated"}${r.url ? ` (${r.url})` : ""}.`))];
     if (!(res.shortlist && res.shortlist.length)) facts.push("The re-run is honest: the current list still holds no matching roles, so there is nothing new to show — the widened search is what is recorded, ready for the moment roles land.");
-    const reply = compose({ headline: "Search updated and re-run.", facts, nextStep: res.shortlist && res.shortlist.length ? "Tell me one to tailor your resume for, and I will do that next." : "Name a company to watch, or paste a posting, and we work from something real." });
+    const reply = compose({ headline: "Search updated and re-run.", facts, nextStep: res.shortlist && res.shortlist.length ? `Want me to tailor your resume for the ${res.shortlist[0].company} role?` : "Name a company to watch, or paste a posting, and we work from something real." });
     return Object.assign({}, res, { reply });
   }
 
@@ -21916,8 +21917,11 @@ const CareerRouter = (() => {
       if (/^internships?$/.test(findHeadNoun(t) || "")) return handleInternship(text, c);
       return handleDiscovery(text, c, {});
     }
-    if (/\b(need|want|looking for|searching for)\b[^.]*\b(internships?|jobs?|roles?)\b|\binternships?\b[^.]*\b(help|next summer|summer)\b|\bhelp\b[^.]*\b(internships?|jobs?)\b/.test(t)) {
+    if (/\b(need|want|looking for|searching for)\b[^.]*\binternships?\b|\binternships?\b[^.]*\b(help|next summer|summer)\b|\bhelp\b[^.]*\binternships?\b/.test(t)) {
       return handleInternship(text, c);
+    }
+    if (/\b(need|want|looking for|searching for)\b[^.]*\b(jobs?|roles?|positions?)\b/.test(t) && !/\b(question|tip|advice|how)\b/.test(t)) {
+      return handleDiscovery(text, c, {});
     }
     if (/\bfind\b|\bshortlist\b|\broles worth\b/.test(t)) {
       if (/^internships?$/.test(findHeadNoun(t) || "")) return handleInternship(text, c);

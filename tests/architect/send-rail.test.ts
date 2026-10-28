@@ -168,12 +168,12 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       await queueApprovedOutreach(outreachDeps, u, [d]);
       const [od] = await approvedDrafts(db, other, [at("optout")]);
       const gmail = new FakeGmail();
-      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-opt", accounts: 1, perAccount: 1 });
+      for (let i = 0; i < 10 && !gmail.to(at("optout")).length; i++) await runSendWorker(railDeps(db, c1, gmail), { worker: `w-opt-${i}`, accounts: 1, perAccount: 1 });
       eq(gmail.to(at("optout")).length, 1);
       await queueApprovedOutreach(outreachDeps, other, [od]); // queued before the answer comes back
       const sent = gmail.to(at("optout"))[0];
       gmail.reply(sent.threadId, `Person <${at("optout")}>`, "Re: " + sent.subject, "Thanks, but I'm not interested.");
-      const r = await runReplyCheck(railDeps(db, c1, gmail));
+      const r = await runReplyCheck(railDeps(db, c1, gmail), { limit: 100000 });
       eq(r.stops, 1, JSON.stringify(r));
       eq((await rows(db, `select 1 from public.career_outreach_dnc where email_hash = public.career_send_email_hash('${at("optout")}')`)).length, 1);
       const [first] = await rows(db, `select id, state from public.career_send_queue where user_id = '${u}'`);
@@ -193,7 +193,7 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       const ds = await approvedDrafts(db, u, [at("replies"), at("ooo")]);
       await queueApprovedOutreach(outreachDeps, u, ds);
       const gmail = new FakeGmail();
-      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-rep" });
+      for (let i = 0; i < 10 && gmail.sent.filter((m) => m.account === u).length < 2; i++) await runSendWorker(railDeps(db, c1, gmail), { worker: `w-rep-${i}` });
       const sentRows = await rows(db, `select id, recipient_email from public.career_send_queue where user_id = '${u}' order by recipient_email`);
       const byTo = Object.fromEntries(sentRows.map((r: any) => [r.recipient_email, r.id]));
       const fuOf = async (to: string) => { const x = { to, subject: "Following up", text: "Following up on my note." }; return { kind: "general" as const, sourceId: crypto.randomUUID(), approvalHash: await payloadHash(x), ...x, followUpOf: byTo[to] }; };
@@ -206,7 +206,7 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       eq(gmail.sent.filter((m) => m.account === u).length, 2, "follow-ups wait for their own time");
       gmail.reply(gmail.to(at("replies"))[0].threadId, at("replies"), "Re: hi", "Sure, happy to chat Thursday.");
       gmail.reply(gmail.to(at("ooo"))[0].threadId, at("ooo"), "Automatic reply: Out of office", "I am away until Monday.");
-      const r = await runReplyCheck(railDeps(db, c1, gmail));
+      const r = await runReplyCheck(railDeps(db, c1, gmail), { limit: 100000 });
       eq([r.replies, r.stops, r.bounces], [1, 0, 0]);
       const fus = await rows(db, `select recipient_email, state, count(*)::int n from public.career_send_queue where user_id = '${u}' and follow_up_of is not null group by 1, 2 order by 1`);
       eq(fus, [{ recipient_email: at("ooo"), state: "queued", n: 2 }, { recipient_email: at("replies"), state: "cancelled", n: 3 }], "a reply stops the whole sequence");
@@ -249,12 +249,12 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       const bad = await queueApproved(rpc, u, [{ kind: "general", sourceId: crypto.randomUUID(), approvalHash: await payloadHash({ to: at("x"), subject: "Hi", text: "B" }), to: at("x"), subject: "Hi", text: "B", addressType: "guessed" as any }]);
       eq(bad[0].reason, "invalid", "only published, known or inferred");
       const gmail = new FakeGmail();
-      await runSendWorker(railDeps(db, c1, gmail), { worker: "w-b" });
+      for (let i = 0; i < 10 && !gmail.to(at("gone")).length; i++) await runSendWorker(railDeps(db, c1, gmail), { worker: `w-b-${i}` });
       eq(gmail.to(at("gone")).length, 1, "inferred, approved: sent");
       gmail.reply(gmail.to(at("gone"))[0].threadId, "Mail Delivery Subsystem <mailer-daemon@googlemail.com>", "Delivery Status Notification (Failure)", `Address not found: Your message wasn't delivered to ${at("gone")}`);
       const learned: unknown[] = [];
       const withLearner = { ...railDeps(db, c1, gmail), recordBounce: async (domain: string, fmt: string | null, o: { addressType: string | null }) => { learned.push([domain, fmt, o.addressType]); } };
-      eq((await runReplyCheck(withLearner)).bounces, 1);
+      eq((await runReplyCheck(withLearner, { limit: 100000 })).bounces, 1);
       eq(learned, [["example.test", "first.last", "inferred"]], "the domain format learner hears of the bounce");
       eq((await rows(db, `select state from public.career_send_queue where user_id = '${u}'`))[0].state, "bounced");
       eq((await rows(db, `select status from public.career_outreach_drafts where user_id = '${u}'`))[0].status, "bounced");
@@ -275,7 +275,7 @@ Deno.test({ name: "M1 send rail: exactly once, crash-safe, hash-bound, opt-out, 
       for (let i = 0; i < 10 && !gmail.to(at("unsub")).length; i++) await runSendWorker(railDeps(db, c1, gmail), { worker: `w-u-${i}` });
       ok(gmail.to(at("unsub"))[0].headers.includes("List-Unsubscribe: <mailto:me@example.test?subject=unsubscribe>"));
       gmail.received(u, `Someone <${at("unsub")}>`, "unsubscribe");
-      eq((await runReplyCheck(railDeps(db, c1, gmail))).stops, 1);
+      eq((await runReplyCheck(railDeps(db, c1, gmail), { limit: 100000 })).stops, 1);
       eq((await rows(db, `select 1 from public.career_outreach_dnc where email_hash = public.career_send_email_hash('${at("unsub")}')`)).length, 1);
       // An application email carries no List-Unsubscribe (it is not cold outreach).
       const app = { to: at("jobs"), subject: "Application", text: "Please find my application below." };

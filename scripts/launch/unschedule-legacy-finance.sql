@@ -11,10 +11,12 @@
 \else
   \set allow ''
 \endif
+-- psql does not substitute variables inside a $$ body, so the list goes in through a session setting first.
+select set_config('unschedule.allow', :'allow', false) is not null as allow_set \gset
 do $$
 declare
   j record;
-  names text[] := array(select btrim(x) from unnest(string_to_array(:'allow', ',')) x where btrim(x) <> '');
+  names text[] := array(select btrim(x) from unnest(string_to_array(current_setting('unschedule.allow'), ',')) x where btrim(x) <> '');
   n int := 0;
 begin
   if to_regclass('cron.job') is null then

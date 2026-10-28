@@ -14,8 +14,8 @@ export class ModelUnavailableError extends Error {
 // The global daily budget said no (limit reached, switched off, or not checkable): no request was made. A model failure
 // to every caller that already handles one; type says which, so the reply can say it in plain words (model_budget.ts).
 export class ModelBudgetBlockedError extends ModelUnavailableError {
-  constructor(readonly block:"limit"|"paused"|"unavailable",detail:string){
-    super(block==="limit"?429:503,block==="limit"?"global_daily_limit":block==="paused"?"budget_paused":"budget_unavailable",detail);
+  constructor(readonly block:"limit"|"paused"|"unavailable"|"before"|"after",detail:string){
+    super(block==="limit"?429:503,{limit:"global_daily_limit",paused:"budget_paused",unavailable:"budget_unavailable",before:"budget_not_open",after:"budget_ended"}[block],detail);
   }
 }
 export async function providerError(res:Response):Promise<ModelUnavailableError> {

@@ -1,5 +1,7 @@
-// The hard global daily model budget (owner, 2026-10-28): "a fresh $20 total budget across all testers for the Chicago calendar
-// day. Make sure paid calls can't exceed that total, including concurrent calls and missing cost records."
+// The hard global ONE-DAY model budget (owner, 2026-10-28, corrected the same day): "a fresh $20 total budget across all testers for
+// the Chicago calendar day. Make sure paid calls can't exceed that total, including concurrent calls and missing cost records."
+// Correction: the $20 is the budget for 2026-10-29 America/Chicago only. Before the window and after it every paid call is refused,
+// and only the owner approving a new budget (an owner-run statement) ever opens another; no code creates a budget row.
 // Fakes only: the provider is an in-process fake (no key, no network, no spend); the database is a throwaway local Postgres 16.
 //   Part 1  pure arithmetic and the gateway's order of operations, with fake gates and a fake provider
 //   Part 2  every paid-call path is covered (static scan: no provider URL or key outside the gateway, voice reserves)
@@ -66,6 +68,16 @@ Deno.test("worst case: output cap x price + request bytes x input price; unknown
   assert(Budget.worstCaseMicros("claude-haiku-4-5-20251001", P, { bytes: 1000, images: 0, maxOutputTokens: 0 }) >= 1250);
 });
 
+Deno.test("the price table says where every price came from, and a per-call fee is part of the worst case", () => {
+  for (const [m, p] of Object.entries(Gateway.PRICES)) {
+    assert(p.source && /^(verified|third_party|unverified)$/.test(p.checked) && /^2026-10-\d\d$/.test(p.checked_on), `${m} names its source, check state and date`);
+    assert(p.input > 0 && p.output > 0 && p.cached >= 0, `${m} has real rates`);
+  }
+  const withFee = { x: { input: 1, cached: 0, cache_write: 0, output: 1, call_fee: 5000 } };
+  eq(Budget.worstCaseMicros("x", withFee, { bytes: 10, images: 0, maxOutputTokens: 10 }), 5020, "known model: tokens plus the call fee");
+  eq(Budget.worstCaseMicros("other", withFee, { bytes: 10, images: 0, maxOutputTokens: 10 }), 5020, "unknown model: the highest rates and the highest fee");
+});
+
 Deno.test("usage is proven only by a real usage block (a missing one is never read as zero)", () => {
   assert(Budget.usageProven("openai", { usage: { prompt_tokens: 1, completion_tokens: 2 } }));
   for (const bad of [{}, { usage: null }, { usage: {} }, { usage: { prompt_tokens: 1 } }, { usage: { prompt_tokens: "1", completion_tokens: 2 } }, { usage: { prompt_tokens: -1, completion_tokens: 2 } }, { usage: { prompt_tokens: NaN, completion_tokens: 2 } }, null, "x"])
@@ -86,7 +98,13 @@ async function gatewayScenarios(mod: { callModel: typeof Gateway.callModel; chat
     const e = await blockedOf(mod.callModel(cfg, payload, { request: p.request, budget: s.gate }));
     assert(e instanceof ModelUnavailableError && e.type === "global_daily_limit", "limit error"); eq(p.sent.length, 0, "no request was made");
     const r = await mod.chatReply(cfg, payload, { request: p.request, budget: s.gate });
-    assert(!r.ok && r.reply === "Trainee has reached today's limit, back at midnight Chicago time.", "plain words, midnight Chicago"); eq(p.sent.length, 0); }
+    assert(!r.ok && r.reply === "Trainee has used up its AI budget, so I didn't use the AI for this reply.", "plain words"); eq(p.sent.length, 0); }
+  // 2b. The window is not open: before it, and after it (or no budget row): NO request, plain words, never a recurring allowance.
+  for (const [state, type, words] of [["before_window", "budget_not_open", /hasn't opened yet/], ["after_window", "budget_ended", /owner's approval/], ["no_budget", "budget_ended", /owner's approval/]] as const) {
+    const s = spy(B.rpcBudgetGate((async () => ({ data: { ok: false, state }, error: null })) as any)), p = provider(s.ev);
+    const e = await blockedOf(mod.callModel(cfg, payload, { request: p.request, budget: s.gate }));
+    assert(e instanceof ModelUnavailableError && e.type === type, `${state}: ${type}`); eq(p.sent.length, 0, `${state}: no request`);
+    const r = await mod.chatReply(cfg, payload, { request: p.request, budget: s.gate }); assert(!r.ok && words.test(r.reply), `${state}: plain words`); eq(p.sent.length, 0); }
   // 3. The budget cannot be checked (DB error, thrown error, nonsense answer): fail CLOSED, no request, no throw out of the gate.
   for (const rpc of [async () => ({ data: null, error: { message: "connection refused" } }), async () => { throw new Error("boom"); }, async () => ({ data: { ok: "yes" }, error: null }), async () => ({ data: null, error: null })]) {
     const s = spy(B.rpcBudgetGate(rpc as any)), p = provider(s.ev);
@@ -143,7 +161,7 @@ Deno.test("the career turn's note says the global limit in plain words, whoever 
   const gate = spy(Budget.memoryBudgetGate(10)).gate;
   const cap = spendCap({ read: async () => ({ usd_micros: 0, calls: 0 }), limits: { usdMicros: 1e9, calls: 1e9 }, call: (c, p, o) => Gateway.callModel(c, p, { ...o, budget: gate, request: provider([]).request }) });
   const e = await blockedOf(cap.call(cfg, payload, {})); assert(e instanceof ModelUnavailableError && e.type === "global_daily_limit");
-  eq(cap.refused(), "global"); eq(cap.note(), "Trainee has reached today's limit, back at midnight Chicago time.");
+  eq(cap.refused(), "global"); eq(cap.note(), "Trainee has used up its AI budget, so I didn't use the AI for this reply.");
 });
 
 Deno.test("voice: the call's worst case is reserved before a key is minted, kept once minted, returned if nothing was minted", async () => {
@@ -162,7 +180,7 @@ Deno.test("voice: the call's worst case is reserved before a key is minted, kept
     eq(s.ev, [`reserve:${voiceWorstCaseMicros("gpt-realtime-mini", 20)}`, "settle:kept"], "reserve the whole call's worst case, then keep it");
     eq((inner as any).snapshot().spent, 3_000_000, "a minted key's worst case is spent"); }
   { const s = spy(Budget.memoryBudgetGate(1000)); const r = await run(s.gate); eq(r.status, 429); eq(r.minted, 0, "no key minted"); eq(r.started, 0, "the link is not used up");
-    eq(r.body.message, "Trainee has reached today's limit, back at midnight Chicago time."); }
+    eq(r.body.message, "Trainee has used up its AI budget, so I didn't use the AI for this reply."); }
   { const inner = Budget.memoryBudgetGate(), s = spy(inner); const r = await run(s.gate, false); eq(r.status, 502); assert(s.ev.includes("release")); eq((inner as any).snapshot().reserved, 0, "nothing minted: returned"); }
 });
 
@@ -232,9 +250,13 @@ Deno.test("gateway source: the only sends are in callModel, after the reservatio
 // ---- Part 3: the database, on real Postgres ------------------------------------------------------------------------------
 const lcg = (seed: number) => () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
 const N = (s: string) => Number(s.trim());
+const IN_WINDOW = "2026-10-29T15:00:00Z"; // 10:00 Chicago on the budget day
+// The migration's own starting state: the one 2026-10-29 row, the window settings, nothing else.
 async function resetBudget(pg: Pg) {
   await pg.sql(`delete from public.model_budget_reservations; delete from public.model_budget_days; delete from public.founder_alerts where kind like 'model_budget%';
-    insert into public.model_budget_settings(key,value) values ('daily_limit_micros','20000000'),('paused','false'),('reservation_ttl_seconds','900')
+    insert into public.model_budget_days(day, limit_micros) values ('2026-10-29', 20000000);
+    insert into public.model_budget_settings(key,value) values ('budget_limit_micros','20000000'),('paused','false'),('reservation_ttl_seconds','900'),
+      ('window_start','2026-10-29T00:00:00-05:00'),('window_end','2026-10-30T00:00:00-05:00')
     on conflict (key) do update set value = excluded.value;`);
 }
 // The books always balance: each day's totals equal what its reservation rows say, and an open reservation is never spent.
@@ -250,16 +272,18 @@ const day = async (pg: Pg, d: string) => {
   const r = await pg.sql(`select spent_micros || '|' || reserved_micros || '|' || limit_micros from public.model_budget_days where day = '${d}'`);
   const [spent, reserved, limit] = r.split("|").map(Number); return { spent, reserved, limit };
 };
-const reserve = (pg: Pg, micros: number, now?: string) => pg.asService().rpc("model_budget_reserve", { p_micros: micros, p_model: "gpt-5-mini", p_role: "chat", ...(now ? { p_now: now } : {}) });
+const reserve = (pg: Pg, micros: number, now?: string) => pg.asService().rpc("model_budget_reserve", { p_micros: micros, p_model: "gpt-5-mini", p_role: "chat", p_now: now ?? IN_WINDOW });
 
 async function sqlScenarios(pg: Pg) {
   const svc = pg.asService();
-  const today = (await pg.sql(`select public.model_budget_day(now())`)).trim();
+  const today = "2026-10-29";
+  // 0. The migration itself leaves exactly the owner-approved budget: one row for 2026-10-29, $20, the window in the settings.
+  eq(await pg.sql(`select string_agg(value, ',' order by key) from public.model_budget_settings where key in ('window_start','window_end','budget_limit_micros')`), "20000000,2026-10-30T00:00:00-05:00,2026-10-29T00:00:00-05:00");
   // 1. Seeded defaults: a fresh $20.
   await resetBudget(pg);
-  eq(await pg.sql(`select value from public.model_budget_settings where key='daily_limit_micros'`), "20000000");
+  eq(await pg.sql(`select value from public.model_budget_settings where key='budget_limit_micros'`), "20000000");
   // 2. 200 concurrent reservations of $0.15 against $20: exactly floor(20 / 0.15) = 133 succeed, never more.
-  await resetBudget(pg); await reserve(pg, 1); await pg.sql(`delete from public.model_budget_reservations; delete from public.model_budget_days;`); // warm the RPC signature cache
+  await resetBudget(pg); await reserve(pg, 1); await resetBudget(pg); // warm the RPC signature cache
   { const rs = await Promise.all(Array.from({ length: 200 }, () => reserve(pg, 150_000)));
     const ok = rs.filter((r) => r.data?.ok === true).length, limited = rs.filter((r) => r.data?.state === "limit").length;
     eq([ok, limited, rs.filter((r) => r.error).length], [133, 67, 0], "exactly the affordable number succeed, the rest are refused, none error");
@@ -301,14 +325,14 @@ async function sqlScenarios(pg: Pg) {
     eq((await svc.rpc("model_budget_settle", { p_id: a })).data.state, "not_open", "a released reservation cannot be settled"); await books(pg, "release"); }
   // 7. A reservation stuck past the TTL (900 s) becomes spent at its worst case. Never a refund, and nothing frees it later.
   await resetBudget(pg);
-  { const t0 = "2026-10-28T15:00:00Z", id = (await reserve(pg, 3_000_000, t0)).data.id;
-    await reserve(pg, 10, "2026-10-28T15:14:00Z"); eq((await day(pg, "2026-10-28")).reserved, 3_000_010, "still open inside the TTL");
-    await reserve(pg, 10, "2026-10-28T15:15:30Z");
-    eq(await day(pg, "2026-10-28"), { spent: 3_000_000, reserved: 20, limit: LIMIT }, "expired: spent at the worst case, not refunded");
+  { const t0 = "2026-10-29T15:00:00Z", id = (await reserve(pg, 3_000_000, t0)).data.id;
+    await reserve(pg, 10, "2026-10-29T15:14:00Z"); eq((await day(pg, "2026-10-29")).reserved, 3_000_010, "still open inside the TTL");
+    await reserve(pg, 10, "2026-10-29T15:15:30Z");
+    eq(await day(pg, "2026-10-29"), { spent: 3_000_000, reserved: 20, limit: LIMIT }, "expired: spent at the worst case, not refunded");
     eq((await svc.rpc("model_budget_settle", { p_id: id, p_actual_micros: 5 })).data.state, "not_open", "a late settle cannot lower it");
     eq((await svc.rpc("model_budget_release", { p_id: id })).data.state, "not_open", "nor can a release");
     eq(await pg.sql(`select status || '|' || actual_micros from public.model_budget_reservations where id = '${id}'`), "expired|3000000");
-    eq((await svc.rpc("model_budget_expire", { p_now: "2026-10-28T15:15:30Z" })).data, 0, "expiring again moves nothing"); await books(pg, "expiry"); }
+    eq((await svc.rpc("model_budget_expire", { p_now: "2026-10-29T15:15:30Z" })).data, 0, "expiring again moves nothing"); await books(pg, "expiry"); }
   // 8. Chicago midnight, with the DST edges. 2026-11-01 (fall back) is 25 hours long and one date; 2026-03-08 (spring forward) is 23.
   { const at = async (iso: string) => (await pg.sql(`select public.model_budget_day('${iso}')`)).trim();
     const cases: [string, string][] = [
@@ -321,24 +345,52 @@ async function sqlScenarios(pg: Pg) {
       ["2026-12-31T05:59:59Z", "2026-12-30"], ["2027-01-01T06:00:00Z", "2027-01-01"],
     ];
     for (const [iso, want] of cases) { eq(await at(iso), want, `Chicago date of ${iso}`); eq(Budget.chicagoDay(Date.parse(iso)), want, `TypeScript twin agrees for ${iso}`); }
+    // ---- the one-day window (2026-10-29 America/Chicago) ----
     await resetBudget(pg);
-    // A full day does not carry over: the new Chicago date starts fresh, the old one stays full.
-    eq((await reserve(pg, LIMIT, "2026-10-29T04:59:59Z")).data.ok, true); eq((await reserve(pg, 1, "2026-10-29T04:59:59Z")).data.state, "limit");
-    eq((await reserve(pg, LIMIT, "2026-10-29T05:00:00Z")).data.ok, true, "midnight Chicago: a fresh $20");
-    // The 25-hour day is one budget; the hour that repeats is not a second $20.
-    eq((await reserve(pg, 12_000_000, "2026-11-01T06:30:00Z")).data.ok, true); eq((await reserve(pg, 8_000_001, "2026-11-01T07:30:00Z")).data.state, "limit", "1:30 CST shares 1:30 CDT's day");
-    eq((await reserve(pg, 8_000_000, "2026-11-02T05:59:59Z")).data.ok, true, "the last second of the 25-hour day still counts to it");
-    eq((await reserve(pg, 1, "2026-11-02T05:59:59Z")).data.state, "limit");
-    eq((await reserve(pg, 20_000_000, "2026-11-02T06:00:00Z")).data.ok, true, "then a fresh $20");
-    await books(pg, "rollover"); }
+    const rsv = (iso: string, micros = 1) => reserve(pg, micros, iso);
+    eq((await rsv("2026-10-29T04:59:59Z")).data.state, "before_window", "10-28 23:59:59 Chicago: refused");
+    eq((await rsv("2026-10-28T12:00:00Z")).data.state, "before_window", "the day before: refused");
+    eq((await rsv("2026-10-01T12:00:00Z")).data.state, "before_window", "weeks before: refused");
+    eq(N(await pg.sql(`select count(*) from public.model_budget_reservations`)), 0, "nothing from before the window was reserved, so nothing can be spent early");
+    eq((await rsv("2026-10-29T05:00:00Z", LIMIT - 1)).data.ok, true, "10-29 00:00:00 Chicago: allowed");
+    const last = await rsv("2026-10-30T04:59:59Z"); eq(last.data.ok, true, "10-29 23:59:59 Chicago: allowed while the $20 lasts");
+    eq((await rsv("2026-10-30T04:59:59Z")).data.state, "limit", "and refused once it is gone");
+    // A settle that lands after the window closed is still accounted for on its row (inside the TTL, so not yet expired).
+    eq((await svc.rpc("model_budget_settle", { p_id: last.data.id, p_actual_micros: 1, p_now: "2026-10-30T05:00:30Z" })).data.ok, true, "settled after the window, counted");
+    eq((await rsv("2026-10-30T05:00:00Z")).data.state, "after_window", "10-30 00:00:00 Chicago: refused");
+    for (const iso of ["2026-10-30T05:00:01Z", "2026-10-31T12:00:00Z", "2026-11-01T12:00:00Z", "2026-11-02T12:00:00Z", "2027-01-01T12:00:00Z"])
+      eq((await rsv(iso)).data.state, "after_window", `after the window (${iso}): refused, no rollover`);
+    eq(N(await pg.sql(`select count(*) from public.model_budget_days`)), 1, "no code created a second budget row");
+    eq(await pg.sql(`select spent_micros + reserved_micros from public.model_budget_days where day = '2026-10-29'`), String(LIMIT), "the one day holds the whole $20 (reservations past the TTL became spent), never more");
+    eq(N(await pg.sql(`select count(*) from public.founder_alerts where kind = 'model_budget_closed'`)) >= 1, true, "a closed refusal wrote an alert");
+    // A window with no approved row spends nothing: moving the settings alone does not create a budget.
+    await pg.sql(`update public.model_budget_settings set value='2026-11-02T00:00:00-06:00' where key='window_start'; update public.model_budget_settings set value='2026-11-03T00:00:00-06:00' where key='window_end';`);
+    eq((await rsv("2026-11-02T12:00:00Z")).data.state, "no_budget", "settings without an owner-approved row: refused");
+    eq(N(await pg.sql(`select count(*) from public.model_budget_days`)), 1, "still no row made by code");
+    // The owner approves a new budget (an owner-run statement): only then is it spendable. 2026-11-01 is the 25-hour fall-back day.
+    await resetBudget(pg);
+    await pg.sql(`insert into public.model_budget_days(day, limit_micros) values ('2026-11-01', 20000000);
+      update public.model_budget_settings set value='2026-11-01T00:00:00-05:00' where key='window_start'; update public.model_budget_settings set value='2026-11-02T00:00:00-06:00' where key='window_end';`);
+    eq((await rsv("2026-10-29T15:00:00Z")).data.state, "before_window", "the old day is now before the new window");
+    eq((await rsv("2026-11-01T04:59:59Z")).data.state, "before_window");
+    eq((await rsv("2026-11-01T05:00:00Z", 12_000_000)).data.ok, true, "11-01 00:00 CDT: allowed");
+    eq((await rsv("2026-11-01T06:30:00Z", 8_000_000)).data.ok, true, "1:30 CDT");
+    eq((await rsv("2026-11-01T07:30:00Z")).data.state, "limit", "1:30 CST shares 1:30 CDT's budget; the repeated hour is not a second $20");
+    eq((await rsv("2026-11-02T05:59:59Z")).data.state, "limit", "the last second of the 25-hour day is still that budget");
+    eq((await rsv("2026-11-02T06:00:00Z")).data.state, "after_window", "11-02 00:00 CST: refused");
+    // The settings must be well formed, or nothing is spent.
+    for (const bad of ["tomorrow", "2026-11-01", "2026-11-01 00:00:00", "2026-11-01T00:00:00"]) {
+      await pg.sql(`update public.model_budget_settings set value='${bad}' where key='window_start'`); assert((await rsv("2026-11-01T12:00:00Z")).error, `a malformed window_start (${bad}) errors, so the caller makes no call`); }
+    await resetBudget(pg);
+    await books(pg, "window"); }
   // 9. The limit and the pause are server-side setting rows; a malformed one fails closed.
   await resetBudget(pg);
-  { await pg.sql(`update public.model_budget_settings set value='1000000' where key='daily_limit_micros'`);
+  { await pg.sql(`update public.model_budget_settings set value='1000000' where key='budget_limit_micros'`);
     eq((await reserve(pg, 1_500_000)).data.state, "limit", "the setting row is the limit"); eq((await reserve(pg, 1_000_000)).data.ok, true);
-    await pg.sql(`update public.model_budget_settings set value='30000000' where key='daily_limit_micros'`); eq((await reserve(pg, 25_000_000)).data.ok, true, "raised by the row");
-    for (const bad of ["abc", "-5", "1.5", "", "20000000000000000"]) { await pg.sql(`update public.model_budget_settings set value='${bad}' where key='daily_limit_micros'`);
+    await pg.sql(`update public.model_budget_settings set value='30000000' where key='budget_limit_micros'`); eq((await reserve(pg, 25_000_000)).data.ok, true, "raised by the row");
+    for (const bad of ["abc", "-5", "1.5", "", "20000000000000000"]) { await pg.sql(`update public.model_budget_settings set value='${bad}' where key='budget_limit_micros'`);
       const r = await reserve(pg, 1); assert(r.error && !r.data?.ok, `a malformed limit (${JSON.stringify(bad)}) errors, so the caller makes no call`); }
-    await pg.sql(`delete from public.model_budget_settings where key='daily_limit_micros'`); await resetBudget(pg); await pg.sql(`delete from public.model_budget_settings where key='daily_limit_micros'`);
+    await pg.sql(`delete from public.model_budget_settings where key='budget_limit_micros'`); await resetBudget(pg); await pg.sql(`delete from public.model_budget_settings where key='budget_limit_micros'`);
     eq((await reserve(pg, 20_000_000)).data.ok, true, "no setting row: the default is $20"); eq((await reserve(pg, 1)).data.state, "limit");
     await resetBudget(pg); await pg.sql(`update public.model_budget_settings set value='true' where key='paused'`);
     eq((await reserve(pg, 1)).data.state, "paused", "paused: nothing is reserved"); eq(N(await pg.sql(`select count(*) from public.model_budget_reservations`)), 0);
@@ -382,14 +434,14 @@ Deno.test({ name: "database: 200 concurrent reservations never exceed $20; settl
 Deno.test({ name: "end to end: 200 concurrent callModel calls on the real budget; only the affordable ones reach the provider, even with no usage records", sanitizeResources: false, sanitizeOps: false,
   fn: () => withPg(async (pg) => {
     await resetBudget(pg);
-    const gate = Budget.rpcBudgetGate((name, args) => pg.asService().rpc(name, args));
+    const gate = Budget.rpcBudgetGate((name, args) => pg.asService().rpc(name, name === "model_budget_reserve" ? { ...args, p_now: IN_WINDOW } : args));
     await gate.reserve(1, { model: "m", role: "r" }).then((r) => r.ok && gate.release(r.id)); // warm
     await resetBudget(pg);
     // gpt-5 with a 100k output cap: about $1.00 worst case a call, so about 19 fit in $20.
     const big = { max_tokens: 100_000, messages: [{ role: "user", content: "hello" }] }, c5 = { ...cfg, model: "gpt-5" };
     const ev: Ev[] = [], p = provider(ev, { body: okBody(OMIT) }); // the provider "answers" and sends no usage at all
     const rs = await Promise.allSettled(Array.from({ length: 200 }, () => Gateway.callModel(c5, big, { request: p.request, budget: gate })));
-    const sent = p.sent.length, d = await day(pg, (await pg.sql(`select public.model_budget_day(now())`)).trim());
+    const sent = p.sent.length, d = await day(pg, "2026-10-29");
     const worst = Budget.worstCaseMicros("gpt-5", Gateway.PRICES, { bytes: new TextEncoder().encode(JSON.stringify(p.sent[0].body)).length, images: 0, maxOutputTokens: 100_512 });
     eq(sent, Math.floor(LIMIT / worst), "exactly the affordable number of calls were sent"); eq(rs.filter((r) => r.status === "fulfilled").length, sent);
     eq(d.reserved, 0, "all settled"); eq(d.spent, sent * worst, "no usage record: every call stays spent at its worst case");
@@ -413,6 +465,10 @@ const SQL_MUTANTS: { name: string; from: string; to: string }[] = [
   { name: "the day follows UTC, not Chicago", from: `select (p_at at time zone 'America/Chicago')::date`, to: `select (p_at at time zone 'UTC')::date` },
   { name: "a settled reservation can be released afterwards", from: `closed_at = p_now\n    where id = p_id and status = 'reserved' returning day, micros into r;`, to: `closed_at = p_now\n    where id = p_id and status in ('reserved','settled') returning day, micros into r;` },
   { name: "every refusal writes its own alert", from: `jsonb_build_object('day', d::text, 'limit_micros'`, to: `jsonb_build_object('day', clock_timestamp()::text, 'limit_micros'` },
+  { name: "a call before the window is allowed (spent early)", from: `if p_now < ws then return public.model_budget_closed('before_window', p_now); end if;`, to: `` },
+  { name: "a call after the window is allowed (rollover)", from: `if p_now >= we then return public.model_budget_closed('after_window', p_now); end if;`, to: `` },
+  { name: "the window end is inclusive", from: `if p_now >= we then`, to: `if p_now > we then` },
+  { name: "code creates the budget row itself", from: `perform 1 from public.model_budget_days where day = d;`, to: `insert into public.model_budget_days (day, limit_micros) values (d, lim) on conflict (day) do nothing; perform 1 from public.model_budget_days where day = d;` },
   { name: "the pause setting is ignored", from: `if paused in ('true', '1', 'yes', 'on') then`, to: `if false then` },
   { name: "stuck reservations never expire", from: `perform public.model_budget_expire(p_now);`, to: `` },
 ];
@@ -423,10 +479,12 @@ Deno.test({ name: "mutation: each database guard is broken in turn and the scena
     await sqlScenarios(pg); // the unmutated database passes
     for (const m of SQL_MUTANTS) {
       assert(original.includes(m.from), `mutation target present: ${m.name}`);
-      await apply(original.replace(m.from, m.to));
-      let caught = false; try { await sqlScenarios(pg); } catch (_) { caught = true; }
-      await apply(original);
+      await apply(original.replace(m.from, m.to)); await resetBudget(pg); // a clean start, so a mutant is caught by its own behavior and not by a leftover
+      let caught = "";
+      try { await sqlScenarios(pg); } catch (e) { caught = (e as Error).message.split("\n")[0].slice(0, 110); }
+      await apply(original); await resetBudget(pg);
       assert(caught, `MUTANT SURVIVED: ${m.name}`);
+      console.log(`  caught: ${m.name} -> ${caught}`);
     }
     await sqlScenarios(pg); // restored
   }) });
@@ -451,7 +509,9 @@ const TS_MUTANTS: Mut[] = [
   { name: "a missing usage field counts as proven", file: "budget", from: `const ok = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0;`, to: `const ok = (v: unknown) => v === undefined || (typeof v === "number" && Number.isFinite(v) && v >= 0);` },
   { name: "an invalid reservation size is sent on", file: "budget", from: `if (!wholeMicros(micros)) return { ok: false, reason: "unavailable", detail: "worst-case cost is not a positive whole number" };\n      try {`, to: `try {` },
   { name: "an unrecognized budget answer counts as ok", file: "budget", from: `return { ok: false, reason: "unavailable", detail: "the budget function answered in a shape that is not understood" };`, to: `return { ok: true, id: "00000000-0000-0000-0000-000000000000" };` },
-  { name: "the memory twin ignores the limit", file: "budget", from: `if (r.spent + r.reserved + micros > limitMicros) return { ok: false, reason: "limit" };`, to: `` },
+  { name: "the memory twin ignores the limit", file: "budget", from: `if (t.spent + t.reserved + micros > limitMicros) return { ok: false, reason: "limit" };`, to: `` },
+  { name: "a closed window is reported as an outage", file: "budget", from: `if (d && d.ok === false && d.state === "before_window") return { ok: false, reason: "before" };`, to: `` },
+  { name: "no approved budget row is treated as spendable", file: "budget", from: `(d.state === "after_window" || d.state === "no_budget")`, to: `(d.state === "after_window")` },
 ];
 Deno.test("mutation: each gateway and budget guard is broken in turn and the scenarios catch it", async () => {
   const dir = await Deno.makeTempDir({ prefix: "budget-mutant-" });

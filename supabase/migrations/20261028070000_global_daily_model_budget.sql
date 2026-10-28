@@ -1,31 +1,36 @@
--- A hard, global daily budget for every paid model call (owner, 2026-10-28): "a fresh $20 total budget across all testers
+-- A hard, global ONE-DAY model budget (owner, 2026-10-28, corrected the same day): "a fresh $20 total budget across all testers
 -- for the Chicago calendar day. Make sure paid calls can't exceed that total, including concurrent calls and missing cost
--- records."
+-- records." The correction: this is the budget for 2026-10-29 America/Chicago ONLY, not a recurring daily allowance.
 --
--- One row per America/Chicago calendar date (model_budget_days) holds spent and reserved micro-dollars (1e-6 USD). The
--- limit lives only in a server-side setting row (model_budget_settings.daily_limit_micros, default 20,000,000). Code
--- (_shared/model_budget.ts, called from _shared/model_gateway.ts callModel) works like this around every paid call:
+-- The budget is a window and a row:
+--   model_budget_settings  window_start / window_end are instants (ISO 8601 with an offset), seeded 2026-10-29T00:00 to
+--                          2026-10-30T00:00 America/Chicago (-05:00, CDT); budget_limit_micros is the $20 (default 20,000,000).
+--   model_budget_days      the one row for that Chicago date holds spent and reserved micro-dollars. THIS MIGRATION CREATES IT;
+--                          no function ever inserts a row. A new budget exists only when the owner approves one and an owner-run
+--                          statement inserts its row and moves the window settings.
+-- A reservation outside [window_start, window_end), or inside it with no row for the window's date, is refused: before the window
+-- nothing can be spent early, after it nothing is spent until the owner approves a new budget (no automatic rollover).
 --
---   reserve   model_budget_reserve(worst-case micros): ONE UPDATE ... WHERE spent + reserved + x <= limit RETURNING. Row
---             locks serialize concurrent callers and Postgres re-checks the WHERE after the lock wait, so two callers can
---             never both take the last dollar. No read-then-write. A reservation that does not fit makes no row and no call.
+-- Code (_shared/model_budget.ts, called from _shared/model_gateway.ts callModel) works like this around every paid call:
+--   reserve   model_budget_reserve(worst-case micros): ONE UPDATE ... WHERE spent + reserved + x <= limit RETURNING. Row locks
+--             serialize concurrent callers and Postgres re-checks the WHERE after the lock wait, so two callers can never both
+--             take the last dollar. No read-then-write. A reservation that does not fit makes no row and no call.
 --   settle    model_budget_settle(id, actual): moves the reservation to spent at the proven actual cost. actual NULL (usage
---             missing or unparseable, model unpriced, the call's outcome unknown) keeps the FULL worst-case as spent. A
---             missing record never frees budget.
---   release   model_budget_release(id): only for a proven no-call (the request was never sent, or the provider refused it
---             before generating). Returns the reservation to the day.
+--             missing or unparseable, model unpriced, the call's outcome unknown) keeps the FULL worst-case as spent.
+--   release   model_budget_release(id): only for a proven no-call. Returns the reservation to the day.
 --   expire    model_budget_expire(): a reservation still open after the TTL (a crashed worker) becomes spent at its
 --             worst-case. Never a refund. Runs at the start of every reserve.
 --
 -- Every function is SECURITY INVOKER and service_role only: tables are RLS-on with no policy. A function that errors raises;
--- the caller then makes no paid call (fail closed). The first refusal of a day writes one founder_alerts row (unique index).
+-- the caller then makes no paid call (fail closed). The first refusal of each kind on a Chicago date writes one founder_alerts row.
 create table if not exists public.model_budget_settings (
   key text primary key,
   value text not null,
   updated_at timestamptz not null default now()
 );
 insert into public.model_budget_settings (key, value) values
-  ('daily_limit_micros', '20000000'), ('paused', 'false'), ('reservation_ttl_seconds', '900')
+  ('budget_limit_micros', '20000000'), ('paused', 'false'), ('reservation_ttl_seconds', '900'),
+  ('window_start', '2026-10-29T00:00:00-05:00'), ('window_end', '2026-10-30T00:00:00-05:00')
   on conflict (key) do nothing;
 
 create table if not exists public.model_budget_days (
@@ -36,6 +41,8 @@ create table if not exists public.model_budget_days (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+-- The one budget row, created here and nowhere else (the owner's approval of the 2026-10-29 budget).
+insert into public.model_budget_days (day, limit_micros) values ('2026-10-29', 20000000) on conflict (day) do nothing;
 
 create table if not exists public.model_budget_reservations (
   id uuid primary key default gen_random_uuid(),
@@ -59,8 +66,9 @@ grant select on public.model_budget_settings to service_role;
 grant select, insert, update on public.model_budget_days, public.model_budget_reservations to service_role;
 
 -- One alert per kind per Chicago day, whatever the concurrency: the unique index decides.
+drop index if exists public.founder_alerts_model_budget_once;
 create unique index if not exists founder_alerts_model_budget_once on public.founder_alerts (kind, (detail ->> 'day'))
-  where kind in ('model_budget_exhausted', 'model_budget_paused', 'model_budget_overrun');
+  where kind in ('model_budget_exhausted', 'model_budget_paused', 'model_budget_overrun', 'model_budget_closed');
 
 -- The Chicago calendar date of an instant. 2026-11-01 (fall back) has 25 hours and one date; the zone rules decide.
 create or replace function public.model_budget_day(p_at timestamptz default now()) returns date
@@ -75,6 +83,19 @@ begin
   if not found then return p_default; end if;
   if v !~ '^[0-9]{1,15}$' then raise exception 'model budget setting % is not a non-negative integer', p_key; end if;
   return v::bigint;
+end $$;
+
+-- A setting as an instant: ISO 8601 with an explicit offset or Z. Missing row = NULL (no budget); malformed RAISES.
+create or replace function public.model_budget_instant(p_key text) returns timestamptz
+language plpgsql stable set search_path = public, pg_temp as $$
+declare v text;
+begin
+  select value into v from public.model_budget_settings where key = p_key;
+  if not found then return null; end if;
+  if v !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$' then
+    raise exception 'model budget setting % is not an ISO 8601 instant with an offset', p_key;
+  end if;
+  return v::timestamptz;
 end $$;
 
 -- Stuck reservations become spent at their worst case. One statement; skip-locked so concurrent callers never wait on it.
@@ -97,22 +118,40 @@ begin
   return n;
 end $$;
 
--- Reserve a worst-case cost. Returns {ok:true, id, day, spent, reserved, limit} or {ok:false, state:'limit'|'paused', ...}.
+-- A refusal because the budget is not open (before the window, after it, or no row for it): one alert a Chicago day.
+create or replace function public.model_budget_closed(p_state text, p_now timestamptz) returns jsonb
+language plpgsql set search_path = public, pg_temp as $$
+begin
+  insert into public.founder_alerts (kind, user_id, detail) values ('model_budget_closed', null, jsonb_build_object('day', public.model_budget_day(p_now)::text, 'state', p_state))
+    on conflict (kind, (detail ->> 'day')) where kind in ('model_budget_exhausted', 'model_budget_paused', 'model_budget_overrun', 'model_budget_closed') do nothing;
+  return jsonb_build_object('ok', false, 'state', p_state);
+end $$;
+
+-- Reserve a worst-case cost. Returns {ok:true, id, day, spent, reserved, limit} or {ok:false, state:
+-- 'limit' | 'paused' | 'before_window' | 'after_window' | 'no_budget', ...}.
 create or replace function public.model_budget_reserve(p_micros bigint, p_model text default null, p_role text default null, p_now timestamptz default now())
 returns jsonb language plpgsql set search_path = public, pg_temp as $$
-declare lim bigint; d date := public.model_budget_day(p_now); rec record; rid uuid; paused text;
+declare lim bigint; d date; ws timestamptz; we timestamptz; rec record; rid uuid; paused text;
 begin
   if p_micros is null or p_micros <= 0 then raise exception 'a reservation must be a positive number of micro-dollars'; end if;
-  lim := public.model_budget_int('daily_limit_micros', 20000000);
+  lim := public.model_budget_int('budget_limit_micros', 20000000);
   select lower(value) into paused from public.model_budget_settings where key = 'paused';
   if paused is not null and paused not in ('true', 'false', '1', '0', 'yes', 'no', 'on', 'off') then raise exception 'model budget setting paused is not true or false'; end if;
   if paused in ('true', '1', 'yes', 'on') then
-    insert into public.founder_alerts (kind, user_id, detail) values ('model_budget_paused', null, jsonb_build_object('day', d::text))
-      on conflict (kind, (detail ->> 'day')) where kind in ('model_budget_exhausted', 'model_budget_paused', 'model_budget_overrun') do nothing;
-    return jsonb_build_object('ok', false, 'state', 'paused', 'day', d);
+    insert into public.founder_alerts (kind, user_id, detail) values ('model_budget_paused', null, jsonb_build_object('day', public.model_budget_day(p_now)::text))
+      on conflict (kind, (detail ->> 'day')) where kind in ('model_budget_exhausted', 'model_budget_paused', 'model_budget_overrun', 'model_budget_closed') do nothing;
+    return jsonb_build_object('ok', false, 'state', 'paused');
   end if;
   perform public.model_budget_expire(p_now);
-  insert into public.model_budget_days (day, limit_micros, created_at, updated_at) values (d, lim, p_now, p_now) on conflict (day) do nothing;
+  -- The window. Nothing before it can be spent early; nothing after it is spent without a new approved budget.
+  ws := public.model_budget_instant('window_start'); we := public.model_budget_instant('window_end');
+  if ws is null or we is null or we <= ws then return public.model_budget_closed('no_budget', p_now); end if;
+  if p_now < ws then return public.model_budget_closed('before_window', p_now); end if;
+  if p_now >= we then return public.model_budget_closed('after_window', p_now); end if;
+  -- The window's budget row must already exist. Code never creates one.
+  d := public.model_budget_day(ws);
+  perform 1 from public.model_budget_days where day = d;
+  if not found then return public.model_budget_closed('no_budget', p_now); end if;
   -- The one statement that decides. A concurrent caller waits on the row lock, then re-checks the WHERE against the new totals.
   update public.model_budget_days set reserved_micros = reserved_micros + p_micros, limit_micros = lim, updated_at = p_now
     where day = d and spent_micros + reserved_micros + p_micros <= lim
@@ -121,7 +160,7 @@ begin
     select spent_micros, reserved_micros, limit_micros into rec from public.model_budget_days where day = d;
     insert into public.founder_alerts (kind, user_id, detail)
       values ('model_budget_exhausted', null, jsonb_build_object('day', d::text, 'limit_micros', rec.limit_micros, 'spent_micros', rec.spent_micros, 'reserved_micros', rec.reserved_micros, 'asked_micros', p_micros))
-      on conflict (kind, (detail ->> 'day')) where kind in ('model_budget_exhausted', 'model_budget_paused', 'model_budget_overrun') do nothing;
+      on conflict (kind, (detail ->> 'day')) where kind in ('model_budget_exhausted', 'model_budget_paused', 'model_budget_overrun', 'model_budget_closed') do nothing;
     return jsonb_build_object('ok', false, 'state', 'limit', 'day', d, 'spent', rec.spent_micros, 'reserved', rec.reserved_micros, 'limit', rec.limit_micros);
   end if;
   insert into public.model_budget_reservations (day, micros, model, role, created_at) values (d, p_micros, p_model, p_role, p_now) returning id into rid;
@@ -129,10 +168,11 @@ begin
 end $$;
 
 -- Settle to the actual cost. NULL actual (not proven) keeps the whole worst case as spent. Idempotent: only an open
--- reservation moves, so a second settle (or one after expiry) changes nothing.
+-- reservation moves, so a second settle (or one after expiry) changes nothing. Not gated by the window: a call reserved
+-- inside the window is accounted for on its row even if it finishes after the window closed.
 create or replace function public.model_budget_settle(p_id uuid, p_actual_micros bigint default null, p_now timestamptz default now()) returns jsonb
 language plpgsql set search_path = public, pg_temp as $$
-declare r record; spend bigint;
+declare r record;
 begin
   if p_actual_micros is not null and p_actual_micros < 0 then raise exception 'actual cost cannot be negative'; end if;
   update public.model_budget_reservations set status = 'settled', cost_known = (p_actual_micros is not null),
@@ -142,7 +182,7 @@ begin
   update public.model_budget_days set reserved_micros = reserved_micros - r.micros, spent_micros = spent_micros + r.actual_micros, updated_at = p_now where day = r.day;
   if r.actual_micros > r.micros then
     insert into public.founder_alerts (kind, user_id, detail) values ('model_budget_overrun', null, jsonb_build_object('day', r.day::text, 'reserved_micros', r.micros, 'actual_micros', r.actual_micros))
-      on conflict (kind, (detail ->> 'day')) where kind in ('model_budget_exhausted', 'model_budget_paused', 'model_budget_overrun') do nothing;
+      on conflict (kind, (detail ->> 'day')) where kind in ('model_budget_exhausted', 'model_budget_paused', 'model_budget_overrun', 'model_budget_closed') do nothing;
   end if;
   return jsonb_build_object('ok', true, 'spent', r.actual_micros);
 end $$;
@@ -159,9 +199,11 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
-revoke all on function public.model_budget_day(timestamptz), public.model_budget_int(text, bigint), public.model_budget_expire(timestamptz),
+revoke all on function public.model_budget_day(timestamptz), public.model_budget_int(text, bigint), public.model_budget_instant(text),
+  public.model_budget_expire(timestamptz), public.model_budget_closed(text, timestamptz),
   public.model_budget_reserve(bigint, text, text, timestamptz), public.model_budget_settle(uuid, bigint, timestamptz),
   public.model_budget_release(uuid, timestamptz) from public, anon, authenticated;
-grant execute on function public.model_budget_day(timestamptz), public.model_budget_int(text, bigint), public.model_budget_expire(timestamptz),
+grant execute on function public.model_budget_day(timestamptz), public.model_budget_int(text, bigint), public.model_budget_instant(text),
+  public.model_budget_expire(timestamptz), public.model_budget_closed(text, timestamptz),
   public.model_budget_reserve(bigint, text, text, timestamptz), public.model_budget_settle(uuid, bigint, timestamptz),
   public.model_budget_release(uuid, timestamptz) to service_role;

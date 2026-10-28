@@ -112,19 +112,30 @@ export function fromOpenAI(body: any): any {
   return { id: body.id, type: "message", role: "assistant", model: body.model, content, stop_reason, usage };
 }
 
-// USD per million tokens. Sources: Anthropic's published Haiku 4.5 prices; gpt-5-nano from third-party price tables
-// (usagepricing.com, g2.com) as of 2026-10-11, because OpenAI's pricing page cannot be reached from the build machine.
+// USD per million tokens. Every row says where it came from and whether the price was read from the provider's own page.
+// 2026-10-28 verification (WebFetch from the build session; OpenAI's pricing page itself, platform.openai.com/docs/pricing, is not
+// reachable from there, so OpenAI prices are read from each model's page on developers.openai.com/api/docs/models/<id>):
+//   verified   read on the provider's own page on 2026-10-28.
+//   third_party   read only on a third-party table (cloudprice.net) on 2026-10-28; the provider's page was not reachable.
+//   unverified   not read anywhere today. Kept as last known. The budget does not trust it blindly: an unknown model is reserved
+//                at the HIGHEST price in this table, and every row's reservation uses the larger of its input, cached and write rates.
+// Several of these models are now marked Deprecated or Shut down on OpenAI's pages (noted per row). A model that is gone answers
+// with an error, which costs nothing; a price here that is too low is the risk, which is why a mismatch must be fixed here first.
 // Update here when the invoice disagrees; the cost is an estimate until it is reconciled with the provider's bill.
-export const PRICES: Record<string, { input: number; cached: number; cache_write: number; output: number; source: string }> = {
-  "gpt-5": { input: 1.25, cached: 0.125, cache_write: 0, output: 10.00, source: "https://developers.openai.com/api/docs/models/gpt-5 (verified 2026-10-21)" },
-  "gpt-5-nano": { input: 0.05, cached: 0.005, cache_write: 0, output: 0.40, source: "third-party tables 2026-10-11 (OpenAI page unreachable)" },
-  "gpt-5-mini": { input: 0.25, cached: 0.025, cache_write: 0, output: 2.00, source: "third-party tables 2026-10-11 (OpenAI page unreachable)" },
-  "gpt-4.1-nano": { input: 0.10, cached: 0.025, cache_write: 0, output: 0.40, source: "third-party tables 2026-10-11 (OpenAI page unreachable)" },
-  // WO-061: the second, independent eval judge (owner, 2026-10-21: two judges, both must pass). OpenAI's published
-  // gpt-4.1-mini rates as known at its launch; not re-checked from here (OpenAI's page is unreachable from this sandbox).
-  "gpt-4.1-mini": { input: 0.40, cached: 0.10, cache_write: 0, output: 1.60, source: "OpenAI published pricing at gpt-4.1 launch (not re-checked 2026-10-21)" },
-  "claude-haiku-4-5-20251001": { input: 1.00, cached: 0.10, cache_write: 1.25, output: 5.00, source: "Anthropic published pricing" },
+export const PRICES: Record<string, { input: number; cached: number; cache_write: number; output: number; call_fee?: number; source: string; checked: "verified" | "third_party" | "unverified"; checked_on: string }> = {
+  "gpt-5": { input: 1.25, cached: 0.125, cache_write: 0, output: 10.00, source: "https://developers.openai.com/api/docs/models/gpt-5 (page marks the model Deprecated)", checked: "verified", checked_on: "2026-10-28" },
+  "gpt-5-nano": { input: 0.05, cached: 0.005, cache_write: 0, output: 0.40, source: "https://developers.openai.com/api/docs/models/gpt-5-nano (Deprecated)", checked: "verified", checked_on: "2026-10-28" },
+  "gpt-5-mini": { input: 0.25, cached: 0.025, cache_write: 0, output: 2.00, source: "https://cloudprice.net/models/gpt-5-mini, Standard tier (OpenAI's developers.openai.com page for it was not reachable; deprecated 2026-10-19)", checked: "third_party", checked_on: "2026-10-28" },
+  "gpt-4.1-nano": { input: 0.10, cached: 0.025, cache_write: 0, output: 0.40, source: "https://developers.openai.com/api/docs/models/gpt-4.1-nano (marked Shut down)", checked: "verified", checked_on: "2026-10-28" },
+  // WO-061: the second, independent eval judge (owner, 2026-10-21: two judges, both must pass).
+  "gpt-4.1-mini": { input: 0.40, cached: 0.10, cache_write: 0, output: 1.60, source: "https://developers.openai.com/api/docs/models/gpt-4.1-mini (Deprecated)", checked: "verified", checked_on: "2026-10-28" },
+  "claude-haiku-4-5-20251001": { input: 1.00, cached: 0.10, cache_write: 1.25, output: 5.00, source: "Anthropic published pricing, last known; platform.claude.com/docs/en/about-claude/pricing could not be fetched on 2026-10-28 (never used unless MODEL_PROVIDER=anthropic is set on purpose)", checked: "unverified", checked_on: "2026-10-11" },
 };
+// Realtime voice (not callModel: the browser talks to OpenAI with a key minted by career-voice; see career_voice.ts). Text prices for
+// gpt-realtime-mini were read on https://developers.openai.com/api/docs/models/gpt-realtime-mini (2026-10-28): $0.60 in, $0.06 cached,
+// $2.40 out. Its audio prices ($10 in, $20 out per 1M tokens) were read only on https://cloudprice.net/models/openai/gpt-realtime-mini
+// (2026-10-28). gpt-realtime (the full model) was NOT read anywhere today; it is reserved at three times the mini rate. OpenAI does not
+// publish a per-minute price, so the voice reservation is an assumption, not a verified figure (see career_voice.ts).
 // Cost of one call in micro-dollars (1e-6 USD), from the tokens the provider reported. null when the model has no price.
 export function costMicros(model: string, usage: any): number | null {
   const p = PRICES[model]; if (!p || !usage) return null;
@@ -219,7 +230,7 @@ export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions =
   const got = await gate.reserve(worst, { model: cfg.model, role });
   if (!got.ok) {
     console.error(`[model] budget ${got.reason}${got.detail ? `: ${got.detail}` : ""}`);
-    throw new ModelBudgetBlockedError(got.reason, got.reason === "limit" ? "today's global model budget is used up" : got.reason === "paused" ? "the model budget is switched off" : `the model budget could not be checked${got.detail ? `: ${got.detail}` : ""}`);
+    throw new ModelBudgetBlockedError(got.reason, got.reason === "limit" ? "the global model budget is used up" : got.reason === "paused" ? "the model budget is switched off" : got.reason === "before" ? "the model budget window has not opened" : got.reason === "after" ? "the model budget window has ended and no new budget is approved" : `the model budget could not be checked${got.detail ? `: ${got.detail}` : ""}`);
   }
   // Until proven otherwise the whole worst case is spent. Only the branches below that prove more change this.
   let close: { kind: "keep" } | { kind: "actual"; micros: number } | { kind: "release" } = { kind: "keep" };

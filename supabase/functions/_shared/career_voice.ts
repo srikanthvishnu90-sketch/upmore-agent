@@ -39,10 +39,12 @@ import {
 import { signToken, type TokenKind, verifyToken, voiceWired } from "./career_voice_link.ts";
 
 import { type BudgetGate, budgetPausedByEnv, budgetReply, type ReserveResult, resolveBudgetGate } from "./model_budget.ts";
-// Worst case a minute of a realtime call can cost, in micro-USD, by model (OpenAI audio token prices as published at launch,
-// not re-checked from here): speech in and out running the whole minute and the conversation re-read on every turn, rounded up
-// well past the arithmetic (gpt-realtime-mini about $0.03 a minute plain, gpt-realtime about $0.10). Unknown model: the dearer one.
-// One session never runs past OpenAI's 30 minutes. The owner can change these numbers here; the reserved total is kept as spent.
+// Worst case a minute of a realtime call can cost, in micro-USD, by model. OpenAI publishes tokens, not minutes, so this is an
+// ASSUMPTION, not a verified price. Audio token rates for the minute are not published on the pages read on 2026-10-28; this
+// assumes 50 audio tokens a second each way (3,000 a minute, five times the 10 a second commonly quoted) and the audio prices read on
+// a third-party table for gpt-realtime-mini ($10 in, $20 out per 1M): 3,000 x $10 + 3,000 x $20 = $0.09 a minute, rounded up to $0.10 to cover
+// the conversation text being re-read each turn. gpt-realtime was not read at all today: three times the mini figure. Unknown model:
+// the dearer figure. The reservation is kept as spent once a key goes out. The owner can change these numbers here.
 export const VOICE_WORST_CASE_MICROS_PER_MINUTE_BY_MODEL: Record<string, number> = { "gpt-realtime-mini": 100_000, "gpt-realtime": 300_000 };
 export const VOICE_WORST_CASE_MICROS_PER_MINUTE = 300_000; // unknown model
 export const VOICE_SESSION_MAX_MINUTES = 30;

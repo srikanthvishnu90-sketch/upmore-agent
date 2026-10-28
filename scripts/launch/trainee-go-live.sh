@@ -163,11 +163,18 @@ MIGRATIONS=(
   20261026090009_career_account_memory.sql
   20261026100000_career_apply_cloud_runner.sql
   20261026100001_career_apply_want_guard.sql
+  20261026120018_career_resume_one_record.sql
   20261026140000_career_apply_receipt_store.sql
+  20261026200011_google_disconnect_erase.sql
+  20261026210016_career_resume_required.sql
+  20261026210017_career_resume_on_file_one_record.sql
+  20261026220016_channel_telegram_login.sql
   20261026230100_career_erase_complete.sql
   20261026230300_career_turn_gate.sql
   20261026230400_career_kb_postings_recency_index.sql
   20261026230500_definer_execute_lockdown.sql
+  20261027140000_career_apply_host_backoff.sql
+  20261027141000_career_apply_mass_submit.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -222,7 +229,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_reconcile_bridge')"
   "to_regclass('public.career_apply_prepare_attempts') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_prepare_candidates' and prosrc like '%career_apply_wanted%')"
-  "exists (select 1 from pg_proc where proname = 'career_apply_enqueue' and prosrc like '%ledger_refusal(u, p_payload->>%, null, now(), null)%')"
+  "(exists (select 1 from pg_proc where proname = 'career_apply_enqueue' and prosrc like '%ledger_refusal(u, p_payload->>%, null, now(), null)%')) or (exists (select 1 from pg_proc where proname = 'career_apply_mass_submit_install') and to_regclass('public.career_apply_claim_turns') is not null)"
   "exists (select 1 from pg_proc where proname in ('career_apply_daily_limit', 'career_apply_pace_state') and prosrc like '%PACE_RE%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_pace_set')"
   "exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%card_stale%')"
@@ -233,12 +240,19 @@ MIGRATION_MARK=(
   "exists (select 1 from information_schema.columns where table_name = 'career_mail_drafts' and column_name = 'outreach_draft')"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%invalid account memory%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_cloud_dispatch_claim')"
-  "exists (select 1 from pg_proc where proname = 'career_apply_want_put_for' and prosrc like '%company_cooldown%')"
+  "(exists (select 1 from pg_proc where proname = 'career_apply_want_put_for' and prosrc like '%company_cooldown%')) or (exists (select 1 from pg_proc where proname = 'career_apply_mass_submit_install') and to_regclass('public.career_apply_claim_turns') is not null)"
+  "to_regclass('public.career_resume_record') is not null and exists (select 1 from pg_trigger where tgname = 'career_resume_from_event') and exists (select 1 from pg_trigger where tgname = 'career_resume_jobs_guard')"
   "to_regclass('public.career_apply_receipt_files') is not null"
+  "exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_google_erase')"
+  "to_regclass('public.career_resume_uploads') is not null and exists (select 1 from pg_trigger where tgname = 'career_apply_jobs_resume_guard') and exists (select 1 from pg_proc where proname = 'career_resume_ok') and exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%no_resume%')"
+  "exists (select 1 from pg_proc where proname = 'career_resume_on_file' and prosrc like '%career_resume_rule_on%' and prosrc like '%career_resume_record%')"
+  "to_regclass('public.channel_telegram_logins') is not null and exists (select 1 from pg_proc where proname = 'channel_telegram_link_as')"
   "exists (select 1 from pg_proc where proname = 'career_erase_person') and exists (select 1 from pg_constraint where conname = 'extension_submission_reports_user_fk')"
   "to_regclass('public.career_turn_gate') is not null and exists (select 1 from pg_proc where proname = 'career_turn_gate_ready')"
   "to_regclass('public.career_kb_postings_posted_at_recent') is not null"
   "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
+  "to_regclass('public.career_apply_host_backoff') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_apply_mass_submit_install') and to_regclass('public.career_apply_claim_turns') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql
@@ -255,7 +269,9 @@ CHANNEL_FNS=(trainee-telegram trainee-whatsapp)
 CHANNEL_HIDDEN=(TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN)
 CHANNEL_PLAIN=(TELEGRAM_BOT_USERNAME WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TEMPLATE_UPDATES WHATSAPP_TEMPLATE_LANGUAGE WHATSAPP_DAILY_TEMPLATES)
 # Every function step 4 deploys, in its order: the provenance manifest hashes each, the ledger records each.
-DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}")
+# FEATURE 16: Telegram's login, verified, links a chat to the signed-in person; it takes the person's own session (JWT on).
+JWT_FNS=(trainee-telegram-link)
+DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${JWT_FNS[@]}")
 # WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
 STAGE_PATHS=(supabase scripts packages corpus)
 PROV="$REPO/scripts/launch/deploy-provenance.cjs"
@@ -280,7 +296,7 @@ mask_values() {
   local v
   for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_URL CAREER_INGEST_SECRET CAREER_PROACTIVE_SECRET TRAINEE_DELIVER_SECRET TRAINEE_INBOUND_SECRET \
     LOOPMESSAGE_API_KEY OPENAI_API_KEY UPMORE_TEST_JWT TRAINEE_ALLOWED_CONTACTS TRAINEE_SMOKE_CONTACT INGEST_CONTACT_EMAIL PDL_API_KEY \
-    TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN; do
+    TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN CAREER_PREPARE_AHEAD_URL CAREER_PREPARE_AHEAD_TOKEN; do
     [[ -n "${!v:-}" ]] && printf '%s\n' "${!v}"
   done
   # The database password on its own too (an error may print the URL's parts, never the whole URL).
@@ -555,10 +571,19 @@ if [[ -z "$ONLY_SMOKE" ]]; then
   ask TRAINEE_ALLOWED_CONTACTS "Phone numbers allowed to sign up, comma-separated (Enter to keep what is set)" hidden
   ask LOOPMESSAGE_DAILY_CONTACTS "LoopMessage contacts a day, 300 or 1000 by plan (Enter to keep; unset means 300)" plain
   ask PDL_API_KEY "People Data Labs API key for hired-candidate backgrounds (Enter to keep; without one Trainee says it has no data)" hidden
-  for v in LOOPMESSAGE_API_KEY OPENAI_API_KEY INGEST_CONTACT_EMAIL TRAINEE_ALLOWED_CONTACTS PDL_API_KEY; do
+  # Audit B2 (phone-only preparation): the preparation host's door and its token, once the host is up
+  # (docs/launch/CLOUD-RUNNER.md, Preparation host). Optional: without them the chat says nothing is prepared yet.
+  ask CAREER_PREPARE_AHEAD_URL "Preparation host URL, https://<host>/prepare (Enter to keep; unset: phone-only preparation stays NOT_WIRED)" plain
+  ask CAREER_PREPARE_AHEAD_TOKEN "Preparation host token, the host's own CAREER_PREPARE_AHEAD_TOKEN (Enter to keep)" hidden
+  for v in LOOPMESSAGE_API_KEY OPENAI_API_KEY INGEST_CONTACT_EMAIL TRAINEE_ALLOWED_CONTACTS PDL_API_KEY CAREER_PREPARE_AHEAD_URL CAREER_PREPARE_AHEAD_TOKEN; do
     if [[ -n "${!v:-}" ]] && ! env_safe "${!v}"; then fail "$v has a space, quote, # or backslash (the value is not shown)"; fi
   done
   [[ -z "${INGEST_CONTACT_EMAIL:-}" || "$INGEST_CONTACT_EMAIL" == *@* ]] || fail "INGEST_CONTACT_EMAIL is not an email address"
+  [[ -z "${CAREER_PREPARE_AHEAD_URL:-}" || "$CAREER_PREPARE_AHEAD_URL" =~ ^https://[^/[:space:]]+(/[^[:space:]]*)?$ ]] || fail "CAREER_PREPARE_AHEAD_URL must be an https URL (the value is not shown)"
+  [[ -z "${CAREER_PREPARE_AHEAD_TOKEN:-}" || "$CAREER_PREPARE_AHEAD_TOKEN" =~ $SECRET_RE ]] || fail "CAREER_PREPARE_AHEAD_TOKEN must be 32 or more of A-Z a-z 0-9 . _ ~ - (the value is not shown)"
+  if [[ -n "${CAREER_PREPARE_AHEAD_URL:-}${CAREER_PREPARE_AHEAD_TOKEN:-}" && ( -z "${CAREER_PREPARE_AHEAD_URL:-}" || -z "${CAREER_PREPARE_AHEAD_TOKEN:-}" ) ]]; then
+    fail "CAREER_PREPARE_AHEAD_URL and CAREER_PREPARE_AHEAD_TOKEN go together: give both or neither"
+  fi
   [[ -z "${LOOPMESSAGE_DAILY_CONTACTS:-}" || "$LOOPMESSAGE_DAILY_CONTACTS" =~ ^[1-9][0-9]*$ ]] || fail "LOOPMESSAGE_DAILY_CONTACTS must be a whole number of contacts a day"
   # WO-038: Telegram and WhatsApp, each optional (docs/launch/TRAINEE-GO-LIVE.md has where each value comes from).
   ask TELEGRAM_BOT_TOKEN "Telegram bot token from @BotFather (Enter: Telegram stays NOT_WIRED or keeps what is set)" hidden
@@ -707,6 +732,9 @@ else
   if [[ -n "${LOOPMESSAGE_DAILY_CONTACTS:-}" ]]; then add LOOPMESSAGE_DAILY_CONTACTS "$LOOPMESSAGE_DAILY_CONTACTS" "***"; else echo "  kept: LOOPMESSAGE_DAILY_CONTACTS (unset means 300 a day)"; fi
   if [[ -n "${TRAINEE_ALLOWED_CONTACTS:-}" ]]; then add TRAINEE_ALLOWED_CONTACTS "$TRAINEE_ALLOWED_CONTACTS" "***"; else echo "  kept: TRAINEE_ALLOWED_CONTACTS (sign-up stays closed to anyone not listed or already linked)"; fi
   if [[ -n "${PDL_API_KEY:-}" ]]; then add PDL_API_KEY "$PDL_API_KEY" "***"; else echo "  kept: PDL_API_KEY (not given; hired-candidate backgrounds say NO DATA until it is set)"; fi
+  # Audit B2: the chat's door to the preparation host (both or neither, checked in preflight).
+  if [[ -n "${CAREER_PREPARE_AHEAD_URL:-}" ]]; then add CAREER_PREPARE_AHEAD_URL "$CAREER_PREPARE_AHEAD_URL" "***"; add CAREER_PREPARE_AHEAD_TOKEN "$CAREER_PREPARE_AHEAD_TOKEN" "***"
+  else echo "  kept: CAREER_PREPARE_AHEAD_URL, CAREER_PREPARE_AHEAD_TOKEN (not given; what the project has stays: with neither set, phone-only preparation is NOT_WIRED and the chat says so)"; fi
   # OpenAI only (owner, 2026-10-12): the key goes with MODEL_PROVIDER=openai, as in go-live.sh.
   if [[ -n "${OPENAI_API_KEY:-}" ]]; then add OPENAI_API_KEY "$OPENAI_API_KEY" "***"; add MODEL_PROVIDER openai openai; else echo "  kept: OPENAI_API_KEY (not given; an already-set key stays as it is)"; fi
   # WO-038: each channel's values when given; a channel never given stays NOT_WIRED.
@@ -783,6 +811,11 @@ else
     if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
     else ledger_function "$fn"; fi
   done
+  for fn in "${JWT_FNS[@]}"; do
+    run "supabase functions deploy $fn --project-ref $REF --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --use-docker
+    if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
+    else ledger_function "$fn"; fi
+  done
   ok
 fi
 
@@ -807,7 +840,7 @@ fi
 # ---------------------------------------------------------------------------------------------------------------------
 step "6/6 smoke"
 SMOKE_ENV=("SUPABASE_URL=$BASE"); SMOKE_SHOWN="SUPABASE_URL=$BASE"
-for v in "${SCHED_VARS[@]}" TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_VERIFY_TOKEN SUPABASE_DB_URL UPMORE_TEST_JWT TRAINEE_SMOKE_CONTACT; do
+for v in "${SCHED_VARS[@]}" TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_VERIFY_TOKEN SUPABASE_DB_URL UPMORE_TEST_JWT TRAINEE_SMOKE_CONTACT CAREER_PREPARE_AHEAD_URL CAREER_PREPARE_AHEAD_TOKEN; do
   if [[ -n "${!v:-}" ]]; then SMOKE_ENV+=("$v=${!v}"); SMOKE_SHOWN+=" $v=***"; fi
 done
 SMOKE_ARGS=()

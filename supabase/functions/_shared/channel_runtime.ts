@@ -42,7 +42,11 @@ export function chatThroughAgent(url: string, key: string, o: { retryDelayMs?: n
     // The card this reply shows (career_apply_cards.ts puts its id on the reply's meta), so the outbox row is recorded against it.
     const cardId = typeof meta.card_id === "string" && meta.card_id ? meta.card_id : null;
     const resultStatus = typeof meta.result_status === "string" ? meta.result_status : null;
-    return { status: res.status, reply: String(body.reply ?? ""), threadId: typeof body.thread_id === "string" ? body.thread_id : null, ...(parts ? { parts } : {}), ...(cardId ? { cardId } : {}), ...(resultStatus ? { resultStatus } : {}) };
+    // FEATURE 16: the documents the turn produced (the tailored resume PDF), as owner-scoped refs (channel_artifacts.ts).
+    const artifacts = Array.isArray(body.artifacts)
+      ? (body.artifacts as any[]).filter((a) => a && typeof a.ref === "string" && a.ref).map((a) => ({ ref: String(a.ref), filename: String(a.filename ?? "document.pdf"), mime: String(a.mime ?? "application/pdf") }))
+      : [];
+    return { status: res.status, reply: String(body.reply ?? ""), threadId: typeof body.thread_id === "string" ? body.thread_id : null, ...(parts ? { parts } : {}), ...(cardId ? { cardId } : {}), ...(resultStatus ? { resultStatus } : {}), ...(artifacts.length ? { artifacts } : {}) };
   };
 }
 

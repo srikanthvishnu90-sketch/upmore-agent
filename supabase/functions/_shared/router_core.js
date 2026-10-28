@@ -20088,7 +20088,11 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
     const label = s => LABELS[String(s || "").toLowerCase()] || (String(s || "that source").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
     const iso = t => (t == null ? null : new Date(t).toISOString());
     const parseScopes = input => Array.isArray(input) ? input.map(String).filter(Boolean) : typeof input === "string" ? input.split(/[\s,]+/).filter(Boolean) : [];
-    function scopeSet(scopes) {
+    // openid / email only name the account (every Google consent asks for them since the 2026-10-26 verification
+    // submission); they never change what a grant may do, so they are left out (same rule as gmail-oauth/career.ts).
+    const IDENTITY_SCOPES = new Set(["openid", "email", "profile", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"]);
+    function scopeSet(all) {
+      const scopes = all.filter(s => !IDENTITY_SCOPES.has(s));
       if (!scopes.length) return "none";
       const has = s => scopes.includes(s);
       if (has(GMAIL_SEND_SCOPE) && has(CALENDAR_FREEBUSY_SCOPE) && has(CALENDAR_EVENTS_SCOPE)) return "career";
@@ -52277,15 +52281,19 @@ const CareerRender = (() => {
     out.writeUInt32BE(adler32(data), 2 + body.length);
     return out;
   }
-  function inflateRaw(data) { return inflateRawCore(data).buffer; }
+  function inflateRaw(data, opts) { return inflateRawCore(data, opts && opts.maxOutputLength).buffer; }
   // Returns the decoded bytes plus `end`: the offset just past the
   // deflate stream. Callers slice streams out of larger buffers (a PDF
   // stream is followed by "\nendstream"), so trailing bytes after the
   // final block are normal and must not be read as part of the stream —
   // Node's zlib tolerates them the same way.
-  function inflateRawCore(data) {
+  // maxOut (FEATURE 16, review of PR #194): stop with a RangeError once the output passes it, as Node's maxOutputLength
+  // does, so a small compressed stream can never expand without bound.
+  function inflateRawCore(data, maxOut) {
     let pos = 0, bitbuf = 0, bitcnt = 0;
+    const cap = Number.isFinite(maxOut) && maxOut > 0 ? maxOut : Infinity;
     const out = [];
+    const over = () => { if (out.length > cap) { const e = new RangeError("inflated output exceeds maxOutputLength"); e.code = "ERR_BUFFER_TOO_LARGE"; throw e; } };
     const getBits = (n) => {
       while (bitcnt < n) {
         if (pos >= data.length) throw new Error("deflate stream ends early");
@@ -52329,6 +52337,7 @@ const CareerRender = (() => {
         pos += 4;
         if (pos + len > data.length) throw new Error("stored block overruns the stream");
         for (let i = 0; i < len; i++) out.push(data[pos++]);
+        over();
       } else if (type === 1 || type === 2) {
         let lit, dist;
         if (type === 1) {
@@ -52367,17 +52376,18 @@ const CareerRender = (() => {
           const d = DIST_BASE[dsym] + getBits(DIST_EXT[dsym]);
           if (d > out.length) throw new Error("deflate distance too far back");
           for (let j = 0; j < len; j++) out.push(out[out.length - d]);
+          if (out.length > cap) over();
         }
       } else throw new Error("invalid deflate block type");
     } while (!last);
     return { buffer: Bytes.from(out), end: pos - (bitcnt >> 3) };
   }
-  function zlibInflate(data) {
+  function zlibInflate(data, opts) {
     if (data.length < 6) throw new Error("zlib stream too short");
     const cmf = data[0], flg = data[1];
     if ((cmf * 256 + flg) % 31 !== 0 || (cmf & 0x0f) !== 8) throw new Error("invalid zlib header");
     if (flg & 0x20) throw new Error("preset dictionary not supported");
-    const core = inflateRawCore(data.subarray(2));
+    const core = inflateRawCore(data.subarray(2), opts && opts.maxOutputLength);
     const at = 2 + core.end; // the Adler-32 sits right after the deflate stream
     if (at + 4 > data.length) throw new Error("zlib stream truncated before its checksum");
     const stored = ((data[at] << 24) | (data[at + 1] << 16) | (data[at + 2] << 8) | data[at + 3]) >>> 0;
@@ -52387,8 +52397,8 @@ const CareerRender = (() => {
   const pureZlib = {
     deflateSync: (data) => zlibDeflate(data),
     deflateRawSync: (data) => deflateStored(data),
-    inflateSync: (data) => zlibInflate(data),
-    inflateRawSync: (data) => inflateRaw(data),
+    inflateSync: (data, opts) => zlibInflate(data, opts),
+    inflateRawSync: (data, opts) => inflateRaw(data, opts),
   };
   function sha256HexPure(data) {
     const K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
@@ -52548,14 +52558,19 @@ const CareerRender = (() => {
   }
   // Central-directory reader: part name -> inflated Bytes. Independent of
   // the writer (walks the EOCD + central directory, verifies CRC on read).
-  function unzipParts(buf) {
+  // FEATURE 16 (review of PR #194: a 783 KB .docx reached 1.7 GB): only the parts `want` names are inflated (all, when
+  // absent), each to at most PART_MAX bytes (Node's maxOutputLength; the pure-JS inflater the same), and all of them
+  // together to at most TOTAL_MAX; a part past either is left out, never inflated whole. `namesOnly` lists the names and
+  // inflates nothing.
+  const PART_MAX = 5 * 1024 * 1024, TOTAL_MAX = 20 * 1024 * 1024, MAX_STREAMS = 400;
+  function unzipParts(buf, want, namesOnly) {
     const parts = new Map();
     if (!Bytes.isBuffer(buf) || buf.length < 22) return parts;
     let eocd = -1;
     for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 65536; i--) { if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; } }
     if (eocd < 0) return parts;
     const count = buf.readUInt16LE(eocd + 10);
-    let p = buf.readUInt32LE(eocd + 16);
+    let p = buf.readUInt32LE(eocd + 16), total = 0;
     for (let n = 0; n < count && p + 46 <= buf.length; n++) {
       if (buf.readUInt32LE(p) !== 0x02014b50) break;
       const method = buf.readUInt16LE(p + 10);
@@ -52564,18 +52579,25 @@ const CareerRender = (() => {
       const nameLen = buf.readUInt16LE(p + 28), extraLen = buf.readUInt16LE(p + 30), commentLen = buf.readUInt16LE(p + 32);
       const localOff = buf.readUInt32LE(p + 42);
       const name = buf.toString("utf8", p + 46, p + 46 + nameLen);
+      p += 46 + nameLen + extraLen + commentLen;
+      if (namesOnly) { parts.set(name, null); continue; }
+      if (want && !want(name)) continue;
+      if (localOff + 30 > buf.length) continue;
       const lNameLen = buf.readUInt16LE(localOff + 26), lExtraLen = buf.readUInt16LE(localOff + 28);
       const dataStart = localOff + 30 + lNameLen + lExtraLen;
       const raw = buf.subarray(dataStart, dataStart + compSize);
+      const room = Math.min(PART_MAX, TOTAL_MAX - total);
+      if (room <= 0) break;
       let data = null;
-      try { data = method === 8 ? zlib.inflateRawSync(raw) : Bytes.from(raw); } catch { data = null; }
-      if (data && crc32(data) === crc) parts.set(name, data);
-      p += 46 + nameLen + extraLen + commentLen;
+      try { data = method === 8 ? zlib.inflateRawSync(raw, { maxOutputLength: room }) : (raw.length <= room ? Bytes.from(raw) : null); } catch { data = null; }
+      if (data && crc32(data) === crc) { parts.set(name, data); total += data.length; }
+      else total += room; // a part that failed or went past its cap still cost up to its room: charged, so bombs cannot be retried for free
     }
     return parts;
   }
-  const docxPartNames = (buf) => [...unzipParts(buf).keys()];
-  function docxPart(buf, name) { return unzipParts(buf).get(name) || null; }
+
+  const docxPartNames = (buf) => [...unzipParts(buf, null, true).keys()];
+  function docxPart(buf, name) { return unzipParts(buf, (n) => n === name).get(name) || null; }
   // Rebuild a DOCX with some parts replaced (audit-mode mutants in tests).
   function rebuildDocx(buf, replacements) {
     const parts = unzipParts(buf);
@@ -52767,6 +52789,7 @@ const CareerRender = (() => {
   // ================= PDF extraction — parser A (content-stream operators) =================
   function pdfStreams(buf) {
     const streams = [];
+    let total = 0;
     const s = buf.toString("latin1");
     let idx = 0;
     while (true) {
@@ -52777,7 +52800,11 @@ const CareerRender = (() => {
       const en = s.indexOf("endstream", start);
       if (en < 0) break;
       const raw = buf.subarray(start, en);
-      try { streams.push(zlib.inflateSync(raw)); } catch { /* not a flate stream (e.g. object stream) — parser B still scans it raw */ }
+      // FEATURE 16: each stream to at most PART_MAX, all of them to TOTAL_MAX, at most MAX_STREAMS of them; one past a cap
+      // is left out, never inflated whole.
+      const room = Math.min(PART_MAX, TOTAL_MAX - total);
+      if (room <= 0 || streams.length >= MAX_STREAMS) break;
+      try { const out = zlib.inflateSync(raw, { maxOutputLength: room }); streams.push(out); total += out.length; } catch { total += room; /* not a flate stream, or past the cap: charged what it could cost; parser B still scans it raw */ }
       idx = en + 9;
     }
     return streams;
@@ -52899,16 +52926,17 @@ const CareerRender = (() => {
     return lines;
   }
   function docxStructure(buf) {
-    const parts = unzipParts(buf);
+    const parts = unzipParts(buf, (n) => n === "word/document.xml" || n === "word/styles.xml");
+    const names = [...unzipParts(buf, null, true).keys()];
     const docXml = (parts.get("word/document.xml") || Bytes.alloc(0)).toString("utf8");
     const stylesXml = (parts.get("word/styles.xml") || Bytes.alloc(0)).toString("utf8");
     const fonts = [...new Set([...stylesXml.matchAll(/w:ascii="([^"]+)"/g)].map((m) => m[1]))];
     const sizes = [...new Set([...stylesXml.matchAll(/<w:sz w:val="(\d+)"/g)].map((m) => parseInt(m[1], 10) / 2))].sort((a, b) => a - b);
-    const mediaParts = [...parts.keys()].filter((k) => k.startsWith("word/media/")).length;
+    const mediaParts = names.filter((k) => k.startsWith("word/media/")).length;
     const images = mediaParts + (docXml.match(/<w:drawing|<a:blip|<w:pict/g) || []).length;
     const tables = (docXml.match(/<w:tbl[\s>]/g) || []).length;
     const textFrames = (docXml.match(/txbxContent/g) || []).length;
-    const headerFooterParts = [...parts.keys()].filter((k) => /word\/(header|footer)\d*\.xml/.test(k)).length;
+    const headerFooterParts = names.filter((k) => /word\/(header|footer)\d*\.xml/.test(k)).length;
     return { bytes: Bytes.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
   }
   // External parser B (python-docx) — used when the caller opts in.
@@ -53148,11 +53176,12 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
    browser driver (REAL_PORTAL_NOT_WIRED). Account-walled boards
    (Workday/iCIMS/Taleo) and the owner's signed-in session remain future,
    owner-gated work — see docs/career/board-automation-map.md.
-   Caps (§6.4) are the owner's DECIDED numbers (15/day locked 2026-10-12;
-   5/vendor/day; 1/company/30 days) and are ENFORCED here (MI-110): a run
-   or submit that would exceed one stops CAP_REACHED naming the cap and
-   the count, counted from the submissions ledger this module writes;
-   the never-twice-to-the-same-job rule (§8.3) is enforced alongside.
+   No volume caps (owner, 2026-10-27: D-MS-2, "never set a limit"; the
+   §6.4 numbers 15/day, 5/vendor/day and 1/company/30 days are gone). A
+   run or submit stops only on the never-twice-to-the-same-job rule
+   (§8.3, DUPLICATE_APPLICATION) or on the employer's site refusing right
+   now (PORTAL_REFUSING: a rate limit it answered with, kept as a
+   "portal_refused" ledger record until the time it allows again).
    That ledger never contained the user's own hand-filed applications,
    so the never-twice rule also reads what the host knows — tracker
    rows and user statements passed as manualApplications — and a match
@@ -53218,8 +53247,10 @@ const CareerPortalApply = (() => {
     return null;
   }
   const isEeoDeclineText = (text) => eeoDeclineMatch(text) !== null;
-  // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
-  const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
+  // Spec 2 §6.4 caps (15/day, 5/vendor/day, 1/company/30 days; MI-110) are REMOVED: the owner, 2026-10-27, D-MS-2 and
+  // "no person limit, never set a limit". Upmore sets no volume number of its own. What still stops an application:
+  // the exact same posting already submitted for this person (never twice), and the employer's application site
+  // refusing right now (a rate limit or a bot wall it answered with): that portal waits until it allows again.
   // MUSE-F-025: the bounded re-scan of a zero-field form read (see the
   // discover step in prepareRound and docs/apply/ROOT-CAUSE-F025-2026-10-22.md).
   const EMPTY_FORM_RESCAN_MAX_READS = 5;
@@ -53268,6 +53299,8 @@ const CareerPortalApply = (() => {
       answers: {}, submitted: null, confirmationSeq: 0,
       submitOutcome: o.submitOutcome || "accepted",
       captchaAt: o.captchaAt || null, // null | "open" | "review"
+      // Mass submission: the site refusing for load at open ({ retryAfterS }): HTTP 429 / 503 Retry-After, before any fill.
+      rateLimited: o.rateLimited || null,
       accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
       // WO-096: a code step at review ({ ats, expect }): the board emailed a code and its review waits until the one it
       // sent is typed. The code is the page's own state, never one of the application's answers.
@@ -53286,7 +53319,11 @@ const CareerPortalApply = (() => {
       calls,
       get accountName() { return state.accountName; },
       setSubmitOutcome(v) { state.submitOutcome = v; },
-      open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
+      open() {
+        calls.open += 1;
+        if (state.rateLimited) return { ok: false, rateLimited: true, retryAfterS: state.rateLimited.retryAfterS ?? null };
+        return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null };
+      },
       form() { return { fields: allFields().map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
       get fillFailures() { return state.fillFailures.slice(); },
       fill(fieldId, value) {
@@ -53739,32 +53776,68 @@ const CareerPortalApply = (() => {
     if (r.url) return classifyTarget(r.url).atsFamily || null;
     return null;
   }
+  // The portal a refusal is kept against: its host when known, else its ATS family.
+  function portalOf(posting, board) {
+    const p = posting || {};
+    let host = null;
+    try { if (p.url) host = new URL(p.url).host.toLowerCase(); } catch (e) { host = null; }
+    return { host: host || (board && board.host) || null, vendor: p.vendor || vendorOf(p) || (board && board.atsFamily) || null };
+  }
+  // What the employer's site said: it refuses until `until`. Kept as a record of the submissions ledger (status
+  // "portal_refused"), so it is saved with the ledger and every later drive that reads it waits too. As long as the site
+  // asked (Retry-After), else 30 s doubling on each refusal in a row, at most an hour between tries.
+  const isRefusal = (r) => !!r && r.status === "portal_refused" && !!r.host;
+  function recordRefusal(log, posting, board, now, retryAfterS, why, userId) {
+    if (!log) return null;
+    if (!Array.isArray(log.records)) log.records = [];
+    const where = portalOf(posting, board), nowMs = tsMs(now);
+    const base = Number.isFinite(nowMs) ? nowMs : Date.now();
+    const prior = log.records.filter((r) => isRefusal(r) && r.host === where.host && tsMs(r.timestamp) > base - 2 * 3600000).length;
+    const waitMs = retryAfterS != null && Number.isFinite(Number(retryAfterS)) && Number(retryAfterS) >= 0
+      ? Math.min(Number(retryAfterS) * 1000, 86400000) : Math.min(3600000, 30000 * Math.pow(2, prior));
+    const rec = { userId: userId || null, status: "portal_refused", canonicalKey: (posting && posting.canonicalKey) || null, host: where.host, vendor: where.vendor,
+      why: why || "rate_limited", timestamp: new Date(base).toISOString(), until: new Date(base + waitMs).toISOString() };
+    log.records.push(rec);
+    return rec;
+  }
+  // No volume caps (owner, 2026-10-27). Stops only: the same posting already submitted for this person, and a portal
+  // refusing right now. `counts` are reported for the record, never compared with a number.
   function capCheck(log, userId, posting, now, board) {
     const p = posting || {};
     const recs = ((log && log.records) || []).filter((r) => r.userId === userId && r.status === "submitted");
     const day = daySlice(now);
-    const vendor = p.vendor || vendorOf(p) || (board && board.atsFamily) || null;
+    const where = portalOf(p, board);
+    const vendor = where.vendor;
     const company = p.company || null;
     const companyKey = company ? normName(company) : "";
     const nowMs = tsMs(now);
     const WINDOW30 = 30 * 24 * 3600 * 1000;
-    let perDay = 0, perVendorPerDay = 0, perCompanyPer30Days = 0;
+    let today = 0, vendorToday = 0, company30Days = 0;
     for (const r of recs) {
       if (day && daySlice(r.timestamp) === day) {
-        perDay += 1;
-        if (vendor && vendorOf(r) === vendor) perVendorPerDay += 1;
+        today += 1;
+        if (vendor && vendorOf(r) === vendor) vendorToday += 1;
       }
       if (companyKey && r.company && normName(r.company) === companyKey) {
         const ms = tsMs(r.timestamp);
-        if (Number.isFinite(ms) && Number.isFinite(nowMs) && ms <= nowMs && nowMs - ms < WINDOW30) perCompanyPer30Days += 1;
+        if (Number.isFinite(ms) && Number.isFinite(nowMs) && ms <= nowMs && nowMs - ms < WINDOW30) company30Days += 1;
       }
     }
-    const counts = { perDay, perVendorPerDay, perCompanyPer30Days };
+    const counts = { today, vendorToday, company30Days };
     const stops = [];
-    if (perDay >= SPEC_CAPS.perDay) stops.push({ cap: "perDay", count: perDay, limit: SPEC_CAPS.perDay });
-    if (vendor && perVendorPerDay >= SPEC_CAPS.perVendorPerDay) stops.push({ cap: "perVendorPerDay", count: perVendorPerDay, limit: SPEC_CAPS.perVendorPerDay, vendor });
-    if (companyKey && perCompanyPer30Days >= SPEC_CAPS.perCompanyPer30Days) stops.push({ cap: "perCompanyPer30Days", count: perCompanyPer30Days, limit: SPEC_CAPS.perCompanyPer30Days, company });
+    if (p.canonicalKey && recs.some((r) => r.canonicalKey === p.canonicalKey)) stops.push({ cap: "samePosting", postingKey: p.canonicalKey });
+    const refusing = ((log && log.records) || []).filter((r) => isRefusal(r) && r.host === where.host && Number.isFinite(nowMs) && tsMs(r.until) > nowMs)
+      .sort((x, y) => tsMs(y.until) - tsMs(x.until))[0];
+    if (refusing) stops.push({ cap: "portalRefusing", host: refusing.host, vendor: refusing.vendor || vendor, until: refusing.until, why: refusing.why });
     return { ok: stops.length === 0, stops, counts, vendor, company };
+  }
+  // The stop a capCheck refusal becomes, in one place for every gate.
+  function capStop(s) {
+    if (s.cap === "samePosting") {
+      return { code: "DUPLICATE_APPLICATION", extra: { reason: "this exact posting was already submitted for this person — never twice" } };
+    }
+    return { code: "PORTAL_REFUSING", extra: { host: s.host, until: s.until, why: s.why,
+      reason: `the employer's application site is turning requests away right now (${s.why === "bot_check" ? "a verification wall" : "too many requests"}); nothing was filled or sent, and this one waits until ${s.until}` } };
   }
 
   // ---------- §8.3 collision check: the user's own hand-filed applications (MI-108 / G3) ----------
@@ -53829,15 +53902,10 @@ const CareerPortalApply = (() => {
     const recs = (log && log.records) || [];
     const chk = capCheck(log, userId, posting, now, board);
     return {
-      decisionPending: false, enforced: true, // §6.4 numbers are the owner's decided caps (MI-110)
-      specDefaults: Object.assign({}, SPEC_CAPS),
-      submittedToday: chk.counts.perDay,
+      decisionPending: false, enforced: true, // the gates below are enforced; there is no volume number (owner, 2026-10-27)
+      volumeLimit: null,
+      submittedToday: chk.counts.today,
       counts: chk.counts,
-      remaining: {
-        perDay: Math.max(0, SPEC_CAPS.perDay - chk.counts.perDay),
-        perVendorPerDay: Math.max(0, SPEC_CAPS.perVendorPerDay - chk.counts.perVendorPerDay),
-        perCompanyPer30Days: Math.max(0, SPEC_CAPS.perCompanyPer30Days - chk.counts.perCompanyPer30Days),
-      },
       wouldStop: chk.stops,
       submittedThisPosting: recs.filter((r) => r.userId === userId && r.status === "submitted" && posting && r.canonicalKey === posting.canonicalKey).length,
     };
@@ -54099,6 +54167,15 @@ const CareerPortalApply = (() => {
     const dup = (log.records || []).some((r) => r.userId === session.userId && r.canonicalKey === posting.canonicalKey && r.status === "submitted");
     if (dup) { logStep("eligibility_stop", { reason: "duplicate" }); return blocked("DUPLICATE_APPLICATION"); }
 
+    // A site that refused and has not allowed again yet is not even opened (its refusal is in the ledger).
+    {
+      const held = capCheck(log, session.userId, posting, inp.now, board).stops.find((x) => x.cap === "portalRefusing");
+      if (held) {
+        logStep("portal_held", { host: held.host, until: held.until });
+        const st = capStop(held);
+        return blocked(st.code, st.extra);
+      }
+    }
     // open the board; a challenge here stops everything (§6.3)
     const opened = continued ? {} : board.open();
     logStep(continued ? "resume_form" : "open", { host: board.host });
@@ -54107,6 +54184,12 @@ const CareerPortalApply = (() => {
     // above is not enough — boards redirect to employer sites) as a
     // typed refusal. The run stops here: no form read, no fill, no
     // doorstep, no submit on or after the off-list page.
+    if (opened && opened.rateLimited) {
+      const rf = recordRefusal(log, posting, board, inp.now, opened.retryAfterS, "rate_limited", session.userId);
+      logStep("portal_refused", { at: "open", host: rf && rf.host, until: rf && rf.until });
+      const st = capStop({ cap: "portalRefusing", host: rf && rf.host, until: rf && rf.until, why: "rate_limited" });
+      return blocked(st.code, st.extra);
+    }
     if (opened && opened.code) {
       logStep("host_redirect_refused", { code: opened.code, finalUrl: opened.finalUrl || null, host: opened.host || null, at: "open" });
       return blocked(opened.code, { reason: opened.reason || "the page landed off the tested-ATS allowlist (§6.3)", finalUrl: opened.finalUrl || null, host: opened.host || null });
@@ -54459,16 +54542,13 @@ const CareerPortalApply = (() => {
         reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` });
     }
 
-    // §6.4 caps (MI-110): the decided caps are enforced, not reported —
-    // a run that would exceed one stops here and never presents a
-    // doorstep that cannot submit. submitDoorstep re-checks at click
-    // time (counts can change between doorstep and click).
+    // The gate before the doorstep (no volume caps since 2026-10-27, owner): the same posting already submitted, or the
+    // portal refusing right now, stops here; submitDoorstep re-checks at click time.
     const caps = capCheck(log, session.userId, posting, inp.now, board);
     if (!caps.ok) {
-      const s = caps.stops[0];
-      logStep("cap_reached_stop", { cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops });
-      return blocked("CAP_REACHED", { cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops, counts: caps.counts,
-        reason: `the owner's decided application cap is reached (${s.cap}: ${s.count} of ${s.limit}) — this submission waits for a later day or window` });
+      const st = capStop(caps.stops[0]);
+      logStep("gate_stop", { code: st.code, stops: caps.stops });
+      return blocked(st.code, Object.assign({ stops: caps.stops, counts: caps.counts }, st.extra));
     }
 
     // the doorstep: final review, exact payload snapshot, STOP (§6.1 step 5/6 boundary)
@@ -54764,10 +54844,9 @@ const CareerPortalApply = (() => {
       }
       const caps = capCheck(log, session.userId, posting, inp.now, board);
       if (!caps.ok) {
-        const sc = caps.stops[0];
-        logStep("cap_reached_stop", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops });
-        return blocked("CAP_REACHED", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops, counts: caps.counts,
-          reason: `the owner's decided application cap is reached (${sc.cap}: ${sc.count} of ${sc.limit}) — this submission waits for a later day or window` });
+        const st = capStop(caps.stops[0]);
+        logStep("gate_stop", { code: st.code, stops: caps.stops });
+        return blocked(st.code, Object.assign({ stops: caps.stops, counts: caps.counts }, st.extra));
       }
       session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
         requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
@@ -54831,9 +54910,8 @@ const CareerPortalApply = (() => {
         reason: "the doorstep payload is missing readback values for required fields — the submit gate refuses to arm or click over a hollow payload" };
     }
     const board = session.board;
-    // §6.4 caps re-check (MI-110): counts can change between doorstep
-    // and click — the gate that fires is the gate that counts. The cap
-    // stop lands BEFORE the arming wire: a capped submit never arms.
+    // Re-check at click (no volume caps since 2026-10-27): the same posting submitted since the doorstep, or the
+    // portal refusing since, stops BEFORE the arming wire: such a submit never arms.
     const caps = capCheck(log, session.userId, {
       canonicalKey: session.doorstep.postingKey,
       vendor: session.doorstep.vendor || null,
@@ -54841,9 +54919,8 @@ const CareerPortalApply = (() => {
       url: (c.posting && c.posting.url) || null,
     }, c.now, board);
     if (!caps.ok) {
-      const s = caps.stops[0];
-      return { resultStatus: "blocked", code: "CAP_REACHED", cap: s.cap, count: s.count, limit: s.limit, stops: caps.stops, counts: caps.counts,
-        reason: `the owner's decided application cap is reached (${s.cap}: ${s.count} of ${s.limit}) — this submission waits for a later day or window` };
+      const st = capStop(caps.stops[0]);
+      return Object.assign({ resultStatus: "blocked", code: st.code, stops: caps.stops, counts: caps.counts }, st.extra);
     }
     // §8.3 collision re-check (MI-108 / G3): the knowledge that the
     // user already holds an application at this job can arrive between
@@ -55048,7 +55125,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, EEO_DECLINE_SOURCE, eeoDeclineMatch, isEeoDeclineText };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, recordRefusal, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, EEO_DECLINE_SOURCE, eeoDeclineMatch, isEeoDeclineText };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 
@@ -56657,7 +56734,7 @@ const CareerBatchApply = (() => {
   // app state: { postingKey, company, role, url, stage, stop, payloadSha256,
   //              confirmationId, tailored }
   // stages: selected | doorstep | stopped | captcha_handoff |
-  //         deferred_cap | deferred_count | submitted
+  //         deferred_refusal | deferred_count | submitted
   function event(run, type, data) {
     run.events.push(Object.assign({ seq: run.events.length + 1, type }, data || {}));
   }
@@ -56995,10 +57072,12 @@ const CareerBatchApply = (() => {
       stopApp(run, app, "UNCOVERED_QUESTION", "a required question has no confirmed fact — nothing was invented to fill it", { asks: res.asks || [] });
       return;
     }
-    if (res.resultStatus === "blocked" && res.code === "CAP_REACHED") {
-      app.stage = "deferred_cap";
-      run.deferred.push({ postingKey: app.postingKey, company: app.company, role: app.role, code: "CAP_REACHED", reason: res.reason || "the daily application cap is reached", resumeOn: nextDayIso(run.createdAt) });
-      event(run, "deferred_cap", { postingKey: app.postingKey, cap: res.cap || null });
+    // No volume caps (owner, 2026-10-27). The employer's site refusing right now (a rate limit): this one waits until the
+    // time the site allows, then resumes; nothing was filled or sent.
+    if (res.resultStatus === "blocked" && res.code === "PORTAL_REFUSING") {
+      app.stage = "deferred_refusal";
+      run.deferred.push({ postingKey: app.postingKey, company: app.company, role: app.role, code: "PORTAL_REFUSING", reason: res.reason || "the employer's site is turning requests away right now", resumeOn: res.until || null });
+      event(run, "deferred_refusal", { postingKey: app.postingKey, host: res.host || null, until: res.until || null });
       return;
     }
     if (res.resultStatus === "blocked" && res.code === "CAPTCHA_HANDOFF") {
@@ -57086,12 +57165,6 @@ const CareerBatchApply = (() => {
     return out;
   }
   function firstOpenQuestion(run) { const all = openQuestions(run); return all.length ? all[0] : null; }
-
-  function nextDayIso(now) {
-    const d = new Date(now || Date.now());
-    d.setHours(0, 0, 0, 0);
-    return new Date(d.getTime() + dayMs).toISOString().slice(0, 10);
-  }
 
   function cardSha(run) {
     const pairs = run.selected
@@ -57278,7 +57351,7 @@ const CareerBatchApply = (() => {
         stopApp(run, app, "EXECUTION_ERROR", `the drive threw: ${err && err.message ? err.message.slice(0, 160) : "unknown error"}`);
       }
     }
-    const anyStopped = run.selected.some((k) => ["stopped", "captcha_handoff", "deferred_cap"].includes(run.apps[k].stage));
+    const anyStopped = run.selected.some((k) => ["stopped", "captcha_handoff", "deferred_refusal"].includes(run.apps[k].stage));
     run.status = anyStopped ? "completed_with_stops" : "completed";
     run.summary = summarizeRun(run);
     event(run, "executed", { status: run.status });
@@ -57295,10 +57368,10 @@ const CareerBatchApply = (() => {
       }
       return;
     }
-    if (out && out.resultStatus === "blocked" && out.code === "CAP_REACHED") {
-      app.stage = "deferred_cap";
-      run.deferred.push({ postingKey: app.postingKey, company: app.company, role: app.role, code: "CAP_REACHED", reason: out.reason || "the daily application cap was reached at click time", resumeOn: nextDayIso(run.createdAt) });
-      event(run, "deferred_cap", { postingKey: app.postingKey, at: "click" });
+    if (out && out.resultStatus === "blocked" && out.code === "PORTAL_REFUSING") {
+      app.stage = "deferred_refusal";
+      run.deferred.push({ postingKey: app.postingKey, company: app.company, role: app.role, code: "PORTAL_REFUSING", reason: out.reason || "the employer's site was turning requests away at click time", resumeOn: out.until || null });
+      event(run, "deferred_refusal", { postingKey: app.postingKey, at: "click", until: out.until || null });
       return;
     }
     if (out && out.resultStatus === "blocked" && out.code === "CAPTCHA_HANDOFF") {
@@ -57327,7 +57400,7 @@ const CareerBatchApply = (() => {
   function accountRun(run) {
     const afterYes = !!run.approvalRef;
     const capByKey = {};
-    for (const x of run.deferred || []) if (x && x.code === "CAP_REACHED") capByKey[x.postingKey] = x;
+    for (const x of run.deferred || []) if (x && x.code === "PORTAL_REFUSING") capByKey[x.postingKey] = x;
     const outcomes = [];
     let through = 0;
     for (const key of run.selected || []) {
@@ -57336,10 +57409,10 @@ const CareerBatchApply = (() => {
       if (a.coverage) o.fields = { filled: a.coverage.filled, total: a.coverage.total };
       if (a.stage === "submitted" || (!afterYes && a.stage === "doorstep")) { o.through = true; through += 1; }
       else if ((a.stage === "stopped" || a.stage === "captcha_handoff") && a.stop) { o.code = a.stop.code; o.reason = a.stop.reason; }
-      else if (a.stage === "deferred_cap") {
+      else if (a.stage === "deferred_refusal") {
         const c = capByKey[key];
-        o.code = "CAP_REACHED";
-        o.reason = `${(c && c.reason) || "the daily application cap is reached"} — queued for ${(c && c.resumeOn) || "tomorrow"}`;
+        o.code = "PORTAL_REFUSING";
+        o.reason = `${(c && c.reason) || "the employer's site is turning requests away right now"} — it resumes ${(c && c.resumeOn) ? `at ${c.resumeOn}` : "when the site allows"}`;
       } else if (PENDING_REASONS[a.stage]) { o.code = PENDING_REASONS[a.stage].code; o.reason = PENDING_REASONS[a.stage].reason; }
       else { o.code = "NO_RECORD"; o.reason = "the run holds no application record for this selection"; }
       outcomes.push(o);
@@ -57421,7 +57494,7 @@ const CareerBatchApply = (() => {
     UNKNOWN_OUTCOME: "the submit gave no readable result, so it is recorded as unknown and will not be sent again on its own",
     NOT_PREPARED: "it is selected but not prepared yet",
     NOT_SUBMITTED: "it reached the final review but was not in what you approved, so it was not sent",
-    CAP_REACHED: "today's application limit was reached, so it waits for the next day",
+    PORTAL_REFUSING: "the employer's site was turning requests away for a while, so it waits until the site allows and then goes on its own; nothing was sent",
     COUNT_DEFERRED: "it is beyond the number you asked for, so it stays in the queue",
     KNOCKOUT_UNMET: "it has a requirement you don't meet",
     JOB_CLOSED: "the posting is closed",
@@ -57479,7 +57552,7 @@ const CareerBatchApply = (() => {
           : a.stage === "submitted" ? (a.confirmationId ? `submitted — confirmation ${a.confirmationId}` : "sent — no confirmation from the employer is recorded, so this is not counted as submitted")
           : a.stage === "captcha_handoff" ? "a captcha appeared — the last step is yours"
           : a.stage === "stopped" ? "stopped (named below)"
-          : a.stage === "deferred_cap" ? "queued past today's cap"
+          : a.stage === "deferred_refusal" ? "waiting for the employer's site to allow it"
           : a.stage === "selected" ? "selected, not prepared yet"
           : a.stage === "excluded_by_user" ? "left out by your yes — not sent"
           : a.stage;
@@ -57498,9 +57571,9 @@ const CareerBatchApply = (() => {
     }
     if (sm.confirmations.length) lines.push(`Submitted ${sm.confirmations.length} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
     for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${plainStop(st.code)}.`}`);
-    const capDef = sm.deferred.filter((x) => x.code === "CAP_REACHED");
+    const capDef = sm.deferred.filter((x) => x.code === "PORTAL_REFUSING");
     const countDef = sm.deferred.filter((x) => x.code === "COUNT_DEFERRED");
-    if (capDef.length) lines.push(`${capDef.length} hit today's application cap and are queued for ${capDef[0].resumeOn || "tomorrow"} — they resume automatically, they are not lost.`);
+    if (capDef.length) lines.push(`${capDef.length} wait because the employer's site was turning requests away for a while; they resume ${capDef[0].resumeOn ? `at ${capDef[0].resumeOn}` : "when it allows"} on their own, and nothing of them was sent.`);
     if (countDef.length) lines.push(`${countDef.length} more were eligible beyond the ${run.requested} you named; they stay in the queue.`);
     return lines;
   }

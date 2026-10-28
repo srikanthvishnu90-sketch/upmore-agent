@@ -16,6 +16,7 @@
 import assertNode from "node:assert/strict";
 import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
 import { careerHandler, type Chat, supabaseParity } from "../flow/handler.ts";
+import { confirmedResumeSql } from "../flow/resume-seed.ts";
 import { LIMIT_NOTE, SPEND_UNREAD_NOTE } from "../../supabase/functions/_shared/career_spend_cap.ts";
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
@@ -262,8 +263,12 @@ Deno.test({ name: "launch readiness at the real handler: spend ceiling, turn ord
 
     await t.step("C1: a card yes whose save is refused says the approved applications are queued, as the database holds them", async () => {
       const pid = P(15);
+      // #194's resume rule (20261026210016): a prepared application needs a confirmed resume on file and the resume its
+      // payload binds stored for the person; set up as the product holds them (a confirmed entry, its event, the render).
+      await pg.sql(confirmedResumeSql(pid) + `
+        insert into storage.objects (bucket_id, name) values ('career-resumes', '${pid}/' || repeat('c', 64) || '.pdf');`);
       await pg.sql(`do $$ declare g int; pl jsonb; begin for g in 1..2 loop
-        pl := jsonb_build_object('version',1,'user_id','${pid}','job_id','TEST-LR-C1-'||g,'company','TEST C1 Employer '||g,'url','https://jobs.lever.co/lrc1'||g||'/1','fields','[]'::jsonb,'privacy_epoch',0,'account_version',0,'expires_at',now()+interval '1 day');
+        pl := jsonb_build_object('version',1,'user_id','${pid}','job_id','TEST-LR-C1-'||g,'company','TEST C1 Employer '||g,'url','https://jobs.lever.co/lrc1'||g||'/1','fields','[]'::jsonb,'privacy_epoch',0,'account_version',0,'expires_at',now()+interval '1 day','resume_sha256',repeat('c',64));
         insert into public.career_apply_prepared (user_id, job_id, company, url, payload, payload_hash, card_lines)
           values ('${pid}', 'TEST-LR-C1-'||g, 'TEST C1 Employer '||g, 'https://jobs.lever.co/lrc1'||g||'/1', pl, public.career_apply_payload_hash(pl), array['TEST C1 Employer '||g||': Analyst','Name: Test Person']);
       end loop; end $$;`);
@@ -358,6 +363,8 @@ Deno.test({ name: "launch readiness at the real handler: spend ceiling, turn ord
     });
 
     await t.step("Q2: without the server's prepare, the apply reply says the extension prepares it; nothing is filled or sent", async () => {
+      // #194's resume rule: an apply is queued only for a person with a confirmed resume on file (setup, as the product holds it).
+      await pg.sql(confirmedResumeSql(P(12)));
       const r = await say(handler!.chat("tok-lr12"), "apply to the TEST Analyst role at TEST Wording Employer");
       eq(await pg.sql(`select posting_key || ':' || state from public.career_apply_wanted where user_id = '${P(12)}'`), "greenhouse:lrapply:42:waiting", "queued, waiting");
       eq(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${P(12)}'`), "0", "nothing approved or enqueued to send");

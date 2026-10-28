@@ -225,15 +225,19 @@ const CareerRender = (() => {
     out.writeUInt32BE(adler32(data), 2 + body.length);
     return out;
   }
-  function inflateRaw(data) { return inflateRawCore(data).buffer; }
+  function inflateRaw(data, opts) { return inflateRawCore(data, opts && opts.maxOutputLength).buffer; }
   // Returns the decoded bytes plus `end`: the offset just past the
   // deflate stream. Callers slice streams out of larger buffers (a PDF
   // stream is followed by "\nendstream"), so trailing bytes after the
   // final block are normal and must not be read as part of the stream —
   // Node's zlib tolerates them the same way.
-  function inflateRawCore(data) {
+  // maxOut (FEATURE 16, review of PR #194): stop with a RangeError once the output passes it, as Node's maxOutputLength
+  // does, so a small compressed stream can never expand without bound.
+  function inflateRawCore(data, maxOut) {
     let pos = 0, bitbuf = 0, bitcnt = 0;
+    const cap = Number.isFinite(maxOut) && maxOut > 0 ? maxOut : Infinity;
     const out = [];
+    const over = () => { if (out.length > cap) { const e = new RangeError("inflated output exceeds maxOutputLength"); e.code = "ERR_BUFFER_TOO_LARGE"; throw e; } };
     const getBits = (n) => {
       while (bitcnt < n) {
         if (pos >= data.length) throw new Error("deflate stream ends early");
@@ -277,6 +281,7 @@ const CareerRender = (() => {
         pos += 4;
         if (pos + len > data.length) throw new Error("stored block overruns the stream");
         for (let i = 0; i < len; i++) out.push(data[pos++]);
+        over();
       } else if (type === 1 || type === 2) {
         let lit, dist;
         if (type === 1) {
@@ -315,17 +320,18 @@ const CareerRender = (() => {
           const d = DIST_BASE[dsym] + getBits(DIST_EXT[dsym]);
           if (d > out.length) throw new Error("deflate distance too far back");
           for (let j = 0; j < len; j++) out.push(out[out.length - d]);
+          if (out.length > cap) over();
         }
       } else throw new Error("invalid deflate block type");
     } while (!last);
     return { buffer: Bytes.from(out), end: pos - (bitcnt >> 3) };
   }
-  function zlibInflate(data) {
+  function zlibInflate(data, opts) {
     if (data.length < 6) throw new Error("zlib stream too short");
     const cmf = data[0], flg = data[1];
     if ((cmf * 256 + flg) % 31 !== 0 || (cmf & 0x0f) !== 8) throw new Error("invalid zlib header");
     if (flg & 0x20) throw new Error("preset dictionary not supported");
-    const core = inflateRawCore(data.subarray(2));
+    const core = inflateRawCore(data.subarray(2), opts && opts.maxOutputLength);
     const at = 2 + core.end; // the Adler-32 sits right after the deflate stream
     if (at + 4 > data.length) throw new Error("zlib stream truncated before its checksum");
     const stored = ((data[at] << 24) | (data[at + 1] << 16) | (data[at + 2] << 8) | data[at + 3]) >>> 0;
@@ -335,8 +341,8 @@ const CareerRender = (() => {
   const pureZlib = {
     deflateSync: (data) => zlibDeflate(data),
     deflateRawSync: (data) => deflateStored(data),
-    inflateSync: (data) => zlibInflate(data),
-    inflateRawSync: (data) => inflateRaw(data),
+    inflateSync: (data, opts) => zlibInflate(data, opts),
+    inflateRawSync: (data, opts) => inflateRaw(data, opts),
   };
   function sha256HexPure(data) {
     const K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
@@ -496,14 +502,19 @@ const CareerRender = (() => {
   }
   // Central-directory reader: part name -> inflated Bytes. Independent of
   // the writer (walks the EOCD + central directory, verifies CRC on read).
-  function unzipParts(buf) {
+  // FEATURE 16 (review of PR #194: a 783 KB .docx reached 1.7 GB): only the parts `want` names are inflated (all, when
+  // absent), each to at most PART_MAX bytes (Node's maxOutputLength; the pure-JS inflater the same), and all of them
+  // together to at most TOTAL_MAX; a part past either is left out, never inflated whole. `namesOnly` lists the names and
+  // inflates nothing.
+  const PART_MAX = 5 * 1024 * 1024, TOTAL_MAX = 20 * 1024 * 1024, MAX_STREAMS = 400;
+  function unzipParts(buf, want, namesOnly) {
     const parts = new Map();
     if (!Bytes.isBuffer(buf) || buf.length < 22) return parts;
     let eocd = -1;
     for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 65536; i--) { if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; } }
     if (eocd < 0) return parts;
     const count = buf.readUInt16LE(eocd + 10);
-    let p = buf.readUInt32LE(eocd + 16);
+    let p = buf.readUInt32LE(eocd + 16), total = 0;
     for (let n = 0; n < count && p + 46 <= buf.length; n++) {
       if (buf.readUInt32LE(p) !== 0x02014b50) break;
       const method = buf.readUInt16LE(p + 10);
@@ -512,18 +523,25 @@ const CareerRender = (() => {
       const nameLen = buf.readUInt16LE(p + 28), extraLen = buf.readUInt16LE(p + 30), commentLen = buf.readUInt16LE(p + 32);
       const localOff = buf.readUInt32LE(p + 42);
       const name = buf.toString("utf8", p + 46, p + 46 + nameLen);
+      p += 46 + nameLen + extraLen + commentLen;
+      if (namesOnly) { parts.set(name, null); continue; }
+      if (want && !want(name)) continue;
+      if (localOff + 30 > buf.length) continue;
       const lNameLen = buf.readUInt16LE(localOff + 26), lExtraLen = buf.readUInt16LE(localOff + 28);
       const dataStart = localOff + 30 + lNameLen + lExtraLen;
       const raw = buf.subarray(dataStart, dataStart + compSize);
+      const room = Math.min(PART_MAX, TOTAL_MAX - total);
+      if (room <= 0) break;
       let data = null;
-      try { data = method === 8 ? zlib.inflateRawSync(raw) : Bytes.from(raw); } catch { data = null; }
-      if (data && crc32(data) === crc) parts.set(name, data);
-      p += 46 + nameLen + extraLen + commentLen;
+      try { data = method === 8 ? zlib.inflateRawSync(raw, { maxOutputLength: room }) : (raw.length <= room ? Bytes.from(raw) : null); } catch { data = null; }
+      if (data && crc32(data) === crc) { parts.set(name, data); total += data.length; }
+      else total += room; // a part that failed or went past its cap still cost up to its room: charged, so bombs cannot be retried for free
     }
     return parts;
   }
-  const docxPartNames = (buf) => [...unzipParts(buf).keys()];
-  function docxPart(buf, name) { return unzipParts(buf).get(name) || null; }
+
+  const docxPartNames = (buf) => [...unzipParts(buf, null, true).keys()];
+  function docxPart(buf, name) { return unzipParts(buf, (n) => n === name).get(name) || null; }
   // Rebuild a DOCX with some parts replaced (audit-mode mutants in tests).
   function rebuildDocx(buf, replacements) {
     const parts = unzipParts(buf);
@@ -715,6 +733,7 @@ const CareerRender = (() => {
   // ================= PDF extraction — parser A (content-stream operators) =================
   function pdfStreams(buf) {
     const streams = [];
+    let total = 0;
     const s = buf.toString("latin1");
     let idx = 0;
     while (true) {
@@ -725,7 +744,11 @@ const CareerRender = (() => {
       const en = s.indexOf("endstream", start);
       if (en < 0) break;
       const raw = buf.subarray(start, en);
-      try { streams.push(zlib.inflateSync(raw)); } catch { /* not a flate stream (e.g. object stream) — parser B still scans it raw */ }
+      // FEATURE 16: each stream to at most PART_MAX, all of them to TOTAL_MAX, at most MAX_STREAMS of them; one past a cap
+      // is left out, never inflated whole.
+      const room = Math.min(PART_MAX, TOTAL_MAX - total);
+      if (room <= 0 || streams.length >= MAX_STREAMS) break;
+      try { const out = zlib.inflateSync(raw, { maxOutputLength: room }); streams.push(out); total += out.length; } catch { total += room; /* not a flate stream, or past the cap: charged what it could cost; parser B still scans it raw */ }
       idx = en + 9;
     }
     return streams;
@@ -847,16 +870,17 @@ const CareerRender = (() => {
     return lines;
   }
   function docxStructure(buf) {
-    const parts = unzipParts(buf);
+    const parts = unzipParts(buf, (n) => n === "word/document.xml" || n === "word/styles.xml");
+    const names = [...unzipParts(buf, null, true).keys()];
     const docXml = (parts.get("word/document.xml") || Bytes.alloc(0)).toString("utf8");
     const stylesXml = (parts.get("word/styles.xml") || Bytes.alloc(0)).toString("utf8");
     const fonts = [...new Set([...stylesXml.matchAll(/w:ascii="([^"]+)"/g)].map((m) => m[1]))];
     const sizes = [...new Set([...stylesXml.matchAll(/<w:sz w:val="(\d+)"/g)].map((m) => parseInt(m[1], 10) / 2))].sort((a, b) => a - b);
-    const mediaParts = [...parts.keys()].filter((k) => k.startsWith("word/media/")).length;
+    const mediaParts = names.filter((k) => k.startsWith("word/media/")).length;
     const images = mediaParts + (docXml.match(/<w:drawing|<a:blip|<w:pict/g) || []).length;
     const tables = (docXml.match(/<w:tbl[\s>]/g) || []).length;
     const textFrames = (docXml.match(/txbxContent/g) || []).length;
-    const headerFooterParts = [...parts.keys()].filter((k) => /word\/(header|footer)\d*\.xml/.test(k)).length;
+    const headerFooterParts = names.filter((k) => /word\/(header|footer)\d*\.xml/.test(k)).length;
     return { bytes: Bytes.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
   }
   // External parser B (python-docx) — used when the caller opts in.

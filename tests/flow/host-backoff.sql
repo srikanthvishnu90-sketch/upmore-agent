@@ -30,7 +30,7 @@ create index if not exists career_apply_jobs_driving_ref on public.career_apply_
 create or replace function public.career_apply_claim_fair(p_limit integer, p_lease_s integer, p_after uuid default null, p_now timestamptz default clock_timestamp())
 returns setof public.career_apply_jobs language plpgsql security definer set search_path = public, pg_temp as $$
 declare lim int := greatest(0, least(1000, coalesce(p_limit, 0))); lease interval := make_interval(secs => greatest(1, least(900, coalesce(p_lease_s, 120))));
-  start uuid := coalesce(p_after, gen_random_uuid()); cur uuid; u uuid; wrapped boolean; j public.career_apply_jobs; got int := 0; pass_got int; steps int := 0;
+  start uuid := coalesce(p_after, gen_random_uuid()); cur uuid; u uuid; cid uuid; wrapped boolean; j public.career_apply_jobs; got int := 0; pass_got int; steps int := 0;
 begin
  -- Passes over the people with something claimable, one item each per pass, from a random point: the first pass reaches
  -- as many different people as the claim asks for; later passes (only when fewer people than that are waiting) take
@@ -50,18 +50,26 @@ begin
     wrapped := true; cur := '00000000-0000-0000-0000-000000000000'; continue;
    end if;
    cur := u;
-  update public.career_apply_jobs set lease_token = gen_random_uuid(), lease_until = p_now + lease, updated_at = p_now
-   where id = (select q.id from public.career_apply_jobs q
-     where q.user_id = u and q.state = 'queued' and q.attempts = 0 and q.source is null
-      and coalesce(q.lease_until, '-infinity') < p_now
-      -- G3, unchanged: only what is still exactly what the person approved, for their current account.
-      and q.approval_hash = q.payload_hash and q.payload_hash = public.career_apply_payload_hash(q.payload)
-      and public.career_apply_current(q.user_id, q.payload)
-      -- Not on a host that is refusing now (every instance's view, career_apply_host_backoff).
-      and not exists (select from public.career_apply_host_backoff b where b.until > p_now
-       and b.host = lower(substring(q.url from '^[a-z]+://([^/?#]+)')))
-     order by q.created_at, q.id limit 1 for update skip locked)
+  -- The person's oldest claimable row, locked first on the cheap conditions (the index), then checked: hashing every
+  -- waiting row of a person with thousands queued, on every claim, would make the last long queue crawl.
+  select q.id into cid from public.career_apply_jobs q
+   where q.user_id = u and q.state = 'queued' and q.attempts = 0 and q.source is null
+    and coalesce(q.lease_until, '-infinity') < p_now
+    -- Not on a host that is refusing now (every instance's view, career_apply_host_backoff).
+    and not exists (select from public.career_apply_host_backoff b where b.until > p_now
+     and b.host = lower(substring(q.url from '^[a-z]+://([^/?#]+)')))
+   order by q.created_at, q.id limit 1 for update skip locked;
+  if cid is null then continue; end if;
+  -- G3, unchanged: only what is still exactly what the person approved, for their current account; anything else is
+  -- closed unsent (never handed out).
+  update public.career_apply_jobs q set lease_token = gen_random_uuid(), lease_until = p_now + lease, updated_at = p_now
+   where q.id = cid and q.approval_hash = q.payload_hash and q.payload_hash = public.career_apply_payload_hash(q.payload)
+    and public.career_apply_current(q.user_id, q.payload)
    returning * into j;
+  if not found then
+   update public.career_apply_jobs set state = 'not_submitted', reason = 'changed after it was approved; not sent', updated_at = p_now where id = cid;
+   continue;
+  end if;
    if found then got := got + 1; pass_got := pass_got + 1; return next j; end if;
   end loop;
   exit when got >= lim or pass_got = 0 or steps >= greatest(256, lim * 8);

@@ -152,7 +152,13 @@ Deno.test({
       // unknown one was started exactly once before the kill.
       assert(sent + (states.not_submitted ?? 0) + unknown === total, `every item accounted for: ${JSON.stringify(states)}`);
       assert(unknown <= CONC, `only what the killed worker was running is unknown (${unknown} <= ${CONC})`);
-      assert(runs.length === total, `every item's engine started once: ${runs.length} of ${total}`);
+      // Every item that finished was started exactly once. An item the killed worker had begun (its row moved to driving) may
+      // have died before its start line was written: such an item is swept unknown and never driven again, never unstarted
+      // and finished, and there are at most what that worker held.
+      const unknownIds = new Set((await pg.sql(`select id from public.career_apply_jobs where state = 'unknown_outcome'`)).split("\n").filter(Boolean));
+      const notRun = [...userOf.keys()].filter((id) => !per.has(id));
+      assert(notRun.every((id) => unknownIds.has(id)), `an item that was never started finished anyway: ${notRun.filter((id) => !unknownIds.has(id)).slice(0, 5)}`);
+      assert(runs.length + notRun.length === total && notRun.length <= CONC, `every item's engine started once (${runs.length} of ${total}; ${notRun.length} begun by the killed worker before their start was logged)`);
       // A host's refusal ends that one application as not sent (nothing was filled), each with the host's reason.
       const notSent = Number(await pg.sql(`select count(*) from public.career_apply_jobs where state = 'not_submitted' and reason <> 'HOST_RATE_LIMITED'`));
       assert(notSent === 0, `every not-sent one is a host refusal (${notSent} other)`);

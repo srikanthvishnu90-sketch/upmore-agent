@@ -491,28 +491,34 @@ test('the migration rehearsal reads go-live\'s own lists and checks every mark a
   assert.doesNotMatch(src, /proname = 'career_apply_ledger_refusal' and prosrc like '%own is not null%'/, '20261025160000 redefines it without that text');
 });
 
-// Q3 (2026-10-28): production stops drifting toward the finance app. Step 5 unschedules the three legacy finance pg_cron
-// jobs (audit 2026-10-26 O2/SEC9) after Trainee's own, unless --keep-legacy-cron; step 4 never deploys an Upmore-only
-// function. The SQL itself runs against Postgres in tests/db/legacy_finance_unschedule.test.sql.
-test('legacy finance cron: step 5 unschedules them after Trainee\'s schedules; --keep-legacy-cron keeps them; --only-smoke never touches them', () => {
+// Q3 (2026-10-28): step 5 removes no cron job by default. Only the exact job names the owner passes with --unschedule-cron
+// are unscheduled (coordinator, 2026-10-28: the live jobs are not go-live jobs; removal is an explicit allowlist). The SQL
+// runs against Postgres in tests/db/legacy_finance_unschedule.test.sql.
+test('cron: step 5 removes nothing by default; --unschedule-cron names exact jobs, validated; --only-smoke never touches cron', () => {
   const { code, out } = dry();
   assert.equal(code, 0, out);
+  assert.doesNotMatch(out, /unschedule-legacy-finance\.sql/, 'no unschedule command without the flag');
+  assert.match(out, /kept: every other pg_cron job \(none named with --unschedule-cron\)/);
   const base = 'https://abcdefghijklmnopqrst.supabase.co/functions/v1';
-  inOrder(out, ['STEP 5/6 schedules', `-v url=${base}/trainee-deliver -f scripts/launch/schedule-trainee-deliver.sql`,
-    'DRY: psql *** -X -q -v ON_ERROR_STOP=1 -f scripts/launch/unschedule-legacy-finance.sql', 'STEP 5/6 schedules: OK', 'STEP 6/6 smoke']);
-  const kept = dry(['--keep-legacy-cron']);
-  assert.equal(kept.code, 0, kept.out);
-  assert.doesNotMatch(kept.out, /unschedule-legacy-finance\.sql/);
-  assert.match(kept.out, /kept: the legacy finance schedules \(--keep-legacy-cron\)/);
-  assert.match(kept.out, /schedule-trainee-deliver\.sql/, 'Trainee\'s own schedules still run');
-  assert.doesNotMatch(dry(['--only-smoke']).out, /unschedule-legacy-finance\.sql/);
+  const named = dry(['--unschedule-cron', 'plaid-sync-6h,cancel-watcher-daily']);
+  assert.equal(named.code, 0, named.out);
+  inOrder(named.out, ['STEP 5/6 schedules', `-v url=${base}/trainee-deliver -f scripts/launch/schedule-trainee-deliver.sql`,
+    'DRY: psql *** -X -q -v ON_ERROR_STOP=1 -v allow=plaid-sync-6h,cancel-watcher-daily -f scripts/launch/unschedule-legacy-finance.sql (unschedules only: plaid-sync-6h,cancel-watcher-daily)',
+    'STEP 5/6 schedules: OK']);
+  assert.equal(dry(['--unschedule-cron=upmore-proactive']).code, 0);
+  for (const bad of ['a b', 'x;drop', 'a,,b', ',a', 'a,', "x'y"]) {
+    const r = dry(['--unschedule-cron', bad]);
+    assert.equal(r.code, 64, `${bad}: ${r.out}`);
+    assert.match(r.out, /--unschedule-cron takes exact job names/);
+  }
+  assert.doesNotMatch(dry(['--only-smoke', '--unschedule-cron', 'x']).out, /unschedule-legacy-finance\.sql/);
   const sql = fs.readFileSync(path.join(root, 'scripts/launch/unschedule-legacy-finance.sql'), 'utf8');
   const code_ = sql.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n');
-  assert.match(code_, /cron\.unschedule\(/);
-  for (const verb of [/\bdrop\b/i, /\bdelete\b/i, /\btruncate\b/i, /\bupdate\b/i, /\binsert\b/i, /vault\./i, /cron\.schedule\(/, /\bselect\s+command\b/i])
+  assert.match(code_, /jobname = any \(names\)/, 'matches exact job names only');
+  assert.doesNotMatch(code_, /\bcommand\b/, 'never matches on a job command');
+  for (const verb of [/\bdrop\b/i, /\bdelete\b/i, /\btruncate\b/i, /\bupdate\b/i, /\binsert\b/i, /vault\./i, /cron\.schedule\(/])
     assert.doesNotMatch(code_, verb, `the file only unschedules (${verb})`);
-  for (const job of ['upmore-proactive', 'plaid-sync-6h', 'cancel-watcher-daily']) assert.ok(code_.includes(`'${job}'`), job);
-  for (const trainee of ['career-ingest', 'career-proactive', 'trainee-deliver']) assert.ok(!code_.includes(trainee), `${trainee} is never named`);
+  for (const job of ['upmore-proactive', 'plaid-sync-6h', 'cancel-watcher-daily', 'career-ingest', 'trainee-deliver']) assert.ok(!code_.includes(job), `${job} is never hard-coded`);
 });
 
 test('go-live never deploys an Upmore-only function: no deploy line names one, and a DEPLOY_FNS that did would stop the run', () => {

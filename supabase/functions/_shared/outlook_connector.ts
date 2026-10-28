@@ -247,7 +247,12 @@ export async function outlookChatTurn(d: { admin: Admin; message: string; userId
 }
 
 // ------------------------------------------------------------------------------------------------ the edge function
-export interface OAuthDeps { admin: Admin; env: Env; fetch: typeof fetch; now?: () => number; log?: (l: string) => void; deliver?: (a: { userId: string; key: string; now: number }) => Promise<void> }
+export interface OAuthDeps {
+  admin: Admin; env: Env; fetch: typeof fetch; now?: () => number; log?: (l: string) => void; deliver?: (a: { userId: string; key: string; now: number }) => Promise<void>;
+  // The connector framework (connectors.ts afterConnect): once the grant is stored and the person told, the tasks that
+  // were waiting for Outlook resume. Its failure never undoes the connection.
+  afterConnect?: (a: { userId: string; email: string | null; scopes: string[] }) => Promise<unknown>;
+}
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 const HEADERS = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer", "x-frame-options": "DENY",
   "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://login.microsoftonline.com; frame-ancestors 'none'" };
@@ -321,6 +326,8 @@ export async function handleOutlookOAuth(req: Request, d: OAuthDeps): Promise<Re
         hasScope(tok.scopes, "Calendars.ReadWrite") && "check your calendar and add invites you approve"].filter(Boolean);
       const text = `Outlook connected: ${tok.email ?? "your account"}.${can.length ? ` You allowed me to ${can.join(", ")}.` : ""} Say "disconnect outlook" any time to remove it.`;
       await tell(d, link, linkId, text, now);
+      await d.afterConnect?.({ userId, email: tok.email, scopes: String(tok.scopes ?? "").split(/\s+/).filter(Boolean) })
+        .catch((e) => d.log?.(`outlook-oauth: resuming waiting tasks failed: ${String((e as Error)?.message ?? e).slice(0, 120)}`));
       return page(`Outlook connected${tok.email ? `: ${tok.email}` : ""}`, ["You can close this tab and go back to the chat."]);
     } catch (e) {
       d.log?.(`outlook-oauth callback failed: ${String((e as Error)?.message ?? e).slice(0, 120)}`);

@@ -84,7 +84,7 @@ import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
-import { disconnectGoogle, disconnectReply, isGoogleDisconnect } from "../_shared/google_disconnect.ts"; // FEATURE GV
+import { connectorAsk, connectorChatTurn, connectorFailure } from "../_shared/connectors.ts"; // Task 3 (FEATURE GV's disconnect included)
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
 import { CAREER_READ_SCOPE as PEOPLE_READ_SCOPE, supabasePeopleDeps } from "../_shared/career_people.ts"; // D-033
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
@@ -407,11 +407,19 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // M4: Outlook (Microsoft Graph) as a peer of Gmail, from any channel: "connect my outlook" / "use my work email" makes a
       // one-time link bound to this person, channel and thread; "disconnect outlook" deletes the access and what was read
       // from it and cancels its pending sends (_shared/outlook_connector.ts). Code's, before every other turn.
-      const outlookAns = !careerTask && !careerBatch && outlookAsk(message)
+      // Task 3: the connector framework (_shared/connectors.ts), before every other turn: "what's connected" (each connector,
+      // its state and use, and what waits on it), "connect gmail" (a one-time link from any channel), "disconnect gmail" /
+      // "disconnect outlook" (revoke where possible, erase, cancel pending sends, read back), and a task that needs a
+      // connector not connected ("check my outlook"): asked once with the link, parked, resumed by the connect callback.
+      const connAns = !careerTask && !careerBatch && connectorAsk(message)
+        ? await connectorChatTurn({ admin, env: Deno.env, fetch, now: Date.now, message, userId: user.id, threadId: tid, bridge: isBridgeCall })
+          .catch((e) => { console.error("connector turn:", e?.message ?? e); return connectorFailure(message); })
+        : null;
+      const outlookAns = !connAns && !careerTask && !careerBatch && outlookAsk(message)
         ? await outlookChatTurn({ admin, message, userId: user.id, threadId: tid, bridge: isBridgeCall, now: Date.now(), env: Deno.env })
           .catch((e) => { console.error("outlook turn:", e?.message ?? e); return null; })
         : null;
-      const card = !outlookAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const card = !connAns && !outlookAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         // FEATURE 16: OWNER RULE (2026-10-26): no card without a confirmed resume on file (resumeReady).
         ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
         : null;
@@ -652,16 +660,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // action stays code's and the router still answers a model failure. Unset or CAREER_BRAIN=router, it is never
       // taken and the router answers exactly as before. Read lazily, only when the brain test below is reached.
       const staged = stagedRoute({ env: Deno.env, message, ctx: ctx as unknown as Record<string, unknown>, host, structured: !!(careerTask || careerBatch) });
-      // FEATURE GV: Google verification (2026-10-26). "disconnect gmail" disconnects, on every channel: each Google grant
-      // revoked at Google, its tokens and row deleted (the mail rows read from that Gmail go with the career row), every
-      // result checked and read back (_shared/google_disconnect.ts). The reply says only what the read-back shows. Before
-      // any other turn: a person's own privacy ask is never a card answer, a question or the router's doorstep.
-      const googleOff = !careerTask && !careerBatch && isGoogleDisconnect(message)
-        ? await disconnectGoogle(admin, user.id, { fetch })
-        : null;
-      // END FEATURE GV
-      if (googleOff) {
-        out = { reply: disconnectReply(googleOff), intent: "career_google_disconnect", resultStatus: googleOff.ok ? (googleOff.had.length || googleOff.mailErased ? "completed" : "nothing") : "failed", contained: false, handler: "google_disconnect" };
+      // FEATURE GV (Google verification, 2026-10-26): "disconnect gmail" is answered by the connector framework above
+      // (connAns), through the same _shared/google_disconnect.ts: revoked at Google, tokens, rows and mail rows deleted,
+      // read back, and now pending sends cancelled. Before any other turn, on every channel.
+      if (connAns) {
+        out = { reply: connAns.reply, intent: connAns.intent, resultStatus: connAns.resultStatus, contained: false, handler: connAns.handler };
+        if (connAns.meta) agentMeta = { ...(agentMeta || {}), ...connAns.meta };
       } else if (outlookAns) {
         out = { reply: outlookAns.reply, intent: outlookAns.intent, resultStatus: outlookAns.resultStatus, contained: false, handler: outlookAns.handler };
         if (outlookAns.meta) agentMeta = { ...(agentMeta || {}), ...outlookAns.meta };

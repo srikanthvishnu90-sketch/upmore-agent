@@ -500,6 +500,60 @@ test('the migration rehearsal reads go-live\'s own lists and checks every mark a
   assert.doesNotMatch(src, /proname = 'career_apply_ledger_refusal' and prosrc like '%own is not null%'/, '20261025160000 redefines it without that text');
 });
 
+// Q3 (2026-10-28): step 5 removes no cron job by default. Only the exact job names the owner passes with --unschedule-cron
+// are unscheduled (coordinator, 2026-10-28: the live jobs are not go-live jobs; removal is an explicit allowlist). The SQL
+// runs against Postgres in tests/db/legacy_finance_unschedule.test.sql.
+test('cron: step 5 removes nothing by default; --unschedule-cron names exact jobs, validated; --only-smoke never touches cron', () => {
+  const { code, out } = dry();
+  assert.equal(code, 0, out);
+  assert.doesNotMatch(out, /unschedule-legacy-finance\.sql/, 'no unschedule command without the flag');
+  assert.match(out, /kept: every other pg_cron job \(none named with --unschedule-cron\)/);
+  const base = 'https://abcdefghijklmnopqrst.supabase.co/functions/v1';
+  const named = dry(['--unschedule-cron', 'plaid-sync-6h,cancel-watcher-daily']);
+  assert.equal(named.code, 0, named.out);
+  inOrder(named.out, ['STEP 5/6 schedules', `-v url=${base}/trainee-deliver -f scripts/launch/schedule-trainee-deliver.sql`,
+    'DRY: psql *** -X -q -v ON_ERROR_STOP=1 -v allow=plaid-sync-6h,cancel-watcher-daily -f scripts/launch/unschedule-legacy-finance.sql (unschedules only: plaid-sync-6h,cancel-watcher-daily)',
+    'STEP 5/6 schedules: OK']);
+  assert.equal(dry(['--unschedule-cron=upmore-proactive']).code, 0);
+  for (const bad of ['a b', 'x;drop', 'a,,b', ',a', 'a,', "x'y"]) {
+    const r = dry(['--unschedule-cron', bad]);
+    assert.equal(r.code, 64, `${bad}: ${r.out}`);
+    assert.match(r.out, /--unschedule-cron takes exact job names/);
+  }
+  assert.doesNotMatch(dry(['--only-smoke', '--unschedule-cron', 'x']).out, /unschedule-legacy-finance\.sql/);
+  const sql = fs.readFileSync(path.join(root, 'scripts/launch/unschedule-legacy-finance.sql'), 'utf8');
+  const code_ = sql.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n');
+  assert.match(code_, /jobname = any \(names\)/, 'matches exact job names only');
+  assert.doesNotMatch(code_, /\bcommand\b/, 'never matches on a job command');
+  for (const verb of [/\bdrop\b/i, /\bdelete\b/i, /\btruncate\b/i, /\bupdate\b/i, /\binsert\b/i, /vault\./i, /cron\.schedule\(/])
+    assert.doesNotMatch(code_, verb, `the file only unschedules (${verb})`);
+  for (const job of ['upmore-proactive', 'plaid-sync-6h', 'cancel-watcher-daily', 'career-ingest', 'trainee-deliver']) assert.ok(!code_.includes(job), `${job} is never hard-coded`);
+});
+
+test('go-live never deploys an Upmore-only function: no deploy line names one, and a DEPLOY_FNS that did would stop the run', () => {
+  const script = fs.readFileSync(SCRIPT, 'utf8');
+  const list = script.match(/UPMORE_ONLY_FNS=\(([^)]*)\)/);
+  assert.ok(list, 'UPMORE_ONLY_FNS is declared');
+  const upmoreOnly = list[1].split(/\s+/).filter(Boolean);
+  for (const fn of ['agent-proactive', 'plaid-sync', 'cancel-watcher', 'agent-payments', 'stripe-webhook', 'broker-oauth-start', 'news-feed'])
+    assert.ok(upmoreOnly.includes(fn), `${fn} is listed as Upmore-only`);
+  for (const fn of upmoreOnly) assert.ok(fs.existsSync(path.join(root, 'supabase/functions', fn)), `${fn} is a real function directory`);
+  const { code, out } = dry();
+  assert.equal(code, 0, out);
+  const deployed = [...out.matchAll(/supabase functions deploy ([a-z0-9-]+)/g)].map((m) => m[1]);
+  assert.ok(deployed.includes('agent-chat') && deployed.includes('trainee-deliver'), deployed.join(','));
+  for (const fn of deployed) assert.ok(!upmoreOnly.includes(fn), `${fn} is deployed and is not Upmore-only`);
+  // The guard itself: a copy of the script whose DEPLOY_FNS names an Upmore-only function refuses to run.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-go-live-guard-'));
+  const bad = path.join(tmp, 'go-live.sh');
+  fs.writeFileSync(bad, script.replace(/^cd "\$\(dirname "\$0"\)\/\.\.\/\.\."$/m, `cd ${JSON.stringify(root)}`)
+    .replace(/^DEPLOY_FNS=\(agent-chat /m, 'DEPLOY_FNS=(agent-chat plaid-sync '));
+  const res = spawnSync('bash', [bad, '--dry-run'], { cwd: root, encoding: 'utf8', env: { PATH: process.env.PATH, HOME: home, ...FAKE } });
+  assert.equal(res.status, 64, res.stdout + res.stderr);
+  assert.match(res.stdout + res.stderr, /plaid-sync is an Upmore finance function; Trainee never deploys it/);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
 // FEATURE 17: the cloud runner ships with go-live (preparation and sending without anyone's computer).
 const CLOUD = { ...FAKE, VERCEL_TOKEN: 'fake-vercel-token-0000-VVVVVVVVVVVVVVVV', VERCEL_TEAM_ID: 'team_fake0000TEAM', VERCEL_PROJECT_ID: 'prj_fake0000PROJ',
   CLOUD_SANDBOX_SNAPSHOT_ID: 'snap_fake0000SNAP', CLOUD_RUNNER_SECRET: 'fake-runner-secret-0000-RRRRRRRRRRRRRRRRRR',

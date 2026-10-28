@@ -55,7 +55,7 @@ Deno.test({
         insert into public.profiles (id) values ('${PERSON}'), ('${OTHER}');
         insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false}'), ('${OTHER}', 'career:account', '{"epoch":0,"version":0,"paused":false}');
         insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, created_at)
-        values ('${PERSON}', 'greenhouse:delta:3', 'Delta Prior', 'https://boards.greenhouse.io/delta/jobs/3', '{}', repeat('a', 64), repeat('a', 64), 'submitted_unconfirmed', now() - interval '10 days');`);
+        values ('${PERSON}', 'greenhouse:delta:30', 'Delta Prior', 'https://boards.greenhouse.io/delta/jobs/30', '{}', repeat('a', 64), repeat('a', 64), 'submitted_unconfirmed', now() - interval '10 days');`);
       agentChat = await careerHandler(pg, { "tok-person": PERSON, "tok-other": OTHER });
       // The worker's prepare door, answered here: every request the handler makes to it is kept.
       const kicks: { auth: string | null; body: any }[] = [];

@@ -36,7 +36,7 @@ export const IMPORT_INTENT = "career_contacts_import", AT_INTENT = "career_conta
 export const PAGE_INTENT = "career_people_page", JOBS_INTENT = "career_job_emails", FORGET_INTENT = "career_people_forget";
 export const INTRO_INTENT = "career_intro_request", INTRO_UPDATE_INTENT = "career_intro_update", INTRO_LIST_INTENT = "career_intro_list";
 export const SCHOOL_INTENT = "career_people_school";
-export const MIRROR_MAX = 1000;     // rows also kept in the thread's contacts list, for the email drafter (snapshot is at most 1 MB)
+export const MIRROR_MAX = 1000;     // a convenience copy in the thread (snapshot at most 1 MB); the drafter also reads career_people, so no one is out of reach
 export const PASTE_WINDOW_MS = 60 * 60_000;
 export const LIST_MAX = 15;
 // One read page: how many rows a turn reads from one table at once (an indexed, bounded read). Not a volume limit: the

@@ -13,7 +13,8 @@
 // would be written to and that nothing was drafted.
 import { type ContactRow, contactsOf, importContactsCsv, importContactsFile, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
-import { type PeopleDeps, peopleTurn } from "./career_people.ts";
+import { type PeopleDeps, type PersonRec, peopleTurn } from "./career_people.ts";
+import { companyKey } from "./career_people_import.ts";
 import { BATCH_MAX, batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
@@ -148,7 +149,7 @@ export async function networkingTurn(o: NetworkingDeps): Promise<NetworkingResul
   const pasted = files.length ? null : pastedCsv(o.message);
   if (files.length || pasted) return await importTurn(o, files, pasted);
   const ask = parseNetworkingAsk(o.message);
-  if (ask?.kind === "who") return whoTurn(o, ask.firm, await peopleOf(o));
+  if (ask?.kind === "who") return whoTurn(o, ask.firm, await peopleOf(o, { firm: ask.firm }));
   if (ask?.kind === "draft") return await draftTurn(o, ask);
   // The answer to "how do you sign your emails?": saved, then the ask that needed it runs.
   if ((await o.store.lastAssistantIntent(o.threadId).catch(() => null)) === SIGNATURE_INTENT) return await signatureTurn(o);
@@ -192,11 +193,27 @@ function summarizeSkipped(skipped: { row: number; why: string }[]): string[] {
 
 // Everyone the person gave Trainee: the contacts imported here, and people the router kept from an earlier export (the
 // profile's connections and graph people, read the way the brain's referral map reads them), given the same free checks.
-async function peopleOf(o: NetworkingDeps): Promise<ContactRow[]> {
+// NO LIMITS: the thread's list is only a convenience copy; the person's whole saved export lives in career_people, so the
+// firm or name asked about is also read there (indexed), and someone past the copy's first rows is still found.
+async function peopleOf(o: NetworkingDeps, want: { firm?: string | null; name?: string | null } = {}): Promise<ContactRow[]> {
   const p: any = o.state.profile ?? {}, g: any = o.state.graph ?? o.state.graphStore ?? {};
   const list = (v: unknown) => (Array.isArray(v) ? v : []);
   const older = legacyRows([...list(g.people), ...list(p._careerGraphPeople), ...list(p.connections)]);
-  return [...contactsOf(o.state), ...(older.length ? await verifyRows(older, o.mx ?? MX_NOT_WIRED) : [])];
+  const saved = await savedPeople(o, want);
+  return [...contactsOf(o.state), ...(older.length ? await verifyRows(older, o.mx ?? MX_NOT_WIRED) : []), ...saved];
+}
+async function savedPeople(o: NetworkingDeps, want: { firm?: string | null; name?: string | null }): Promise<ContactRow[]> {
+  const store = o.people?.store;
+  if (!store || (!want.firm && !want.name)) return [];
+  const recs: PersonRec[] = [];
+  if (want.name) recs.push(...await store.named(o.userId, want.name).catch(() => []));
+  if (want.firm) recs.push(...await store.atCompany(o.userId, companyKey(normalizeFirm(want.firm))).catch(() => []));
+  const firm = want.firm ? normalizeFirm(want.firm) : null;
+  const rows = recs.filter((r) => r.name && (!firm || sameFirm(normalizeFirm(r.company), firm))).map((r): ContactRow => ({
+    file: r.source_ref.replace(/, row \d+$/, "") || r.source, row: Number(/row (\d+)$/.exec(r.source_ref)?.[1] ?? 0), name: r.name!, email: r.email,
+    firm: normalizeFirm(r.company), firm_raw: r.company, company: normalizeFirm(r.company), title: r.position, school: r.school, connected_on: r.connected_on,
+  }));
+  return rows.length ? await verifyRows(rows, o.mx ?? MX_NOT_WIRED) : [];
 }
 
 function whoTurn(o: NetworkingDeps, firmAsked: string, all: ContactRow[]): NetworkingResult {
@@ -216,7 +233,8 @@ function whoTurn(o: NetworkingDeps, firmAsked: string, all: ContactRow[]): Netwo
 }
 
 async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>): Promise<NetworkingResult> {
-  const all = await peopleOf(o), t = ask.target;
+  const t = ask.target;
+  const all = await peopleOf(o, { firm: t.firm ?? null, name: t.by === "name" ? t.name : null });
   const firmName = t.firm ? normalizeFirm(t.firm) : null;
   if (!all.length) return { reply: `You haven't sent me any contacts yet, so there's no one I can write to${firmName ? ` at ${firmName}` : ""}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "no_contacts" };
   // Who: the rows the ask names, from the person's own contacts only.

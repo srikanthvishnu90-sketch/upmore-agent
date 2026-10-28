@@ -609,8 +609,9 @@ if [[ -z "$ONLY_SMOKE" ]]; then
   [[ -z "${INGEST_CONTACT_EMAIL:-}" || "$INGEST_CONTACT_EMAIL" == *@* ]] || fail "INGEST_CONTACT_EMAIL is not an email address"
   [[ -z "${CAREER_PREPARE_AHEAD_URL:-}" || "$CAREER_PREPARE_AHEAD_URL" =~ ^https://[^/[:space:]]+(/[^[:space:]]*)?$ ]] || fail "CAREER_PREPARE_AHEAD_URL must be an https URL (the value is not shown)"
   [[ -z "${CAREER_PREPARE_AHEAD_TOKEN:-}" || "$CAREER_PREPARE_AHEAD_TOKEN" =~ $SECRET_RE ]] || fail "CAREER_PREPARE_AHEAD_TOKEN must be 32 or more of A-Z a-z 0-9 . _ ~ - (the value is not shown)"
-  if [[ -n "${CAREER_PREPARE_AHEAD_URL:-}${CAREER_PREPARE_AHEAD_TOKEN:-}" && ( -z "${CAREER_PREPARE_AHEAD_URL:-}" || -z "${CAREER_PREPARE_AHEAD_TOKEN:-}" ) ]]; then
-    fail "CAREER_PREPARE_AHEAD_URL and CAREER_PREPARE_AHEAD_TOKEN go together: give both or neither"
+  # A host URL needs its token. A token alone is the cloud runner's (FEATURE 17): its URL is derived from the project.
+  if [[ -n "${CAREER_PREPARE_AHEAD_URL:-}" && -z "${CAREER_PREPARE_AHEAD_TOKEN:-}" ]]; then
+    fail "CAREER_PREPARE_AHEAD_URL needs CAREER_PREPARE_AHEAD_TOKEN: give both, or only the token for the cloud runner"
   fi
   [[ -z "${LOOPMESSAGE_DAILY_CONTACTS:-}" || "$LOOPMESSAGE_DAILY_CONTACTS" =~ ^[1-9][0-9]*$ ]] || fail "LOOPMESSAGE_DAILY_CONTACTS must be a whole number of contacts a day"
   # WO-038: Telegram and WhatsApp, each optional (docs/launch/TRAINEE-GO-LIVE.md has where each value comes from).

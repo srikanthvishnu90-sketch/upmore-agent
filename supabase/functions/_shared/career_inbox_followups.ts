@@ -12,7 +12,7 @@
 //           recipient, the exact subject and text, its SHA-256). The address is the one the person typed or the one their
 //           emailed application went to; never guessed. Nothing is sent by showing it.
 //   yes     while that card is this thread's last word (by its id): approved for exactly that hash, claimed through the
-//           database's career_outreach_claim (age, pause, do-not-contact, caps, spacing), and sent once from the person's
+//           database's career_outreach_claim (age, pause, do-not-contact; no volume limit, NO LIMITS), and sent once from the person's
 //           own Gmail, only with CAREER_EMAIL_SEND=on and a career grant that may send; otherwise the reply says exactly
 //           which is missing and the card stays. A sent one is recorded on its mail draft as 'sent', so it is never due again.
 import type { EventStore } from "./agent/timeline.ts";
@@ -184,8 +184,7 @@ export function cardText(d: OutreachDraft, c: Card, sends = true): string {
 }
 const ADMIT: Record<Exclude<Admit, "ok">, string> = {
   not_approved: "the approval was not recorded", changed: "the email changed after you saw it", expired: "the approval is too old",
-  paused: "your account is paused", do_not_contact: "that address asked not to be contacted", daily_cap: "you've reached today's limit of emails Trainee sends for you",
-  spacing: "Trainee sent an email for you less than 90 seconds ago", recipient_cap: "that address already got 3 emails through Trainee this month",
+  paused: "your account is paused", do_not_contact: "that address asked not to be contacted",
 };
 
 // Someone the person wrote to through Trainee (their own outreach drafts), by full name or first name.

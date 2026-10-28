@@ -76,6 +76,7 @@ import { EMAIL_INTENT, emailTurn, supabaseEmailStore, supabaseResumes } from "..
 import { CAREER_SEND_SCOPE, careerTokenFor, sendMail } from "../_shared/career_mail_gmail.ts";
 import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_brief_store.ts";
 import { draftFor, outreachTurn, supabaseOutreachStore } from "../_shared/career_outreach.ts";
+import { queueApprovedOutreach, sendRailOn } from "../_shared/career_send_rail.ts"; // MASS NETWORKING M1
 import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.ts";
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
 import { missingIntegration } from "../_shared/agent/integrations.ts";
@@ -476,7 +477,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const outreachAns = !card && !mock && !asked && !which && !emailed && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await outreachTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: outreachStore, events, tz: undefined,
             redraft: (d) => draftFor({ model: outreachModel, facts: ((ctx as any).profile?.facts ?? []), r: d.recipient, previous: d.body }),
-            gmailConnected: () => careerGrantHas(admin, user.id, GMAIL_SEND_SCOPE), connectAsk: missingIntegration("gmail") })
+            gmailConnected: () => careerGrantHas(admin, user.id, GMAIL_SEND_SCOPE), connectAsk: missingIntegration("gmail"),
+            // MASS NETWORKING M1: with the sending rail on, exactly the drafts this answer approved are queued, each bound to its
+            // approval hash (career_send_rail.ts re-reads and re-hashes every draft; the career-send function sends them).
+            ...(sendRailOn(Deno.env) ? { onApproved: async (u: string, items: { draftId: string; approvalHash: string }[]) => {
+              const res = await queueApprovedOutreach({ rpc: (name, args) => admin.rpc(name, args), drafts: (uu, ids) => outreachStore.drafts!(uu, ids) }, u, items);
+              const refused = res.filter((r) => r.status === "refused");
+              if (refused.length) console.error("send rail: approved drafts not queued:", refused.map((r) => r.reason).join(", "));
+            } } : {}) })
           .catch((e) => { console.error("outreach turn:", e?.message ?? e); return null; })
         : null;
       if (outreachMeter.calls) await recordTurnCost(admin, user.id, tid, outreachMeter);

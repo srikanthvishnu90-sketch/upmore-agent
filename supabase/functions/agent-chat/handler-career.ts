@@ -73,6 +73,7 @@ import { CONFIRM_INTENT, confirmWhichTurn, supabaseConfirmStore } from "../_shar
 import { EMAIL_INTENT, emailTurn, supabaseEmailStore, supabaseResumes } from "../_shared/career_apply_email.ts";
 import { CAREER_SEND_SCOPE, careerTokenFor, sendMail } from "../_shared/career_mail_gmail.ts";
 import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_brief_store.ts";
+import { plannerHandlerTurn, plannerOn } from "./career_planner.ts";
 import { draftFor, outreachTurn, supabaseOutreachStore } from "../_shared/career_outreach.ts";
 import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.ts";
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
@@ -388,6 +389,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
       let agentMeta: Record<string, unknown> | null = null;
+      let planned: Awaited<ReturnType<typeof plannerHandlerTurn>> = null; // task intelligence P1 (flag CAREER_PLANNER, default off)
       const events = supabaseEventStore(admin);
       // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
       // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
@@ -653,6 +655,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       } else if (offerAns) { // FEATURE 12: the offer turn's answer; the counter's card rides the reply's meta.
         out = { reply: offerAns.reply, intent: offerAns.intent, resultStatus: offerAns.status, contained: false, handler: "offer", parts: offerAns.parts };
         if (offerAns.card) agentMeta = { offer_card: offerAns.card };
+      } else if (!careerTask && !careerBatch && plannerOn(Deno.env, user.id) && !host.isHostControlled(message, ctx) && (planned = await (async () => {
+        // A turn the planner does not claim (or a model outage) falls through to the chain below unchanged.
+        const pMeter = newMeter(), pCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+        try {
+          return await plannerHandlerTurn({ admin, userId: user.id, threadId: tid, channel: isBridgeCall ? String(body.channel ?? "text") : "web", message, attachments: Array.isArray(body.attachments) ? (body.attachments as any[]).filter((a) => a && typeof a === "object").map((a) => ({ name: String(a.name ?? "") })) : [],
+            ctx: ctx as unknown as Record<string, unknown>, model: (payload) => callModel(pCfg, payload, { meter: pMeter, role: "chat" }), outreach: outreachStore, situation });
+        } catch (e) { console.error("planner:", (e as any)?.message ?? e); return null; }
+        finally { if (pMeter.calls) await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: pMeter.provider, models: pMeter.models, calls: pMeter.calls, failed: pMeter.failed, input_tokens: pMeter.input_tokens, output_tokens: pMeter.output_tokens, cached_tokens: pMeter.cached_tokens, usd_micros: pMeter.usd_micros, unpriced: pMeter.unpriced }); }
+      })())) {
+        out = { reply: planned.reply, intent: planned.intent, resultStatus: planned.resultStatus, contained: false, handler: "planner", ...(planned.parts ? { parts: planned.parts } : {}) };
+        agentMeta = planned.meta;
       } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || staged.toBrain()) && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };

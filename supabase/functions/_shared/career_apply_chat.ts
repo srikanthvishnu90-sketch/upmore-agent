@@ -98,16 +98,15 @@ export interface ApplyChatDeps {
   // (career_apply_link.ts); absent, a link is not this turn's.
   link?: { db: PostingsDb; fetchFeed: FetchFeed } | null;
   // FEATURE 1: whether a row queued here is prepared at once (the server prepare is configured: CAREER_PREPARE_AHEAD_URL
-  // and its token). Only then does "no resume on file" keep a posting out of the queue: an immediate try could only end
-  // in no_resume, which the worker records and holds for a week (prepare-ahead.ts). With it off, queueing only records
-  // the person's want, so the posting is queued and the reply says a confirmed resume is needed first. Absent, taken as on.
+  // and its token). OWNER RULE (2026-10-26): no longer read for the resume check; "no resume on file" keeps every posting
+  // out of the queue either way.
   prepareOn?: () => boolean;
 }
 // A posting held back by the possible-match question (SERIAL-1490): queued only when the person answers no.
 export interface EmployerQuestion { job_id: string | null; url: string; company: string; title: string }
 export interface ShortlistEntry { id?: string | null; title?: string | null; company?: string | null; location?: string | null; url?: string | null }
 export type ApplyChatResult = {
-  reply: string; status: "queued" | "already" | "none" | "which" | "refused" | "unreadable" | "pace_unknown" | "pace_unreadable" | "no_list" | "asking_employer" | "no_resume"; intent: typeof APPLY_QUEUE_INTENT;
+  reply: string; status: "queued" | "already" | "none" | "which" | "refused" | "unreadable" | "pace_unknown" | "pace_unreadable" | "no_list" | "asking_employer" | "no_resume" | "resume_unreadable"; intent: typeof APPLY_QUEUE_INTENT;
   // FEATURE 1: how many of the postings asked for went into the queue, and whether the server prepare was asked to run.
   coverage?: { queued: number; total: number }; prepare?: PrepareKick;
   posting?: { job_id: string; company: string; title: string };
@@ -244,7 +243,9 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
       posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 } };
   }
   const resumeMissing = await noResume(o);
-  if (resumeMissing && prepareRunsNow(o)) {
+  if (resumeMissing === "unknown") return { reply: `${coverageLine(0, 1)} ${RESUME_UNREAD}`, status: "resume_unreadable", intent, posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 } };
+  // OWNER RULE (2026-10-26): never queued without a confirmed resume, prepare on or off.
+  if (resumeMissing) {
     return { reply: `${coverageLine(0, 1)} Not queued: ${p.title} at ${p.company}: ${NO_RESUME_REASON}. ${NO_RESUME_NEXT}`, status: "no_resume", intent,
       posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 } };
   }
@@ -267,19 +268,26 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
 
 // FEATURE 1: no confirmed resume on file means nothing can be prepared; unknown (null, or a reader that throws) decides
 // nothing.
-async function noResume(o: { resumeOnFile?: () => Promise<boolean | null> }): Promise<boolean> {
+// Fail closed (review of PR #194): "missing" unless the check says yes; "unknown" when it could not be made.
+async function noResume(o: { resumeOnFile?: () => Promise<boolean | null> }): Promise<false | "missing" | "unknown"> {
   if (!o.resumeOnFile) return false;
-  try { return (await o.resumeOnFile()) === false; } catch { return false; }
+  let r: boolean | null;
+  try { r = await o.resumeOnFile(); } catch { r = null; }
+  return r === true ? false : r === false ? "missing" : "unknown";
 }
-function prepareRunsNow(o: { prepareOn?: () => boolean }): boolean {
-  if (!o.prepareOn) return true;
-  try { return o.prepareOn() !== false; } catch { return true; }
-}
+export const RESUME_UNREAD = "I couldn't check your resume on file just now, so nothing was queued. Ask again in a minute.";
 async function prepareFor(o: { prepare?: (jobIds: string[]) => Promise<PrepareKick> }, ids: string[]): Promise<PrepareKick | null> {
   if (!o.prepare || !ids.length) return null;
   try { return await o.prepare(ids); } catch { return "failed"; }
 }
 
+// Whether Trainee prepares applications itself (cloud prepare on) or only the extension on the person's computer does;
+// it picks the "nothing is sent" wording. #194 removed it from the resume check (a missing resume now refuses, prepare
+// on or off); the replies below still read it.
+function prepareRunsNow(o: { prepareOn?: () => boolean }): boolean {
+  if (!o.prepareOn) return true;
+  try { return o.prepareOn() !== false; } catch { return true; }
+}
 const NOTHING_SENT_MANY = (prepares = true) => (prepares
   ? "Nothing is sent and nothing is filled yet: I prepare each one before you ask, from the facts you confirmed and a resume tailored to it; if a form asks something you haven't told me, I'll ask you here."
   : "Nothing is sent and nothing is filled yet: they wait in your queue until the Trainee extension prepares each one on your computer.") +
@@ -330,7 +338,9 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   const refused = [...missing, ...screened.refused.filter((r) => r.ask !== "employer").map((r) => ({ job_id: r.posting.job_id, company: r.posting.company, title: r.posting.title, reason: r.reason }))];
   // FEATURE 1: with no confirmed resume on file nothing can be prepared, so nothing is queued; each posting is named.
   const resumeMissing = screened.ok.length ? await noResume(o) : false;
-  if (resumeMissing && prepareRunsNow(o)) {
+  if (resumeMissing === "unknown") return { reply: `${coverageLine(0, total)} ${RESUME_UNREAD}`, status: "resume_unreadable", intent, queued: [], refused, coverage: { queued: 0, total } };
+  // OWNER RULE (2026-10-26): never queued without a confirmed resume, prepare on or off.
+  if (resumeMissing) {
     for (const p of screened.ok) refused.push({ job_id: p.job_id ?? null, company: String(p.company ?? ""), title: String(p.title ?? ""), reason: NO_RESUME_REASON });
     return { reply: `${coverageLine(0, total)} Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.reason}`), 8)}. ${NO_RESUME_NEXT}`, status: "no_resume", intent, queued: [], refused, coverage: { queued: 0, total } };
   }

@@ -22,6 +22,7 @@ import { type ChannelAdapter, type InboundMessage, packMessages, pacer, type Par
 
 export const TELEGRAM_API = "https://api.telegram.org";
 export const TELEGRAM_CHARS = 4096;
+export const TELEGRAM_FILE_MAX = 20 * 1024 * 1024; // what a bot may download (getFile)
 const PACK = 1500; // the texting rule: one message carries at most 1,500 characters, longer text is split on purpose
 const SECRET_RE = /^[A-Za-z0-9_-]{32,256}$/;
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -42,15 +43,46 @@ export function parseTelegramUpdate(u: any): { message: InboundMessage | null; i
     if (member.new_chat_member?.status !== "kicked") return { message: null, ignored: `chat member status ${String(member.new_chat_member?.status ?? "").slice(0, 20)}` };
     return { message: { provider: "telegram", channel: "telegram", messageId, kind: "blocked", contact: `tg:${chat.id}`, address: String(chat.id), text: "" } };
   }
+  // FEATURE 16: a tap on a button Trainee sent (the card's Approve or Decline) arrives as callback_query, in the chat the
+  // button's message is in (callback_query.message.chat; https://core.telegram.org/bots/api#callbackquery, ASSUMED field
+  // names, the same shape telegram_bridge.ts reads on the live test bridge).
+  // Review of PR #194: a tap whose callback carries no message (Telegram leaves it out when the message is too old) is still
+  // a tap by that user; in a private chat the chat id is the user's id (callback_query.from.id), so it is answered there
+  // and never left spinning. Its data is still checked; it approves nothing it would not approve with the message.
+  const cb = u.callback_query;
+  if (cb && typeof cb === "object") {
+    if (cb.id === undefined || cb.id === null) return { message: null, ignored: "not a button tap" };
+    if (cb.from?.is_bot) return { message: null, ignored: "from a bot" };
+    const chat = cb.message?.chat;
+    const chatId = chat ? (chat.type === "private" ? chat.id : null) : cb.from?.id;
+    if (!Number.isSafeInteger(chatId) || chatId <= 0) return { message: null, ignored: "not a private chat" };
+    const data = typeof cb.data === "string" && cb.data.length <= 64 ? cb.data : "";
+    return { message: { provider: "telegram", channel: "telegram", messageId, kind: "callback", contact: `tg:${chatId}`, address: String(chatId), text: "",
+      callback: { id: String(cb.id).slice(0, 100), data, messageId: Number.isSafeInteger(cb.message?.message_id) ? String(cb.message.message_id) : null } } };
+  }
   const m = u.message;
-  if (!m || typeof m !== "object") return { message: null, ignored: "not a new message" }; // edits, callbacks, channel posts
+  if (!m || typeof m !== "object") return { message: null, ignored: "not a new message" }; // edits, channel posts
   if (m.chat?.type !== "private" || !Number.isSafeInteger(m.chat.id) || m.chat.id <= 0) return { message: null, ignored: "not a private chat" };
   if (m.from?.is_bot) return { message: null, ignored: "from a bot" };
   // SERIAL-1462: a reply in Telegram carries the replied-to message as message.reply_to_message (Bot API); its message_id
   // is the id sendMessage returned when that message went out.
   const repliedTo = m.reply_to_message && typeof m.reply_to_message === "object" && Number.isSafeInteger(m.reply_to_message.message_id) ? String(m.reply_to_message.message_id) : null;
   const base = { provider: "telegram" as const, channel: "telegram" as const, messageId, contact: `tg:${m.chat.id}`, address: String(m.chat.id), replyToMessageId: repliedTo };
-  if (typeof m.text !== "string" || !m.text.trim()) return { message: { ...base, kind: "seen", text: "", file: !!(m.document || m.photo) }, ignored: "no text (attachments are not read yet)" };
+  // FEATURE 16: a document (a resume as a PDF or Word file) is read: getFile, then the file itself (channel_inbound.ts).
+  // message.document: file_id (to download), file_unique_id (stable across bots and time), file_name, mime_type,
+  // file_size (https://core.telegram.org/bots/api#document, ASSUMED field names). Its caption is the message text.
+  const d = m.document;
+  if (d && typeof d === "object" && typeof d.file_id === "string" && d.file_id && typeof d.file_unique_id === "string" && d.file_unique_id) {
+    return { message: { ...base, kind: "text", text: typeof m.caption === "string" ? m.caption.slice(0, 1000) : "",
+      document: { fileId: d.file_id.slice(0, 300), uniqueId: d.file_unique_id.slice(0, 120), name: String(d.file_name ?? "resume").slice(0, 200) || "resume",
+        mime: String(d.mime_type ?? "").slice(0, 120), size: Number.isSafeInteger(d.file_size) ? d.file_size : null } } };
+  }
+  // FEATURE 16: a photo or a file Trainee can't read, and a voice, audio or video message, each get a plain answer (never
+  // silence); a sticker is still left alone.
+  if (typeof m.text !== "string" || !m.text.trim()) {
+    const media = m.voice || m.audio || m.video || m.video_note ? "voice" : m.photo ? "photo" : m.document ? "file" : null;
+    return { message: { ...base, kind: "seen", text: "", file: !!(m.document || m.photo), ...(media ? { media } : {}) }, ignored: "no text (attachments are not read yet)" };
+  }
   const cmd = /^\/(start|stop|help)(?:@[A-Za-z0-9_]{1,64})?(?:\s+(\S+))?\s*$/i.exec(m.text.trim());
   if (cmd) {
     const command = cmd[1].toLowerCase() as "start" | "stop" | "help";
@@ -88,13 +120,68 @@ export function telegramAdapter(o: {
       const r = parseTelegramUpdate(await req.json().catch(() => null));
       return { messages: r.message ? [r.message] : [], ignored: r.ignored ? [r.ignored] : [] };
     },
-    async send(address, bubbles): Promise<SendResult> {
+    // FEATURE 16: getFile names the file's path and its size, and the file is downloaded from /file/bot<token>/<file_path>
+    // (https://core.telegram.org/bots/api#getfile, ASSUMED; bots download files of up to 20 MB). Review of PR #194: the size
+    // getFile reports is checked first (missing, or over the cap or Telegram's 20 MB: refused, nothing downloaded), then
+    // the download is read as a stream and stopped the moment it passes the cap, never read whole first. The token never
+    // leaves this function in an error.
+    async fetchFile(fileId, maxBytes): Promise<{ ok: true; bytes: Uint8Array } | { ok: false; error: string }> {
+      const cap = Math.min(maxBytes, TELEGRAM_FILE_MAX);
+      const r = await call("getFile", { file_id: fileId });
+      if ("error" in r) return { ok: false, error: redact(`Telegram unreachable: ${r.error instanceof Error ? r.error.message : String(r.error)}`).slice(0, 200) };
+      const path = r.body?.result?.file_path, size = r.body?.result?.file_size;
+      if (r.status !== 200 || r.body?.ok !== true || typeof path !== "string" || !path) return { ok: false, error: `Telegram getFile HTTP ${r.status}: ${redact(String(r.body?.description ?? "no file path")).slice(0, 120)}` };
+      if (!Number.isSafeInteger(size) || size < 1) return { ok: false, error: "Telegram getFile gave no file size" };
+      if (size > cap) return { ok: false, error: "too_large" };
+      try {
+        const res = await f(`${TELEGRAM_API}/file/bot${o.token}/${path.split("/").map(encodeURIComponent).join("/")}`, { signal: AbortSignal.timeout(timeout) });
+        if (!res.ok || !res.body) { await res.body?.cancel().catch(() => {}); return { ok: false, error: `Telegram file HTTP ${res.status}` }; }
+        const reader = res.body.getReader(), chunks: Uint8Array[] = [];
+        let total = 0;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          total += value.length;
+          if (total > cap) { await reader.cancel().catch(() => {}); return { ok: false, error: "too_large" }; }
+          chunks.push(value);
+        }
+        const bytes = new Uint8Array(total);
+        let at = 0;
+        for (const c of chunks) { bytes.set(c, at); at += c.length; }
+        return { ok: true, bytes };
+      } catch (e) { return { ok: false, error: redact(`Telegram file unreachable: ${e instanceof Error ? e.message : String(e)}`).slice(0, 200) }; }
+    },
+    // FEATURE 16: a document as a file (sendDocument, multipart; https://core.telegram.org/bots/api#senddocument, ASSUMED):
+    // the bytes themselves, never a link to them.
+    async sendDocument(address, doc): Promise<SendResult> {
+      await pace(address);
+      try {
+        const form = new FormData();
+        form.append("chat_id", String(Number(address)));
+        form.append("document", new Blob([doc.bytes as BlobPart], { type: doc.mime || "application/octet-stream" }), doc.filename.replace(/[\\/]/g, "_").slice(0, 120) || "document.pdf");
+        const res = await f(`${TELEGRAM_API}/bot${o.token}/sendDocument`, { method: "POST", body: form, signal: AbortSignal.timeout(timeout) });
+        const body = await res.json().catch(() => null);
+        if (res.status === 200 && body?.ok === true) return { ok: true, id: body?.result?.message_id != null ? String(body.result.message_id) : null };
+        return { ok: false, error: `Telegram sendDocument HTTP ${res.status}: ${redact(String(body?.description ?? "")).slice(0, 120)}`, retryable: false };
+      } catch (e) { return { ok: false, error: redact(`Telegram unreachable: ${e instanceof Error ? e.message : String(e)}`).slice(0, 200), retryable: false }; }
+    },
+    // FEATURE 16: every tap is answered once, so the person's button stops spinning (answerCallbackQuery; ASSUMED).
+    async answerCallback(callbackId, text): Promise<boolean> {
+      const r = await call("answerCallbackQuery", { callback_query_id: callbackId, text: String(text ?? "").slice(0, 200) });
+      return !("error" in r) && r.status === 200 && r.body?.ok === true;
+    },
+    async send(address, bubbles, opts): Promise<SendResult> {
       if (!bubbles.length) return { ok: false, error: "nothing to send: the message has no text", retryable: false };
       const ids: string[] = [];
       for (let i = 0; i < bubbles.length; i++) {
         await pace(address);
         const after = i ? ` after ${i} of ${bubbles.length} messages went out` : "";
-        const r = await call("sendMessage", { chat_id: Number(address), text: bubbles[i].slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false } });
+        // FEATURE 16: buttons (the card's Approve and Decline) ride the last part, under the whole card.
+        const keyboard = i === bubbles.length - 1 && opts?.buttons?.length
+          ? { reply_markup: { inline_keyboard: opts.buttons.map((row) => row.map((b) => b.loginUrl
+            ? { text: b.text.slice(0, 64), login_url: { url: b.loginUrl, request_write_access: true } }
+            : { text: b.text.slice(0, 64), callback_data: String(b.data ?? "").slice(0, 64) })) } } : {};
+        const r = await call("sendMessage", { chat_id: Number(address), text: bubbles[i].slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...keyboard });
         if ("error" in r) {
           const e = r.error, timedOut = e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError");
           return timedOut ? { ok: false, error: `Telegram timed out (it may have been delivered)${after}`, retryable: false }

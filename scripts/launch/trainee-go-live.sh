@@ -201,6 +201,7 @@ MIGRATIONS=(
   20261027200000_career_send_queue.sql
   20261027230000_career_outlook_connector.sql
   20261027240000_career_outreach_replies.sql
+  20261028050000_agent_turn_costs_always_recorded.sql
   20261028110000_career_connector_framework.sql
   20261028120000_career_apply_host_gate.sql
   20261028130000_billing_cancel_at_period_end.sql
@@ -292,6 +293,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_send_queue') is not null and exists (select 1 from pg_proc where proname = 'career_send_complete_one') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_send_rail')"
   "to_regclass('public.career_outlook_sends') is not null and exists (select 1 from pg_proc where proname = 'career_outlook_claim') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_outlook_erase')"
   "to_regclass('public.career_outreach_turns') is not null and exists (select 1 from pg_proc where proname = 'career_outreach_action_claim' and prosrc like '%skip locked%')"
+  "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'agent_turn_costs' and column_name = 'meter_state')"
   "to_regclass('public.career_parked_tasks') is not null and to_regclass('public.career_connector_links') is not null and exists (select 1 from pg_proc where proname = 'career_parked_due') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_connector_cancel')"
   "exists (select 1 from pg_proc where proname = 'career_apply_host_backoff_get' and prosrc like '%scope = ''cloud''%')"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'user_subscriptions' and column_name = 'cancel_at_period_end')"

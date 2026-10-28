@@ -28,7 +28,8 @@ import { parseNetworkingAsk } from "./career_networking.ts";
 import { CAREER_READ_SCOPE, careerTokenFor } from "./career_mail_gmail.ts";
 import { connectUrl } from "./agent/integrations.ts";
 import { cleanCell, companyKey, parseCsv, parseExport, type ParsedExport, peopleFileText, type PersonRow, sha256Hex } from "./career_people_import.ts";
-import { correspondentsAt, domainLabelOf, type GmailRead, heardFrom, readJobAlerts } from "./career_people_gmail.ts";import { checkUrl, readPage, type Resolver } from "./career_people_page.ts";
+import { correspondentsAt, domainLabelOf, type GmailRead, heardFrom, readJobAlerts } from "./career_people_gmail.ts";
+import { checkUrl, readPage, type Resolver } from "./career_people_page.ts";
 
 export const IMPORT_INTENT = "career_contacts_import", AT_INTENT = "career_contacts_at", ALUMNI_INTENT = "career_people_alumni";
 export const PAGE_INTENT = "career_people_page", JOBS_INTENT = "career_job_emails", FORGET_INTENT = "career_people_forget";

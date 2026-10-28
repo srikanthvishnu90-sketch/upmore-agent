@@ -98,6 +98,17 @@ Deno.test("R1 forget racing an import: a row of the forgotten person another thr
   assertEquals(names(rec.items).includes("Dana Lopez"), true, "the other thread's other row is kept");
 });
 
+Deno.test("R1 a forget the account did not take is never reported as done", async () => {
+  const inner = memoryOutreachStore();
+  const a: Record<string, unknown> = {};
+  await turn(inner, "t-a", a, "here", [{ name: "Connections.csv", text: LINKEDIN }]);
+  const down: OutreachStore = { ...inner, async saveContactsRecord() { throw new Error("store down"); } };
+  const r = await turn(down, "t-b", {}, "forget my contacts");
+  assertEquals([r!.intent, r!.status], ["career_contacts_forget", "not_saved"], r!.reply);
+  assertMatch(r!.reply, /nothing was deleted/);
+  assertEquals((await inner.contactsRecord!(U)).items.length, 6, "still there, as the reply says");
+});
+
 Deno.test("R1 epoch guard: a turn that started before an erase writes no contacts after it", async () => {
   const store = memoryOutreachStore();
   const a: Record<string, unknown> = {};

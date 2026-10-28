@@ -201,33 +201,42 @@ async function hydrateContacts(o: NetworkingDeps): Promise<Hydrated | null> {
   o.state.contacts = rows;
   return { start: new Map(rows.map((r) => [rowKey(r), r])), account: new Map(rec.items.map((r) => [rowKey(r), JSON.stringify(r)])), epoch };
 }
-async function persistContacts(o: NetworkingDeps, h: Hydrated | null): Promise<void> {
-  if (!h) return;
+// "saved": the account holds this turn's change; "unchanged": nothing to write; "failed": not written (no record, an erase
+// moved the epoch, the store refused, or other threads kept winning the race).
+async function persistContacts(o: NetworkingDeps, h: Hydrated | null): Promise<"saved" | "unchanged" | "failed"> {
+  if (!h) return "failed";
   const end = contactsOf(o.state), endKeys = new Set(end.map(rowKey)), endPeople = new Set(end.map(personKey));
   const upserts = end.filter((r) => h.account.get(rowKey(r)) !== JSON.stringify(r));
   const removed = [...h.start.keys()].filter((k) => !endKeys.has(k));
   const forget = new Set(removed.map((k) => personKey(h.start.get(k)!)).filter((p) => !endPeople.has(p)));
   const restored = new Set(upserts.filter((r) => !h.start.has(rowKey(r))).map(personKey));
-  if (!upserts.length && !removed.length) return;
+  if (!upserts.length && !removed.length) return "unchanged";
   for (let attempt = 0; attempt < 4; attempt++) {
-    if (o.store.accountEpoch && (await o.store.accountEpoch(o.userId).catch(() => null)) !== h.epoch) return;
+    if (o.store.accountEpoch && (await o.store.accountEpoch(o.userId).catch(() => null)) !== h.epoch) return "failed";
     const cur = await o.store.contactsRecord!(o.userId).catch(() => null);
-    if (!cur) return;
+    if (!cur) return "failed";
     const drop = new Set([...removed, ...upserts.map(rowKey)]);
     const items = [...cur.items.filter((r) => !drop.has(rowKey(r)) && !forget.has(personKey(r))), ...upserts].slice(-MAX_CONTACTS);
     const forgotten = [...new Set([...cur.forgotten.filter((p) => !restored.has(p)), ...forget])];
-    if (await o.store.saveContactsRecord!(o.userId, { items, forgotten }, cur.version).catch(() => false)) return;
+    if (await o.store.saveContactsRecord!(o.userId, { items, forgotten }, cur.version).catch(() => false)) return "saved";
   }
   console.error("networking: your contacts changed in another conversation four times while saving; this turn's change was not saved to the account");
+  return "failed";
 }
 
 export async function networkingTurn(o: NetworkingDeps): Promise<NetworkingResult | null> {
   const h = await hydrateContacts(o);
+  let r: NetworkingResult | null = null;
   try {
-    return await networkingTurnInner(o);
+    r = await networkingTurnInner(o);
   } finally {
-    await persistContacts(o, h);
+    const saved = await persistContacts(o, h);
+    // A deletion is said only once the account holds it: the thread copy alone would be put back by the next turn.
+    if (h && r?.intent === FORGET_INTENT && r.status === "forgotten" && saved !== "saved") {
+      r = { reply: "I couldn't delete them from your contacts just now, so nothing was deleted. Please try again in a minute.", intent: FORGET_INTENT, status: "not_saved" };
+    }
   }
+  return r;
 }
 
 // "forget my contacts", "delete my linkedin connections", "remove Maya Chen from my contacts": deleted from the person's

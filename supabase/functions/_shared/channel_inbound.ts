@@ -15,6 +15,7 @@ import { channelCommand, CHANNEL_REPLIES } from "./channel.ts";
 import { fitOutbox as fitReply, normalizeContact, OUTBOX_CHARS } from "./conversation.ts";
 import { type Channel, CHANNEL_NAME, channelOf, type ChannelAdapter, type InboundMessage, packMessages, type Provider, type SendOptions, type StatusEvent } from "./channel_adapters.ts";
 import { telegramDeepLink } from "./telegram.ts";
+import { deliverShaped, type ShapedFile } from "./channel_shape.ts";
 
 export const SIGNUP_CLOSED_REPLY = "Trainee is invite-only right now, so I can't set you up yet. Nothing about you was saved except that you texted.";
 // PHONE LOGIN (owner, 2026-10-28): Telegram's own verified number, shared with one tap. Trainee never asks for a password or a
@@ -82,7 +83,7 @@ export interface CoreDeps {
   // OUTBOX_CHARS; when given with two or more, they are what the person reads, in order, and `reply` is not sent.
   // replyToMessageId (optional): the provider's id of the message the person replied to (SERIAL-1462). cardId (optional,
   // in the answer): the card this reply shows, so the outbox row that carries it is recorded against the card.
-  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => Promise<{ status: number; reply: string; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null; postings?: unknown[]; artifacts?: { ref: string; filename: string; mime: string }[] }>;
+  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null; channel?: string }) => Promise<{ status: number; reply: string; shape?: { attachments: ShapedFile[]; links: string[] }; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null; postings?: unknown[]; artifacts?: { ref: string; filename: string; mime: string }[] }>;
   deliver: (a: { userId: string; key: string; now: number }) => Promise<void>; // a head start on the every-minute run
   // FEATURE 16 (Telegram; optional, so the other channels run unchanged):
   // resumeFile: a document the person sent, downloaded, read and stored as their upload (channel_resume_upload.ts); ok
@@ -97,6 +98,10 @@ export interface CoreDeps {
   showPostings?: (a: { userId: string; contact: string; hits: unknown[] }) => Promise<{ sent: number; total: number }>;
   // FEATURE 16: the turn's documents (owner-scoped refs) sent as files after its reply; how many went. Absent: the channel
   // sends no files, and the reply's own words stand (agent-chat says when a file could not be attached).
+  // REPLY SHAPE (channel_shape.ts): a file and a link, each its own message, after the reply. Absent: the channel has none, and
+  // the reply's own words stand.
+  sendFile?: (a: { contact: string; filename: string; mime: string; bytes: Uint8Array }) => Promise<{ ok: boolean }>;
+  sendLink?: (a: { contact: string; url: string }) => Promise<{ ok: boolean }>;
   sendArtifacts?: (a: { userId: string; threadId: string | null; contact: string; artifacts: { ref: string; filename: string; mime: string }[] }) => Promise<{ sent: number; failed: number }>;
 }
 type Out = { status: number; body: Record<string, unknown> };
@@ -301,7 +306,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       return await answer(text, { connect: "telegram" });
     }
 
-    let postings: unknown[] = [], cardsShown = 0;
+    let postings: unknown[] = [], cardsShown = 0, shape: { attachments: ShapedFile[]; links: string[] } | null = null;
     let reply: string, parts: string[] | null = null, artifacts: { ref: string; filename: string; mime: string }[] = [], turnThread: string | null = person.threadId;
     try {
       const turnKey = await turnKeyFor(msg.provider === "loopmessage" ? msg.messageId : `${msg.provider}:${msg.messageId}`);
@@ -315,6 +320,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       // iMessage, where it has none, only "tap the card".
       if (out.resultStatus === CARD_NEEDS_REPLY_STATUS) reply = needsReplyTextFor(msg.channel);
       parts = replyParts(out.parts);
+      shape = out.shape ?? null;
       cardId = typeof out.cardId === "string" && out.cardId ? out.cardId : null;
       artifacts = Array.isArray(out.artifacts) ? out.artifacts : [];
       postings = Array.isArray(out.postings) ? out.postings.slice(0, 200) : [];
@@ -347,7 +353,16 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       docs = await d.sendArtifacts({ userId: person.userId, threadId: turnThread, contact, artifacts }).catch(() => ({ sent: 0, failed: artifacts.length }));
       if (docs.failed) await d.reply(contact, d.render(DOC_NOT_SENT_REPLY)).catch(() => ({ ok: false }));
     }
-    return ok({ replied: true, ...(cardsShown ? { cards: cardsShown } : {}), ...(parts ? { parts: parts.length } : {}), ...(docs ? { documents: docs } : {}) });
+    // REPLY SHAPE: the answer went first; now each file, then each link, one message each, in that order. A step that fails is said.
+    let shaped: { files: number; links: number } | null = null;
+    if (shape && (d.sendFile || d.sendLink)) {
+      const sf = d.sendFile, sl = d.sendLink;
+      const r = await deliverShaped({ answer: "", attachments: shape.attachments, links: shape.links, notes: [] }, {
+        document: async (f) => sf ? await sf({ contact, ...f }) : { ok: false }, link: async (url) => sl ? await sl({ contact, url }) : { ok: false } }, { includeAnswer: false });
+      shaped = { files: r.files, links: r.links };
+      if (r.files < shape.attachments.length) await d.reply(contact, d.render(DOC_NOT_SENT_REPLY)).catch(() => ({ ok: false }));
+    }
+    return ok({ replied: true, ...(shaped ? { shaped } : {}), ...(cardsShown ? { cards: cardsShown } : {}), ...(parts ? { parts: parts.length } : {}), ...(docs ? { documents: docs } : {}) });
   } catch (e) {
     console.error("inbound failed:", e instanceof Error ? e.message : String(e));
     try { await d.reply(contact, d.render(CHAT_DOWN_REPLY)); } catch { /* already logged */ }

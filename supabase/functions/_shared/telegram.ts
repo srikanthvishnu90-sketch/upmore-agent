@@ -192,6 +192,15 @@ export function telegramAdapter(o: {
         return { ok: false, error: `Telegram sendDocument HTTP ${res.status}: ${redact(String(body?.description ?? "")).slice(0, 120)}`, retryable: false };
       } catch (e) { return { ok: false, error: redact(`Telegram unreachable: ${e instanceof Error ? e.message : String(e)}`).slice(0, 200), retryable: false }; }
     },
+    // REPLY SHAPE: a link alone in its message, preview on for exactly that URL (link_preview_options {is_disabled:false, url};
+    // https://core.telegram.org/bots/api#linkpreviewoptions, ASSUMED field names), so Telegram shows the title and image card.
+    async sendLink(address, url): Promise<SendResult> {
+      await pace(address);
+      const r = await call("sendMessage", { chat_id: Number(address), text: url.slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false, url, prefer_large_media: true } });
+      if ("error" in r) return { ok: false, error: redact(`Telegram unreachable: ${r.error instanceof Error ? r.error.message : String(r.error)}`).slice(0, 200), retryable: false };
+      if (r.status === 200 && r.body?.ok === true) return { ok: true, id: r.body?.result?.message_id != null ? String(r.body.result.message_id) : null };
+      return { ok: false, error: `Telegram sendLink HTTP ${r.status}: ${redact(String(r.body?.description ?? "")).slice(0, 120)}`, retryable: false };
+    },
     // FEATURE 16: every tap is answered once, so the person's button stops spinning (answerCallbackQuery; ASSUMED).
     async answerCallback(callbackId, text): Promise<boolean> {
       const r = await call("answerCallbackQuery", { callback_query_id: callbackId, text: String(text ?? "").slice(0, 200) });

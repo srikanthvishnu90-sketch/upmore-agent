@@ -381,7 +381,10 @@ export async function peopleTurn(o: PeopleTurnIn): Promise<PeopleResult | null> 
   if (files.length) { try { const r = await fileTurn(o, deps, files); if (r) return r; } catch (e) { return failed(e); } }
   const paste = pasteKind(o.message);
   if (paste) { try { const r = await pasteTurn(o, deps, paste); if (r) return r; } catch (e) { return failed(e); } }
-  const target = deps.targets ? targetAskOf(o.message) : null;
+  // An alumni ask with web search off is answered from their own contacts (alumniTurn), which says what the export lacks.
+  const target0 = deps.targets ? targetAskOf(o.message) : null;
+  const alumniAsk = target0?.kind === "alumni" || parsePeopleAsk(o.message)?.kind === "alumni";
+  const target = target0 && !(alumniAsk && !deps.targets!.provider) ? target0 : null;
   if (target) { try { return await targetsTurn(o, deps.targets!, target); } catch (e) { return failed(e); } }
   const ask = parsePeopleAsk(o.message);
   if (!ask) return null;

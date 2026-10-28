@@ -362,7 +362,7 @@ Deno.test("people turn: discovery asks go to findTargets; off, the reply says we
   const f = (async (u: any) => { fetched.push(String(u)); return new Response("no", { status: 599 }); }) as typeof fetch;
   const deps: PeopleDeps = { store, gmail: null, fetch: f, targets: { store: pstore as any, config: off, provider: null, now: () => NOW } };
   const say = (message: string, d: PeopleDeps = deps) => peopleTurn({ message, userId: U, threadId: T, now: NOW, state: { profile: { facts } }, store: memoryOutreachStore(), model: null, people: d });
-  for (const m of ["engineering managers at Stripe", "find people at every company I applied to", "alumni of DePaul at Stripe"]) {
+  for (const m of ["engineering managers at Stripe", "find people at every company I applied to"]) {
     const r = await say(m);
     eq(r!.intent, TARGETS_INTENT, m);
     assert(/Grace Hopper <grace\.hopper@stripe\.com> \(known\): .*from your LinkedIn export/.test(r!.reply), r!.reply);
@@ -370,6 +370,9 @@ Deno.test("people turn: discovery asks go to findTargets; off, the reply says we
   }
   eq(queued, [], "off: nothing queued, nothing claimed");
   eq(fetched, [], "off: no call at all");
+  // Alumni with web search off: answered from their own contacts by the alumni turn (it says what the export lacks), never
+  // searched.
+  assert((await say("alumni of DePaul at Stripe"))?.intent !== TARGETS_INTENT, "alumni, search off: their own contacts");
   // "my school alumni" (no school named) stays the alumni turn's (confirmed education); "who do I know" stays the who turn's
   assert((await say("my school alumni at Stripe"))?.intent !== TARGETS_INTENT);
   assert((await say("who do I know at Stripe?"))?.intent !== TARGETS_INTENT);

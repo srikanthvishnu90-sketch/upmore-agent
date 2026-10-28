@@ -102,8 +102,10 @@ def main():
         p.stdin.close()
     got = 0
     for p in procs:
-        out, err = p.communicate(timeout=600)
-        assert p.returncode == 0, err
+        # stdin is already written and closed: communicate() would flush it again and raise.
+        out = p.stdout.read()
+        p.wait(timeout=600)
+        assert p.returncode == 0, p.stderr.read()
         got += sum(int(x) for x in out.split())
     took = time.monotonic() - started
     leased = q("select count(*) from career_outreach_sync where user_id::text like '00000000-0000-4000-9000-%' and lease_owner is not null")

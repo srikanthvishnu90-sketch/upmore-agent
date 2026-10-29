@@ -203,9 +203,17 @@ export const TAP_STALE_REPLY = "That question is no longer open. Nothing was rec
 export const TAP_INTENT = "career_screen_tap";
 export const QID = /^[0-9a-f]{8}$/;
 export async function screenTapTurn(o: Omit<ScreenAnswerDeps, "message"> & { qid: string; answer: string }): Promise<ScreenAnswerResult> {
-  const stale: ScreenAnswerResult = { reply: TAP_STALE_REPLY, status: "stale", intent: TAP_INTENT, saved: [] };
   const answer = String(o.answer ?? "").trim().toLowerCase();
   const meta = o.last?.meta ?? {};
+  // A stale tap must not become the thread's last word and kill what is open: the notice carries the last reply's meta forward
+  // (the open question's screen_ask / screen_qid / screen_held / screen_buttons, or a pending card), keeps its intent, and puts the
+  // open question again under the notice so its buttons and typed answers still work.
+  const openAsk = Array.isArray(meta.screen_ask) ? (meta.screen_ask as ScreenAsk[])[0] : null;
+  const stale: ScreenAnswerResult = {
+    reply: openAsk?.question ? `${TAP_STALE_REPLY} ${openAsk.question}` : TAP_STALE_REPLY, status: "stale",
+    intent: Object.keys(meta).length && o.last?.intent ? o.last.intent : TAP_INTENT, saved: [],
+    ...(Object.keys(meta).length ? { meta: { ...meta } } : {}),
+  };
   const ask = Array.isArray(meta.screen_ask) ? meta.screen_ask as ScreenAsk[] : [];
   if ((answer !== "yes" && answer !== "no") || !QID.test(String(o.qid)) || meta.screen_qid !== o.qid || ask.length !== 1 || !(ask[0]?.fact in FACT_QUESTIONS) || !isYesNoFact(ask[0].fact)) return stale;
   return (await screenAnswerTurn({ ...o, message: answer })) ?? stale;

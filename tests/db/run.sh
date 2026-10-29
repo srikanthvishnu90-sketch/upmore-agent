@@ -231,6 +231,8 @@ if [[ -f "$BRIDGE_PATH" ]]; then
     [[ "$(basename "$file")" == 20261026210016_* ]] && continue
     # 20261026210017 replaces 20261026210016's career_resume_on_file (one confirmed resume, #211), so it follows it.
     [[ "$(basename "$file")" == 20261026210017_* ]] && continue
+    # 20261029170000 replaces 20261026210017's career_resume_on_file (a quarantined entry is no resume), so it follows it.
+    [[ "$(basename "$file")" == 20261029170000_* ]] && continue
     # The mass-submission files (2026-10-27, career_apply_host_backoff and career_apply_mass_submit) likewise: the
     # historical phases below re-create the claims and checks they rewrite and assert the old behaviour, so they are
     # applied last. (Matched by prefix, for tests/flow/provision-pg.sh as above.)
@@ -562,6 +564,28 @@ echo "== career_cloud_hosted_apply.test.sql (text cards to the cloud behind ever
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210017_career_resume_on_file_one_record.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210017_career_resume_on_file_one_record.sql"
 "${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('20261026210017_career_resume_on_file_one_record.sql','$(sha256sum "$ROOT/supabase/migrations/20261026210017_career_resume_on_file_one_record.sql" | cut -d' ' -f1)') on conflict do nothing"
+# APPLY SCENARIOS (20261029170000): a quarantined entry (the owner's bank, the answer-all delegation; D-007) is not a
+# resume on file; applied twice (idempotent), right after 20261026210017, whose function it replaces.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029170000_career_resume_on_file_quarantine.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029170000_career_resume_on_file_quarantine.sql"
+"${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('20261029170000_career_resume_on_file_quarantine.sql','$(sha256sum "$ROOT/supabase/migrations/20261029170000_career_resume_on_file_quarantine.sql" | cut -d' ' -f1)') on conflict do nothing"
+echo "== career_resume_on_file: a quarantined entry is no resume on file (D-007)"
+"${PSQL[@]}" -t -A -o /dev/null -c "begin;
+  insert into auth.users(id, email) values ('00000000-0000-4000-8000-0000000c9a01', 'quarantine-resume@example.test'), ('00000000-0000-4000-8000-0000000c9a02', 'own-resume@example.test');
+  insert into public.profiles(id) values ('00000000-0000-4000-8000-0000000c9a01'), ('00000000-0000-4000-8000-0000000c9a02');
+  insert into public.career_watch_kv(user_id, key, value) values
+   ('00000000-0000-4000-8000-0000000c9a01', 'career:account', '{\"memory\":{\"profile\":{\"facts\":[{\"kind\":\"experience\",\"status\":\"confirmed\",\"needs_confirmation\":false,\"confirmation_event_id\":\"q-ev-1\",\"factId\":\"F-033\",\"text\":\"TEST bank entry\"},{\"kind\":\"education\",\"status\":\"confirmed\",\"needs_confirmation\":false,\"confirmation_event_id\":\"q-ev-2\",\"provenance\":\"owner-delegated answer-all\",\"text\":\"TEST delegated entry\"}]}}}'),
+   ('00000000-0000-4000-8000-0000000c9a02', 'career:account', '{\"memory\":{\"profile\":{\"facts\":[{\"kind\":\"experience\",\"status\":\"confirmed\",\"needs_confirmation\":false,\"confirmation_event_id\":\"q-ev-3\",\"factId\":\"F-003\",\"text\":\"TEST own entry\"}]}}}');
+  insert into public.career_events(user_id, kind, subject, detail) values
+   ('00000000-0000-4000-8000-0000000c9a01', 'fact_confirmed', 'TEST', '{\"confirmation_event_id\":\"q-ev-1\"}'),
+   ('00000000-0000-4000-8000-0000000c9a01', 'fact_confirmed', 'TEST', '{\"confirmation_event_id\":\"q-ev-2\"}'),
+   ('00000000-0000-4000-8000-0000000c9a02', 'fact_confirmed', 'TEST', '{\"confirmation_event_id\":\"q-ev-3\"}');
+  do \$\$ begin
+    if public.career_resume_on_file('00000000-0000-4000-8000-0000000c9a01') then raise exception 'FAIL a quarantined entry read as a resume on file'; end if;
+    if not public.career_resume_on_file('00000000-0000-4000-8000-0000000c9a02') then raise exception 'FAIL the person''s own confirmed entry is a resume on file'; end if;
+    raise notice 'ok   a quarantined entry is no resume on file; the person''s own confirmed entry is';
+  end \$\$;
+  rollback;" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_resume_required.test.sql (no resume hash: not queued, not claimed, not prepared, not carded; the resume on file needs its events; uploads erased)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_resume_required.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # FEATURE 16 (20261026220016): Telegram's login links a chat once, to one account; applied twice (idempotent).

@@ -93,6 +93,26 @@ export function backoffMs(level: number, retryAfterS: number | null): number {
   if (retryAfterS !== null && Number.isFinite(retryAfterS) && retryAfterS >= 0) return Math.min(retryAfterS * 1000, 86_400_000);
   return Math.min(BACKOFF_CEIL_MS, BACKOFF_BASE_MS * 2 ** Math.max(0, level));
 }
+// The seconds a host's Retry-After header asks for (RFC 9110 10.2.3): delay-seconds (digits only), or an HTTP-date in
+// one of its three forms (IMF-fixdate, RFC 850, asctime), counted from `now` (a date already past is 0). Anything else is
+// not an answer (null: the default doubling applies). At most a day (86,400 s), the longest any gate holds a host: a
+// larger number would not fit the database's integer argument and would leave the host not held at all.
+// Date.parse alone is far too lenient here: it reads "1.5", "-1", "12/31" or "Retry in 5" as dates in 2001, which meant
+// a wait of 0 s, the host asked again at once (found by tests/architect/scenarios-apply.test.ts, retry).
+const HTTP_DATE = [
+  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/,
+  /^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), \d{2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2} \d{2}:\d{2}:\d{2} GMT$/,
+  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) [ \d]\d \d{2}:\d{2}:\d{2} \d{4}$/,
+];
+export const RETRY_AFTER_MAX_S = 86_400;
+export function retryAfterSeconds(raw: string | null | undefined, now: number): number | null {
+  const v = String(raw ?? "").trim();
+  if (/^\d+$/.test(v)) return Math.min(Number(v), RETRY_AFTER_MAX_S);
+  if (!HTTP_DATE.some((re) => re.test(v))) return null;
+  // asctime has no zone: it is GMT (RFC 9110). RFC 850's two-digit year: Date.parse reads it as 19xx/20xx as browsers do.
+  const at = Date.parse(HTTP_DATE[2].test(v) ? `${v} GMT` : v);
+  return Number.isFinite(at) ? Math.min(RETRY_AFTER_MAX_S, Math.max(0, Math.round((at - now) / 1000))) : null;
+}
 export function localHostGate(): HostGate {
   const st = new Map<string, { until: number; level: number }>();
   return {

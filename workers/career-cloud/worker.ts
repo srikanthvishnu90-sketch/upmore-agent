@@ -230,7 +230,9 @@ export async function runCloudJob(job: CloudJob, d: {
     }
   }
   log(`${job.id}: ${s.state} (${s.outcome}${s.errorKind ? ", " + s.errorKind : ""})${recorded ? "" : "; NOT RECORDED: the queue marks it unknown after 15 minutes"}`);
-  return { id: job.id, user_id: job.user_id, ...s, recorded };
+  // The seconds a host that refused for load asked for (HOST_RATE_LIMITED), for the shared back-off (mass-run.ts refusal).
+  const retry = typeof run?.result?.retry_after_s === "number" ? { retry_after_s: run.result.retry_after_s as number } : {};
+  return { id: job.id, user_id: job.user_id, ...s, recorded, ...retry };
 }
 
 // The loop (owner D-MS-2, 2026-10-27: no product volume cap, safety pacing only): claims approved applications in
@@ -283,7 +285,7 @@ export async function cloudLoop(o: {
     run: async (job, onStart) => {
       const r = await runCloudJob(job, { queue: o.queue, runEngine: o.runEngine, tmpRoot: o.tmpRoot, log, stopping: o.stop, beforeEngine: onStart });
       done.push(r);
-      return { state: r.state, reason: r.reason, recorded: r.recorded };
+      return { state: r.state, reason: r.reason, recorded: r.recorded, retry_after_s: (r as { retry_after_s?: number }).retry_after_s ?? null };
     },
     unstarted: async (job, why) => {
       const recorded = await finishOnce(job, "not_submitted", why, "not_sent", why);

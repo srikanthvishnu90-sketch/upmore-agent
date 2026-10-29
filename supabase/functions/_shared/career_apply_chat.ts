@@ -114,9 +114,11 @@ export function applyManyAsk(message: string): ManyAsk | null {
 }
 
 const lower = (s: unknown) => String(s ?? "").toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim();
-// What the queue recorded, as an application for the once-per-employer screen: a row that was approved or went counts;
-// one that failed before anything left, or stopped for the person, does not.
-const COUNTED = new Set(["queued", "driving", "submitted_unconfirmed", "confirmed", "unknown_outcome"]);
+// What the queue recorded, as an application for the same-posting screen (D-MS-3: no employer rule): a row that was
+// approved, went, may have gone, or was handed back to the person to finish counts; one that ended unsent does not.
+// The queue's states that count as this posting applied to (or approved, or handed back to finish): the database's own
+// career_apply_counted_states(), so a posting the database would refuse as the same posting is said so here first.
+const COUNTED = new Set(["queued", "driving", "submitted_unconfirmed", "confirmed", "needs_user", "unknown_outcome"]);
 export function trackedFromRows(rows: AppRow[]): TrackedApp[] {
   return rows.map((r) => ({ ref: r.id, company: r.company, role: r.title ?? undefined, url: r.url ?? undefined, applied_at: r.created_at, stage: COUNTED.has(r.state) ? "Submitted" : "Saved", source: "queue" as const }));
 }

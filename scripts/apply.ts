@@ -16,6 +16,7 @@ import {
   questionFieldType,
 } from "../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../supabase/functions/_shared/career_apply_store.ts";
+import { retryAfterSeconds } from "../workers/career-browser/mass-run.ts";
 // How a form's fields become the planner's questions; shared with the browser extension (WO-031).
 import { bindFields as bind } from "./career/form-bind.ts";
 import { aiPolicyStatements } from "../supabase/functions/_shared/ai_policy.ts";
@@ -862,8 +863,8 @@ export async function runApply(args: string[]) {
       // page itself, before anything was filled, stops the run as not sent; the worker backs off that host for every
       // instance and the application is not started again by this run (HOST_RATE_LIMITED, with the seconds it asked for).
       if (main && !allowSubmit && (response.status() === 429 || (response.status() === 503 && response.headers()["retry-after"]))) {
-        const ra = String(response.headers()["retry-after"] ?? "").trim();
-        const secs = /^\d{1,6}$/.test(ra) ? Number(ra) : Number.isFinite(Date.parse(ra)) ? Math.max(0, Math.round((Date.parse(ra) - Date.now()) / 1000)) : null;
+        // Seconds or an HTTP-date only (retryAfterSeconds); anything else is no answer, so the default back-off applies.
+        const secs = retryAfterSeconds(response.headers()["retry-after"], Date.now());
         evidence.rate_limited = { status: response.status(), retry_after_s: secs };
       }
       if (uploadReq) uploadEchoes.push((await response.text()).slice(0, 20000));

@@ -29,6 +29,7 @@ export function fakePhone(accounts: Record<string, string | null>, o: { configur
   const live = new Map<string, string>(); // phone -> the latest code
   let n = 0;
   const auth: PhoneAuth = {
+    async ready() { return o.configured !== false; },
     async accountPhone(u) { return accounts[u] ?? null; },
     async send(phone) {
       if (o.configured === false) return { ok: false, why: "not_configured" };

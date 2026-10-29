@@ -155,7 +155,17 @@ const cookieOf = (req: Request, name: string) => {
   return "";
 };
 
+// A store or provider that throws where no step expects it still gets a page: nothing was opened or sent, try again
+// (tests/architect/scenarios-file-signin.test.ts: a failing count or sign-in write used to reject with no response at all).
 export async function handleFile(req: Request, d: FileDeps): Promise<Response> {
+  try {
+    return await handleFileOnce(req, d);
+  } catch {
+    return new Response(renderLinkState("Couldn't open this just now", ["Nothing was opened and nothing was sent. Try again in a minute."]), { status: 503, headers: await headers("text/html; charset=utf-8", d.env) });
+  }
+}
+
+async function handleFileOnce(req: Request, d: FileDeps): Promise<Response> {
   const html = async (body: string, status = 200, extra: Record<string, string> = {}) => new Response(body, { status, headers: { ...(await headers("text/html; charset=utf-8", d.env)), ...extra } });
   const text = async (body: string, status = 200) => new Response(body, { status, headers: await headers("text/plain; charset=utf-8", d.env) });
   if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "POST") return html(renderLinkState("Not supported", ["This page only opens and answers."]), 405);
@@ -222,37 +232,50 @@ export async function handleFile(req: Request, d: FileDeps): Promise<Response> {
     if (d.now() >= Date.parse(row.expires_at)) return state("This sign-in has expired", ["Codes must be typed within 15 minutes. " + NEW_LINK], 410);
     if (row.tries >= MAX_CODE_TRIES) return locked();
     const page = (st: "phone" | "code", note?: string, status = 200) => html(renderPhoneLogin({ step: st, note, botUrl: bot }), status);
+    const down = () => state("Couldn't open this just now", ["Nothing was sent. Try again in a minute."], 503);
     if (!d.phone) return state("Phone sign-in isn't switched on yet", ["Nothing was opened and nothing was sent."], 503);
     if (step === "phone_reset") { await sessions!.setPhone(row.jti, null, false).catch(() => {}); return page("phone"); }
     if (step === "phone_start") {
       const phone = normalizePhone(fields.get("phone"));
       if (!phone) return page("phone", "That doesn't look like a phone number. Include the country code if it's outside the US.", 400);
+      // Whether texting is switched on is asked BEFORE the number is compared, so the answer cannot depend on the number.
+      if (d.phone.ready && !(await d.phone.ready().catch(() => false))) return state("Phone sign-in isn't switched on yet", ["No code was sent. Nothing was opened."], 503);
       const own = await d.phone.accountPhone(row.user_id).catch(() => undefined);
-      if (own === undefined) return state("Couldn't open this just now", ["Nothing was sent. Try again in a minute."], 503);
+      if (own === undefined) return down();
       const matched = !!own && own === phone;
-      await sessions!.setPhone(row.jti, phone, matched);
-      // The same answer whether or not the number is the account's: a forwarded link never learns whose it is.
+      if (!(await sessions!.setPhone(row.jti, phone, matched).then(() => true, () => false))) return down();
+      // The same answer whether or not the number is the account's: a forwarded link never learns whose it is. So a number
+      // that matched answers exactly as any other number does, also when its texts are used up or the text could not go out
+      // (a different note there told a stranger "this is the account's number"; scenarios-file-signin.test.ts).
       if (matched) {
-        if (!(await sessions!.countSend(row.jti, MAX_CODE_SENDS))) return page("code", "A code was already texted to this number several times. Use the latest one, or ask Trainee for a new link.");
-        const sent = await d.phone.send(phone).catch(() => ({ ok: false as const, why: "refused" as const }));
-        if (!sent.ok && sent.why === "not_configured") return state("Phone sign-in isn't switched on yet", ["No code was sent. Nothing was opened."], 503);
-        if (!sent.ok) return page("phone", "The code couldn't be texted just now. Try again in a minute.", 503);
+        const counted = await sessions!.countSend(row.jti, MAX_CODE_SENDS).catch(() => null);
+        if (counted === null) return down();
+        if (counted) {
+          const sent = await d.phone.send(phone).catch(() => ({ ok: false as const, why: "refused" as const }));
+          if (!sent.ok) console.error(`trainee-file: the sign-in code was not texted (${sent.why})`);
+        }
       }
       return page("code");
     }
     // phone_verify
     if (!row.phone) return page("phone");
-    if (!(await sessions!.countTry(row.jti, MAX_CODE_TRIES))) return locked();
+    const tried = await sessions!.countTry(row.jti, MAX_CODE_TRIES).catch(() => null);
+    if (tried === null) return down();
+    if (!tried) return locked();
     const code = codeOf(fields.get("code"));
     const who = code && row.matched ? await d.phone.check(row.phone, code).catch(() => null) : null;
     const still = who === row.user_id ? await d.phone.accountPhone(row.user_id).catch(() => null) : null;
     if (who !== row.user_id || still !== row.phone) return page("code", "That code didn't work. Check the latest text and try again.", 401);
-    if (!(await sessions!.finishLogin(row.jti, d.now()))) return state("This link was already used", ["A link opens a sign-in once. " + NEW_LINK], 410);
-    const id = await startSession(sessions!, { userId: row.user_id, via: "phone", phone: row.phone, telegramId: null, list: row.list, now: d.now() });
+    const finished = await sessions!.finishLogin(row.jti, d.now()).catch(() => null);
+    if (finished === null) return down();
+    if (!finished) return state("This link was already used", ["A link opens a sign-in once. " + NEW_LINK], 410);
+    const id = await startSession(sessions!, { userId: row.user_id, via: "phone", phone: row.phone, telegramId: null, list: row.list, now: d.now() }).catch(() => "");
+    if (!id) return state("Couldn't open this just now", ["Nothing was opened. This link is used up, so " + NEW_LINK.charAt(0).toLowerCase() + NEW_LINK.slice(1)], 503);
     return new Response("", { status: 303, headers: [...Object.entries(await headers("text/html; charset=utf-8", d.env)), ["location", url.pathname], ["set-cookie", sessionCookie(id)], ["set-cookie", CLEAR_LOGIN]] });
   }
 
   let token = "";
+  let checked: Awaited<ReturnType<typeof check>> | null = null;
   if (req.method === "POST" && !fields.get("t")) {
     const list = fields.get("list") ?? "";
     if (!/^[0-9a-f]{10}$/.test(list) || !fields.get("init")) return state("This link isn't valid", ["It may be cut short or changed. " + NEW_LINK], 403);
@@ -273,19 +296,27 @@ export async function handleFile(req: Request, d: FileDeps): Promise<Response> {
     const list = url.searchParams.get("list") ?? "";
     if (/^[0-9a-f]{10}$/.test(list)) return html(renderBootstrap(list)); // the Mini App page: reads Telegram's signed data and posts it back
     token = cookieOf(req, "tf_s");
-    if (!SESSION_ID.test(token)) {
-      // No session yet: a link opened on this browser is waiting for the phone sign-in.
+    // A link opened on this browser that is waiting for the phone sign-in.
+    const pending = async (): Promise<Response | null> => {
       const lt = await verifyFileToken(cookieOf(req, "tf_l"), secret, d.now());
-      if (lt.ok && lt.claims.k === "l") {
-        const row = await sessions.login(lt.claims.j).catch(() => null);
-        if (row && !row.done_at && row.user_id === lt.claims.u && d.now() < Date.parse(row.expires_at)) return row.tries >= MAX_CODE_TRIES ? locked() : html(renderPhoneLogin({ step: row.phone ? "code" : "phone", botUrl: bot }));
-      }
-      return state("This link isn't valid", ["It may be cut short or changed. " + NEW_LINK], 403);
+      if (!lt.ok || lt.claims.k !== "l") return null;
+      const row = await sessions.login(lt.claims.j).catch(() => null);
+      if (row && !row.done_at && row.user_id === lt.claims.u && d.now() < Date.parse(row.expires_at)) return row.tries >= MAX_CODE_TRIES ? locked() : html(renderPhoneLogin({ step: row.phone ? "code" : "phone", botUrl: bot }));
+      return null;
+    };
+    if (!SESSION_ID.test(token)) return (await pending()) ?? state("This link isn't valid", ["It may be cut short or changed. " + NEW_LINK], 403);
+    // An ended session's cookie (signed out elsewhere, expired, phone changed) must not hide the sign-in a NEW link opened:
+    // the browser keeps tf_s until its Max-Age, and every read would say "signed out, open a new link" in a loop
+    // (scenarios-file-signin.test.ts). The pending sign-in wins and the dead cookie is cleared.
+    checked = await check(token);
+    if (!checked.ok && checked.why !== "error") {
+      const p = await pending();
+      if (p) { p.headers.append("set-cookie", CLEAR_SESSION); return p; }
     }
   }
 
   // ---- every private read and action: the session again, checked against the account right now
-  const s = await check(token);
+  const s = checked ?? await check(token);
   if (!s.ok) return signedOut(s.why);
   if (action === "signout" || action === "signout_all") {
     const ok = await (action === "signout" ? sessions.revoke(s.idHash, d.now()) : sessions.revokeAll(s.userId, d.now())).then(() => true, () => false);

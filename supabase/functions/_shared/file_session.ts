@@ -26,12 +26,14 @@ export interface SessionStore {
   // A phone login for one link (its jti): begun once, a number recorded (and whether it is the account's), counted atomically.
   beginLogin(l: { jti: string; userId: string; list: string; at: number; expiresAt: number }): Promise<LoginRow>;
   login(jti: string): Promise<LoginRow | null>;
-  setPhone(jti: string, phone: string, matched: boolean): Promise<void>;
+  setPhone(jti: string, phone: string | null, matched: boolean): Promise<void>; // null: "use a different number"
   countSend(jti: string, max: number): Promise<boolean>; // false: the cap is reached (the row is not changed)
   countTry(jti: string, max: number): Promise<boolean>; // false: locked
   finishLogin(jti: string, at: number): Promise<boolean>; // true only the first time (the link is used up)
 }
 export interface PhoneAuth {
+  // Whether codes can be texted at all (asked before a typed number is compared, so the answer never depends on the number).
+  ready?(): Promise<boolean>;
   // The account's own confirmed phone ("+<digits>"), or null when it has none.
   accountPhone(userId: string): Promise<string | null>;
   // Text a one-time code to the number. Only ever called for the account's own confirmed number.

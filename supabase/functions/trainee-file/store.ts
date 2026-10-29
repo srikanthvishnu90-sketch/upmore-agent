@@ -71,6 +71,7 @@ export function supabasePhoneAuth(admin: any, o: { url: string; anon: string | u
   const f = o.fetch ?? fetch;
   const auth = (path: string, body: unknown, bearer?: string) => f(`${o.url}/auth/v1/${path}`, { method: "POST", headers: { apikey: o.anon ?? "", "content-type": "application/json", ...(bearer ? { authorization: `Bearer ${bearer}` } : {}) }, body: JSON.stringify(body) });
   return {
+    async ready() { return !!o.anon; },
     async accountPhone(userId) {
       const r = await admin.auth.admin.getUserById(userId);
       if (r.error) { if (/not found/i.test(r.error.message ?? "")) return null; throw new Error(`read the account: ${r.error.message}`); }

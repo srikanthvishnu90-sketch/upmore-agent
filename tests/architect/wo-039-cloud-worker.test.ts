@@ -308,6 +308,7 @@ Deno.test("WO-039/9 the engine never sees the service key; a resume named facts.
     assert(names.includes("UPMORE_MASK_SCREENSHOTS") && names.includes("PATH"), names.join(" "));
   } finally {
     Deno.env.delete("SUPABASE_SERVICE_ROLE_KEY");
+    Deno.env.delete("SUPABASE_URL");
     Deno.env.delete("OPENAI_API_KEY");
   }
   const j = await job("A", 12), { q, finished } = memQueue([j], { resume: () => ({ filename: "facts.json", sha256: RESUME_SHA, b64 }) }), seen: any[] = [];

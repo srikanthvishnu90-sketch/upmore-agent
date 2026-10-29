@@ -88,8 +88,9 @@ Deno.test("ledger: every guard is mutation-checked (the scenarios fail on each b
   try {
     // The mutant loads from a temp dir, so its one relative import becomes an absolute URL.
     const calls = new URL("../../supabase/functions/_shared/model_calls.ts", import.meta.url).href;
-    const base = src.replace(`from "./model_calls.ts"`, `from "${calls}"`);
-    assert(base !== src, "the import was rewritten");
+    const budget = new URL("../../supabase/functions/_shared/model_budget.ts", import.meta.url).href;
+    const base = src.replace(`from "./model_calls.ts"`, `from "${calls}"`).replace(`from "./model_budget.ts"`, `from "${budget}"`);
+    assert(base !== src && !base.includes(`from "./`), "the imports were rewritten");
     // The unmutated copy passes: the harness itself is sound.
     await Deno.writeTextFile(`${dir}/ok.ts`, base);
     await ledgerScenarios(await import(`file://${dir}/ok.ts`));

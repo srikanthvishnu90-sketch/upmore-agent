@@ -77,6 +77,7 @@ import { CONFIRM_INTENT, confirmWhichTurn, supabaseConfirmStore } from "../_shar
 import { EMAIL_INTENT, emailTurn, supabaseEmailStore, supabaseResumes } from "../_shared/career_apply_email.ts";
 import { CAREER_SEND_SCOPE, careerTokenFor, sendMail } from "../_shared/career_mail_gmail.ts";
 import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_brief_store.ts";
+import { plannerHandlerTurn, plannerOn } from "./career_planner.ts";
 import { draftFor, outreachTurn, supabaseOutreachStore } from "../_shared/career_outreach.ts";
 import { queueApprovedOutreach, sendRailOn } from "../_shared/career_send_rail.ts"; // MASS NETWORKING M1
 import { repliesTurn, supabaseRepliesStore } from "../_shared/career_outreach_replies.ts"; // MASS NETWORKING M5
@@ -397,6 +398,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
       let agentMeta: Record<string, unknown> | null = null;
+      let planned: Awaited<ReturnType<typeof plannerHandlerTurn>> = null; // task intelligence P1 (flag CAREER_PLANNER, default off)
       const events = supabaseEventStore(admin);
       // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
       // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
@@ -773,6 +775,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (offerAns.card) agentMeta = { offer_card: offerAns.card };
       } else if (outreachStatus) {
         out = { reply: outreachStatus.reply, intent: outreachStatus.intent, resultStatus: outreachStatus.status, contained: false, handler: "outreach_status" };
+      } else if (!careerTask && !careerBatch && plannerOn(Deno.env, user.id) && !host.isHostControlled(message, ctx) && (planned = await (async () => {
+        // A turn the planner does not claim (or a model outage) falls through to the chain below unchanged.
+        const pMeter = ledger.track(newMeter()), pCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+        try {
+          return await plannerHandlerTurn({ admin, userId: user.id, threadId: tid, channel: isBridgeCall ? String(body.channel ?? "text") : "web", message, attachments: Array.isArray(body.attachments) ? (body.attachments as any[]).filter((a) => a && typeof a === "object").map((a) => ({ name: String(a.name ?? "") })) : [],
+            ctx: ctx as unknown as Record<string, unknown>, model: (payload) => callModel(pCfg, payload, { meter: pMeter, role: "chat" }), outreach: outreachStore, situation });
+        } catch (e) { console.error("planner:", (e as any)?.message ?? e); return null; }
+        finally { await ledger.record(pMeter); } // trunk: the ledger is the only cost sink
+      })())) {
+        out = { reply: planned.reply, intent: planned.intent, resultStatus: planned.resultStatus, contained: false, handler: "planner", ...(planned.parts ? { parts: planned.parts } : {}) };
+        agentMeta = planned.meta;
       } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || staged.toBrain()) && !host.isHostControlled(message, ctx)) {
         const meter = ledger.track(newMeter());
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };

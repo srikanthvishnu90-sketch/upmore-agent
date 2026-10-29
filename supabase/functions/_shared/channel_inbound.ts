@@ -83,7 +83,7 @@ export interface CoreDeps {
   // OUTBOX_CHARS; when given with two or more, they are what the person reads, in order, and `reply` is not sent.
   // replyToMessageId (optional): the provider's id of the message the person replied to (SERIAL-1462). cardId (optional,
   // in the answer): the card this reply shows, so the outbox row that carries it is recorded against the card.
-  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null; channel?: string }) => Promise<{ status: number; reply: string; shape?: { attachments: ShapedFile[]; links: string[] }; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null; postings?: unknown[]; screenButtons?: boolean; artifacts?: { ref: string; filename: string; mime: string }[] }>;
+  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null; channel?: string; screenTap?: { qid: string; answer: string } | null }) => Promise<{ status: number; reply: string; shape?: { attachments: ShapedFile[]; links: string[] }; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null; postings?: unknown[]; screenButtons?: boolean; screenQid?: string | null; artifacts?: { ref: string; filename: string; mime: string }[] }>;
   deliver: (a: { userId: string; key: string; now: number }) => Promise<void>; // a head start on the every-minute run
   // FEATURE 16 (Telegram; optional, so the other channels run unchanged):
   // resumeFile: a document the person sent, downloaded, read and stored as their upload (channel_resume_upload.ts); ok
@@ -141,9 +141,10 @@ export async function turnKeyFor(messageId: string): Promise<string> {
 const scoped = (m: InboundMessage) => (m.provider === "loopmessage" ? m.messageId : `${m.provider === "telegram" ? "tg" : "wa"}:${m.messageId}`);
 const YES = /^yes[.!]*$/i, CONNECT_TELEGRAM = /^connect telegram[.!]*$/i;
 
-// F09: the Yes / No buttons under the posting screen's yes/no question. Their data is exactly "yes" / "no", the whole message the
-// screen's strict parser accepts, so a tap is read as the person typing that word.
-export const SCREEN_BUTTONS = [[{ text: "Yes", data: "yes" }, { text: "No", data: "no" }]];
+// F09: the Yes / No buttons under the posting screen's yes/no question. Their callback data is scr:<question id>:yes|no, bound to the one
+// question that is open; a tap is an explicit screen answer (never a typed "yes" for another consumer).
+export const screenButtons = (qid: string) => [[{ text: "Yes", data: `scr:${qid}:yes` }, { text: "No", data: `scr:${qid}:no` }]];
+export const SCREEN_TAP = /^scr:([0-9a-f]{8}):(yes|no)$/;
 export const SCREEN_REPLY_YES_NO = "Reply yes or no.";
 export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out> {
   const now = d.now(), store = d.store;
@@ -251,14 +252,23 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     };
     // FEATURE 16: a tap on a card's Approve or Decline (Telegram's inline keyboard): answered exactly as the web tap
     // (channel_card_tap.ts), the button answered once, and the result said in the chat through the outbox.
-    // F09: a tap on Yes / No (data exactly "yes" or "no") is the person's one-word answer: read as that text, as a reply to the
-    // message the buttons were under (so a stale button can never be taken for the "yes" that approves a card, which needs its own reply id).
-    let tapped = false;
-    if (msg.kind === "callback" && msg.callback && /^(yes|no)$/.test(msg.callback.data)) {
-      if (d.answerCallback) await d.answerCallback(msg.callback.id, msg.callback.data === "yes" ? "Yes" : "No").catch(() => false);
-      msg = { ...msg, kind: "text", text: msg.callback.data, replyToMessageId: msg.callback.messageId, callback: null };
-      tapped = true;
+    // F09: a tap on Yes / No (scr:<qid>:yes|no) goes to the chat as an EXPLICIT screen answer carrying the question id; the chat runs it
+    // only if that question is still open (else "That question is no longer open") and skips every other yes/no consumer. It is never
+    // turned into a typed "yes": no card is approved, no account linked, no employer question answered by it. A button from before
+    // this change (data exactly "yes" / "no") is stale by definition and does nothing.
+    let screenTap: { qid: string; answer: string } | null = null;
+    if (msg.kind === "callback" && msg.callback) {
+      const m = SCREEN_TAP.exec(msg.callback.data);
+      if (m) {
+        screenTap = { qid: m[1], answer: m[2] };
+        if (d.answerCallback) await d.answerCallback(msg.callback.id, m[2] === "yes" ? "Yes" : "No").catch(() => false);
+        msg = { ...msg, kind: "text", text: m[2], replyToMessageId: null, callback: null };
+      } else if (/^(yes|no)$/.test(msg.callback.data)) {
+        if (d.answerCallback) await d.answerCallback(msg.callback.id, "That question is no longer open.").catch(() => false);
+        return ok({ ignored: "a stale yes/no button" });
+      }
     }
+    const tapped = !!screenTap;
     if (msg.kind === "callback") {
       if (!msg.callback || !d.cardTap) {
         if (msg.callback && d.answerCallback) await d.answerCallback(msg.callback.id, "Nothing was approved.").catch(() => false);
@@ -318,14 +328,14 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       return await answer(text, { connect: "telegram" });
     }
 
-    let postings: unknown[] = [], cardsShown = 0, screenButtons = false, shape: { attachments: ShapedFile[]; links: string[] } | null = null;
+    let postings: unknown[] = [], cardsShown = 0, screenQidOut: string | null = null, shape: { attachments: ShapedFile[]; links: string[] } | null = null;
     let reply: string, parts: string[] | null = null, artifacts: { ref: string; filename: string; mime: string }[] = [], turnThread: string | null = person.threadId;
     try {
       const turnKey = await turnKeyFor(msg.provider === "loopmessage" ? msg.messageId : `${msg.provider}:${msg.messageId}`);
       // Telegram's /start and /help come as a command with no text; the brain reads them as the command itself.
       const said = fileMessage ?? (msg.text || (command ? `/${command}` : ""));
       // The brain gets the person, the thread, the words and a turn key, and the reply-to id only when the platform gave one.
-      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}) });
+      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}), ...(screenTap ? { screenTap } : {}) });
       reply = out.reply.trim() || CHAT_DOWN_REPLY;
       // SERIAL-1480: a card's yes with no usable reply id is told how in this channel's own terms: where this
       // integration has a verified reply-id path (Telegram, WhatsApp Cloud) "reply directly to the card, or tap"; on
@@ -335,7 +345,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       shape = out.shape ?? null;
       cardId = typeof out.cardId === "string" && out.cardId ? out.cardId : null;
       artifacts = Array.isArray(out.artifacts) ? out.artifacts : [];
-      screenButtons = out.screenButtons === true;
+      screenQidOut = out.screenButtons === true && typeof out.screenQid === "string" ? out.screenQid : null;
       postings = Array.isArray(out.postings) ? out.postings.slice(0, 200) : [];
       turnThread = out.threadId ?? person.threadId;
       if (toBrain && command === "start") {
@@ -355,8 +365,8 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     try { for (const r of rows) await d.deliver({ userId: person.userId, key: r.key, now }); }
     catch (e) { console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
     // F09: the screen's yes/no question gets Yes / No buttons where the channel has them (Telegram), else the plain words.
-    if (screenButtons) {
-      const buttons = msg.channel === "telegram" ? SCREEN_BUTTONS : undefined;
+    if (screenQidOut) {
+      const buttons = msg.channel === "telegram" ? screenButtons(screenQidOut) : undefined;
       const already = /reply yes or no/i.test(reply) || (parts ?? []).some((p) => /reply yes or no/i.test(p));
       if (buttons || !already) await d.reply(contact, d.render(buttons ? "Yes or no?" : SCREEN_REPLY_YES_NO), buttons ? { buttons } : undefined).catch(() => ({ ok: false }));
     }

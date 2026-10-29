@@ -114,21 +114,29 @@ Deno.test("question -> answer -> saved confirmed fact -> the screen reads it and
   const r1 = await turn("apply to all of them", chatScreenFacts(CareerProfile.confirmedFacts(profile)), list);
   assert.equal(r1!.screen!.counts.held, 2, r1!.reply);
   const meta = screenMeta(r1!.screen)!;
-  assert.deepEqual((meta.screen_ask as any[]).map((a) => a.fact).sort(), ["location", "sponsorship"]);
+  assert.equal((meta.screen_ask as any[]).length, 1, "round 5: ONE question at a time, never several at once");
   assert.deepEqual(wants.dump().u1 ?? [], []);
   // 2. The person answers; each answer is a confirmed profile fact in the profile, in the real shape.
   const rerun = (held: any[]) => turn("apply to all of them", chatScreenFacts(CareerProfile.confirmedFacts(profile)), held.map((h) => ({ id: h.job_id, title: h.title, company: h.company, location: "", url: h.url })));
-  // Round 4: a yes/no question takes only an exact yes / no, so "...and I will need visa sponsorship" saves the place and NOT the sponsorship
-  // answer (nothing wrong is written); the sponsorship question stays open and the person answers it with a yes.
-  const a1 = await screenAnswerTurn({ message: "I live in Austin, TX and I will need visa sponsorship", now: NOW, last: { intent: "career_apply_queue", meta }, profile, addFact: (p, f) => CareerProfile.addFact(p, f), rerun });
-  assert.ok(a1, "the place is taken");
-  assert.deepEqual(a1!.saved.map((s) => s.fact), ["location"]);
-  assert.equal(CareerProfile.confirmedFacts(profile).filter((f: any) => f.screen_key === "sponsorship").length, 0, "the sponsorship phrase wrote nothing");
-  assert.deepEqual(((a1!.meta as any).screen_ask as any[]).map((x) => x.fact), ["sponsorship"], "the sponsorship question is still open");
-  assert.deepEqual((a1!.meta as any).screen_buttons, ["Yes", "No"], "a single yes/no question open carries the Yes / No buttons");
-  const a = await screenAnswerTurn({ message: "yes", now: NOW, last: { intent: "career_apply_queue", meta: a1!.meta as any }, profile, addFact: (p, f) => CareerProfile.addFact(p, f), rerun });
-  assert.ok(a, "the answer is taken");
-  assert.deepEqual(a!.saved.map((s) => s.fact), ["sponsorship"]);
+  // Round 4/5: a yes/no question takes only an exact yes / no, and the person is asked ONE question at a time. A sentence that mixes the
+  // two answers writes nothing (the open question is asked again); each question is then answered on its own, the next one following.
+  const ANSWERS: Record<string, string> = { location: "Austin, TX", sponsorship: "yes" };
+  const wrong = await screenAnswerTurn({ message: "I live in Austin, TX and I will need visa sponsorship", now: NOW, last: { intent: "career_apply_queue", meta }, profile, addFact: (p, f) => CareerProfile.addFact(p, f), rerun });
+  assert.ok(wrong, "the mixed sentence is a non-answer");
+  assert.deepEqual(wrong!.saved, [], "nothing wrong is written");
+  assert.equal(CareerProfile.confirmedFacts(profile).filter((f: any) => f.screen_key).length, 0);
+  let cur: any = wrong!.meta, a: any = null;
+  const order: string[] = [];
+  for (let i = 0; i < 2; i++) {
+    assert.equal(cur.screen_ask.length, 1, "one question at a time");
+    const fact = cur.screen_ask[0].fact;
+    order.push(fact);
+    a = await screenAnswerTurn({ message: ANSWERS[fact], now: NOW, last: { intent: "career_apply_queue", meta: cur }, profile, addFact: (p, f) => CareerProfile.addFact(p, f), rerun });
+    assert.ok(a, "the answer is taken");
+    assert.deepEqual(a.saved.map((s: any) => s.fact), [fact]);
+    cur = a.meta ?? {};
+  }
+  assert.deepEqual([...order].sort(), ["location", "sponsorship"]);
   const kept = CareerProfile.confirmedFacts(profile).filter((f: any) => f.screen_key);
   assert.equal(kept.length, 2);
   assert.ok(kept.every((f: any) => f.status === "confirmed" && f.needs_confirmation === false && f.source === "screen_answer" && f.evidence[0].includes(f.screen_key === "location" ? "Austin" : "yes")));

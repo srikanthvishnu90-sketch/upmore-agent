@@ -357,6 +357,11 @@ declare -A CLOUD_WAVE1=([CLOUD_MAX_CONCURRENT]=2 [CLOUD_MAX_PER_PORTAL]=1 [CLOUD
 # secret; it sends nothing until CAREER_SEND_RAIL=on is set (docs/architect/OUTREACH-SEND-2026-10-27.md).
 SEND_FNS=(career-send)
 DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${JWT_FNS[@]}" "${OAUTH_FNS[@]}" "${SEND_FNS[@]}" "$CLOUD_FN")
+# Secret-gated, public (verify_jwt = false) functions, each deployed only when its secret is among the project's function
+# secrets (in a dry run: given in the environment). Absent secret: skipped with a log line, never a failure. Nothing here
+# sets the secret. gate_fns (run by make_manifest) appends the enabled ones to DEPLOY_FNS and GATED_ON.
+GATED=(trainee-file:TRAINEE_FILE_LINK_SECRET ops-monitor:OPS_MONITOR_TOKEN)
+GATED_ON=(); GATED_DONE=""
 # The Upmore finance functions still in supabase/functions. Trainee never deploys them (production stops drifting toward
 # the finance app); retiring them on the live project is the owner's decision (docs/architect/REMOVAL-LIST-2026-10-28.md).
 UPMORE_ONLY_FNS=(agent-exec agent-message-inbound agent-message-turn agent-message-worker agent-payments agent-proactive
@@ -485,9 +490,22 @@ migration_list() {
   for i in "${!EARLIER[@]}"; do printf 'earlier\t%s\t%s\n' "${EARLIER[$i]}" "${EARLIER_MARK[$i]}"; done
   for i in "${!MIGRATIONS[@]}"; do printf 'trainee\t%s\t%s\n' "${MIGRATIONS[$i]}" "${MIGRATION_MARK[$i]}"; done
 }
+gate_fns() {
+  local pair fn var on
+  [[ -z "$GATED_DONE" ]] || return 0
+  GATED_DONE=1
+  for pair in "${GATED[@]}"; do
+    fn="${pair%%:*}"; var="${pair##*:}"; on=""
+    if [[ -n "$DRY" ]]; then [[ -z "${!var:-}" ]] || on=1; else live_has "$var" && on=1; fi
+    if [[ -n "$on" ]]; then GATED_ON+=("$fn"); DEPLOY_FNS+=("$fn"); echo "  gated: $fn will be deployed ($var is set)"
+    else echo "  gated: $fn SKIPPED ($var is not among the function secrets)"; fi
+  done
+  return 0
+}
 # make_manifest <sha>: the provenance manifest of the staged commit, printed, with its tsv views for the ledger.
 make_manifest() {
   local fns
+  gate_fns
   migration_list >"$WORK/migrations.tsv"
   fns="$(IFS=,; echo "${DEPLOY_FNS[*]}")"
   if ! node "$PROV" manifest --stage "$SRC" --sha "$1" --functions "$fns" --migrations "$WORK/migrations.tsv" --out "$WORK/manifest.json" \
@@ -775,6 +793,7 @@ if [[ -z "$ONLY_SMOKE" ]]; then
   else
     echo "DRY: git archive <--sha> -- ${STAGE_PATHS[*]} | tar -x into a fresh temp dir; the rest of the run works there"
     echo "DRY: python3 scripts/build-router-core.py --check and --career-only --check in the staged commit (stale stops the run)"
+    gate_fns
     echo "DRY: node scripts/launch/deploy-provenance.cjs manifest: the provenance manifest printed and kept in ~/trainee-provenance/"
   fi
 fi
@@ -782,6 +801,7 @@ if [[ -z "$ONLY_SMOKE" && -z "$SKIP_DEPLOY" ]]; then
   CHECK=(supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts
     supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
     supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/outlook-oauth/index.ts supabase/functions/career-send/index.ts supabase/functions/career-cloud-runner/index.ts)
+  for fn in ${GATED_ON[@]+"${GATED_ON[@]}"}; do CHECK+=("supabase/functions/$fn/index.ts"); done
   run "deno check ${CHECK[*]}" deno check "${CHECK[@]}"
 fi
 ok
@@ -980,6 +1000,12 @@ else
   done
   # pg_cron carries no JWT; career-send checks the proactive secret itself.
   for fn in "${SEND_FNS[@]}"; do
+    run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt --use-docker
+    if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
+    else ledger_function "$fn"; fi
+  done
+  # Public by design (verify_jwt = false in supabase/config.toml): trainee-file's signed link and ops-monitor's token authenticate.
+  for fn in ${GATED_ON[@]+"${GATED_ON[@]}"}; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt --use-docker
     if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
     else ledger_function "$fn"; fi

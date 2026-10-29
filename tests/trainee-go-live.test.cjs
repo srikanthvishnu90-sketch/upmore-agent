@@ -631,3 +631,25 @@ test('FEATURE 17: the cloud schedule reads CLOUD_DISPATCH_SECRET into Vault and 
   const snap = fs.readFileSync(path.join(root, 'scripts/cloud-runner/build-snapshot.ts'), 'utf8');
   assert.match(snap, /deno cache [^"]*workers\/career-cloud\/prepare-runner\.ts/, 'the snapshot caches the preparation runner too');
 });
+
+// trainee-file (hosted list page) and ops-monitor are public (verify_jwt = false in supabase/config.toml) and secret-gated:
+// deployed only when TRAINEE_FILE_LINK_SECRET / OPS_MONITOR_TOKEN is among the function secrets; absent = skipped, never a failure.
+test('gated functions: deployed with --no-verify-jwt only when their secret is set; absent is a log line, not a failure', () => {
+  const cfg = fs.readFileSync(path.join(root, 'supabase/config.toml'), 'utf8');
+  for (const fn of ['trainee-file', 'ops-monitor']) assert.match(cfg, new RegExp(`\\[functions\\.${fn}\\]\\nverify_jwt = false`));
+  const off = dry();
+  assert.equal(off.code, 0, off.out);
+  assert.match(off.out, /gated: trainee-file SKIPPED \(TRAINEE_FILE_LINK_SECRET is not among the function secrets\)/);
+  assert.match(off.out, /gated: ops-monitor SKIPPED \(OPS_MONITOR_TOKEN is not among the function secrets\)/);
+  assert.doesNotMatch(off.out, /functions deploy (trainee-file|ops-monitor)/);
+  const on = dry([], { ...FAKE, TRAINEE_FILE_LINK_SECRET: 'fake-file-link-secret-0000-FFFFFFFFFFFFFFFF', OPS_MONITOR_TOKEN: 'fake-ops-monitor-token-0000-OOOOOOOOOOOOOOO' });
+  assert.equal(on.code, 0, on.out);
+  assert.match(on.out, /supabase functions deploy trainee-file --project-ref \S+ --no-verify-jwt --use-docker/);
+  assert.match(on.out, /supabase functions deploy ops-monitor --project-ref \S+ --no-verify-jwt --use-docker/);
+  assert.match(on.out, /deno check [^\n]*trainee-file\/index\.ts [^\n]*ops-monitor\/index\.ts/);
+  assert.doesNotMatch(on.out, /trainee-connect/);
+  const only = dry([], { ...FAKE, OPS_MONITOR_TOKEN: 'fake-ops-monitor-token-0000-OOOOOOOOOOOOOOO' });
+  assert.match(only.out, /gated: trainee-file SKIPPED/);
+  assert.match(only.out, /functions deploy ops-monitor /);
+  assert.doesNotMatch(only.out, /functions deploy trainee-file/);
+});

@@ -23,7 +23,9 @@ import { neverOpen } from "./career_people_sites.ts";
 import { type PageRead, readPage, type Resolver } from "./career_people_page.ts";
 import { domainLabelOf, registrable } from "./career_people_gmail.ts";
 import { dohMx, type MxResolver, ROLE_LOCALS } from "./career_contacts.ts";
-import { costMicros, modelConfig } from "./model_gateway.ts";
+import { costMicros, modelConfig, responsesCall } from "./model_gateway.ts";
+import { type BudgetGate } from "./model_budget.ts";
+import { ModelBudgetBlockedError } from "./model_calls.ts";
 
 export type ProviderName = "web";
 export const LABEL: Record<ProviderName, string> = { web: "web search" };
@@ -99,19 +101,22 @@ export function searchRecipe(company: string, titles: string[]): string[] {
 // POST /v1/responses { model, tools: [{ type: "web_search", filters: { blocked_domains } }], tool_choice: "required",
 // include: ["web_search_call.action.sources"], input }. URLs come from web_search_call.action.sources[].url and the
 // message's url_citation annotations. 429 insufficient_quota: out of credits; other 429: rate limit; 401/403: key refused.
-export function openAiWebSearch(o: { fetch: typeof fetch; apiKey: string; model: string }): SearchFn {
+// Every search is a paid call: it goes through the gateway's responsesCall, which reserves the day's budget before sending.
+export function openAiWebSearch(o: { fetch: typeof fetch; apiKey: string; model: string; budget?: BudgetGate }): SearchFn {
   return async (query) => {
     let r: Response;
     try {
-      r = await o.fetch("https://api.openai.com/v1/responses", {
-        method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${o.apiKey}` }, signal: AbortSignal.timeout(45_000),
-        body: JSON.stringify({
-          model: o.model, tool_choice: "required", include: ["web_search_call.action.sources"],
+      r = await responsesCall({
+        apiKey: o.apiKey, model: o.model, request: o.fetch, budget: o.budget, timeoutMs: 45_000,
+        body: {
+          tool_choice: "required", max_tool_calls: 1, max_output_tokens: 400, include: ["web_search_call.action.sources"],
           tools: [{ type: "web_search", filters: { blocked_domains: BLOCKED_SEARCH_DOMAINS } }],
           input: `Search the web for public pages that name people who work at this company, for: ${query}\nList the pages you found.`,
-        }),
+        },
       });
-    } catch (e) { return { status: "error", detail: `search: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200) }; }
+    } catch (e) {
+      if (e instanceof ModelBudgetBlockedError) return { status: "out_of_credits", detail: `search: ${e.detail}` };
+      return { status: "error", detail: `search: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200) }; }
     if (!r.ok) {
       const body = (await r.text().catch(() => "")).slice(0, 800);
       if (r.status === 429 && /insufficient_quota|exceeded your current quota|billing/i.test(body)) return { status: "out_of_credits", detail: "search: HTTP 429 (quota)" };

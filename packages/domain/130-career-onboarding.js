@@ -99,8 +99,8 @@ const CareerOnboarding = (() => {
     if (/graduat/.test(q)) return cons.graduationDate ? hit(`Your graduation date is ${cons.graduationDate}.`, "profile constraints.graduationDate (stored, ask-once)") : miss("graduation date");
     if (/work authorization|authorised|authorized to work|sponsorship/.test(q)) return cons.workAuthorization ? hit(`Your saved work authorization: ${cons.workAuthorization}.`, "profile constraints.workAuthorization (stored, ask-once)") : miss("work authorization");
     if (/target companies|companies.*target/.test(q)) return (prefs.targetCompanies || []).length ? hit(`Your target companies: ${prefs.targetCompanies.join(", ")}.`, "profile preferences.targetCompanies (stored)") : miss("target companies");
-    if (/what roles|roles.*looking|looking for/.test(q)) return (prefs.roles || []).length ? hit(`You are looking for: ${prefs.roles.join(", ")}.`, "profile preferences.roles (stored)") : miss("target roles");
-    if (/where.*(?:live|based)|location/.test(q)) return basics.location ? hit(`You are based in ${basics.location}.`, "profile basics.location (stored)") : miss("location");
+    if (/what roles|roles?.*(?:looking|want|target)|looking for|what (?:jobs?|positions?|kind of)/.test(q)) return (prefs.roles || []).length ? hit(`You are looking for: ${prefs.roles.join(", ")}.`, "profile preferences.roles (stored)") : miss("target roles");
+    if (/where.*(?:live|based|located)|location|\b(?:city|town)\b/.test(q)) return basics.location ? hit(`You are based in ${basics.location}.`, "profile basics.location (stored)") : miss("location");
     if (/comp floor|pay floor|minimum.*(?:pay|salary|comp)/.test(q)) return prefs.compFloor ? hit(`Your pay floor: ${prefs.compFloor}.`, "profile preferences.compFloor (stored)") : miss("pay floor");
     if (/gpa/.test(q)) {
       if (p.defaults && p.defaults.gpa) return hit(`Your GPA on file: ${p.defaults.gpa}.`, "profile defaults.gpa (stored)");
@@ -116,6 +116,10 @@ const CareerOnboarding = (() => {
     }
     return { found: false, answer: null, reasked: false, ask: null };
   }
+  // Recall asks beyond "what's my ...": "where do I live?", "where am I based?", "what roles am I looking for?" (the
+  // gauntlet's SH02 finding: the roles phrasing never reached the recall), and common typos ("wher", "waht").
+  const RECALL_ASK = /\bwhere (?:do|did) i (?:live|stay)\b|\bwhere am i (?:based|located|living)\b|\bwhat (?:city|town) (?:do i live in|am i (?:in|based in))\b|\bwhat (?:roles?|jobs?|positions?|kind of (?:roles?|jobs?)) (?:am i (?:looking for|targeting|after|going for)|do i want)\b|\bwhat am i looking for\b|\bwhat gpa do i have\b|^my gpa\W*$/;
+  const recallText = (t) => t.replace(/\bwher\b/g, "where").replace(/\b(?:waht|wht|wat|whta)\b/g, "what").replace(/\bwhats\b/g, "what's").replace(/\b(?:schol|shcool|scool)\b/g, "school");
   // School asks: "where did I go to school?", "what school do I go to?", "what is my school / university / degree?".
   const SCHOOL_ASK = /\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b|\bwhat (?:school|college|university) (?:did|do) i (?:go to|attend)\b|\bwhat(?:'?s| is) my (?:school|college|university|alma mater|degree)\b/;
   // Confirmed education entries only (the person's yes on the resume); a draft or a quarantined entry is never read back.
@@ -565,9 +569,18 @@ const CareerOnboarding = (() => {
       const r = answerCurrent(c.profile, text);
       return { intent: "onboarding_answer", done: r.done, answered: r.answered, pending: r.pending || null, reply: r.text };
     }
-    if (c.profile && (/^(what'?s|what is) my\b/.test(t) || SCHOOL_ASK.test(t))) {
-      const r = answerFromProfile(c.profile, text);
-      if (r.found || r.ask) return { intent: "profile_recall", found: r.found, source: r.source || null, reply: r.found ? r.answer : r.ask };
+    const tq = recallText(t);
+    // With no profile at all the answer is the same honest ask, never the catch-all (flow-scenarios-safety.test.ts: "what's
+    // my GPA?" from a person with nothing on file got "I may have missed what you meant").
+    if (/^(what'?s|what is) my\b/.test(tq) || SCHOOL_ASK.test(tq) || RECALL_ASK.test(tq)) {
+      const r = answerFromProfile(c.profile || {}, tq);
+      // Not saved here, but maybe on the record elsewhere: work authorization (a sponsorship answer, a confirmed resume
+      // line or a stated fact: 142's eligibility read-back), a location or a role the person stated in chat (142's
+      // stated-fact read-back). Those answer it; this one only asks when none can.
+      const stated = ((c.statedFacts && Array.isArray(c.statedFacts.facts)) ? c.statedFacts.facts : []).map((f) => f && f.kind);
+      const elsewhere = !r.found && (/work authorization|authorised|authorized to work|sponsorship/.test(tq)
+        || (/where|location|city|town/.test(tq) && stated.includes("geography")) || (/roles?|jobs?|positions?|looking for/.test(tq) && stated.includes("target_role")));
+      if (!elsewhere && (r.found || r.ask)) return { intent: "profile_recall", found: r.found, source: r.source || null, reply: r.found ? r.answer : r.ask };
     }
     if (/\bwhat (?:can you|do you) (?:actually )?do\b.*\bjob search\b|\bwhat can you do for my (?:job|career)\b/.test(t)) {
       const r = capabilityStatus(c.capabilitySources || {});

@@ -73,7 +73,9 @@ export function supabaseStanding(admin: any, read: ReadApplications = supabaseAp
 }
 
 // ------------------------------------------------------------------------------------------------ the asks
-const plain = (s: string) => ` ${String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/[?!.]+\s*$/, "").replace(/\s+/g, " ").trim()} `;
+// ROUTING SCENARIOS (2026-10-29): a greeting before the ask ("hey", "ok so", "please") or "please" after it is not part of it.
+const plain = (s: string) => ` ${String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/[?!.]+\s*$/, "").replace(/\s+/g, " ").trim()
+  .replace(/^[^\p{L}\p{N}"'(]+/u, "").replace(/^(?:(?:hey|hi|hello|ok|okay|pls|please)\b[,!:]?\s+)+/, "").replace(/,? (?:please|pls|thanks|thank you)$/, "")} `;
 const STAND_ALL = /^ (?:so )?(?:where do i stand|how do i stand|what'?s my standing) $/;
 const STAND_ONE = /^ (?:so )?(?:where do i stand|how do i stand|what'?s my standing|how am i doing) (?:with|at|on) (.+?) $/;
 const INBOX_ALL = /^ (?:so )?(?:who (?:has |'?s )?emailed me|who has written to me|who wrote to me|who (?:has )?(?:replied|responded|got back to me)|any news(?: from (?:employers|anyone|companies))?|any (?:replies|responses|emails?|mail)(?: from (?:employers|anyone|companies))?|(?:have i|did i) (?:hear|heard) (?:back|anything)(?: from anyone)?|(?:did|has) anyone (?:get back to me|gotten back to me|reply|replied|respond|responded|email me|emailed me|write back|written back)|what'?s in my inbox|anything in my inbox|any (?:rejections|interviews|offers)(?: yet)?) $/;

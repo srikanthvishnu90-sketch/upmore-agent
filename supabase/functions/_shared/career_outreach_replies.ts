@@ -21,7 +21,7 @@
 //      link where the provider gives one) is created only after the person approves that exact event, once.
 // No volume limit of Trainee's own (owner, 2026-10-27): the only brakes are an outside system's refusal (429, quota), met
 // by backing off that mailbox and resuming.
-import { type ModelFn, outreachLock, payloadHash, confirmed, factText, parseNumbers, OPT_OUT_LINE, sha256 } from "./career_outreach.ts";
+import { type ModelFn, outreachLock, payloadHash, confirmed, factText, parseBatchYes, parseNumbers, OPT_OUT_LINE, sha256 } from "./career_outreach.ts";
 import { ONE_ADDRESS } from "./career_outreach_gmail.ts";
 import { queueApproved, type Rpc } from "./career_send_rail.ts";
 import { type Busy, type CalendarProvider, fmtIn, googleCalendar, isFree, type OutlookCalendarPort, outlookCalendar, proposeSlots, type Slot, validZone } from "./career_calendar.ts";
@@ -735,7 +735,7 @@ export async function repliesTurn(o: { message: string; userId: string; chatThre
     const mailboxes = await o.store.mailboxes(o.userId).catch(() => []);
     return { reply: summaryText(threads, s, { tz, waiting, mailboxes }), intent: "career_outreach_summary", status: s };
   }
-  const t = String(o.message ?? "").toLowerCase().replace(/[.!?]+$/, "").trim();
+  const t = String(o.message ?? "").toLowerCase().replace(/\s+/g, " ").trim().replace(/[.!?]+$/, "").trim();
   const show = /^(?:show|see|list)(?: me)?(?: my| the)? outreach approvals$/.test(t);
   if (!show && (await o.store.lastAssistantIntent(o.chatThreadId)) !== ACTIONS_INTENT) return null;
   const batch = await o.store.latestBatch(o.userId);
@@ -747,17 +747,39 @@ export async function repliesTurn(o: { message: string; userId: string; chatThre
     const done = await o.store.cancel(o.userId, batch[0]?.batch_id ?? "", batch.filter((a) => a.status === "shown").map((a) => a.n)); // what is still waiting; an approval already given stands
     return { reply: done.length ? `Nothing will be sent or created from these ${done.length}.` : "Nothing was waiting.", intent: "career_outreach_actions_answer", status: "none" };
   }
+  const ambiguous = { reply: `Nothing was approved: say "send all", "send 1,3" or "send none".`, intent: ACTIONS_INTENT, status: "ambiguous" };
+  // Owner rules (2026-10-29): a number left out that is not in this batch ("all except 9") approves nothing.
+  const leaveOut = (ex: number[]) => {
+    const unknown = ex.filter((n) => !ns.includes(n));
+    return unknown.length ? { reply: `There is no ${unknown.join(", ")} in this batch (it has ${ns.join(", ")}). Nothing was approved.`, intent: ACTIONS_INTENT, status: "not_in_batch" } : null;
+  };
   const all = /^(?:yes|send|approve|ok|okay)?(?: them)? ?(?:send |approve )?all(?: of them)?(?: (?:except|but|minus|without) (.+))?$/.exec(t);
   if (all) {
     if (all[1] === undefined) want = ns;
-    else { const ex = parseNumbers(all[1]); if (!ex || !ex.ok) return { reply: `Nothing was approved: say which to leave out by number, e.g. "send all except 2".`, intent: ACTIONS_INTENT, status: "bad" }; want = ns.filter((n) => !ex.ns.includes(n)); }
+    else {
+      const ex = parseNumbers(all[1]);
+      if (!ex || !ex.ok) return { reply: `Nothing was approved: say which to leave out by number, e.g. "send all except 2".`, intent: ACTIONS_INTENT, status: "bad" };
+      const off = leaveOut(ex.ns);
+      if (off) return off;
+      want = ns.filter((n) => !ex.ns.includes(n));
+    }
   } else {
     const some = /^(?:send|approve)(?: only| just| numbers?)? (.+)$/.exec(t);
     const nums = some ? parseNumbers(some[1]) : null;
+    // Owner rules (2026-10-29): one clear yes ("yes", "yep", "send them", "👍") approves exactly the batch shown, read as the
+    // outreach batch's yes is (parseBatchYes: "yes except 2", "only 1-3"; "ok"/"sure" alone and any question are not a yes).
+    const y = nums?.ok ? null : parseBatchYes(o.message);
     if (nums && nums.ok) want = nums.ns;
-    else if (some || /^(?:yes|yep|sure|ok|okay|sounds good|maybe|probably)\b/.test(t)) return { reply: `Nothing was approved: say "send all", "send 1,3" or "send none".`, intent: ACTIONS_INTENT, status: "ambiguous" };
+    else if (y?.kind === "send" && y.all) {
+      const off = leaveOut(y.except);
+      if (off) return off;
+      want = ns.filter((n) => !y.except.includes(n));
+    } else if (y?.kind === "send") want = y.ns;
+    else if (some || y || /^(?:yes|yep|yeah|sure|ok|okay|sounds good|maybe|probably)\b/.test(t)) return ambiguous;
   }
   if (!want) return null;
+  // A question ("send all?", "approve 1?") is never an approval.
+  if (/\?\s*$/.test(String(o.message ?? "").trim())) return ambiguous;
   const unknown = want.filter((n) => !ns.includes(n));
   if (unknown.length) return { reply: `There is no ${unknown.join(", ")} in this batch (it has ${ns.join(", ")}). Nothing was approved.`, intent: ACTIONS_INTENT, status: "not_in_batch" };
   // Each approved only if its exact payload is still the one shown.

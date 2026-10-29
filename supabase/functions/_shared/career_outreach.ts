@@ -20,6 +20,7 @@ import { type EventStore, dayIn, localMidnight, recordEvent } from "./agent/time
 import { MAX_CONTACTS, normalizeFirm, sameFirm, type ContactRow } from "./career_contacts.ts";
 import { factLock } from "./essay_draft.ts";
 import { CareerProfile } from "./router_core.career.js";
+import { approvalWords } from "./approval_words.ts";
 
 export type ModelFn = (payload: any) => Promise<any>;
 export interface Recipient { name: string; firm: string; title: string; school: string; email: string; source: string; prior_firms?: string[] }
@@ -405,11 +406,14 @@ export function parseOutreachReply(text: string): OutreachReply | null {
 // nothing. Read only while the batch is the thread's last word (outreachTurn), never by parseOutreachReply, so a bare
 // "yes" anywhere else stays someone else's (WO-033/P1).
 export function parseBatchYes(text: string): Extract<OutreachReply, { kind: "send" | "bad" }> | null {
-  const raw = String(text ?? "").trim();
+  // A thumbs-up alone, or "yess"/"yse" alone, is "yes" (approval_words.ts).
+  const raw = approvalWords(String(text ?? "")).trim();
   if (raw.length > 80) return null;
   // A question ("yes?", "send them all?") never matches below: only . and ! are stripped from the end.
   const t = raw.toLowerCase().replace(/[’]/g, "'").replace(/[.!]+$/, "").replace(/\s+/g, " ").trim();
-  const yes = /^(?:yes|yep|yeah|yup|ok|okay|sure|approve(?:d)?|go ahead|do it|lgtm|looks good|sounds good|send them(?: all)?|send all of them)(?:[,!.]? (?:send (?:them|all(?: of them)?|them all)|go ahead|please|all of them|all|do it|approve(?: them| all)?))*(?:[,;]? (?:except|but not|minus|without|not) (.+))?$/.exec(t);
+  // Owner rules (2026-10-29): "ok", "okay" and "sure" alone are not a clear yes and approve nothing (as on the card and the
+  // billing cancel); with an explicit send ("ok, send them all") they are. "y", "send" and "yes to all" are a clear yes.
+  const yes = /^(?:yes|yep|yeah|yup|y|(?:ok|okay|sure)(?=[,!.]? (?:send|approve|go ahead|do it)\b)|approve(?:d)?|go ahead|do it|lgtm|looks good|sounds good|send|send them(?: all)?|send all of them|yes to all)(?:[,!.]? (?:send (?:them|all(?: of them)?|them all)|go ahead|please|all of them|all|do it|approve(?: them| all)?))*(?:[,;]? (?:except|but not|minus|without|not) (.+))?$/.exec(t);
   if (yes) {
     if (yes[1] === undefined) return { kind: "send", all: true, ns: [], except: [] };
     const nums = parseNumbers(yes[1].replace(/\b(?:numbers?|drafts?)\b|#/g, " ").trim());

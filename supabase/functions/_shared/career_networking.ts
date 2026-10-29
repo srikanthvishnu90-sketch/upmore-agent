@@ -48,7 +48,8 @@ const GROUP = "(?:contacts|connections|people|friends|folks|alums|alumni)";
 const FILLER = /^(?:(?:so|ok|okay|hey|hi|and|now|also|please|pls|can you|could you|would you|will you|help me|actually|wait|oh|oops|no)[, ]+)+/i;
 // A firm as typed: the words after "at"/"from", up to the topic or the end.
 function firmOf(raw: string): string | null {
-  const f = raw.replace(/\s+(?:about|regarding|re|for|who|that|to|and ask|asking|right now|please)\b.*$/i, "").replace(/[?.!,;:]+$/, "").replace(/^the\s+/i, "").trim();
+  // ROUTING SCENARIOS (2026-10-29): a second ask after the firm ("... at Stripe and apply to Stripe") is not part of it.
+  const f = raw.replace(/\s+(?:about|regarding|re|for|who|that|to|and ask|asking|right now|please|and (?:apply|cancel|withdraw|connect|send|message|draft|find|show|check))\b.*$/i, "").replace(/[?.!,;:]+$/, "").replace(/^the\s+/i, "").trim();
   if (!f || f.length > 60 || /[@/\\<>]/.test(f) || f.split(/\s+/).length > 6) return null;
   return f;
 }
@@ -98,7 +99,8 @@ export function parseNetworkingAsk(message: string): Ask | null {
     return { kind: "draft", topic, target: { by: "group", firm, count: many ? verbCount : 1, role: role[1].trim().replace(/s$/i, "") } };
   }
   const words = who2.split(/\s+/);
-  const STOP = /^(?:my|the|a|an|your|our|me|him|her|them|it|this|that|these|those|resume|cv|cover|letter|application|everyone|someone|anyone|recruiters?|people|contacts|connections)$/i;
+  // ROUTING SCENARIOS (2026-10-29): "email status" / "email updates" are the send rail's asks, never a draft to "status".
+  const STOP = /^(?:my|the|a|an|your|our|me|him|her|them|it|this|that|these|those|resume|cv|cover|letter|application|everyone|someone|anyone|recruiters?|people|contacts|connections|status|updates?)$/i;
   if (words.length < 1 || words.length > 3 || words.some((w) => !/^[A-Za-z][A-Za-z.'’-]*$/.test(w) || STOP.test(w))) return null;
   return { kind: "draft", topic, target: { by: "name", name: who2, firm } };
 }

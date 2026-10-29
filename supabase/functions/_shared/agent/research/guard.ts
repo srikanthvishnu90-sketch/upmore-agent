@@ -19,7 +19,17 @@ const LOOK: Record<string, string> = Object.fromEntries(
    "А:A В:B С:C Е:E Н:H І:I Ј:J К:K М:M О:O Р:P Ѕ:S Т:T Х:X У:Y Ү:Y " +
    "Α:A Β:B Ε:E Ζ:Z Η:H Ι:I Κ:K Μ:M Ν:N Ο:O Ρ:P Τ:T Υ:Y Χ:X α:a ε:e ι:i κ:k ν:v ο:o ρ:p τ:t υ:u χ:x").split(" ").map((x) => [x[0], x[2]]));
 const INVISIBLE = /[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g;
-export const fold = (s: string) => String(s ?? "").normalize("NFKC").replace(INVISIBLE, "").replace(/[\u0370-\u03FF\u0400-\u04FF\u0131\u0261]/g, (c) => LOOK[c] ?? c);
+// Every Unicode decimal digit (Nd) reads as its ASCII value: Nd characters come in contiguous runs of ten that start at zero.
+const ND = (() => {
+  const m = new Map<string, string>(); let run = 0;
+  for (let cp = 0x660; cp < 0x1E960; cp++) {
+    const c = String.fromCodePoint(cp);
+    if (/\p{Nd}/u.test(c)) { m.set(c, String(run % 10)); run++; } else run = 0;
+  }
+  return m;
+})();
+const ARABIC_MARKS: Record<string, string> = { "٪": "%", "٬": ",", "٫": ".", "﹪": "%" };
+export const fold = (s: string) => String(s ?? "").normalize("NFKC").replace(INVISIBLE, "").replace(/\p{Nd}|[٪٬٫﹪]/gu, (c) => ND.get(c) ?? ARABIC_MARKS[c] ?? c).replace(/[\u0370-\u03FF\u0400-\u04FF\u0131\u0261]/g, (c) => LOOK[c] ?? c);
 const norm = (s: string) => fold(s).toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 export const stripNonClaims = (s: string) => s.replace(/\[[^\]]*\]/g, " ").replace(/https?:\/\/\S+/g, " ").replace(/`[^`]*`/g, " ");
 
@@ -33,17 +43,32 @@ const FRAC: Record<string, number> = { half: 0.5, halves: 0.5, quarter: 0.25, qu
 const NUMWORD = new Set([...Object.keys(ONES), ...Object.keys(TENS), ...Object.keys(SCALE), "and", "a", "an"]);
 const isNumWord = (w: string) => w in ONES || w in TENS || w in SCALE;
 const TIME_UNIT = /^(?:days?|weeks?|months?|years?)\b/;
-const MONEY_UNIT = /^(?:dollars?|usd|bucks|euros?|pounds?)\b/;
+const MONEY_UNIT = /^(?:dollars?|usd|eur|gbp|bucks|euros?|pounds?|rupees?|yen)\b/;
 const PCT_UNIT = /^(?:percent|per cent|percentage points?|%)/;
 
-export interface Num { v: number; unit: "pct" | "usd" | ""; raw: string; word?: string; date?: boolean }
+// kind: what the number counts. pct, usd, yrs (years), dur (other spans of time), cnt (a plain thing: "6 openings"), or "" when
+// nothing follows to say. A claim's kind must equal the kind of the number it matches in the source.
+export type Kind = "pct" | "usd" | "yrs" | "dur" | "cnt" | "";
+export interface Num { v: number; unit: "pct" | "usd" | ""; raw: string; word?: string; date?: boolean; kind?: Kind }
 // All the numbers in a text. Spelled numbers up to ten are ordinary counting ("one question", "two or three samples") and are
 // ignored unless they carry a percent, a money unit or a time span ("five years").
+const NOT_A_THING = new Set(("median average mean total typical annual annually monthly weekly daily yearly overall roughly approximately nationally nationwide " +
+  "more less fewer higher lower over under above below plus minus per each a an the of in on at to for from with by and or but as is are was were be").split(" "));
+const YEAR_UNIT = /^(?:years?|yrs?|yr)\b/;
+const DUR_UNIT = /^(?:days?|weeks?|months?|hours?|hrs?|minutes?|mins?|seconds?|semesters?|quarters?)\b/;
+function kindOf(n: Num, next: string): Kind {
+  if (n.unit) return n.unit;
+  if (n.date) return "";
+  if (YEAR_UNIT.test(next)) return "yrs";
+  if (DUR_UNIT.test(next)) return "dur";
+  const w = /^[a-z][a-z-]*/.exec(next)?.[0];
+  return w && !NOT_A_THING.has(w) && !/ly$/.test(w) ? "cnt" : "";
+}
 export function numbersIn(text: string): Num[] {
   let t = norm(text).replace(/(\d),(?=\d{3}\b)/g, "$1");
   for (const p of GK_PHRASES) t = t.split(p).join(" ");
   const out: Num[] = [];
-  const unitAfter = (rest: string, pre: string): "pct" | "usd" | "" => (pre.endsWith("$") || MONEY_UNIT.test(rest.trimStart()) ? "usd" : PCT_UNIT.test(rest.trimStart()) ? "pct" : "");
+  const unitAfter = (rest: string, pre: string): "pct" | "usd" | "" => (/[$€£¥₹]$/.test(pre) || MONEY_UNIT.test(rest.trimStart()) ? "usd" : PCT_UNIT.test(rest.trimStart()) ? "pct" : "");
   t = t.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (m) => { out.push({ v: Date.parse(m) || 0, unit: "", raw: m, date: true }); return " "; });
   // ratios and fractions first: "one in three", "3 out of 10", "3/4"
   t = t.replace(/\b(\d+|[a-z]+)\s+(?:in|out of)\s+(\d+|[a-z]+)\b/g, (m, a, b) => {
@@ -51,7 +76,7 @@ export function numbersIn(text: string): Num[] {
     if (x === undefined || y === undefined || !y) return m;
     out.push({ v: x / y, unit: "", raw: m }); return " ";
   }).replace(/\b(\d+)\/(\d+)\b/g, (m, a, b) => { if (+b) out.push({ v: +a / +b, unit: "", raw: m }); return " "; });
-  const re = /(\$?)(\d+(?:\.\d+)?)(?:st|nd|rd|th)?\s?(k|m|b|bn|thousand|million|billion)?\b|([a-z]+(?:-[a-z]+)*)/g;
+  const re = /([$€£¥₹]?)(\d+(?:\.\d+)?)(?:st|nd|rd|th)?\s?(k|m|b|bn|thousand|million|billion)?\b|([a-z]+(?:-[a-z]+)*)/g;
   let m: RegExpExecArray | null;
   const toks: { n: Num; scaled: boolean; at: number; end: number }[] = [];
   while ((m = re.exec(t))) {
@@ -88,17 +113,21 @@ export function numbersIn(text: string): Num[] {
     const nx = toks[i + 1];
     if (nx && nx.scaled && !toks[i].scaled && n.v < 1000 && /^\s*(?:to|-|or|and)\s*$/.test(t.slice(toks[i].end, nx.at))) n.v *= nx.n.v >= 1e9 ? 1e9 : nx.n.v >= 1e6 ? 1e6 : 1e3;
     const small = n.v <= 10 && Number.isInteger(n.v) && !/^\d/.test(n.raw) && !/\d/.test(n.raw);
-    const significant = !small || n.unit !== "" || TIME_UNIT.test(next) || prevText.endsWith("$");
+    const significant = !small || n.unit !== "" || TIME_UNIT.test(next) || /[$€£¥₹]$/.test(prevText);
+    // a range inherits the kind of its far end: "5 to 10 percent"
+    n.kind = kindOf(n, next);
+    if (n.kind === "" && nx && /^\s*(?:to|-|or|and)\s*$/.test(t.slice(toks[i].end, nx.at))) n.kind = kindOf(nx.n, t.slice(nx.end).trimStart());
     if (significant) out.push(n);
   }
   return out;
 }
-const numEq = (s: Num, n: Num) => s.v === n.v || Math.abs(s.v - n.v) <= 1e-9 * Math.max(1, Math.abs(n.v))
-  ? (n.unit !== "pct" || s.unit === "pct") && (n.unit !== "usd" || s.unit !== "pct") : false;
+const numEq = (s: Num, n: Num) => (s.v === n.v || Math.abs(s.v - n.v) <= 1e-9 * Math.max(1, Math.abs(n.v)))
+  && (n.unit !== "pct" || s.unit === "pct") && (n.unit !== "usd" || s.unit !== "pct")
+  && (!n.kind || !s.kind || n.kind === s.kind);
 
 // ---------------------------------------------------------------------------------------------- words
 const STOP = new Set(("the a an and or but of in on at to for from with by as is are was were be been being it its this that these those there their they them you your we our i me my he she his her not no do does did can could will would should may might must have has had over under about into than then also only just more most less very much many some any each every per via out up down off such so if when while which who whom what how why where all both other another same own after before between during through against among within without across around toward until since because is's").split(" "));
-const stem = (w: string) => w.replace(/ies$/, "y").replace(/(?:ss|x|ch|sh)es$/, (m) => m.slice(0, -2)).replace(/(?:ing|ed|ly)$/, "").replace(/s$/, "");
+const stem = (w: string) => w.replace(/ies$/, "y").replace(/(?:ss|x|ch|sh)es$/, (m) => m.slice(0, -2)).replace(/s$/, "").replace(/(?:ing|ed|ly)$/, "").replace(/e$/, "");
 export const contentWords = (s: string) => new Set((norm(s).match(/[a-z][a-z'-]{2,}/g) ?? []).filter((w) => !STOP.has(w) && !isNumWord(w) && !(w in FRAC) && !VAGUE.has(w) && !(w in ORD) && !/^(?:percent|dollars?|usd)$/.test(w)).map(stem));
 // Subject words: the occupation, group or thing a number is ABOUT. Measure words ("median", "wage", "earned", "grow"), verbs and
 // generic time words say what kind of number it is, not whose it is, so they never count as the subject.

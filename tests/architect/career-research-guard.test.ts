@@ -106,3 +106,71 @@ Deno.test("round 2 chat probe: a look-alike name and a full-width figure fail th
   for (const b of ["Right now Gооgle will not take a freshman, so build a base this year. Later, boutique firms are realistic.", "Right now plan on ９０％ rejection, so build a base this year. Later, boutique firms are realistic."])
     ok(lintChat(`${b} https://f.example/x`, o).some((x) => /no source/.test(x)), b);
 });
+
+// ------------------------------------------------------------------------------------------------ round 3 (review of 7ce5a2433)
+const FACTS3: [string, string, boolean][] = [
+  // every Unicode decimal digit is a digit
+  ["Median pay was $٨٤,٢٠٠.", "Median pay for nurses was $84,200 in the most recent year.", true],
+  ["Median pay was $٨٤,٢٠٠.", "Nurses work long shifts and many enjoy the work.", false],
+  ["Median pay was ८४,२०० dollars.", "Median pay for nurses was $84,200 in the most recent year.", true],
+  ["Median pay was ८४,२०० dollars.", "Nurses work long shifts and many enjoy the work.", false],
+  ["Median pay was ۸۴٬۲۰۰ dollars.", "Nurses work long shifts and many enjoy the work.", false],
+  ["Median pay was 𝟖𝟒,𝟐𝟎𝟎 dollars.", "Nurses work long shifts and many enjoy the work.", false],
+  ["٩٠٪ of graduates are hired.", "Placement data: 90% of graduates are hired within a year.", true],
+  ["٩٠٪ of graduates are hired.", "Placement data: 19% of graduates are hired within a year.", false],
+  // a count is not a percent, a percent is not money, money is not a count
+  ["There are 6 openings.", "Employment of nurses is projected to grow 6 percent over the decade.", false],
+  ["Openings will grow 6 percent.", "There are 6 openings for nurses this season.", false],
+  ["Nurses earned a median wage of $130,000.", "There are 130,000 openings for nurses.", false],
+  ["There are 130,000 openings for nurses.", "Nurses earned a median wage of $130,000 in the most recent year.", false],
+  ["There are 6 openings for nurses.", "There are 6 openings for nurses this season.", true],
+  ["Nurses train for 6 months.", "Nurses train for 6 percent of their shifts on call.", false],
+  ["Nurses train for 6 months.", "Nurses train for six months before they start.", true],
+  ["Pay ranges from 5 to 10 percent above the base.", "Pay ranges from 5% to 10% above the base.", true],
+  ["The median wage was €50,000.", "The median wage was $50,000.", true],
+];
+for (const [i, [text, quote, want]] of FACTS3.entries()) Deno.test(`round 3 fact probe ${i + 1}: ${want ? "accepts" : "rejects"} "${text.slice(0, 44)}"`, () => { ok(accepts(text, quote) === want); });
+const LINES3: [string, string[], string[], string, boolean][] = [
+  ["Interns earn $٨٤,٢٠٠ a year.", [], [], "", true],
+  ["Offers go to ٩٠٪ of finalists.", [], [], "", true],
+  ["Plan on ८ years before you move up.", [], [], "", true],
+  ["There are 6 openings.", ["Employment is projected to grow 6 percent over the decade."], [], "", true],
+  ["Pay is 6 percent higher.", ["Pay: 6 openings for nurses."], [], "", true],
+];
+for (const [i, [line, support, person, message, want]] of LINES3.entries()) Deno.test(`round 3 line probe ${i + 1}: ${want ? "flags" : "passes"} "${line.slice(0, 44)}"`, () => { ok((flagged(line, support, person, message).length > 0) === want, JSON.stringify(flagged(line, support, person, message))); });
+
+// Self-review: 30 fresh adversarial cases designed after the round-3 fix (digits in other scripts, unit kinds, mixed forms).
+const ADV: [string, string, boolean][] = [
+  ["Nurses earn $84,200.", "Nurses earn $84,200 a year.", true],
+  ["Nurses earn 84,200 dollars.", "Nurses earned $84,200 per year.", true],
+  ["Nurse pay grew 6%.", "Pay for nurses grew 6 percent.", true],
+  ["Nurse pay grew 6%.", "Nurses have 6 openings per hospital.", false],
+  ["Nurses work 12 hours.", "Nurses work 12 hour shifts.", true],
+  ["Nurses work 12 hours.", "Nurses work 12 percent more overtime.", false],
+  ["Nurses work 12 hours.", "Nurses see 12 patients per shift.", false],
+  ["Expect 3 years of nurse training.", "Nurses train for three years.", true],
+  ["Expect 3 years of nurse training.", "Nurse training has 3 stages.", false],
+  ["Nurse pay rose ６ percent.", "Nurse pay rose 6 percent last year.", true],
+  ["Nurse pay rose ٦٫٥ percent.", "Nurse pay rose 6.5 percent last year.", true],
+  ["Nurse pay rose ٦٫٥ percent.", "Nurse pay rose 65 percent last year.", false],
+  ["Nurse pay is ๘๔,๒๐๐ dollars.", "Nurses work long shifts and many enjoy the work.", false],
+  ["৯০% of nursing graduates are hired.", "Placement: 90% of nursing graduates are hired.", true],
+  ["Nurses earn ₹٨٤,٢٠٠.", "Nurses work long shifts and many enjoy the work.", false],
+  ["Nurses earn $84​,200.", "Nurses work long shifts and many enjoy the work.", false],
+  ["Nurse pay ranges $٦٠,٠٠٠ to $٩٠,٠٠٠.", "Nurse pay ranges $60,000 to $90,000.", true],
+  ["Nursing has 200 thousand openings.", "Nursing: 200,000 openings.", true],
+  ["There will be 6 new nursing openings.", "Nursing employment will grow 6 percent.", false],
+  ["Nursing employment will grow 6 percent.", "Employment of nurses is projected to grow 6 percent.", true],
+  ["Nurses have 6 openings.", "Nurses have 6 job openings.", true],
+  ["Nurses make 50% more.", "Nurses make 50 more dollars.", false],
+  ["Nurse salaries rose to 130k.", "Nurse salaries rose to 130 percent of the 2020 level.", false],
+  ["Nurses earn 84 thousand dollars.", "Nurses earn $84,000 a year.", true],
+  ["Nurses earn 84 thousand dollars.", "There are 84 thousand nurses in the state.", false],
+  ["A nursing class has 30 students.", "A nursing class has 30 students.", true],
+  ["A nursing class has 30 students.", "A nursing class lasts 30 minutes.", false],
+  ["Nurses earn 20 dollars an hour.", "Nurses earn $20 per hour.", true],
+  ["Nurses earn 20 dollars an hour.", "Nurses need 20 hours of training.", false],
+  ["Nurses earn $٢٠ an hour.", "Nurses need 20 hours of training.", false],
+];
+let advFailed = 0;
+for (const [i, [text, quote, want]] of ADV.entries()) Deno.test(`adversarial ${i + 1}: ${want ? "accepts" : "rejects"} "${text.slice(0, 44)}"`, () => { const got = accepts(text, quote); if (got !== want) advFailed++; ok(got === want); });

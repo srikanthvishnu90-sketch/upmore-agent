@@ -41,8 +41,15 @@ function setup(o: { mail?: any } = {}) {
   const t = Object.fromEntries(careerTools({ postings: async () => [], wants, posting: async (id: string) => byId.get(id) ?? null, mail: o.mail ?? null } as any).map((x) => [x.name, x]));
   return { wants, t };
 }
+// The posting screen asks for an unconfirmed location, so these legacy fixtures confirm one (the screen is tested in apply-screen-wired.test.ts).
+const HOME = [{ key: "location", value: "Chicago, IL" }, { key: "relocation", value: "yes" }];
+const withHome = (state: Record<string, unknown>) => { // in place: the tools keep their tracker on the same state object
+  const prof: any = (state.profile ??= {}); prof.facts ??= [];
+  if (!prof.facts.some((f: any) => f?.key === "location")) prof.facts.push(...HOME);
+  return state;
+};
 const ctx = (message: string, state: Record<string, unknown> = {}, extra: Record<string, unknown> = {}, now = NOW) =>
-  ({ userId: "u1", threadId: "t1", now, state, turn: { message, added: [] as string[], ...extra } }) as any;
+  ({ userId: "u1", threadId: "t1", now, state: withHome(state), turn: { message, added: [] as string[], ...extra } }) as any;
 const confirmedFact = (text: string, kind = "experience") => ({ id: `F-${Math.random().toString(36).slice(2, 6)}`, kind, text, needs_confirmation: false, status: "confirmed" });
 
 // ------------------------------------------------------------------------------------------------ F2: queue_applications
@@ -191,7 +198,7 @@ Deno.test("WO-091b/9 a pick by position must be one the previous turn showed, th
       : { content: [{ type: "text", text: "Done." }], stop_reason: "end_turn" };
     const seen: any[] = [];
     const wrapped = async (p: any) => { seen.push(p); return await model(); };
-    await runAgentTurn({ system: "s", history: [{ role: "user", content: "find me data analyst jobs" }, { role: "assistant", content: shown }], message, tools: [t.queue_applications], model: wrapped as any, ctx: { userId: "u1", threadId: "t1", now: NOW, state: {} } });
+    await runAgentTurn({ system: "s", history: [{ role: "user", content: "find me data analyst jobs" }, { role: "assistant", content: shown }], message, tools: [t.queue_applications], model: wrapped as any, ctx: { userId: "u1", threadId: "t1", now: NOW, state: withHome({}) } });
     const result = JSON.stringify(seen[1].messages.at(-1));
     return { queued: (wants.dump().u1 ?? []).length, result };
   };
@@ -220,7 +227,7 @@ Deno.test("WO-091b/10 BR-084: 'autopilot ... and don't ask me' is not kept; noth
   const model = async (p: any) => { seen.push(p); return step++ === 0
     ? { content: [{ type: "tool_use", id: "r1", name: "remember_instruction", input: { instruction: "Autopilot: apply to fit 80+ without asking", quote: "don't ask me" } }], stop_reason: "tool_use" }
     : { content: [{ type: "text", text: "I can't apply without your yes on each card." }], stop_reason: "end_turn" }; };
-  const r = await runAgentTurn({ system: "s", history: [], message: msg, tools: [t.remember_instruction], model: model as any, ctx: { userId: "u1", threadId: "t1", now: NOW, state: {} } });
+  const r = await runAgentTurn({ system: "s", history: [], message: msg, tools: [t.remember_instruction], model: model as any, ctx: { userId: "u1", threadId: "t1", now: NOW, state: withHome({}) } });
   eq(r.tool_calls.map((x) => [x.name, x.ok]), [["remember_instruction", false]]);
   assert(JSON.stringify(seen[1].messages.at(-1)).includes(NOT_KEPT));
   eq(await memory.standing("u1"), []);

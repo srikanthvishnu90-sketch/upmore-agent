@@ -21,6 +21,8 @@
 // - Per-chat isolation: every button's reference is derived from the person and the posting (sha256 of "<user>|<job id>"), every
 //   read is scoped to the person who tapped, and a tap from a chat that is no one's account never reaches this file.
 import { type CardStore } from "./career_apply_cards.ts";
+import { contentOf } from "./career_apply_gate.ts";
+import { screenPicks } from "./career_apply_want.ts";
 import { tapCard, type TapStore } from "./channel_card_tap.ts";
 import { cardDigest } from "./channel_card_tap.ts";
 import { type Button } from "./channel_adapters.ts";
@@ -65,6 +67,7 @@ export interface JobDeps {
   events?: Parameters<typeof tapCard>[0]["events"];
   // The hosted feed for a list: a Telegram Mini App URL and a signed-link fallback (either null when not configured).
   feedLinks?: (userId: string, listId: string) => Promise<{ webApp: string | null; url: string | null }>;
+  facts?: (userId: string) => Promise<any[]>; // the person's CONFIRMED facts, for the posting screen's knock-outs; none known = none confirmed
 }
 
 // ---------------------------------------------------------------- refs and buttons
@@ -256,6 +259,17 @@ export async function sendJobCards(o: { userId: string; hits: any[]; deps: JobDe
 
 // ---------------------------------------------------------------- the exact payload
 const SECRETISH = /pass(word)?|secret|token|otp|one[- ]?time|ssn|social security|card number/i;
+const isSecretish = (f: any) => SECRETISH.test(`${f?.name ?? ""} ${f?.label ?? ""}`);
+// Everything the payload hash covers is shown here, in the person's words, or the application is not offered for Confirm:
+//   * every field with a value is listed (a file field as "file <name>"); blank fields are listed together as "Left blank";
+//   * every other top-level key of the payload is listed with its value;
+//   * a field that looks like a secret (password, one-time code, token, SSN, card number) is NEVER printed and NEVER approved
+//     here: it is listed as "needs you", and an application with such a field carrying a value gets no Confirm button (the
+//     person types it into the employer's own form themselves; no password or code goes through chat).
+export function secretFields(p: PreparedRow): string[] {
+  const fields: any[] = Array.isArray(p.payload?.fields) ? (p.payload.fields as any[]) : [];
+  return fields.filter((f) => isSecretish(f) && String(f?.value ?? "").trim()).map((f) => clean(f.label ?? f.name, 120) || "a field");
+}
 export function payloadLines(p: PreparedRow, job: JobView | null): string[] {
   const pl = p.payload ?? {};
   const fields: any[] = Array.isArray(pl.fields) ? pl.fields : [];
@@ -263,9 +277,16 @@ export function payloadLines(p: PreparedRow, job: JobView | null): string[] {
   const resumeName = clean((pl as any).resume_name ?? (pl as any).resume_file ?? "", 120);
   const isCover = (f: any) => /cover/i.test(`${f?.name ?? ""} ${f?.label ?? ""}`);
   const isFile = (f: any) => /file/i.test(String(f?.type ?? ""));
-  const cover = fields.find((f) => isCover(f) && !isFile(f) && String(f?.value ?? "").trim());
-  const answers = fields.filter((f) => !isCover(f) && !isFile(f) && String(f?.value ?? "").trim() && !SECRETISH.test(`${f?.name ?? ""} ${f?.label ?? ""}`));
+  const has = (f: any) => !!String(f?.value ?? "").trim();
+  const name = (f: any) => clean(f?.label ?? f?.name, 200) || "(unnamed field)";
+  const cover = fields.find((f) => isCover(f) && !isFile(f) && !isSecretish(f) && has(f));
+  const secret = fields.filter(isSecretish);
+  const answers = fields.filter((f) => f !== cover && !isSecretish(f) && has(f));
+  const blank = fields.filter((f) => !isSecretish(f) && !has(f));
+  const shown = new Set(["fields", "resume_sha256", "resume_name", "resume_file", "title"]);
+  const extra = Object.entries(pl).filter(([k]) => !shown.has(k));
   const title = job?.title ?? clean((pl as any).title ?? "", 160);
+  const val = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
   return [
     `Application for your approval`,
     `Posting: ${title ? `${title} at ` : ""}${p.company}`,
@@ -273,7 +294,10 @@ export function payloadLines(p: PreparedRow, job: JobView | null): string[] {
     `Resume: ${resumeName ? `${resumeName} ` : ""}${sha ? `(sha256 ${sha.slice(0, 12)}...) , the one resume this was prepared with` : "none attached"}`,
     `Cover note: ${cover ? String(cover.value).trim() : "none"}`,
     answers.length ? "Answers:" : "Answers: none",
-    ...answers.map((f) => `• ${clean(f.label ?? f.name, 200)}: ${String(f.value).trim()}`),
+    ...answers.map((f) => (isFile(f) ? `• ${name(f)}: file ${String(f.value).trim()}` : `• ${name(f)}: ${String(f.value).trim()}`)),
+    ...(blank.length ? [`Left blank: ${blank.map(name).join("; ")}`] : []),
+    ...(secret.length ? ["Needs you (I never type or send these; fill them in yourself on the employer's form):", ...secret.map((f) => `• ${name(f)}`)] : []),
+    ...(extra.length ? ["Also in this application:", ...extra.map(([k, v]) => `• ${clean(k, 80)}: ${val(v)}`)] : []),
     ...(p.card_lines?.length ? ["", "As the card reads:", ...p.card_lines.map((l) => `• ${l}`)] : []),
     "", "Nothing is sent until you tap Confirm. Edit changes it; Cancel drops it.",
   ];
@@ -302,6 +326,23 @@ export const NO_WORKER_REPLY = (company: string, title: string) =>
   `Queued: ${title ? `${title} at ` : ""}${company}. We haven't started it yet and nothing has gone to the employer. When it's ready I'll show you the exact application to approve.`;
 export const QUEUED_REPLY = (company: string, title: string) =>
   `Approved: ${title ? `${title} at ` : ""}${company}, exactly as shown. Queued, not submitted yet. I'll tell you what comes back.`;
+
+// The posting screen (career_apply_gate.ts via screenPicks, PR #276) for a card tap: a closed, stale, scam-looking or knock-out
+// posting is never queued and never shown for approval. The stored posting row is read fresh at the tap; if it cannot be read
+// the tap fails closed (nothing queued) rather than skipping the screen.
+async function screenedOut(userId: string, job: JobView, deps: JobDeps): Promise<string | null> {
+  let row: PostingRow | null;
+  try { row = (await deps.store.postings([job.job_id]))[0] ?? null; } catch { return "I couldn't check that posting just now (it may have closed), so nothing was queued. Tap Apply again in a minute."; }
+  const content = contentOf(row ?? { posted_at: job.posted_at, first_seen_at: job.first_seen_at, remote: job.remote });
+  const facts = await (deps.facts?.(userId) ?? Promise.resolve([])).catch(() => []);
+  const r = screenPicks([{ job_id: job.job_id, url: job.url, company: job.company, title: job.title, location: job.location, content }], { apps: [], facts, now: deps.now() });
+  if (r.ok.length) return null;
+  // Without a confirmed-facts source wired in (deps.facts), a "held until you confirm a fact" result is not a verdict about the
+  // posting; closed, stale and scam-looking still stop it. With the source wired in, a held posting is stopped and the ask shown.
+  const hard = deps.facts ? r.refused : r.refused.filter((x) => x.ask !== "fact");
+  if (!hard.length) return null;
+  return hard[0].said ?? "that posting didn't pass the posting screen";
+}
 
 export async function tapJob(o: { userId: string; data: string; messageId: string | null; deps: JobDeps; send: JobSender }): Promise<JobTapResult> {
   const t = parseJobTap(o.data);
@@ -357,6 +398,8 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
       await say(`You already have ${job.title ? `${job.title} at ` : ""}${job.company} in your applications, so I won't queue it twice. Say "show my applications" for where it stands.`);
       return { toast: "Already applied.", status: "duplicate" };
     }
+    const screened = await screenedOut(userId, job, deps);
+    if (screened) { await say(`Not queued: ${screened}`); return { toast: "Not queued.", status: "screened" }; }
     const prep = await deps.store.prepared(userId, job.job_id).catch(() => null);
     if (!prep) {
       const w = await deps.store.want(userId, job, deps.now()).catch(() => ({ result: "refused" as const, reason: "I couldn't save that just now. Tap Apply again in a minute." }));
@@ -365,7 +408,9 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
       return { toast: "Queued, not applied.", status: "queued_unprepared" };
     }
     const lines = pageLines(payloadLines(prep, job));
-    for (let i = 0; i < lines.length; i++) await send.text({ text: lines[i], buttons: i === lines.length - 1 ? confirmButtons(t.ref, hashTag(prep.payload_hash)) : undefined });
+    const needsYou = secretFields(prep).length > 0; // a secret-looking field with a value: shown as "needs you", never approvable here
+    for (let i = 0; i < lines.length; i++) await send.text({ text: lines[i], buttons: i === lines.length - 1 && !needsYou ? confirmButtons(t.ref, hashTag(prep.payload_hash)) : undefined });
+    if (needsYou) { await say(`I can't send this one from here: it has a field that needs you (a password, code or similar), and those never go through chat. Open the link and finish that part yourself:\n${prep.url}`); return { toast: "Needs you.", status: "needs_you" }; }
     return { toast: "Check it, then Confirm.", status: "shown" };
   }
 
@@ -380,6 +425,9 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
       await say(`You already have ${job.company} in your applications, so I won't queue it twice.`);
       return { toast: "Already applied.", status: "duplicate" };
     }
+    if (secretFields(prep).length) { await say(`That application has a field that needs you (a password, code or similar), so nothing was approved. Finish it yourself on the employer's form:\n${prep.url}`); return { toast: "Needs you.", status: "needs_you" }; }
+    const screened = await screenedOut(userId, job, deps);
+    if (screened) { await say(`Nothing was approved: ${screened}`); return { toast: "Not approved.", status: "screened" }; }
     let card;
     try { card = await deps.cards.open(userId, [prep.id]); } catch { await say("I couldn't open the approval just now, so nothing was approved. Tap Confirm again in a minute."); return { toast: "Nothing approved.", status: "failed" }; }
     if (card.items?.length !== 1 || card.items[0].prepared_id !== prep.id || card.items[0].payload_hash !== prep.payload_hash) {

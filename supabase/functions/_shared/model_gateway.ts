@@ -307,6 +307,26 @@ export async function chatReply(cfg: ModelConfig, payload: any, o: CallOptions =
 // listed price was not read on OpenAI's page today: a lower unverified number would undercount). max_tool_calls is forced to at
 // most WEB_SEARCH_MAX_CALLS, so the searches a call can make are bounded by what was reserved.
 export const WEB_SEARCH_FEE_MICROS = 25_000, WEB_SEARCH_MAX_CALLS = 1, WEB_SEARCH_CONTENT_TOKENS = 32_000;
+// The worst case of one Responses call with the web_search tool, and what it settles to. ONE definition, used by responsesCall and by
+// the batch runner's cap (evals/career/batch/entries.ts), so neither can undercount a search: max_tool_calls is forced to at most
+// WEB_SEARCH_MAX_CALLS, each search reserves WEB_SEARCH_CONTENT_TOKENS of search content at the highest input rate plus
+// WEB_SEARCH_FEE_MICROS, and the output allowance is max_output_tokens.
+export function responsesWorst(model: string, body: Record<string, unknown>): { bodyText: string; maxCalls: number; micros: number } {
+  const asked = Number(body.max_tool_calls);
+  const maxCalls = Number.isInteger(asked) && asked >= 1 ? Math.min(asked, WEB_SEARCH_MAX_CALLS) : WEB_SEARCH_MAX_CALLS;
+  const bodyText = JSON.stringify({ ...body, max_tool_calls: maxCalls, model });
+  const micros = worstCaseMicros(model, PRICES, { bytes: new TextEncoder().encode(bodyText).length + maxCalls * WEB_SEARCH_CONTENT_TOKENS, images: 0, maxOutputTokens: Number(body.max_output_tokens) || 4096 }) + maxCalls * WEB_SEARCH_FEE_MICROS;
+  return { bodyText, maxCalls, micros };
+}
+// Proven cost of a Responses answer (tokens plus a fee per web_search_call), or null when the usage block is not real.
+export function responsesSettle(model: string, j: any): number | null {
+  const u = j && j.usage, num = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0;
+  if (!(u && num(u.input_tokens) && num(u.output_tokens) && Array.isArray(j.output))) return null;
+  const tokens = costMicros(model, u);
+  if (tokens === null || !Number.isFinite(tokens)) return null;
+  const searches = j.output.filter((x: any) => x && x.type === "web_search_call").length;
+  return Math.max(1, tokens + searches * WEB_SEARCH_FEE_MICROS);
+}
 export async function responsesCall(o: { apiKey: string; model: string; body: Record<string, unknown>; request?: typeof fetch; budget?: BudgetGate; timeoutMs?: number; role?: ModelRole }): Promise<Response> {
   refuseVoiceModel(o.model);
   const send = o.request || fetch;
@@ -314,10 +334,7 @@ export async function responsesCall(o: { apiKey: string; model: string; body: Re
   if (budgetPausedByEnv(env || (() => undefined))) throw new ModelBudgetBlockedError("paused", "MODEL_BUDGET_PAUSED is on");
   const gate = resolveBudgetGate(o.budget, env);
   if (!gate) throw new ModelBudgetBlockedError("unavailable", "the budget service is configured without a key");
-  const asked = Number(o.body.max_tool_calls);
-  const maxCalls = Number.isInteger(asked) && asked >= 1 ? Math.min(asked, WEB_SEARCH_MAX_CALLS) : WEB_SEARCH_MAX_CALLS;
-  const bodyText = JSON.stringify({ ...o.body, max_tool_calls: maxCalls, model: o.model });
-  const worst = worstCaseMicros(o.model, PRICES, { bytes: new TextEncoder().encode(bodyText).length + maxCalls * WEB_SEARCH_CONTENT_TOKENS, images: 0, maxOutputTokens: Number(o.body.max_output_tokens) || 4096 }) + maxCalls * WEB_SEARCH_FEE_MICROS;
+  const { bodyText, micros: worst } = responsesWorst(o.model, o.body);
   const got = await gate.reserve(worst, { model: o.model, role: o.role || "chat" });
   if (!got.ok) {
     console.error(`[model] budget ${got.reason}${got.detail ? `: ${got.detail}` : ""}`);
@@ -329,12 +346,8 @@ export async function responsesCall(o: { apiKey: string; model: string; body: Re
     if (!res.ok) { if (REFUSED_BEFORE_GENERATION.has(res.status)) close = { kind: "release" }; return res; }
     // Read a copy: the caller still gets the body. Proven only when the usage block is real and the model has a price.
     const raw = await res.clone().text().catch(() => ""), j: any = (() => { try { return JSON.parse(raw); } catch { return null; } })();
-    const u = j && j.usage, num = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0;
-    if (u && num(u.input_tokens) && num(u.output_tokens) && Array.isArray(j.output)) {
-      const tokens = costMicros(o.model, u);
-      const searches = j.output.filter((x: any) => x && x.type === "web_search_call").length;
-      if (tokens !== null && Number.isFinite(tokens)) close = { kind: "actual", micros: Math.max(1, tokens + searches * WEB_SEARCH_FEE_MICROS) }; // the truth, even above the reservation (the day records an overrun)
-    }
+    const settled = responsesSettle(o.model, j);
+    if (settled !== null) close = { kind: "actual", micros: settled }; // the truth, even above the reservation (the day records an overrun)
     return res;
   } finally {
     try {

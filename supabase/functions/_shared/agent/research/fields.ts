@@ -216,3 +216,6 @@ export function genericField(label: string, local = false): Field {
     verify: ["Your state or country's current entry requirements and fees", "Which employers are hiring and their deadlines", "Current pay in your area"],
   };
 }
+
+// Fixed phrases general-knowledge lines use that contain a number word but state no fact (the outreach structure the owner set).
+export const GK_PHRASES = ["fifteen-minute", "fifteen minute", "three-statement"];

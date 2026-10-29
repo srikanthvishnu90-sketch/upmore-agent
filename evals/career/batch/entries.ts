@@ -12,7 +12,7 @@
 // Money: the RunCap is an outer, per-run limit on top of the product's own model_budget reserve (callModel still reserves first).
 import { AsyncLocalStorage } from "node:async_hooks";
 import { memoryBudgetGate, REFUSED_BEFORE_GENERATION, usageProven, worstCaseMicros, type BudgetGate } from "../../../supabase/functions/_shared/model_budget.ts";
-import { PRICES, VOICE_MODEL } from "../../../supabase/functions/_shared/model_gateway.ts";
+import { PRICES, responsesSettle, responsesWorst, VOICE_MODEL } from "../../../supabase/functions/_shared/model_gateway.ts";
 import { fnv, rng, type Scenario } from "./variants.ts";
 
 // ---- the cap ----------------------------------------------------------------------------------------------------------
@@ -55,7 +55,11 @@ export function guardFetch(o: { cap: RunCap; inner: typeof fetch; allowOrigins: 
     const text = await req.text();
     let body: any; try { body = JSON.parse(text); } catch { throw new TypeError("openai request is not JSON"); }
     assertAllowedModel(String(body?.model ?? ""));
-    const worst = worstCaseMicros(body.model, PRICES, { bytes: new TextEncoder().encode(text).length, images: text.split('"type":"image').length - 1, maxOutputTokens: Number(body.max_completion_tokens ?? body.max_tokens) || 4096 });
+    // A Responses call (the web_search tool) is priced exactly as the product's responsesCall prices it: tokens at the worst case,
+    // plus the search content and the fee for every search it may make. A chat call is priced by its tokens.
+    const responses = u.pathname.endsWith("/responses");
+    const worst = responses ? responsesWorst(body.model, body).micros
+      : worstCaseMicros(body.model, PRICES, { bytes: new TextEncoder().encode(text).length, images: text.split('"type":"image').length - 1, maxOutputTokens: Number(body.max_completion_tokens ?? body.max_tokens) || 4096 });
     const id = await o.cap.reserve(worst, { model: body.model, role: "batch" });
     o.state.calls++;
     let close: "keep" | "release" | number = "keep";
@@ -65,7 +69,8 @@ export function guardFetch(o: { cap: RunCap; inner: typeof fetch; allowOrigins: 
       const raw = await res.text();
       try {
         const parsed = JSON.parse(raw), p = PRICES[body.model];
-        if (res.ok && p && usageProven("openai", parsed)) close = Math.max(1, Math.round(parsed.usage.prompt_tokens * p.input + parsed.usage.completion_tokens * p.output + (p.call_fee ?? 0)));
+        if (res.ok && responses) { const r = responsesSettle(body.model, parsed); if (r !== null) close = r; }
+        else if (res.ok && p && usageProven("openai", parsed)) close = Math.max(1, Math.round(parsed.usage.prompt_tokens * p.input + parsed.usage.completion_tokens * p.output + (p.call_fee ?? 0)));
       } catch { /* unproven: the worst case stays spent */ }
       return new Response(raw, { status: res.status, headers: res.headers });
     } finally {
@@ -132,6 +137,13 @@ export async function inboundEntry(o: { brain: "router" | "agent"; model: string
   const { memoryBriefStores } = await import("../../../supabase/functions/_shared/career_brief_store.ts");
   const { situationFrom } = await import("../../../supabase/functions/_shared/career_situation.ts");
   assertAllowedModel(o.model);
+  // CAREER_KNOWLEDGE=on: the open-question research runs in the chat, through the same guarded fetch, so its searches are priced
+  // on the cap exactly like the product's own (responsesWorst) and a run cannot exceed --max-usd.
+  const { knowledgeOn } = await import("../../../supabase/functions/_shared/agent/knowledge/index.ts");
+  const { memoryGroundCache, openAiGroundSearch } = await import("../../../supabase/functions/_shared/agent/research/ground.ts");
+  const { modelDerive } = await import("../../../supabase/functions/_shared/agent/research/derive.ts");
+  const { DEFAULT_SEARCH_MODEL } = await import("../../../supabase/functions/_shared/career_people_provider.ts");
+  const knowledge = knowledgeOn(Deno.env), researchCache = memoryGroundCache();
   const store = memoryStore(), alerts = memoryAlertStore(), { interviews } = memoryBriefStores();
   const host = CareerHost.createCareerHost({ CareerAccess: core.CareerAccess, CareerOnboarding: core.CareerOnboarding, CareerRouter: core.CareerRouter, CareerDoorstep: core.CareerDoorstep, CareerReply: core.CareerReply, CareerContainment: core.CareerContainment });
   const cfg = { provider: "openai" as const, model: o.model, apiKey: o.apiKey, reasoningEffort: null };
@@ -145,7 +157,8 @@ export async function inboundEntry(o: { brain: "router" | "agent"; model: string
         let reply: string;
         if (o.brain === "agent") {
           const situation = situationFrom({ jobs: [], wanted: [], prepared: [], card: null, questions: [], outreach: [], mail_drafts: [], interviews: [], alerts: null, standing: [], threads: [{ thread_id: a.userId, rows: a.stores?.snapshot?.stores?.trackStore?.rows ?? null }], connections: [], cloud: null, channel: null, last_search: null, unreadable: [] }, now);
-          const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, interviews, model: (p: any) => callModel(cfg, p, { role: "chat" }), known: { standing: [], alerts: null, pipeline: null, situation } });
+          const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, interviews, model: (p: any) => callModel(cfg, p, { role: "chat" }), known: { standing: [], alerts: null, pipeline: null, situation },
+            ...(knowledge ? { knowledge: true, research: { search: openAiGroundSearch({ apiKey: o.apiKey, model: DEFAULT_SEARCH_MODEL }), cache: researchCache, derive: modelDerive(async (system, user) => { const r = await callModel(cfg, { system, messages: [{ role: "user", content: [{ type: "text", text: user }] }], max_tokens: 200 }, { role: "chat" }); return (r.content ?? []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join(""); }) } } : {}) });
           if (t.stopped === "model_error") throw new Error("agent model unavailable");
           reply = t.reply;
         } else reply = host.runTurn(a.message, ctx).reply;

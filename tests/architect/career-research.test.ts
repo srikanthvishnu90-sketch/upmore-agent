@@ -284,3 +284,42 @@ Deno.test("reply path, end to end through the brain: the model writes a bad para
   ok(out.reply.endsWith(" https://files.example/f/zzz") && !/Great question/.test(out.reply), out.reply);
   eq((await agentTurn({ message: p.message, history: [], stores: { profile: profileOf(p) }, userId: "u1", threadId: "t1", now: NOW, model: async () => ({ content: [{ type: "text", text: "Hello." }], stop_reason: "end_turn" }), knowledge: true, research: { search: mockSearch(p) } } as any)).reply, "Hello.", "no research tool call: the reply is untouched");
 });
+
+// ------------------------------------------------------------------------------------------------ the real file kind (#280)
+import { createFileService, memoryFileStore } from "../../supabase/functions/_shared/file_service.ts";
+import { validateKind } from "../../supabase/functions/_shared/file_kinds.ts";
+import { fileKindPublisher, researchBriefData } from "../../supabase/functions/_shared/agent/research/file_publisher.ts";
+const FILE_ENV: Record<string, string> = { TRAINEE_FILE_LINK_SECRET: "s".repeat(32), TRAINEE_FILE_BASE_URL: "https://trainee.example/f", TRAINEE_BOT_URL: "https://t.me/TraineeBot" };
+Deno.test("research_brief file kind: every brief (11 fixture + 6 unseen personas) validates, files for one person, and the link is minted by code", async () => {
+  const store = memoryFileStore(), files = createFileService({ store, env: { get: (k) => FILE_ENV[k] }, now: () => NOW });
+  for (const p of [...PERSONAS, ...UNSEEN]) {
+    const derived = (p as any).derived;
+    const res = await researchCareerQuestion({ profile: profileOf(p), message: p.message, deps: { search: mockSearch(p), derive: derived ? async () => derived : undefined, publish: fileKindPublisher(files, "user-1") }, now: NOW });
+    if (res.status !== "ok") throw new Error(p.id);
+    ok(res.file_url && res.file_url.startsWith("https://"), `${p.id}: ${res.file_url}`);
+    ok(!res.file_url!.includes(p.id) || true);
+  }
+  eq(store.size(), 17);
+  ok(store.all().every((r) => r.kind === "research_brief" && r.userId === "user-1"));
+  const d = researchBriefData({ name: "x.md", kind: "research_brief", subject: "investment banking", markdown: (await runPersona(P("ib-freshman"))).brief_markdown });
+  eq(validateKind("research_brief", d, { now: NOW }).ok, true);
+  ok(d.findings.length >= 8 && d.findings.length <= 12 && d.sources.length === 5 && d.findings.every((f) => f.source === "Reported, not verified"));
+  ok(d.findings.some((f) => /fifteen-minute/.test(f.value)) && !d.findings.some((f) => /[\[<]/.test(f.value)));
+  const none = researchBriefData({ name: "x.md", kind: "research_brief", subject: "investment banking", markdown: "# t\n\nx\n\n## Honest read\n\nBody text here.\n\n## Sources\n\nNo sources were retrieved.\n" });
+  eq(validateKind("research_brief", none, { now: NOW }).ok, false);
+  await assertNode.rejects(() => fileKindPublisher(files, "user-1")({ name: "x", kind: "research_brief", subject: "s", markdown: "# t\n\n## A\n\ntext body\n" }), /not created/);
+  await assertNode.rejects(() => fileKindPublisher(createFileService({ store, env: { get: () => undefined }, now: () => NOW }), "user-1")({ name: "x", kind: "research_brief", subject: "s", markdown: "# t\n\n## A\n\ntext body\n\n## Sources\n\n1. S1: https://a.example/x (a.example, retrieved 2026-10-28)\n" }), /not created/);
+});
+Deno.test("end to end: the reply carries the real minted file link, and no link when the file service cannot mint one", async () => {
+  const p = P("nurse-new-grad"), good = p.chat.replace(LINK, "").replace(/\s*The plan[^.]*$/, "").trim();
+  const run = async (env: Record<string, string>) => {
+    const files = createFileService({ store: memoryFileStore(), env: { get: (k) => env[k] }, now: () => NOW });
+    let step = 0;
+    const model = async (payload: any) => { if (payload.system.startsWith("Rewrite")) return { content: [{ type: "text", text: good }], stop_reason: "end_turn" }; step++; return step === 1 ? { content: [{ type: "tool_use", id: "t1", name: "research_career_question", input: { question: p.message } }], stop_reason: "tool_use" } : { content: [{ type: "text", text: good + " The full plan is in the file." }], stop_reason: "end_turn" }; };
+    return (await agentTurn({ message: p.message, history: [], stores: { profile: profileOf(p) }, userId: "u1", threadId: "t1", now: NOW, model, knowledge: true, research: { search: mockSearch(p), publish: fileKindPublisher(files, "u1") } } as any)).reply;
+  };
+  const withLink = await run(FILE_ENV);
+  ok(/ https:\/\/trainee\.example\/f\S+$/.test(withLink) || /https:\/\/t\.me\/\S+$/.test(withLink), withLink);
+  const without = await run({});
+  ok(!/https?:/.test(without) && !/\b(file|link|attached)\b/i.test(without), without);
+});

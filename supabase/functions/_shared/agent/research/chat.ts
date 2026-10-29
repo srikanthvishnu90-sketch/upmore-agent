@@ -34,7 +34,7 @@ export function lintChat(p: string, o: { link?: string | null; noLink?: boolean;
   if (sents.some((s) => /^[a-z]/.test(s))) bad.push("sentence starts lowercase");
   if (/\bi\b(?!['’])/.test(prose.replace(/"[^"]*"/g, ""))) bad.push("lowercase I");
   if (!/[.?:]$/.test(prose)) bad.push("last sentence has no end punctuation");
-  const support = [...o.facts.flatMap((f) => [f.text, f.quote, f.label]), ...o.person, o.message].join(" \n ");
+  const support = [...o.facts.flatMap((f) => [f.text, f.quote, f.label]), ...o.person, o.message];
   const extra = unsupported(prose.replace(/\[[^\]]*\]/g, ""), support);
   if (extra.length) bad.push(`specifics with no source: ${extra.join(", ")}`);
   return bad;

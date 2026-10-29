@@ -3,8 +3,8 @@
 //   ground      cached, capped OpenAI web search -> guard-accepted facts with URLs (ground.ts, guard.ts)
 //   write       the research brief file, built from those facts, labelled general knowledge and the person's own facts (brief.ts)
 //   guard       any number or name no source accounts for is dropped by code; the chat paragraph is linted (chat.ts)
-// DEPENDENCY: the brief is delivered as a markdown document through `publish`. Until PR #280 (file kinds) merges, wire `publish`
-// to the existing markdown attachment; after, to the research_brief kind. Without `publish` the markdown is returned for the caller.
+// The brief is delivered through `publish`: in production file_publisher.ts files it as #280's `research_brief` kind. Without
+// `publish` the markdown is returned for the caller and the reply carries no link.
 import { buildContextPack, type PackInput } from "../knowledge/context_pack.ts";
 import { composeBrief } from "./brief.ts";
 import { groundFor, type Fact, type GroundCache, type GroundSearch } from "./ground.ts";
@@ -14,7 +14,7 @@ import { unsourcedIn } from "./guard.ts";
 
 // Where the finished brief goes. PR #280's file kind plugs in here by implementing this one function (kind "research_brief");
 // nothing else in this pipeline changes. The link is inserted into the chat reply by code (reply.ts), never by the model.
-export interface BriefFile { name: string; kind: "research_brief"; markdown: string }
+export interface BriefFile { name: string; kind: "research_brief"; subject: string; markdown: string }
 export type Publisher = (file: BriefFile) => Promise<{ url: string }>;
 export interface ResearchDeps { search: GroundSearch; cache?: GroundCache; publish?: Publisher; derive?: DeriveFn; onResult?: (r: ResearchResult, message: string) => void }
 export type ResearchResult =
@@ -38,7 +38,7 @@ export async function researchCareerQuestion(o: PackInput & { deps: ResearchDeps
   const unsourced = unsourcedIn(b.markdown, { facts: g.facts, person, message: o.message });
   const file_name = `${u.field.id}-plan-${today}.md`;
   let file_url: string | null = null;
-  if (o.deps.publish) { try { file_url = (await o.deps.publish({ name: file_name, kind: "research_brief", markdown: b.markdown })).url; } catch (e) { console.error("research brief publish:", e instanceof Error ? e.message : e); } }
+  if (o.deps.publish) { try { file_url = (await o.deps.publish({ name: file_name, kind: "research_brief", subject: u.field.label, markdown: b.markdown })).url; } catch (e) { console.error("research brief publish:", e instanceof Error ? e.message : e); } }
   const result: ResearchResult = {
     status: "ok", brief_markdown: b.markdown, file_name, file_url, verdict: { now: u.field.now, later: u.field.later }, ask: u.ask, assumptions: u.assumptions,
     facts: g.facts, person, sources: b.sources, grounding: { searches: g.searches, cost_usd: g.cost_usd, from_cache: g.from_cache }, unsourced, dropped: b.dropped,

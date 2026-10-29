@@ -91,7 +91,8 @@ Deno.test("answers parse only when they answer: commands, questions and chatter 
   assert.equal(parseScreenAnswer("location", "what jobs are in Austin?", true), null);
   assert.equal(parseScreenAnswer("location", "thanks", true), null);
   assert.equal(parseScreenAnswer("sponsorship", "yes", true)?.value, "yes");
-  assert.equal(parseScreenAnswer("sponsorship", "no, I don't need sponsorship", true)?.value, "no");
+  assert.equal(parseScreenAnswer("sponsorship", "no, I don't need sponsorship", true), null, "a phrase is not a no (round 4: exact yes/no only)");
+  assert.equal(parseScreenAnswer("sponsorship", "No.", true)?.value, "no");
   assert.equal(parseScreenAnswer("sponsorship", "banana", true), null);
   assert.equal(parseScreenAnswer("years_experience", "about 4 years", true)?.value, 4);
   assert.equal(parseScreenAnswer("years_experience", "I live in Austin", true), null);
@@ -117,12 +118,20 @@ Deno.test("question -> answer -> saved confirmed fact -> the screen reads it and
   assert.deepEqual(wants.dump().u1 ?? [], []);
   // 2. The person answers; each answer is a confirmed profile fact in the profile, in the real shape.
   const rerun = (held: any[]) => turn("apply to all of them", chatScreenFacts(CareerProfile.confirmedFacts(profile)), held.map((h) => ({ id: h.job_id, title: h.title, company: h.company, location: "", url: h.url })));
-  const a = await screenAnswerTurn({ message: "I live in Austin, TX and I will need visa sponsorship", now: NOW, last: { intent: "career_apply_queue", meta }, profile, addFact: (p, f) => CareerProfile.addFact(p, f), rerun });
+  // Round 4: a yes/no question takes only an exact yes / no, so "...and I will need visa sponsorship" saves the place and NOT the sponsorship
+  // answer (nothing wrong is written); the sponsorship question stays open and the person answers it with a yes.
+  const a1 = await screenAnswerTurn({ message: "I live in Austin, TX and I will need visa sponsorship", now: NOW, last: { intent: "career_apply_queue", meta }, profile, addFact: (p, f) => CareerProfile.addFact(p, f), rerun });
+  assert.ok(a1, "the place is taken");
+  assert.deepEqual(a1!.saved.map((s) => s.fact), ["location"]);
+  assert.equal(CareerProfile.confirmedFacts(profile).filter((f: any) => f.screen_key === "sponsorship").length, 0, "the sponsorship phrase wrote nothing");
+  assert.deepEqual(((a1!.meta as any).screen_ask as any[]).map((x) => x.fact), ["sponsorship"], "the sponsorship question is still open");
+  assert.deepEqual((a1!.meta as any).screen_buttons, ["Yes", "No"], "a single yes/no question open carries the Yes / No buttons");
+  const a = await screenAnswerTurn({ message: "yes", now: NOW, last: { intent: "career_apply_queue", meta: a1!.meta as any }, profile, addFact: (p, f) => CareerProfile.addFact(p, f), rerun });
   assert.ok(a, "the answer is taken");
-  assert.deepEqual(a!.saved.map((s) => s.fact).sort(), ["location", "sponsorship"]);
+  assert.deepEqual(a!.saved.map((s) => s.fact), ["sponsorship"]);
   const kept = CareerProfile.confirmedFacts(profile).filter((f: any) => f.screen_key);
   assert.equal(kept.length, 2);
-  assert.ok(kept.every((f: any) => f.status === "confirmed" && f.needs_confirmation === false && f.source === "screen_answer" && f.evidence[0].includes("Austin")));
+  assert.ok(kept.every((f: any) => f.status === "confirmed" && f.needs_confirmation === false && f.source === "screen_answer" && f.evidence[0].includes(f.screen_key === "location" ? "Austin" : "yes")));
   // 3. The screen reads them now: posting a (silent on sponsorship) queued; b ("we do not provide sponsorship") knocked out for someone who needs it, not asked again.
   assert.equal(wants.dump().u1?.length, 1, a!.reply);
   assert.match(a!.reply, /Saved \(/);

@@ -23,9 +23,13 @@ Deno.test("sponsorship: a leading no / yes must agree with what follows", () => 
     "no, but I will need sponsorship later", "I don't need it now but I will need sponsorship later", "No, I'm moving to Texas", "Yes, I live in Austin", "I need a job"]) {
     assert.equal(v(m), null, `ambiguous or off-topic, nothing written: ${m}`);
   }
-  for (const m of ["No", "no.", "No, thanks", "No, I don't", "Nope", "No, I don't need sponsorship", "No sponsorship needed", "no, no sponsorship needed", "I do not need sponsorship",
-    "I need no sponsorship", "without sponsorship", "No need for a visa"]) assert.equal(v(m), "no", m);
-  for (const m of ["Yes", "yes please", "yes, I need sponsorship", "I need sponsorship", "I will need a visa", "Yes, I do", "I require H-1B sponsorship"]) assert.equal(v(m), "yes", m);
+  // Round 4 (whitelist): only the whole message yes/y/yeah/yep/no/n/nope answers; every phrase that used to be read now writes nothing.
+  for (const m of ["No, thanks", "No, I don't", "No, I don't need sponsorship", "No sponsorship needed", "no, no sponsorship needed", "I do not need sponsorship", "I need no sponsorship",
+    "without sponsorship", "No need for a visa", "yes please", "yes, I need sponsorship", "I need sponsorship", "I will need a visa", "Yes, I do", "I require H-1B sponsorship"]) {
+    assert.equal(v(m), null, `a phrase is not an answer: ${m}`);
+  }
+  for (const m of ["No", "no.", "Nope", "N"]) assert.equal(v(m), "no", m);
+  for (const m of ["Yes", "yes!", "Yeah", "y"]) assert.equal(v(m), "yes", m);
   assert.equal(v("No", false), null, "with several questions open a bare no answers none");
 });
 
@@ -53,7 +57,10 @@ Deno.test("turn level: wrong-question answers write nothing, re-ask once, then h
     assert.equal(again.r!.status, "held", "asked once, then the postings stay held");
     assert.equal((again.profile.facts ?? []).length, 0);
   }
-  const ok = await run("No, I don't need sponsorship", ["sponsorship"]);
+  const phrase = await run("No, I don't need sponsorship", ["sponsorship"]);
+  assert.deepEqual(phrase.r!.saved, [], "a phrase writes nothing");
+  assert.equal(phrase.r!.status, "asking");
+  const ok = await run("No", ["sponsorship"]);
   assert.deepEqual(ok.r!.saved, [{ fact: "sponsorship", value: "no" }]);
   const ok2 = await run("Austin, TX", ["location"]);
   assert.deepEqual(ok2.r!.saved, [{ fact: "location", value: "Austin, TX" }]);

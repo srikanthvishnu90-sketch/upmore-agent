@@ -128,6 +128,8 @@ async function attempt(browser, p, opts, timing) {
     onAllowedHost();
     if (!resp || resp.status() >= 400) throw new Error(`page_load_${resp ? resp.status() : "none"}`);
     if (await botCheck(page)) throw new NeedsUser("bot_check", p.url);
+    // An employer that wants the person to sign in first: never signed into, never given a password (the person does that).
+    if (await page.$('input[type="password"]')) throw new NeedsUser("login_required", p.url);
     timing.load = Date.now() - t0;
     const t1 = Date.now();
     const controls = await page.$$eval("form input, form select, form textarea", (els) => els.filter((e) => !["hidden", "submit"].includes(e.type)).map((e) => {
@@ -163,6 +165,8 @@ async function attempt(browser, p, opts, timing) {
     if (!av.ok) throw new NeedsUser("form_action_not_allowed", av.host);
     if (!hasApproval(p)) throw new NeedsUser("not_approved", "payload changed after approval");
     if (opts.shotBefore) await page.screenshot({ path: opts.shotBefore, fullPage: true });
+    // The caller records "submitting" (and re-checks its lease and kill switch) BEFORE the click; a refusal stops here, unsent.
+    if (opts.onPhase) await opts.onPhase("submitting");
     // Past this line nothing is retried: the employer may have received it.
     const t2 = Date.now();
     timing.submitClicked = true;
@@ -202,9 +206,10 @@ async function applyOne(browser, p, opts = {}) {
       const r = await attempt(browser, p, { ...opts, shotBefore: opts.shotDir && `${opts.shotDir}/${p.id}-1-filled.png`, shotAfter: opts.shotDir && `${opts.shotDir}/${p.id}-2-confirmation.png` }, t);
       return { ...out, ...r, timing: t, ms: Date.now() - started };
     } catch (e) {
-      if (e instanceof NeedsUser) return { ...out, status: e.reason === "bot_check" ? "needs_user" : "not_submitted", reason: e.reason, field: e.field, ms: Date.now() - started };
+      if (e instanceof NeedsUser) return { ...out, status: e.reason === "bot_check" || e.reason === "login_required" ? "needs_user" : "not_submitted", reason: e.reason, field: e.field, ms: Date.now() - started };
       if (t.submitClicked) return { ...out, status: "unknown_outcome", reason: e.message, ms: Date.now() - started };
       out.lastError = e.message.split("\n")[0];
+      if (out.lastError === "page_load_429") break; // the portal said slow down: not asked again by this run
       if (n < max) await new Promise((r) => setTimeout(r, (opts.backoffMs ?? 200) * n));
     }
   }
@@ -226,4 +231,4 @@ async function runPool(browser, payloads, opts = {}) {
   return { results, wallMs: Date.now() - started, concurrency };
 }
 
-module.exports = { applyOne, runPool, payloadHash, checkPayload, sha256, urlVerdict, DENY_HOSTS };
+module.exports = { applyOne, runPool, payloadHash, checkPayload, sha256, urlVerdict, DENY_HOSTS, NeedsUser };

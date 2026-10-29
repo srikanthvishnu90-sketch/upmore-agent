@@ -336,13 +336,14 @@ test('an inbound secret already on the project is never replaced by an Enter; TR
 
 // --non-interactive (the production workflow, .github/workflows/deploy-production.yml): no terminal is ever opened and
 // nothing is asked. The same stub tools as above; `secrets list` answers with the names in `live` (never values).
-function nonint(args, env, { live = ['TRAINEE_INBOUND_SECRET'], listFails = false } = {}) {
+function nonint(args, env, { live = ['TRAINEE_INBOUND_SECRET'], listFails = false, bundleOk = false } = {}) {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-go-live-nonint-'));
   const calls = path.join(bin, 'calls.log');
   const stub = (name, body) => { fs.writeFileSync(path.join(bin, name), `#!/usr/bin/env bash\necho "${name} $*" >> "${calls}"\n${body}\n`); fs.chmodSync(path.join(bin, name), 0o755); };
   const rows = live.map((n) => `${n} | 0f0f`).join('\\n');
   stub('supabase', `if [[ "$1 $2" == "secrets list" ]]; then ${listFails ? 'echo "Access token not provided" >&2; exit 1' : `printf "NAME | DIGEST\\n${rows}\\n"`}; fi; exit 0`);
   stub('psql', 'exit 0'); stub('deno', 'exit 0');
+  if (bundleOk) stub('python3', 'exit 0'); // the router-bundle freshness check is not what this case tests
   stub('node', `if [[ "$1" == *trainee-smoke.cjs ]]; then exit 0; fi\nexec "${process.execPath}" "$@"`);
   stub('git', `if [[ "$1" == status ]]; then exit 0; fi\nexec "${REAL_GIT}" "$@"`);
   const res = spawnSync('bash', [SCRIPT, '--non-interactive', ...args], { cwd: root, encoding: 'utf8', detached: true, stdio: ['ignore', 'pipe', 'pipe'],
@@ -630,4 +631,49 @@ test('FEATURE 17: the cloud schedule reads CLOUD_DISPATCH_SECRET into Vault and 
   }
   const snap = fs.readFileSync(path.join(root, 'scripts/cloud-runner/build-snapshot.ts'), 'utf8');
   assert.match(snap, /deno cache [^"]*workers\/career-cloud\/prepare-runner\.ts/, 'the snapshot caches the preparation runner too');
+});
+
+// trainee-file (hosted list page) and ops-monitor are public (verify_jwt = false in supabase/config.toml) and secret-gated:
+// deployed only when TRAINEE_FILE_LINK_SECRET / OPS_MONITOR_TOKEN is among the function secrets; absent = skipped, never a failure.
+test('gated functions: deployed with --no-verify-jwt only when their secret is set; absent is a log line, not a failure', () => {
+  const cfg = fs.readFileSync(path.join(root, 'supabase/config.toml'), 'utf8');
+  for (const fn of ['trainee-file', 'ops-monitor']) assert.match(cfg, new RegExp(`\\[functions\\.${fn}\\]\\nverify_jwt = false`));
+  const off = dry();
+  assert.equal(off.code, 0, off.out);
+  assert.match(off.out, /gated: trainee-file SKIPPED \(TRAINEE_FILE_LINK_SECRET is not among the function secrets\)/);
+  assert.match(off.out, /gated: ops-monitor SKIPPED \(OPS_MONITOR_TOKEN is not among the function secrets\)/);
+  assert.doesNotMatch(off.out, /functions deploy (trainee-file|ops-monitor)/);
+  const on = dry([], { ...FAKE, TRAINEE_FILE_LINK_SECRET: 'fake-file-link-secret-0000-FFFFFFFFFFFFFFFF', OPS_MONITOR_TOKEN: 'fake-ops-monitor-token-0000-OOOOOOOOOOOOOOO' });
+  assert.equal(on.code, 0, on.out);
+  assert.match(on.out, /supabase functions deploy trainee-file --project-ref \S+ --no-verify-jwt --use-docker/);
+  assert.match(on.out, /supabase functions deploy ops-monitor --project-ref \S+ --no-verify-jwt --use-docker/);
+  assert.match(on.out, /deno check [^\n]*trainee-file\/index\.ts [^\n]*ops-monitor\/index\.ts/);
+  assert.doesNotMatch(on.out, /trainee-connect/);
+  const only = dry([], { ...FAKE, OPS_MONITOR_TOKEN: 'fake-ops-monitor-token-0000-OOOOOOOOOOOOOOO' });
+  assert.match(only.out, /gated: trainee-file SKIPPED/);
+  assert.match(only.out, /functions deploy ops-monitor /);
+  assert.doesNotMatch(only.out, /functions deploy trainee-file/);
+});
+
+test('gated functions: a failed secrets listing skips both with a log line, never deploys them ungated, and does not abort the run', () => {
+  const r = nonint(['--sha', HEAD_SHA, '--skip-migrations'], CI_ENV, { listFails: true, bundleOk: true });
+  assert.match(r.out, /gated: trainee-file SKIPPED \(secrets list unavailable\)/, r.out);
+  assert.match(r.out, /gated: ops-monitor SKIPPED \(secrets list unavailable\)/);
+  assert.doesNotMatch(r.calls, /functions deploy (trainee-file|ops-monitor)/);
+  assert.doesNotMatch(r.out, /gated: \S+ will be deployed/);
+});
+
+test('--verify with no project ref: the gated-secrets lookup is skipped (no secrets list call) and does not abort', () => {
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-go-live-verify-'));
+  const calls = path.join(bin, 'calls.log');
+  const stub = (name, body) => { fs.writeFileSync(path.join(bin, name), `#!/usr/bin/env bash\necho "${name} $*" >> "${calls}"\n${body}\n`); fs.chmodSync(path.join(bin, name), 0o755); };
+  stub('supabase', 'exit 1'); stub('psql', 'exit 0'); stub('deno', 'exit 0');
+  const { SUPABASE_PROJECT_REF, ...noRef } = FAKE;
+  const res = spawnSync('bash', [SCRIPT, '--verify', HEAD_SHA], { cwd: root, encoding: 'utf8', detached: true, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { PATH: `${bin}:${process.env.PATH}`, HOME: home, TRAINEE_GO_LIVE_LOG: path.join(bin, 'run.log'), ...noRef } });
+  const out = res.stdout + res.stderr;
+  const log = fs.existsSync(calls) ? fs.readFileSync(calls, 'utf8') : '';
+  assert.doesNotMatch(log, /secrets list/, 'no lookup without a ref');
+  assert.doesNotMatch(out, /could not read the project's secret names/);
+  assert.match(out, /gated: trainee-file SKIPPED \(secrets list unavailable: no project ref\)/, out);
 });

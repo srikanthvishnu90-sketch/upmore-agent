@@ -229,3 +229,20 @@ Deno.test("research_brief publisher hook: interface only, behind CAREER_RESEARCH
   eq((await withBriefLink(reply, U, brief, { publish: async () => ({ url: "http://insecure.example/x" }) })).report, undefined);
   eq((await withBriefLink(reply, U, brief, { publish: async () => { throw new Error("down"); } })).report, undefined);
 });
+
+Deno.test("apply-here host edge cases: userinfo@, punycode, shortener and trailing-dot hosts are judged by the real hostname", async () => {
+  // userinfo: the host is what follows the @, so a decoy before it neither blocks nor allows
+  eq(applyHereAsk("apply https://boards.greenhouse.io@linkedin.com/jobs/1", null)?.blocked.length, 1);
+  const decoy = applyHereAsk("apply https://linkedin.com@boards.greenhouse.io/acme/jobs/1", null);
+  eq(decoy?.blocked, []); eq(decoy?.urls.length, 1);
+  // trailing dot: linkedin.com. is still LinkedIn
+  eq(applyHereAsk("apply https://www.linkedin.com./jobs/view/1", null)?.blocked.length, 1);
+  eq(applyHereAsk("apply https://uk.indeed.com./viewjob?jk=1", null)?.blocked.length, 1);
+  // punycode / lookalike hosts are not LinkedIn and not an ATS we open: refused as "apply there yourself", never fetched
+  const w = await world([1]);
+  for (const u of ["https://xn--linkedn-9ya.com/jobs/1", "https://bit.ly/3abcdef", "https://boards.greenhouse.io.evil.example/acme/jobs/1"]) {
+    const r = await w.run(`apply ${u}`);
+    eq(r?.status, "refused", u); eq(r?.hits, [], u);
+  }
+  eq(w.fetched, [], "no board was fetched for any of them");
+});

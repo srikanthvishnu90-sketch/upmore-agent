@@ -176,12 +176,14 @@ Deno.test("list: a row per posting with logo or lettermark, company, Apply, and 
   assert(!html.includes("favicons?sz=128&amp;domain=greenhouse") && !/domain=boards\.greenhouse/.test(html));
   const text = plain(html);
   assert(text.includes("Build dashboards and own the weekly pricing report"), "short description from the posting's own text");
-  for (const gone of ["From the posting", "From your resume", "Why this fits", "Reported, not verified", "Pass", "Confirm"]) assert(!text.includes(gone), `no ${gone}`);
+  for (const gone of ["From your resume", "Why this fits", "Pass", "Confirm"]) assert(!text.includes(gone), `no ${gone}`);
   assert(text.includes("Applying with: ada-resume.pdf"));
+  assert(text.includes("Austin, TX · $90k · Greenhouse · Reported, not verified"), "key details with a muted source label (the fixture posting row has no location or pay, so these are search-reported)");
+  assert(!/Why it fits you/.test(text), "no fit line when there are no confirmed reasons");
   assert(/<details>\s*<summary>/.test(html) && html.includes("class=\"full\""), "the full posting is behind a tap, closed by default");
   assert(!/<details[^>]* open/.test(html));
   // brand: Trainee's tokens and fonts, both themes by prefers-color-scheme
-  for (const tokenValue of ["#4A2F5E", "#D4C2E2", "#141414", "#4F4F57", "#E6E6EA", "#B42318", "#EDEDF0", "#A6A6B0", "#1F1F25", "#060607"]) assert(html.includes(tokenValue), `brand token ${tokenValue}`);
+  for (const tokenValue of ["#4A2F5E", "#D4C2E2", "#141414", "#4F4F57", "#FAF8F4", "#E6E3DD", "#B42318", "#EDEDF0", "#A6A6B0", "#1F1F25"]) assert(html.includes(tokenValue), `brand token ${tokenValue}`);
   assert(/Brygada 1918/.test(html) && /family=Inter/.test(html) && /prefers-color-scheme:dark/.test(html) && /name="theme-color" content="#4A2F5E"/.test(html));
   assert(/<html lang="en"/.test(html) && /name="viewport"/.test(html) && /min-height:\s*(4[4-9]|[5-9][0-9])px/.test(html));
   assert(/script-src 'sha256-/.test(r.headers.get("content-security-policy")!) && !/unsafe-eval|script-src[^;]*unsafe-inline/.test(r.headers.get("content-security-policy")!));
@@ -414,4 +416,29 @@ Deno.test("bot: a mass list is ONE short line plus the link and a Mini App butto
   await sendJobCards({ userId: U, hits: [hit(1), hit(2)], deps: full, send });
   eq(sent.filter((s) => s.kind === "text" && /jobs for you/.test(s.text)).length, 0);
   assert(sent.length === 2, "two postings keep their own cards");
+});
+
+Deno.test("list: a fit line shows at most two short reasons and only when the tools gave them; a search-only figure says 'Reported, not verified'", async () => {
+  const m = mem(2); await m.ready;
+  const v = jobViewOf(hit(1, { fit: { reasons: ["You list SQL", "Your last role was analytics", "A third"], gaps: [] }, pay: "$95k" }), null);
+  await m.store.remember(U, await ref(1), v, "text");
+  m.store.postings = async (ids) => ids.map((id) => row(Number(id.split(":").pop()), id.endsWith(":1") ? { pay: null } : {}));
+  const text = plain(await (await get(deps(m), await tok())).text());
+  assert(text.includes("Why it fits you: You list SQL Your last role was analytics") && !text.includes("A third"));
+  assert(text.includes("$95k") && text.includes("Reported, not verified"));
+  assert(text.includes("Co2") && !/Co2[^]*Why it fits you[^]*$/.test(text.split("Acme")[1]?.split("Co2")[1] ?? ""), "the row without reasons has no fit line");
+});
+
+Deno.test("link preview and Mini App: og/twitter tags from real counts, theme-color, full-height viewport with safe-area insets, Telegram ready/expand with colors from the page's own background", async () => {
+  const m = mem(2); await m.ready;
+  const r = await get(deps(m), await tok());
+  const html = await r.text();
+  assert(/property="og:title" content="2 matches for you"/.test(html) && /property="og:description" content="Tap Apply on any job\. Opens in Trainee\."/.test(html));
+  assert(html.includes('property="og:image" content="https://trainee.example/og-file.png"') && html.includes('og:image:width" content="1200"') && html.includes('og:image:height" content="630"') && html.includes('twitter:card" content="summary_large_image"'));
+  assert(!/Acme|Co2|ada-resume/.test(html.match(/<head>[\s\S]*<\/head>/)![0]), "nothing about the person in the head tags");
+  assert(/name="theme-color" content="#4A2F5E"/.test(html) && /viewport-fit=cover/.test(html) && /env\(safe-area-inset-bottom\)/.test(html) && /100dvh/.test(html));
+  assert(html.includes('src="https://telegram.org/js/telegram-web-app.js"') && /w\.ready\(\);w\.expand\(\)/.test(html) && /setBackgroundColor/.test(html) && /setHeaderColor/.test(html));
+  assert(/script-src 'sha256-[^']+' 'sha256-[^']+' https:\/\/telegram\.org/.test(r.headers.get("content-security-policy")!));
+  const m1 = mem(1); await m1.ready;
+  assert(/content="1 match for you"/.test(await (await get(deps(m1), await tok())).text()));
 });

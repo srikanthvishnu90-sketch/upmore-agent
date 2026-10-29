@@ -18,8 +18,9 @@ export interface Row {
   status: Status | null; // null: nothing yet, so the row offers Apply
   tag: string | null; // first 16 hex of the payload hash this row's Apply is bound to; null when nothing is prepared yet
   resume: string | null; byHand: boolean; note?: string;
+  meta?: string; metaSrc?: "From the posting" | "Reported, not verified" | null; why?: string[];
 }
-export interface Feed { token: string; rows: Row[]; setHash: string | null; setSize: number; top?: string; botUrl?: string | null }
+export interface Feed { og?: Og; token: string; rows: Row[]; setHash: string | null; setSize: number; top?: string; botUrl?: string | null }
 
 export const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
@@ -60,52 +61,55 @@ export const hostOf = (u: string) => { try { return new URL(u).hostname.replace(
 
 // ---------------------------------------------------------------- html
 const CSS = `
-:root{--bg:#FFFFFF;--panel:#F5F4F7;--ink:#141414;--mute:#4F4F57;--line:#E6E6EA;--accent:#4A2F5E;--accent-hover:#5C3B74;--accent-ink:#FFFFFF;--link:#4A2F5E;--queued:#4A2F5E;--ok:#141414;--bad:#B42318;--warn:#B42318;color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root{--bg:#000000;--panel:#060607;--ink:#EDEDF0;--mute:#A6A6B0;--line:#1F1F25;--accent:#D4C2E2;--accent-hover:#FFFFFF;--accent-ink:#141414;--link:#D4C2E2;--queued:#D4C2E2;--ok:#7FB89A;--bad:#E07A6E;--warn:#E3B061}}
+:root{--bg:#FAF8F4;--ink:#141414;--mute:#4F4F57;--line:#E6E3DD;--accent:#4A2F5E;--accent-hover:#5C3B74;--accent-ink:#FFFFFF;--link:#4A2F5E;--good:#1B6B3A;--bad:#B42318;--warn:#8A5300;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#000000;--ink:#EDEDF0;--mute:#A6A6B0;--line:#1F1F25;--accent:#D4C2E2;--accent-hover:#FFFFFF;--accent-ink:#141414;--link:#D4C2E2;--good:#7FB89A;--bad:#E07A6E;--warn:#E3B061}}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.45 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;letter-spacing:-.005em;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.5 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;letter-spacing:-.005em;-webkit-font-smoothing:antialiased}
 h1{font-family:'Brygada 1918',Georgia,serif;font-weight:500}
-.wrap{max-width:640px;margin:0 auto;padding:12px 16px 32px}
-header{padding:8px 0 6px}.brand{display:flex;align-items:center;gap:10px;margin-bottom:10px}.mark{width:32px;height:32px;flex:none}
+.wrap{max-width:640px;margin:0 auto;min-height:100vh;min-height:100dvh;padding:calc(20px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left))}
+header{padding:4px 0 18px}.brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}.mark{width:32px;height:32px;flex:none}
 .wm{font-family:'Brygada 1918',Georgia,serif;font-weight:700;font-size:24px;letter-spacing:-.01em}
-h1{margin:0;font-size:26px;line-height:1.2}
-.with{margin:4px 0 0;font-size:14px;color:var(--mute)}
-.all{margin:0}.all button,.lnk{display:inline-flex;align-items:center;min-height:44px;padding:0;border:0;background:none;color:var(--link);font:inherit;font-size:16px;font-weight:600;text-decoration:underline;cursor:pointer}
-.top-note{margin:8px 0;padding:10px 12px;border:2px solid var(--bad);border-radius:10px;background:var(--panel)}
+h1{margin:0;font-size:28px;line-height:1.2}
+.with{margin:6px 0 0;font-size:14px;color:var(--mute)}
+.all{margin:6px 0 0}.all button{display:inline-flex;align-items:center;min-height:44px;padding:0;border:0;background:none;color:var(--link);font:inherit;font-size:15px;font-weight:500;text-decoration:underline;cursor:pointer}
+.top-note{margin:8px 0 14px;color:var(--bad)}
 ul.rows{list-style:none;margin:0;padding:0}
-.row{padding:12px 0;border-top:1px solid var(--line)}
-.head{display:flex;align-items:center;gap:12px}
-.logo{position:relative;flex:none;width:48px;height:48px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--panel)}
-.lettermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Brygada 1918',Georgia,serif;font-size:24px;font-weight:700;color:var(--link)}
+.row{padding:22px 0;border-top:1px solid var(--line)}
+.head{display:flex;align-items:center;gap:14px}
+.logo{position:relative;flex:none;width:44px;height:44px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.lettermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Brygada 1918',Georgia,serif;font-size:22px;font-weight:700;color:var(--ink)}
 .logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;color:transparent;font-size:0}
-.name{flex:1;min-width:0;font-weight:700;font-size:19px;overflow-wrap:anywhere}
+.name{flex:1;min-width:0;font-weight:600;font-size:19px;overflow-wrap:anywhere}
 .act{flex:none;margin:0}
-.apply,.chip{display:inline-flex;align-items:center;justify-content:center;min-width:96px;min-height:48px;padding:6px 16px;border-radius:999px;font:inherit;font-weight:600;text-decoration:none}
-.apply{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}.apply:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
-.chip{border:2px solid var(--line);color:var(--ink)}
-.chip.queued,.chip.preparing,.chip.submitted{border-color:var(--queued);color:var(--ink)}.chip.confirmed{border-color:var(--ok);color:var(--ok)}.chip.failed,.chip.unknown{border-color:var(--bad);color:var(--bad)}.chip.needs-you{border-color:var(--warn);color:var(--warn)}
-details{margin:2px 0 0 60px}summary{list-style:none;cursor:pointer;min-height:44px;padding:4px 0}
+.apply{display:inline-flex;align-items:center;justify-content:center;min-width:96px;min-height:48px;padding:6px 20px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;text-decoration:none;cursor:pointer}.apply:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.chip{flex:none;min-height:48px;display:inline-flex;align-items:center;justify-content:flex-end;font-weight:600;color:var(--mute)}
+.chip.queued,.chip.submitted,.chip.confirmed{color:var(--good)}.chip.failed,.chip.unknown{color:var(--bad)}.chip.needs-you{color:var(--warn)}
+details{margin:4px 0 0 58px}summary{list-style:none;cursor:pointer;min-height:44px;padding:4px 0}
 summary::-webkit-details-marker{display:none}
-.role{display:block;font-weight:600}.desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--mute);font-size:16px}
+.role{display:block;font-weight:500}.desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--mute);font-size:16px}
 details[open] .desc{display:block;-webkit-line-clamp:unset}
-.full{white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;margin:6px 0}
-.note{margin:2px 0 0 60px;font-size:15px;color:var(--mute)}.note a,details a,.top-note a{color:var(--link)}
+.meta,.why,.note{margin:2px 0 0 58px;font-size:15px;color:var(--mute)}.why{color:var(--ink)}
+.full{white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;margin:8px 0}
+.note a,details a,.top-note a{color:var(--link)}
 :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:8px}
-@media (max-width:360px){.apply,.chip{min-width:80px;padding:6px 10px}details,.note{margin-left:0}}
+@media (max-width:360px){details,.meta,.why,.note{margin-left:0}.apply{min-width:80px;padding:6px 12px}}
 `;
-const OG = `<meta property="og:title" content="Your jobs on Trainee"><meta property="og:description" content="Tap Apply on any row.">`;
-export function layout(title: string, inner: string, o: { script?: string; bodyAttrs?: string } = {}): string {
+export interface Og { title: string; description: string; image: string | null }
+const ogTags = (o: Og) => `<meta property="og:type" content="website"><meta property="og:site_name" content="Trainee"><meta property="og:title" content="${esc(o.title)}"><meta property="og:description" content="${esc(o.description)}">${o.image ? `<meta property="og:image" content="${esc(o.image)}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(o.image)}">` : `<meta name="twitter:card" content="summary">`}<meta name="twitter:title" content="${esc(o.title)}"><meta name="twitter:description" content="${esc(o.description)}">`;
+const OG_DEFAULT: Og = { title: "Your jobs on Trainee", description: "Tap Apply on any job.", image: null };
+export function layout(title: string, inner: string, o: { script?: string; bodyAttrs?: string; og?: Og; tg?: boolean } = {}): string {
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#4A2F5E" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">${OG}
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#4A2F5E" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">${ogTags(o.og ?? OG_DEFAULT)}
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234A2F5E'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='40' font-weight='700' text-anchor='middle' fill='%23fff'%3ET%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Brygada+1918:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>${esc(clip(title, 90))}</title><style>${CSS}</style></head>
-<body${o.bodyAttrs ? " " + o.bodyAttrs : ""}><div class="wrap">${inner}</div>${o.script ? `<script>${o.script}</script>` : ""}</body></html>`;
+<body${o.bodyAttrs ? " " + o.bodyAttrs : ""}><div class="wrap">${inner}</div>${o.tg ? `<script src="https://telegram.org/js/telegram-web-app.js"></script>` : ""}${o.script ? `<script>${o.script}</script>` : ""}</body></html>`;
 }
 // In-place flip without a reload: every .ajax form posts, the response page replaces the list. Without script the forms post and
 // the response is the whole page. The script is a constant (the CSP allows exactly its hash).
-export const FEED_SCRIPT = `(function(){var r=document.getElementById("root");if(!r||!window.fetch||!window.DOMParser)return;r.addEventListener("submit",function(e){var f=e.target;if(!f.classList||!f.classList.contains("ajax"))return;e.preventDefault();var b=f.querySelector("button");if(b)b.disabled=true;fetch(location.href,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams(new FormData(f)).toString()}).then(function(x){return x.text()}).then(function(t){var d=new DOMParser().parseFromString(t,"text/html").getElementById("root");if(d){r.innerHTML=d.innerHTML}else{f.submit()}}).catch(function(){f.submit()})})})();`;
-export const BOOT_SCRIPT = `(function(){var p=new URLSearchParams(location.hash.slice(1)),d=p.get("tgWebAppData");if(!d){document.getElementById("nodata").hidden=false;return}var f=document.createElement("form");f.method="post";function a(n,v){var i=document.createElement("input");i.type="hidden";i.name=n;i.value=v;f.appendChild(i)}a("init",d);a("list",document.body.getAttribute("data-list"));document.body.appendChild(f);f.submit()})();`;
+export const TG_READY = `var w=window.Telegram&&window.Telegram.WebApp;if(w){try{w.ready();w.expand();var c=getComputedStyle(document.body).backgroundColor.match(/\\d+/g);if(c){var h="#"+c.slice(0,3).map(function(n){return("0"+(+n).toString(16)).slice(-2)}).join("");if(w.setBackgroundColor)w.setBackgroundColor(h);if(w.setHeaderColor)w.setHeaderColor(h)}}catch(e){}}`;
+export const FEED_SCRIPT = `(function(){${TG_READY}var r=document.getElementById("root");if(!r||!window.fetch||!window.DOMParser)return;r.addEventListener("submit",function(e){var f=e.target;if(!f.classList||!f.classList.contains("ajax"))return;e.preventDefault();var b=f.querySelector("button");if(b)b.disabled=true;fetch(location.href,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams(new FormData(f)).toString()}).then(function(x){return x.text()}).then(function(t){var d=new DOMParser().parseFromString(t,"text/html").getElementById("root");if(d){r.innerHTML=d.innerHTML}else{f.submit()}}).catch(function(){f.submit()})})})();`;
+export const BOOT_SCRIPT = `(function(){${TG_READY}var p=new URLSearchParams(location.hash.slice(1)),d=p.get("tgWebAppData");if(!d){document.getElementById("nodata").hidden=false;return}var f=document.createElement("form");f.method="post";function a(n,v){var i=document.createElement("input");i.type="hidden";i.name=n;i.value=v;f.appendChild(i)}a("init",d);a("list",document.body.getAttribute("data-list"));document.body.appendChild(f);f.submit()})();`;
 
 const BRAND = `<div class="brand"><svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Trainee"><rect width="64" height="64" rx="14" fill="#4A2F5E"/><text x="32" y="45" font-family="Georgia,serif" font-size="40" font-weight="700" text-anchor="middle" fill="#fff">T</text></svg><span class="wm">Trainee</span></div>`;
 const hidden = (token: string, action: string, extra = "") => `<input type="hidden" name="t" value="${esc(token)}"><input type="hidden" name="action" value="${action}">${extra}`;
@@ -120,8 +124,10 @@ function rowHtml(r: Row, token: string): string {
   else act = `<form method="post" class="ajax act">${hidden(token, "apply", `<input type="hidden" name="ref" value="${r.ref}"><input type="hidden" name="tag" value="${r.tag ?? "none"}">`)}<button type="submit" class="apply" aria-label="Apply to ${esc(j.title)} at ${esc(j.company)}">Apply</button></form>`;
   const more = r.full ? `<p class="full">${esc(r.full)}</p>${hostOf(j.url) ? `<p><a href="${esc(j.url)}" rel="noopener noreferrer">Open on ${esc(hostOf(j.url))}</a></p>` : ""}` : `<p class="full">The full posting text isn't on file.</p>${hostOf(j.url) ? `<p><a href="${esc(j.url)}" rel="noopener noreferrer">Open on ${esc(hostOf(j.url))}</a></p>` : ""}`;
   const note = r.note ? `<p class="note">${esc(r.note)} <a href="?t=${esc(token)}">Refresh</a></p>` : r.status && r.status.word !== "queued" && r.status.word !== "preparing" ? `<p class="note">${esc(r.status.detail)}</p>` : r.status ? `<p class="note">${esc(r.status.detail)}</p>` : r.byHand ? `<p class="note">Not applied for automatically on this site.</p>` : "";
+  const meta = r.meta ? `<p class="meta">${esc(r.meta)}${r.metaSrc ? ` · ${esc(r.metaSrc)}` : ""}</p>` : "";
+  const why = r.why?.length ? `<p class="why">Why it fits you: ${esc(r.why.slice(0, 2).join(" "))}</p>` : "";
   return `<li class="row" id="r-${r.ref}"><div class="head"><span class="logo"><span class="lettermark" aria-hidden="true">${initial}</span>${img}</span><span class="name">${esc(j.company)}</span>${act}</div>
-<details><summary><span class="role">${esc(j.title)}</span><span class="desc">${esc(r.snippet)}</span></summary>${more}</details>${note}</li>`;
+<details><summary><span class="role">${esc(j.title)}</span><span class="desc">${esc(r.snippet)}</span></summary>${more}</details>${meta}${why}${note}</li>`;
 }
 
 export function renderFeed(f: Feed): string {
@@ -130,10 +136,10 @@ export function renderFeed(f: Feed): string {
   const all = f.setHash && f.setSize >= 2 ? `<form method="post" class="ajax all">${hidden(f.token, "applyall", `<input type="hidden" name="set" value="${f.setHash}">`)}<button type="submit">Apply to all ${f.setSize}</button></form>` : "";
   const top = f.top ? `<p class="top-note" role="alert">${esc(f.top)} <a href="?t=${esc(f.token)}">Refresh</a></p>` : "";
   const inner = `<div id="root"><header>${BRAND}<h1>Your jobs</h1>${withLine}${all}</header><main id="main">${top}<ul class="rows">${f.rows.map((r) => rowHtml(r, f.token)).join("")}</ul></main></div>`;
-  return layout("Your jobs - Trainee", inner, { script: FEED_SCRIPT });
+  return layout("Your jobs - Trainee", inner, { script: FEED_SCRIPT, tg: true, og: f.og });
 }
 export function renderBootstrap(list: string): string {
-  return layout("Opening your jobs - Trainee", `<header>${BRAND}<h1>Opening your jobs</h1></header><main id="main"><p>Signing you in with Telegram.</p><p id="nodata" hidden>Open this page from the button in Telegram, or use the link Trainee sent you.</p><noscript><p>This needs JavaScript. Use the link Trainee sent you instead.</p></noscript></main>`, { script: BOOT_SCRIPT, bodyAttrs: `data-list="${esc(list)}"` });
+  return layout("Opening your jobs - Trainee", `<header>${BRAND}<h1>Opening your jobs</h1></header><main id="main"><p>Signing you in with Telegram.</p><p id="nodata" hidden>Open this page from the button in Telegram, or use the link Trainee sent you.</p><noscript><p>This needs JavaScript. Use the link Trainee sent you instead.</p></noscript></main>`, { script: BOOT_SCRIPT, tg: true, bodyAttrs: `data-list="${esc(list)}"` });
 }
 // A link that cannot be used: says why, shows nothing about any job, offers a way to get a new one.
 export function renderLinkState(title: string, paras: string[], botUrl?: string | null): string {

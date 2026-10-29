@@ -11,7 +11,8 @@
 import { FILE_TTL_MS, mintFileToken, SESSION_TTL_MS, verifyFileToken, type FileClaims } from "../_shared/file_link.ts";
 import { verifyInitData } from "../_shared/telegram_webapp.ts";
 import { BOOT_SCRIPT, FEED_SCRIPT, fullOf, hostOf, renderBootstrap, renderFeed, renderLinkState, renderText, snippetOf, statusOf, type AppRow, type Feed, type Row } from "../_shared/file_page.ts";
-import { BLOCKED_HOST, hashTag, logoUrl, tapJob, type JobDeps, type JobSender, type JobStore, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
+import { dayOf } from "../_shared/file_page.ts";
+import { BLOCKED_HOST, hashTag, logoUrl, tapJob, type JobDeps, type JobSender, type JobStore, type JobView, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
 
 export type { AppRow } from "../_shared/file_page.ts";
 export interface FileStore extends JobStore {
@@ -29,7 +30,7 @@ const b64 = (h: string) => btoa(h.match(/../g)!.map((x) => String.fromCharCode(p
 const scriptHashes = (async () => `'sha256-${b64(await sha(FEED_SCRIPT))}' 'sha256-${b64(await sha(BOOT_SCRIPT))}'`)();
 async function headers(type: string): Promise<Record<string, string>> {
   return { "cache-control": "no-store", "referrer-policy": "no-referrer", "x-robots-tag": "noindex, nofollow", "x-content-type-options": "nosniff", "content-type": type,
-    "content-security-policy": `default-src 'none'; script-src ${await scriptHashes}; connect-src 'self'; img-src https: data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; form-action 'self'; base-uri 'none'; frame-ancestors 'none'` };
+    "content-security-policy": `default-src 'none'; script-src ${await scriptHashes} https://telegram.org; connect-src 'self'; img-src https: data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; form-action 'self'; base-uri 'none'; frame-ancestors 'none'` };
 }
 const html = async (body: string, status = 200) => new Response(body, { status, headers: await headers("text/html; charset=utf-8") });
 const text = async (body: string, status = 200) => new Response(body, { status, headers: await headers("text/plain; charset=utf-8") });
@@ -44,6 +45,19 @@ const resumeOf = (p: PreparedRow | null): string | null => {
 };
 const byHandOf = (url: string) => { try { return BLOCKED_HOST.test(new URL(url).hostname); } catch { return false; } };
 
+// Key details: only what the posting (or the search result) states. A part from the stored posting is "From the posting"; if any part
+// came only from the search result the line says "Reported, not verified". Nothing unstated is shown.
+function metaOf(job: JobView, post: PostingRow | null): { meta: string; metaSrc: "From the posting" | "Reported, not verified" | null } {
+  const parts: string[] = []; let reported = false;
+  const take = (fromPost: unknown, fromHit: unknown) => { if (fromPost) parts.push(String(fromPost)); else if (fromHit) { parts.push(String(fromHit)); reported = true; } };
+  take(post?.location, job.location);
+  take(post?.pay, job.pay);
+  const dl = post?.deadline ?? job.deadline;
+  if (dl && dayOf(dl)) { parts.push(`Apply by ${dayOf(dl)}`); if (!post?.deadline) reported = true; }
+  if (job.source) parts.push(job.source);
+  return { meta: parts.join(" · "), metaSrc: parts.length ? (reported ? "Reported, not verified" : "From the posting") : null };
+}
+
 async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: Record<string, string> = {}, top?: string): Promise<Feed | null> {
   const refs = ((await d.store.recallList(claims.u, claims.r).catch(() => null)) ?? []).slice(0, MAX_ROWS);
   const got = (await Promise.all(refs.map(async (ref) => ({ ref, c: await d.store.recall(claims.u, ref).catch(() => null) })))).filter((x) => x.c);
@@ -55,12 +69,17 @@ async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: R
     const [app, prep] = await Promise.all([d.store.appRow(claims.u, job.job_id).catch(() => null), d.store.prepared(claims.u, job.job_id).catch(() => null)]);
     const wanted = app || prep ? false : await d.store.wanted(claims.u, job.url).catch(() => false);
     return { ref, job, logo: logoUrl(job, d.env), snippet: snippetOf(job, post?.description), full: fullOf(post?.description),
-      status: statusOf({ app, wanted }), tag: prep ? hashTag(prep.payload_hash) : null, resume: resumeOf(prep), byHand: byHandOf(job.url), note: notes[ref] };
+      status: statusOf({ app, wanted }), tag: prep ? hashTag(prep.payload_hash) : null, resume: resumeOf(prep), byHand: byHandOf(job.url), note: notes[ref], ...metaOf(job, post), why: job.reasons.slice(0, 2) };
   }));
   // The set "Apply to all" approves: the rows that can be approved right now, with the exact payload tag each shows.
   const set = rows.filter((r) => !r.status && !r.byHand && r.tag);
   const setHash = set.length ? (await sha(`v1|${set.map((r) => `${r.ref}:${r.tag}`).join(",")}`)).slice(0, 16) : null;
-  return { token, rows, setHash, setSize: set.length, top };
+  const base = (d.env.get("TRAINEE_FILE_BASE_URL") || "").trim();
+  const origin = /^https:\/\//.test(base) ? new URL(base).origin : null;
+  const n = rows.length;
+  // The preview card is the brand card (static, nothing about the person in a public image) plus counts the page itself shows.
+  const og = { title: `${n} match${n === 1 ? "" : "es"} for you`, description: "Tap Apply on any job. Opens in Trainee.", image: origin ? `${origin}/og-file.png` : null };
+  return { token, rows, setHash, setSize: set.length, top, og };
 }
 
 // One Apply = one hash-bound approval through the Telegram Confirm path. Returns a note for the row when it did not go.

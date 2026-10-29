@@ -8,7 +8,10 @@ import { attachTool } from "../_shared/agent/attach_tool.ts";
 import { createFileTool } from "../_shared/agent/file_tool.ts";
 import type { FileService } from "../_shared/file_service.ts";
 import { careerSystemPrompt, SHAPE_RULES } from "../_shared/agent/prompt.ts";
-import { type MemoryStore, type Pipeline, personBlock, type Standing } from "../_shared/agent/memory.ts";
+import { alertLine, type MemoryStore, type Pipeline, personBlock, type Standing } from "../_shared/agent/memory.ts";
+import type { ResearchDeps, ResearchResult } from "../_shared/agent/research/index.ts";
+import { enforceResearchReply } from "../_shared/agent/research/reply.ts";
+import { knowledgeFor, type Knowledge } from "../_shared/agent/knowledge/index.ts";
 import { styleBlock } from "../_shared/agent/style.ts";
 import type { AlertStore } from "../_shared/career_alert_store.ts";
 import type { HiredSource } from "../_shared/career_hired.ts";
@@ -106,25 +109,44 @@ export async function agentTurn(o: {
   linkCheck?: LinkCheck | null;
   // FEATURE 13: the staged release's tool policy: tools withheld by name, and a note on what code does instead.
   toolPolicy?: { withhold: readonly string[]; note: string } | null;
+  // Situation knowledge (CAREER_KNOWLEDGE=on, off by default): the Person Context Pack and the 1 to 3 playbooks that fit it
+  // go in the system prompt (_shared/agent/knowledge). Off, the prompt is exactly what it was.
+  knowledge?: boolean;
+  // Open-question research (only with knowledge on): the cached, capped web search and where the brief file goes.
+  research?: ResearchDeps | null;
   // REPLY SHAPE: Telegram with CAREER_REPLY_WRITER=on: the shape rules in the prompt, and the attach_document tool.
   shape?: boolean;
   // FILE KINDS: create_file (a page of one of the file kinds); present only with the shape on.
   files?: FileService | null;
-}): Promise<TurnResult> {
+}): Promise<TurnResult & { knowledge?: { playbooks: string[]; unknown: string[]; stage: string | null } }> {
   const block = o.known ? personBlock({ profile: o.stores.profile, ...o.known }) : null;
   const notes: string[] = [];
   for (const f of o.attachments ?? []) {
     const csv = /\.csv$/i.test(f.name) || /csv/.test(f.mime);
     notes.push(csv ? `[Attached file: ${(await importContactsFile(o.stores, f, o.mx ?? MX_NOT_WIRED)).note}]` : f.text !== null ? `[Attached file: ${f.name}]\n${f.text}` : `[Attached file: ${f.name} (${f.mime}): this file type can't be read yet]`);
   }
-  return runAgentTurn({
-    system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : "") + (o.summary ? "\n\n" + o.summary : "") + (o.toolPolicy ? "\n\n" + o.toolPolicy.note : "") + (o.shape ? "\n\n" + SHAPE_RULES : ""),
+  const know: Knowledge | null = o.knowledge
+    ? knowledgeFor({ profile: o.stores.profile, standing: o.known?.standing, alertsLine: o.known ? alertLine(o.known.alerts) : null, situation: o.known?.situation ?? null, history: o.history, message: o.message })
+    : null;
+  const trace: { r?: Extract<ResearchResult, { status: "ok" }> } = {};
+  let result = await runAgentTurn({
+    system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : "") + (know ? "\n\n" + know.text : "") + (o.summary ? "\n\n" + o.summary : "") + (o.toolPolicy ? "\n\n" + o.toolPolicy.note : "") + (o.shape ? "\n\n" + SHAPE_RULES : ""),
     history: o.history.slice(-HISTORY_WINDOW).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: [o.message, ...notes].filter(Boolean).join("\n\n"),
-    tools: [...withheld(o.toolPolicy?.withhold, careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null, tailor: o.tailor ?? null, hired: o.hired ?? null, wants: o.wants ?? null, limits: o.limits, posting: o.posting ?? null, situation: o.known?.situation ?? null, linkCheck: o.linkCheck ?? null, conversations: o.conversations ?? null })), ...(o.shape ? [attachTool()] : []), ...(o.shape && o.files ? [createFileTool(o.files)] : [])],
+    tools: [...withheld(o.toolPolicy?.withhold, careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null, tailor: o.tailor ?? null, hired: o.hired ?? null, wants: o.wants ?? null, limits: o.limits, posting: o.posting ?? null, situation: o.known?.situation ?? null, linkCheck: o.linkCheck ?? null, conversations: o.conversations ?? null, research: o.knowledge && o.research ? { ...o.research, onResult: (r, m) => { if (r.status === "ok") trace.r = r; o.research?.onResult?.(r, m); } } : null })), ...(o.shape ? [attachTool()] : []), ...(o.shape && o.files ? [createFileTool(o.files)] : [])],
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });
+  // An open career question: the reply is enforced in code, not just asked for in the tool note (research/reply.ts).
+  if (trace.r && result.reply && result.stopped === "final") {
+    const fixed = await enforceResearchReply({ reply: result.reply, result: trace.r, message: o.message, regenerate: async (problems) => {
+      const res = await o.model({ system: "Rewrite the paragraph so it fixes every problem listed. Keep it ONE plain paragraph of about 60 to 90 words: first the honest verdict for this person (what is realistic now, then what comes later), then that the full plan is in the file (only if a file exists). No link, no list, no opener, no filler, no exclamation mark, at most one question. Use no figure, date or name that is not in the person's facts or the sources. Output the paragraph only.",
+        messages: [{ role: "user", content: [{ type: "text", text: `Person's question: ${o.message}\nVerdict material: ${trace.r!.verdict.now} ${trace.r!.verdict.later}\nFile exists: ${trace.r!.file_url ? "yes" : "no"}\nDraft: ${result.reply}\nProblems: ${problems.join("; ")}` }] }], tools: [], max_tokens: 500, tool_choice: { type: "none" } });
+      return (res.content ?? []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join("").trim() || null;
+    } });
+    result = { ...result, reply: fixed.reply };
+  }
+  return know ? { ...result, knowledge: { playbooks: know.playbooks, unknown: know.unknown, stage: know.stage } } : result;
 }
 
 // FEATURE 13: the tools left after a policy withholds some by name (none withheld: every tool).

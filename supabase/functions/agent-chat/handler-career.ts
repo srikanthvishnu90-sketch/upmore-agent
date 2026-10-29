@@ -42,6 +42,12 @@ import { enterTurnGate, type TurnGate } from "../_shared/career_turn_gate.ts";
 import { CONFLICT_CODES, CONFLICT_REPLY, countSend, newTurnEffects, refusedSaveReply, trackTurnEffects } from "../_shared/career_save_replies.ts";
 import { poolNeeded } from "./career_pool_need.ts";
 import { linkChecker } from "../_shared/link_check.ts";
+import { knowledgeOn } from "../_shared/agent/knowledge/index.ts";
+import { fileKindPublisher } from "../_shared/agent/research/file_publisher.ts";
+import { modelDerive } from "../_shared/agent/research/derive.ts";
+import { memoryGroundCache, openAiGroundSearch } from "../_shared/agent/research/ground.ts";
+import { DEFAULT_SEARCH_MODEL } from "../_shared/career_people_provider.ts";
+const researchCache = memoryGroundCache();
 import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
 import { STAGED_TOOL_POLICY, stagedRoute } from "./career_staged.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
@@ -868,6 +874,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           linkCheck: linkChecker(fetch, { userAgent: `Trainee job link check (contact: ${Deno.env.get("INGEST_CONTACT_EMAIL") || "unset"})` }),
           // FEATURE 13: the staged brain answers with the actions that have a code-first owner withheld.
           toolPolicy: staged.chosen ? STAGED_TOOL_POLICY : null,
+          // Situation knowledge: the context pack and playbooks (CAREER_KNOWLEDGE=on; off by default).
+          knowledge: knowledgeOn(Deno.env),
+          // Open career questions: cached, capped OpenAI web search (the worst case is reserved in the day's model budget). The cache is per instance
+          // until a table is approved by the owner; the brief is returned as markdown until PR #280 (file kinds) supplies `publish`.
+          research: knowledgeOn(Deno.env) && cfg.provider === "openai" && cfg.apiKey ? { search: openAiGroundSearch({ apiKey: cfg.apiKey, model: DEFAULT_SEARCH_MODEL }), cache: researchCache, publish: fileKindPublisher(createFileService({ store: supabaseFileKindStore(admin), env: Deno.env, now: Date.now }), user.id), derive: modelDerive(async (system, user) => { const r = await callModel(cfg, { system, messages: [{ role: "user", content: [{ type: "text", text: user }] }], max_tokens: 200 }, { meter, role: "chat" }); return (r.content ?? []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join(""); }) } : null,
           known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory });
         await ledger.record(meter);
         if (turn.stopped === "model_error" && !turn.tool_calls.some((t) => t.ok && t.effect === "write_own")) {
@@ -879,7 +890,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           turnPostings = Array.isArray(turn.postings) ? turn.postings : [];
           turnAttachments = turn.attachments ?? []; turnLinks = turn.linksSeen ?? []; turnFileLinks = turn.fileLinks ?? [];
           out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent", ...(turn.show?.parts ? { parts: turn.show.parts } : {}) };
-          agentMeta = { brain: staged.chosen ? "staged" : "agent", ...(staged.chosen ? { router_intent: staged.decision?.intent ?? null } : {}), tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
+          agentMeta = { brain: staged.chosen ? "staged" : "agent", ...(staged.chosen ? { router_intent: staged.decision?.intent ?? null } : {}), tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length, ...(turn.knowledge ? { knowledge: turn.knowledge } : {}) };
         }
       } else {
         // FEATURE 5: job search ranked by fit and judged (_shared/career_search_judge.ts). "judge prompt: ..." keeps the

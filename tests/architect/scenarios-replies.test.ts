@@ -241,7 +241,12 @@ Deno.test({ name: `replies at scale, end to end on Postgres: ${E2E} sampled scen
       for (const s of picked) box.receive(P.get(s.id)!, roots.get(P.get(s.id)!)!, s);
       const rc = await runReplyCheck(deps, { limit: 1000 });
       eq([rc.checked, rc.errors], [E2E, 0], JSON.stringify(rc));
+      // The next scheduled read: every mailbox is due now (production reads each one every few minutes). Without this the
+      // second read depended on how long the steps above took against the interval the first read scheduled (CI-only, 202
+      // of 240 read nothing: the lane never saw the answers).
+      await db.sql.query(`update public.career_outreach_sync set next_at = '2000-01-01T00:00:00Z', lease_owner = null, lease_until = null`);
       const st = await sync();
+      eq(st.mailboxes, E2E, `every mailbox read: ${JSON.stringify(st)}`);
       eq(st.errors, 0, JSON.stringify(st));
       eq(gmail.sent.length, sendsBefore, "reading what came back sends nothing");
     });

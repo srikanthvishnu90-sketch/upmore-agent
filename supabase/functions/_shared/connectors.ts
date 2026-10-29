@@ -18,6 +18,7 @@
 // logged, returned or shown; every reply goes through say(), which refuses a token-shaped string or an internal code.
 // Microsoft (outlook_graph.ts) and Google are the only network peers, both faked at the HTTP boundary in tests.
 // deno-lint-ignore-file no-explicit-any
+import { connectLine, connectUrlsFor } from "./connect_link.ts";
 import { careerTokenFor, CAREER_READ_SCOPE, CAREER_SEND_SCOPE } from "./career_mail_gmail.ts";
 import { disconnectGoogle, disconnectReply, isGoogleDisconnect } from "./google_disconnect.ts";
 import { consentNotice, GMAIL_READONLY, GMAIL_SEND, requestableScopes } from "./google_scopes.ts";
@@ -254,6 +255,15 @@ function linkReply(c: Connector, url: string, channel: string, lead: string, ext
   return { reply, meta: channel === "telegram" ? { link_button: { text: `Connect ${c.label}`, url } } : null };
 }
 
+
+// The account-connect page (trainee-connect): when the owner has switched it on (TRAINEE_CONNECT_BASE_URL), the bot says ONE short
+// line and the link to it, whatever the connector; the page lets the person pick Google or Microsoft and does the rest.
+async function connectPageReply(d: Deps, o: { userId: string; channel: string; reason: string }): Promise<{ reply: string; meta: Record<string, unknown> | null } | null> {
+  const u = await connectUrlsFor(d.env, o.userId, o.reason, d.now(), /^[a-z]{3,16}$/.test(o.channel) ? o.channel : "web");
+  if (!u.url) return null;
+  return { reply: connectLine(o.reason, u.url), meta: o.channel === "telegram" ? { link_button: { text: "Connect email", url: u.url } } : null };
+}
+
 // When the turn itself failed (a database read refused): the person still gets a plain, true answer, never the router's.
 export function connectorFailure(message: string): ChatOut | null {
   const a = connectorAsk(message);
@@ -279,6 +289,8 @@ export async function connectorChatTurn(d: TurnIn): Promise<ChatOut | null> {
   if (ask.kind === "connect") {
     const c = CONNECTORS[ask.id], st = s.find((x) => x.id === ask.id)!;
     if (st.state === "connected") return out(d, `${c.label} is already connected${st.email ? `: ${st.email}` : ""}. Say "${c.disconnectAsk}" to remove it.`, `career_${c.id}_connect`, "already");
+    const pageReply = c.wired(d.env) ? await connectPageReply(d, { userId: d.userId, channel, reason: "replies" }) : null;
+    if (pageReply) return out(d, pageReply.reply, `career_${c.id}_connect`, "link", pageReply.meta);
     const url = await c.issueLink(d, { userId: d.userId, threadId: d.threadId, channel });
     if (!url) return out(d, `Connecting ${c.label} isn't switched on in Trainee yet, so I can't make a link. Nothing was connected.`, `career_${c.id}_connect`, "not_wired");
     const r = linkReply(c, url, channel, `Here's a one-time link to connect your ${c.label}.`,
@@ -307,6 +319,8 @@ export async function connectorChatTurn(d: TurnIn): Promise<ChatOut | null> {
     const who = ask.need === "mail" ? "Gmail or Outlook" : pick.label;
     return out(d, `I'm still waiting for ${who} to be connected, and I'll ${words} as soon as it is${parked?.duplicate ? "" : ", along with what you asked before"}. Use the link I sent you, or text "${pick.connectAsk}" if you need a new one.`, "career_connector_need", "waiting");
   }
+  const pageReply = await connectPageReply(d, { userId: d.userId, channel, reason: "replies" });
+  if (pageReply) return out(d, pageReply.reply, "career_connector_need", "asked", pageReply.meta);
   const url = await pick.issueLink(d, { userId: d.userId, threadId: d.threadId, channel });
   if (!url) return out(d, `Connecting ${pick.label} isn't switched on in Trainee yet, so I can't make a link. Nothing was read.`, "career_connector_need", "not_wired");
   const reconnect = s.find((x) => x.id === pick.id)?.state === "needs_reconnect";

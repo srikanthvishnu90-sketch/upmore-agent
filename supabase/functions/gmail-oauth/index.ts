@@ -42,6 +42,7 @@ import {
   verifyState,
   issueState,
   careerLanding,
+  googleConsentUrl,
   LEGACY_OFF_MESSAGE,
   redirectUriFrom,
   requestScopesFor,
@@ -54,6 +55,7 @@ import { disconnectGoogle, disconnectReply } from "../_shared/google_disconnect.
 // came from and the tasks that waited for Gmail resume (_shared/connectors.ts).
 import { afterConnect, handleConnectorLink } from "../_shared/connectors.ts";
 import { chatThroughAgent, deliverer } from "../_shared/channel_runtime.ts";
+import { connectLanding } from "../trainee-connect/handler.ts";
 
 // deno-lint-ignore no-explicit-any
 const later = (p: Promise<unknown>) => { const rt = (globalThis as any).EdgeRuntime; if (rt?.waitUntil) rt.waitUntil(p); };
@@ -63,8 +65,7 @@ const later = (p: Promise<unknown>) => { const rt = (globalThis as any).EdgeRunt
 async function consentUrlFor(userId: string, purpose: "gmail" | "career", clientId: string, stateSecret: string): Promise<string> {
   const state = await issueState(userId, purpose, stateSecret);
   const asked = requestScopesFor(purpose, Deno.env.get("GOOGLE_APPROVED_EXTRA_SCOPES"));
-  const q = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri(), response_type: "code", scope: asked.scopes.join(" "), access_type: "offline", prompt: "consent", state });
-  return "https://accounts.google.com/o/oauth2/v2/auth?" + q.toString();
+  return googleConsentUrl({ clientId, redirectUri: redirectUri(), state, scopes: asked.scopes });
 }
 
 const APP_URL = "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app";
@@ -120,10 +121,18 @@ serve(async (req) => {
       // Legacy landings keep the Upmore app's ?gmail=..; a career grant lands on careerLanding (career.ts).
       let purpose: "gmail" | "career" = "gmail";
       // The career (Trainee) grant lands on its own plain page, never on the Upmore app; the legacy grant keeps Upmore's.
-      const done = (ok: boolean) =>
+      const doneBase = (ok: boolean) =>
         purpose === "career" ? careerLanding(ok) : Response.redirect(`${APP_URL}/#you?gmail=${ok ? "connected" : "error"}`, 302);
+      // The connect page's calm done state ("Connected as <email>", a way back to Telegram) once the owner has switched that page on.
+      let landEmail: string | null = null, denied = false;
+      const done = (ok: boolean) => (purpose === "career" ? connectLanding(Deno.env, { provider: "google", ok, denied, email: landEmail }) : null) ?? doneBase(ok);
       try {
-        if (url.searchParams.get("error")) return done(false);
+        if (url.searchParams.get("error")) {
+          denied = url.searchParams.get("error") === "access_denied";
+          // Which grant this was: the signed state says; an unreadable state is the legacy landing, as before.
+          try { purpose = (await verifyState(url.searchParams.get("state") || "", stateSecret)).purpose; } catch { /* legacy landing */ }
+          return done(false);
+        }
         const code = url.searchParams.get("code") || "";
         const state = url.searchParams.get("state") || "";
         const verified = await verifyState(state, stateSecret);
@@ -150,6 +159,7 @@ serve(async (req) => {
         });
         const me = await meRes.json().catch(() => ({}));
         const email = typeof me.email === "string" ? me.email : null;
+        landEmail = email;
 
         const provider = providerForPurpose(purpose);
         const vaultName = vaultNameFor(userId, purpose);

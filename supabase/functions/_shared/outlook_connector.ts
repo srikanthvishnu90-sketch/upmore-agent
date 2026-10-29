@@ -252,6 +252,8 @@ export interface OAuthDeps {
   // The connector framework (connectors.ts afterConnect): once the grant is stored and the person told, the tasks that
   // were waiting for Outlook resume. Its failure never undoes the connection.
   afterConnect?: (a: { userId: string; email: string | null; scopes: string[] }) => Promise<unknown>;
+  // The connect page's calm done state, once the owner has switched that page on; absent: this function's own plain pages.
+  landing?: (o: { ok: boolean; denied: boolean; email: string | null }) => Response | Promise<Response> | null;
 }
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 const HEADERS = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer", "x-frame-options": "DENY",
@@ -311,7 +313,7 @@ export async function handleOutlookOAuth(req: Request, d: OAuthDeps): Promise<Re
     if (!link || link.error) return page("This link was already used", [GONE[link?.error] ?? GONE.invalid], 400);
     if (declined) {
       await tell(d, link, linkId, 'Outlook wasn\'t connected: Microsoft\'s page was closed or declined, so nothing changed. Text "connect my outlook" for a new link.', now);
-      return page("Outlook wasn't connected", ["Nothing changed. You can close this tab and go back to the chat."]);
+      return (await d.landing?.({ ok: false, denied: true, email: null })) ?? page("Outlook wasn't connected", ["Nothing changed. You can close this tab and go back to the chat."]);
     }
     try {
       if (!clientId || !clientSecret) throw new Error("not configured");
@@ -328,12 +330,12 @@ export async function handleOutlookOAuth(req: Request, d: OAuthDeps): Promise<Re
       await tell(d, link, linkId, text, now);
       await d.afterConnect?.({ userId, email: tok.email, scopes: String(tok.scopes ?? "").split(/\s+/).filter(Boolean) })
         .catch((e) => d.log?.(`outlook-oauth: resuming waiting tasks failed: ${String((e as Error)?.message ?? e).slice(0, 120)}`));
-      return page(`Outlook connected${tok.email ? `: ${tok.email}` : ""}`, ["You can close this tab and go back to the chat."]);
+      return (await d.landing?.({ ok: true, denied: false, email: tok.email })) ?? page(`Outlook connected${tok.email ? `: ${tok.email}` : ""}`, ["You can close this tab and go back to the chat."]);
     } catch (e) {
       d.log?.(`outlook-oauth callback failed: ${String((e as Error)?.message ?? e).slice(0, 120)}`);
       await d.admin.from("career_outlook_links").update({ outcome: "error" }).eq("id", linkId);
       await tell(d, link, linkId, 'Outlook wasn\'t connected: something went wrong on the way back from Microsoft, so nothing was saved. Text "connect my outlook" for a new link.', now);
-      return page("Outlook wasn't connected", ["Something went wrong on the way back from Microsoft, so nothing was saved."], 502);
+      return (await d.landing?.({ ok: false, denied: false, email: null })) ?? page("Outlook wasn't connected", ["Something went wrong on the way back from Microsoft, so nothing was saved."], 502);
     }
   }
 
@@ -363,4 +365,17 @@ export async function handleOutlookOAuth(req: Request, d: OAuthDeps): Promise<Re
     ], 200, { action: self, token });
   }
   return page("Nothing here", ['Text "connect my outlook" to Trainee for a link.'], 404);
+}
+
+// The page's "Continue with Microsoft": a link row bound to the person and the channel the page was opened from (so the callback tells
+// them there, as it does for the chat's link), opened at once, then Microsoft's consent URL with PKCE. Null when not configured.
+export async function outlookConsentFor(admin: Admin, env: Env, now: number, o: { userId: string; channel: string }): Promise<string | null> {
+  const secret = env.get(ENV.stateSecret) || "", clientId = env.get(ENV.clientId) || "", clientSecret = env.get(ENV.clientSecret) || "";
+  const redirectUri = linkBase(env);
+  if (!secret || !clientId || !clientSecret || !redirectUri) return null;
+  const nonce = must(await admin.rpc("career_outlook_link_issue", { p_user: o.userId, p_channel: o.channel, p_thread: null, p_purpose: "connect", p_now: at(now) }), "make the Outlook link");
+  const r = must(await admin.rpc("career_outlook_link_open", { p_nonce: String(nonce), p_now: at(now) }), "open the Outlook link");
+  if (!r || r.error) return null;
+  const linkId = String(r.link_id);
+  return authorizeUrl({ clientId, redirectUri, state: await issueState(linkId, secret, now), challenge: await pkceChallenge(await pkceVerifier(linkId, secret)) });
 }

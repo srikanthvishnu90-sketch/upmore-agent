@@ -230,3 +230,10 @@ export function redirectUriFrom(env: { get(k: string): string | undefined }): st
   const own = String(env.get("GOOGLE_OAUTH_REDIRECT_URI") ?? "").trim();
   return /^https:\/\/[a-z0-9.-]+\/[^\s]*$/i.test(own) ? own : `${String(env.get("SUPABASE_URL") ?? "").replace(/\/+$/, "")}/functions/v1/gmail-oauth`;
 }
+
+// Google's consent URL: the one place the query is built (the page's Continue button, the chat's one-time link and the
+// legacy start all use it), so the scopes the page states are the scopes asked.
+export function googleConsentUrl(o: { clientId: string; redirectUri: string; state: string; scopes: string[] }): string {
+  const q = new URLSearchParams({ client_id: o.clientId, redirect_uri: o.redirectUri, response_type: "code", scope: o.scopes.join(" "), access_type: "offline", prompt: "consent", state: o.state });
+  return "https://accounts.google.com/o/oauth2/v2/auth?" + q.toString();
+}

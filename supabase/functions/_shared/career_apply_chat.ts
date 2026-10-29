@@ -19,6 +19,7 @@ import { applyText, linkAsk, possessiveAsk, postingForLink, postingsForRole } fr
 import { sameCompany, type TrackedApp } from "./career_mail.ts";
 // FEATURE 1 (2026-10-25): positions in the list, the listed postings checked on file, no resume on file, the server
 // prepare asked for the rows queued, and the coverage line (career_apply_from_chat.ts).
+import { contentOf, type GateResult, gateSummary } from "./career_apply_gate.ts";
 import { checkListed, coverageLine, NO_RESUME_NEXT, NO_RESUME_REASON, NO_RESUME_WAIT, positionsOf, type PrepareKick, prepareSentence } from "./career_apply_from_chat.ts";
 
 export const APPLY_QUEUE_INTENT = "career_apply_queue";
@@ -162,6 +163,8 @@ export type ApplyChatResult = {
   // SERIAL-1490/1491: the postings waiting on "is X where you work now?"; the handler keeps them on the reply so the next
   // yes or no answers exactly these (employerAnswerTurn).
   ask?: EmployerQuestion[];
+  // The posting screen (career_apply_gate.ts): what was screened out and why, and the facts asked once.
+  screen?: GateResult;
 };
 
 // SERIAL-1420 (b) / SERIAL-1430: the person's pace from the database, in its three states (career_apply_pace_state): none
@@ -273,7 +276,7 @@ export async function applyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | nul
 // deno-lint-ignore no-explicit-any
 export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatResult> {
   const intent = APPLY_QUEUE_INTENT;
-  const pick: Pick = { job_id: p.job_id, url: p.url, company: p.company, title: p.title, location: p.location };
+  const pick: Pick = { job_id: p.job_id, url: p.url, company: p.company, title: p.title, location: p.location, content: contentOf(p) };
   let apps: TrackedApp[];
   try { apps = trackedFromRows(await o.apps()); }
   catch { return { reply: "I couldn't read your applications just now, so I couldn't rule out one already sent there; nothing was queued. Ask again in a minute.", status: "unreadable", intent }; }
@@ -286,8 +289,9 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
         ask: [{ job_id: p.job_id ?? null, url: String(p.url ?? ""), company: p.company, title: p.title }] };
     }
     const why = first?.said ?? first?.reason ?? `nothing was queued`;
-    return { reply: `${coverageLine(0, 1)} Not queued: ${why}.`, status: "refused", intent,
-      posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 } };
+    const gs = gateSummary(screened.gate, nameOf);
+    return { reply: `${coverageLine(0, 1)} Not queued: ${why}.${first?.ask === "fact" ? ` ${gs}` : ""}`, status: "refused", intent,
+      posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 }, screen: screened.gate };
   }
   const resumeMissing = await noResume(o);
   if (resumeMissing === "unknown") return { reply: `${coverageLine(0, 1)} ${RESUME_UNREAD}`, status: "resume_unreadable", intent, posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 } };
@@ -415,11 +419,15 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   if (ahead) parts.push(ahead);
   if (resumeMissing && queued.length) parts.push(NO_RESUME_WAIT);
   if (already) parts.push(queued.length ? `${already} already in your queue, unchanged.` : `${already === slice.length ? (slice.length === 1 ? "That one is" : "Those are") : `${already} of them are`} already in your queue, so nothing changed.`);
-  if (refused.length) parts.push(`Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.said ?? r.reason}`), 8)}.`);
+  // The batch summary of the screen: counts and short reasons; held postings and the one question per missing fact.
+  const gs = gateSummary(screened.gate, nameOf);
+  const shownRefused = refused.filter((r) => !/^(screened out|held, not guessed)/.test(r.reason));
+  if (shownRefused.length) parts.push(`Not queued: ${listed(shownRefused.map((r) => `${nameOf(r)}: ${r.said ?? r.reason}`), 8)}.`);
+  if (gs) parts.push(gs);
   if (asking.length) parts.push(askText(asking.map((r) => r.posting), o.facts ?? []));
   const status = queued.length ? "queued" : already ? "already" : asking.length ? "asking_employer" : "refused";
   const tail = queued.length || already ? ` ${NOTHING_SENT_MANY(prepareRunsNow(o))}` : "";
-  return { reply: `${note}${parts.join(" ")}${tail}`.trim(), status, intent, queued, refused, coverage: { queued: queued.length, total }, ...(kick ? { prepare: kick } : {}),
+  return { reply: `${note}${parts.join(" ")}${tail}`.trim(), status, intent, queued, refused, coverage: { queued: queued.length, total }, screen: screened.gate, ...(kick ? { prepare: kick } : {}),
     ...(asking.length ? { ask: asking.map((r) => ({ job_id: r.posting.job_id, url: r.posting.url, company: r.posting.company, title: r.posting.title })) } : {}) };
 }
 
@@ -530,9 +538,12 @@ export async function employerAnswerTurn(o: Omit<ApplyChatDeps, "postings" | "sh
   try { apps = trackedFromRows(await o.apps()); }
   catch { return { reply: "I couldn't read your applications just now, so I couldn't rule out one already sent there; nothing was queued. Say no again in a minute.", status: "unreadable", intent: EMPLOYER_ASK_INTENT, pending }; }
   const resolved = [...await answersOf(o), ...answers];
-  const picks: Pick[] = chosen.map((q) => ({ job_id: q.job_id ?? undefined, url: q.url, company: q.company, title: q.title }));
+  // The posting screen needs the posting's own record: read it again (the question only kept its identity). A closed one is
+  // refused by checkListed; a record that cannot be read leaves the pick as it was, and the screen runs on what is known.
+  const onFile = await checkListed(chosen.map((q) => ({ job_id: q.job_id ?? undefined, url: q.url, company: q.company, title: q.title })), o.posting);
+  const picks: Pick[] = onFile.ok;
   const screened = screenPicks(picks, { apps, facts: o.facts ?? [], now: o.now, resolved });
-  const refused = screened.refused.map((r) => `${nameOf(r.posting)}: ${r.said ?? r.reason}`);
+  const refused = [...onFile.refused.map((r) => `${nameOf(r)}: ${r.reason}`), ...screened.refused.map((r) => `${nameOf(r.posting)}: ${r.said ?? r.reason}`)];
   let queued: string[] = [], already = 0;
   if (screened.ok.length) {
     const pace = await readPace(o.limits);

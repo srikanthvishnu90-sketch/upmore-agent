@@ -5,6 +5,7 @@
 import { applyUrl, detectPortal, formUrlFor, postingKey } from "./posting_key.ts";
 import { COMPANY_COOLDOWN_DAYS, dailyLimit, type Limits, normCompany } from "./career_apply.ts";
 import { sameCompany, type TrackedApp } from "./career_mail.ts";
+import { contentOf, type GateResult, gatePicks } from "./career_apply_gate.ts";
 
 export interface Want { posting_key: string; url: string; company: string; title: string; queued_at: string }
 export interface WantRow extends Want { state: "waiting" | "taken" }
@@ -20,14 +21,15 @@ export interface WantStore {
 const NEVER = /(^|\.)(linkedin\.com|indeed\.com)$/i;
 const host = (url: string) => { try { return new URL(url).hostname; } catch { return ""; } };
 
-export interface Pick { url?: string; job_id?: string; company?: string; title?: string; location?: string }
+import type { PostingContent } from "./career_apply_gate.ts";
+export interface Pick { url?: string; job_id?: string; company?: string; title?: string; location?: string; content?: PostingContent }
 // WO-091b: a refused pick names the posting and the reason, so the model says exactly what happened. `url` and `why` are
 // the same refusal in WO-066's words, kept for its callers.
 // SERIAL-1490: `ask` marks a refusal that is a question to the person (a possible current-employer match): the posting
 // is not queued until they answer it, and the chat asks it once.
 // `reason` is for the model (it may tell it what to do next, about "they"); `said` is the same refusal in words to the person
 // ("you", "your"), what a chat reply shows them. Without its own wording, `said` is the reason.
-export interface Refusal { posting: { job_id: string | null; company: string; title: string; url: string }; reason: string; said: string; url: string; why: string; ask?: "employer" }
+export interface Refusal { posting: { job_id: string | null; company: string; title: string; url: string }; reason: string; said: string; url: string; why: string; ask?: "employer" | "fact" }
 export function refusal(p: Pick, reason: string, said = reason): Refusal {
   const url = String(p?.url ?? "").trim();
   return { posting: { job_id: p?.job_id ? String(p.job_id) : null, company: String(p?.company ?? ""), title: String(p?.title ?? ""), url }, reason, said, url, why: reason };
@@ -112,7 +114,7 @@ export async function resolvePicks(picks: Pick[], get?: ((jobId: string) => Prom
         "not found among the postings on file (it may have closed, or was never listed); nothing was queued for it. Paste its link here and I'll check it"));
       continue;
     }
-    const real: Pick = { job_id: String(rec.job_id ?? id), url: String(rec.url || p.url || ""), company: String(rec.company ?? ""), title: String(rec.title ?? ""), location: String(rec.location ?? "") };
+    const real: Pick = { job_id: String(rec.job_id ?? id), url: String(rec.url || p.url || ""), company: String(rec.company ?? ""), title: String(rec.title ?? ""), location: String(rec.location ?? ""), content: contentOf(rec) };
     if (rec.closed_at) { refused.push(refusal(real, `${real.title} at ${real.company} has closed; nothing was queued for it`)); continue; }
     ok.push(real);
   }
@@ -240,8 +242,8 @@ const GO_AHEAD = /\b(anyway|regardless|even though|internal(ly)?|knowing|i know 
 // (`before`; undefined when the caller has no history), their applications and their confirmed facts.
 // `resolved` (SERIAL-1491): the person's answers to the possible-match question in this thread; "no" clears a possible
 // match for that company (and no other), "yes" makes it their employer in their own words.
-export function screenPicks(picks: Pick[], o: { message?: string; before?: string; apps: TrackedApp[]; facts: any[]; now: number; resolved?: EmployerAnswer[] }): { ok: Pick[]; refused: Refusal[] } {
-  const ok: Pick[] = [], refused: Refusal[] = [];
+export function screenPicks(picks: Pick[], o: { message?: string; before?: string; apps: TrackedApp[]; facts: any[]; now: number; resolved?: EmployerAnswer[] }): { ok: Pick[]; refused: Refusal[]; gate: GateResult } {
+  const passed: Pick[] = [], refused: Refusal[] = [];
   const message = o.message ?? "";
   const answered = (co: string) => (o.resolved ?? []).filter((a) => a && a.company && sameCompany(a.company, co)).map((a) => !!a.is_employer).pop();
   const named = o.message === undefined ? [] : employersNamed(message);
@@ -285,9 +287,16 @@ export function screenPicks(picks: Pick[], o: { message?: string; before?: strin
       refused.push(refusal(p, `${what} is already in their applications as the same posting; nothing was queued`, `${what} is already in your applications as the same posting; nothing was queued`));
       continue;
     }
-    ok.push(p);
+    passed.push(p);
   }
-  return { ok, refused };
+  // THE POSTING SCREEN (career_apply_gate.ts, F09): whatever got this far is screened for closed, stale, scam-looking and
+  // knock-out mismatches against CONFIRMED facts before it can be queued or shown for approval. Not optional, not a switch.
+  const gate = gatePicks(passed, { facts: o.facts, now: o.now });
+  const gated = new Set<Pick>(gate.ok);
+  for (const d of gate.dropped) refused.push(refusal({ ...d.posting, job_id: d.posting.job_id ?? undefined }, `screened out (${d.kind === "knockout" ? "knock-out" : d.kind}): ${d.why}`));
+  for (const h of gate.held) refused.push({ ...refusal({ ...h, job_id: h.job_id ?? undefined }, `held, not guessed: it needs a fact you haven't confirmed (${h.facts.join(", ").replace(/_/g, " ")})`), ask: "fact" });
+  const ok = passed.filter((p) => gated.has(p));
+  return { ok, refused, gate };
 }
 
 export function memoryWantStore(): WantStore & { dump(): Record<string, WantRow[]> } {

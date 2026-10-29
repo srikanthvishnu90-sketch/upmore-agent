@@ -330,7 +330,7 @@ export const QUEUED_REPLY = (company: string, title: string) =>
 // The posting screen (career_apply_gate.ts via screenPicks, PR #276) for a card tap: a closed, stale, scam-looking or knock-out
 // posting is never queued and never shown for approval. The stored posting row is read fresh at the tap; if it cannot be read
 // the tap fails closed (nothing queued) rather than skipping the screen.
-async function screenedOut(userId: string, job: JobView, deps: JobDeps): Promise<string | null> {
+export async function screenedOut(userId: string, job: JobView, deps: JobDeps): Promise<string | null> {
   let row: PostingRow | null;
   try { row = (await deps.store.postings([job.job_id]))[0] ?? null; } catch { return "I couldn't check that posting just now (it may have closed), so nothing was queued. Tap Apply again in a minute."; }
   const content = contentOf(row ?? { posted_at: job.posted_at, first_seen_at: job.first_seen_at, remote: job.remote });

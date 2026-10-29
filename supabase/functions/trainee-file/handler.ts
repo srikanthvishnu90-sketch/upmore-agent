@@ -12,7 +12,7 @@ import { FILE_TTL_MS, mintFileToken, SESSION_TTL_MS, verifyFileToken, type FileC
 import { verifyInitData } from "../_shared/telegram_webapp.ts";
 import { BOOT_SCRIPT, FEED_SCRIPT, fullOf, hostOf, renderBootstrap, renderFeed, renderLinkState, renderText, snippetOf, statusOf, type AppRow, type Feed, type Row } from "../_shared/file_page.ts";
 import { dayOf } from "../_shared/file_page.ts";
-import { BLOCKED_HOST, hashTag, logoUrl, tapJob, type JobDeps, type JobSender, type JobStore, type JobView, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
+import { BLOCKED_HOST, hashTag, logoUrl, screenedOut, tapJob, type JobDeps, type JobSender, type JobStore, type JobView, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
 
 export type { AppRow } from "../_shared/file_page.ts";
 export interface FileStore extends JobStore {
@@ -146,8 +146,13 @@ export async function handleFile(req: Request, d: FileDeps): Promise<Response> {
       if (row.status) { /* already in motion: the row shows its word, nothing more to do */ }
       else if (row.byHand) notes[ref] = "Not applied for automatically on this site. Open it and apply there yourself.";
       else if (tag === "none" && !row.tag) {
-        const w = await d.store.want(u, row.job, d.now()).catch(() => ({ result: "refused" as const, reason: "I couldn't save that just now." }));
-        if (w.result === "refused") notes[ref] = `Not queued: ${w.reason ?? "I can't open that posting's application form yet."}`;
+        // The same posting screen as the card's Apply (closed, stale, scam-looking, knock-out): checked before anything is queued.
+        const why = await screenedOut(u, row.job, d);
+        if (why) notes[ref] = `Not queued: ${why}`;
+        else {
+          const w = await d.store.want(u, row.job, d.now()).catch(() => ({ result: "refused" as const, reason: "I couldn't save that just now." }));
+          if (w.result === "refused") notes[ref] = `Not queued: ${w.reason ?? "I can't open that posting's application form yet."}`;
+        }
       } else if (!/^[0-9a-f]{16}$/.test(tag) || tag !== row.tag) {
         notes[ref] = "Changed since you opened this page, so nothing was sent.";
       } else {

@@ -433,17 +433,101 @@ export async function runSendWorker(d: WorkerDeps, o: WorkerOpts): Promise<Worke
 }
 
 // ------------------------------------------------------------------------------------------------ what came back
-export interface ThreadMail { from: string; subject: string; snippet: string }
-const BOUNCE_FROM = /\b(mailer-daemon|postmaster|mail delivery (subsystem|system))\b/i;
-const BOUNCE_SUBJECT = /(delivery status notification \(failure\)|undeliverable|undelivered mail|delivery has failed|mail delivery failed|returned mail|failure notice|address not found|delivery failure)/i;
-const AUTO = /^\s*(automatic reply|auto(?:matic)?[- ]?reply|out of (?:the )?office|ooo\b|away from (?:the )?office)/i;
-export const OPT_OUT = /\b(unsubscribe|stop (?:emailing|contacting|writing to|messaging) me|remove me|take me off|do not (?:contact|email|message) me|don'?t (?:contact|email|message) me|opt me out|opt out|not interested|no longer interested|please stop|leave me alone)\b|^\s*stop\b/i;
+// The words of what came back, shared with the replies lane (career_outreach_replies.ts rulePass), so the two readers of a
+// thread never disagree. REPLY SCENARIOS (2026-10-29, tests/architect/scenarios-replies.test.ts): ~10,000 generated
+// messages (bounces from many mail systems, delay warnings, auto-replies in several languages, opt-outs in many forms,
+// real replies with the original quoted below, HTML only, from a colleague) decide the rules below.
+export interface ThreadMail { from: string; subject: string; snippet: string; headers?: Record<string, string> }
+export const MAIL_SYSTEM_FROM = /\b(mailer-daemon|postmaster|mail delivery (?:subsystem|system)|microsoftexchange[0-9a-f]*)\b/i;
+const FAILURE_SUBJECT = /(delivery status notification|undeliverable|undelivered mail|delivery has failed|mail delivery failed|returned mail|failure notice|address not found|delivery failure)/i;
+// A delay warning: the mail system is still trying ("Delivery Status Notification (Delay)", "Delivery delayed:", Postfix's
+// "Delayed Mail (still being retried)", Sendmail's "Warning: could not send message for past 4 hours", Exim's "Warning:
+// message ... delayed 24 hours"). Read from the subject's own words (its start, or Gmail's "(Delay)"), else from the
+// notice's text when the subject says neither failure nor delay.
+const DELAY_SUBJECT = /\(delay\)|^\s*(?:delivery (?:has been |is )?delayed|delayed(?: mail| message| delivery)?\b|message delayed|delivery delay|warning: (?:could not send|message .{0,60}delayed))/i;
+const DELAY_TEXT = /\b(?:this is a warning (?:message )?only|you do not need to resend|has (?:been )?delayed|not (?:yet )?been delivered yet|not delivered yet|has not yet been delivered|hasn'?t been delivered yet|will (?:keep trying|retry|be retried)|delivery will continue to be attempted|delivery attempts will continue|still being retried)\b/i;
+const FAILURE_WORDS = /\(failure\)|undeliverable|undelivered|failed|failure|returned mail|not found|permanent/i;
+// A read receipt ("Read: <subject>", a disposition notification): not an answer.
+const RECEIPT_SUBJECT = /^\s*(?:read|not read|gelesen|lu|le[ií]do)\s*:/i;
+export type Notice = "bounce" | "delay" | "receipt";
+// A message from a mail system about delivery, or a read receipt; null for anything a person or their autoresponder wrote.
+// Conservative rule (owner: never retry a bounce; a delay is not a bounce): a failure notice is a bounce whatever its reason,
+// a full mailbox or a server that kept refusing included (the mail system has stopped trying, and the address is never
+// tried again); only a notice that says it is still trying is a delay, and a delay marks nothing.
+export function deliveryNotice(m: { from: string; subject: string; text: string; headers?: Record<string, string> }): Notice | null {
+  const h = Object.fromEntries(Object.entries(m.headers ?? {}).map(([k, v]) => [k.toLowerCase(), String(v ?? "")]));
+  const subject = String(m.subject ?? ""), text = String(m.text ?? "").slice(0, 3000);
+  if (/report-type=disposition-notification/i.test(h["content-type"] ?? "") || (RECEIPT_SUBJECT.test(subject) && /\bwas read\b|\bread on\b|\bdisplayed\b/i.test(text))) return "receipt";
+  const system = MAIL_SYSTEM_FROM.test(m.from) || FAILURE_SUBJECT.test(subject) || /report-type=delivery-status/i.test(h["content-type"] ?? "") || "x-failed-recipients" in h;
+  if (!system) return null;
+  if (DELAY_SUBJECT.test(subject)) return "delay";
+  if (!FAILURE_WORDS.test(subject) && !("x-failed-recipients" in h) && DELAY_TEXT.test(text)) return "delay";
+  return "bounce";
+}
+// An automatic reply (out of office, vacation, leave), in English and the common European forms, from its headers, its
+// subject, or its first words.
+export const AUTO_SUBJECT = new RegExp(String.raw`^\s*\[?\s*(?:(?:re|aw|antw|sv|r)\s*:\s*)?(?:automatic reply|auto(?:matic)?[- ]?(?:reply|response|answer)|autoreply|autoresponder|out of (?:the )?office|ooo\b|away from (?:the |my )?(?:office|desk)|on (?:vacation|leave|holiday)\b|vacation (?:reply|response|message|notice)|abwesenheitsnotiz|automatische antwort|abwesend\b|r[ée]ponse automatique|absence du bureau|absent(?:e)? du bureau|respuesta autom[áa]tica|fuera de la oficina|risposta automatica|fuori (?:sede|ufficio)|automatisch antwoord|afwezig|autosvar|resposta autom[áa]tica|fora do escrit[óo]rio|automaattinen vastaus|odpowied[źz] automatyczna)`, "i");
+export const AUTO_TEXT = /\b(?:i am|i'm|i will be|i'll be) (?:currently )?(?:out of (?:the )?office|away|on (?:vacation|leave|holiday|pto|parental leave|maternity leave|paternity leave|annual leave|sabbatical))\b|\bout of (?:the )?office (?:until|through|till)\b|\bwith (?:limited|no) access to (?:my )?e-?mail\b/i;
+export function autoReply(m: { subject: string; text: string; headers?: Record<string, string> }): boolean {
+  const h = Object.fromEntries(Object.entries(m.headers ?? {}).map(([k, v]) => [k.toLowerCase(), String(v ?? "")]));
+  if (/auto-replied|auto-generated/i.test(h["auto-submitted"] ?? "") || "x-autoreply" in h || "x-autorespond" in h || /auto_reply/i.test(h["precedence"] ?? "") || /^(?:oof|autoreply)$/i.test(h["x-auto-response-suppress"] ?? "")) return true;
+  return AUTO_SUBJECT.test(String(m.subject ?? "")) || AUTO_TEXT.test(newText(m.text).slice(0, 600));
+}
+const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", rsquo: "'", lsquo: "'", rdquo: '"', ldquo: '"' };
+export const decodeEntities = (s: string) => s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (all, e: string) =>
+  e[0] === "#" ? String.fromCodePoint(e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : Number(e.slice(1))) : ENTITIES[e.toLowerCase()] ?? all);
+// The reply's own new words: everything before the quoted history (the "On ... wrote:" line in its English, French,
+// German and Spanish forms, wrapped or not, "> " lines, Outlook's "From: ... Sent:" block and its underscore rule,
+// "-----Original Message-----", a forwarded message) and before a "-- " signature. Works on a whole body and on Gmail's
+// one-line, HTML-escaped snippet. A "stop" in the quoted history is the earlier email's, never this reply's.
+const QUOTE_START = [
+  /^[ \t]*>/m,
+  // "On <date> <name> wrote:" (wrapped onto two lines or not): case as mail programs write it, and never across the end of
+  // a sentence, so "On Monday I said stop." in the new text is not taken for the quote header.
+  /\bOn\s(?:(?![.?!]\s)[\s\S]){0,240}?\bwrote:/,
+  /\bLe\s[^\n]{0,240}?a\s[ée]crit\s?:/, /\bAm\s[^\n]{0,240}?schrieb[^\n]{0,160}?:/, /\bEl\s[^\n]{0,240}?escribi[óo]\s?:/,
+  /-{2,}\s*(?:original message|forwarded message|mensaje original|message d'origine|urspr[üu]ngliche nachricht)\s*-*/i,
+  /^[ \t]*-{5,}[ \t]*$/m, /_{8,}/,
+  /^[ \t]*(?:\*\*)?From:(?:\*\*)?[ \t]+.*\n[ \t]*(?:\*\*)?(?:Sent|Date):/im, /\bFrom:\s[^\n]{0,200}?\b(?:Sent|Date):\s/,
+  /^--[ \t]*$/m,
+];
+export function newText(body: string): string {
+  let t = decodeEntities(String(body ?? "")).replace(/\r\n?/g, "\n");
+  let cut = t.length;
+  for (const re of QUOTE_START) { const m = re.exec(t); if (m && m.index < cut) cut = m.index; }
+  t = t.slice(0, cut);
+  return t.trim();
+}
+// "Stop", "unsubscribe", "remove me", "take me off your list", "not interested", "no thank you", "please don't contact me",
+// in any case, anywhere in the new text; and a line that starts with stop / remove / unsubscribe / opt out (after a
+// greeting or not). "Don't hesitate to email me", "stop by Thursday" in the middle of a sentence, "no thanks needed" are
+// not opt-outs.
+const OPT_OUT_ANYWHERE = /\b(?:unsubscribe|stop (?:emailing|e-mailing|contacting|writing to|messaging|sending)\b|please stop\b|remove me\b|take me off\b|do not (?:contact|email|e-mail|message|write to) me|don'?t (?:contact|email|e-mail|message|write to) me|opt me out|opt[- ]out\b|not interested|no longer interested|leave me alone|please don'?t reach out|do not reach out|no,? thanks?(?: you)?\b(?![ \t]+(?:needed|necessary|required|for\b))|no thank you\b|thanks,? but no thanks)/i;
+const OPT_OUT_LEAD = /^(?:stop|remove|unsubscribe|opt[- ]?out)\b/i;
+const GREETING = /^(?:(?:hi|hello|hey|dear|greetings|good (?:morning|afternoon|evening))\b[^,.!:\n]{0,30}|[A-Za-z]{2,20})\s*[,.!:\-–—]+\s*/i;
+export function optedOut(fresh: string): boolean {
+  const t = decodeEntities(String(fresh ?? "")).replace(/[’‘]/g, "'");
+  if (OPT_OUT_ANYWHERE.test(t)) return true;
+  for (const line of t.split("\n")) {
+    const l = line.trim();
+    if (OPT_OUT_LEAD.test(l) || OPT_OUT_LEAD.test(l.replace(GREETING, ""))) return true;
+  }
+  return false;
+}
+/** @deprecated the words are optedOut(newText(text)); kept for callers that test a whole string. */
+export const OPT_OUT = OPT_OUT_ANYWHERE;
 export const addressOf = (from: string) => (/<([^>]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
+// What one message on a sent email's thread means for the rail: a bounce (the address is bad forever), a stop (the contact
+// opted out forever), a reply (a person answered: the sequence stops), or other (a delay warning, a read receipt, an
+// auto-reply: nothing changes). Someone else on the thread who answers (a colleague in CC, another address of the
+// contact's) stops the sequence too, but only the contact's own words opt the contact out.
 export function classifyIncoming(m: ThreadMail, recipient: string): "bounce" | "stop" | "reply" | "other" {
-  if (BOUNCE_FROM.test(m.from) || BOUNCE_SUBJECT.test(m.subject)) return "bounce";
-  if (addressOf(m.from) !== recipient.toLowerCase()) return "other";
-  if (AUTO.test(m.subject)) return "other"; // an out-of-office is not an answer
-  return OPT_OUT.test(m.snippet) || OPT_OUT.test(m.subject.replace(/^\s*re:\s*/i, "")) ? "stop" : "reply";
+  const notice = deliveryNotice({ from: m.from, subject: m.subject, text: decodeEntities(m.snippet), headers: m.headers });
+  if (notice === "bounce") return "bounce";
+  if (notice) return "other"; // a delay is not a bounce (the mail system is still trying); a read receipt is not an answer
+  if (autoReply({ subject: m.subject, text: m.snippet, headers: m.headers })) return "other"; // an out-of-office is not an answer
+  if (addressOf(m.from) !== recipient.toLowerCase()) return "reply";
+  return optedOut(newText(m.snippet)) || optedOut(m.subject.replace(/^\s*(?:re|aw|antw|sv)\s*:\s*/i, "")) ? "stop" : "reply";
 }
 // pause: mailbox protection after a bounce (career_send_record): the account's last `window` sends, at least `bounces`
 // bounced and at least `rate` of them. Defaults 50, 5, 0.1; CAREER_SEND_BOUNCE_WINDOW / _COUNT / _RATE in career-send.

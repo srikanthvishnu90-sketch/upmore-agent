@@ -2,10 +2,11 @@
 // ending with the file link. The model writes it; this file only checks it. Returns the problems found; empty means it may be sent.
 import { unsupported } from "./guard.ts";
 
-export const CHAT_MAX_WORDS = 95, CHAT_MIN_WORDS = 25, CHAT_MAX_SENTENCES = 5;
+export const CHAT_MAX_WORDS = 105, CHAT_MIN_WORDS = 25, CHAT_MAX_SENTENCES = 6;
 const FILLER = ["i hope this helps", "great question", "as an ai", "best of luck", "good luck", "it's important to", "it is important to", "there are many factors", "everyone's journey", "don't be afraid", "put yourself out there", "think outside the box", "reach out to your network", "leverage your", "it depends on many", "every situation is unique", "feel free to", "let me know if", "in today's competitive", "job market is tough", "it'd be tough", "it would be tough", "generally speaking", "to be honest", "i think maybe", "might possibly", "kind of", "sort of", "a lot of", "basically", "just remember", "at the end of the day", "hope that helps", "i'd be happy", "happy to help"];
 const OPENERS = /^\s*(?:great|good|excellent|interesting|fair|sure|absolutely|certainly|of course|thanks|thank you|well|so|ok|okay|hey|hi|hello|i understand|i see|that's a)\b/i;
 const NOW = /\b(?:now|today|this (?:semester|year|summer|term|season)|right now|at this stage|currently|for now|first)\b/i;
+const ACTION = /\b(?:this (?:week|month|semester|year|summer)|today|start|begin|first (?:step|move|weeks?|days?)|build|apply|take|join|learn|ask|message|finish|confirm|pass|log|sort|lock|replace|use|have|send|book|write|pick|talk|get|getting|practice|prepare|target|show|reach)\b/i;
 const LATER = /\b(?:later|next (?:year|summer|semester|season)|after|once|eventually|then|over time|down the line)\b/i;
 
 export function lintChat(p: string, o: { link?: string | null; noLink?: boolean; facts: { text: string; quote: string; label: string }[]; person: string[]; message: string }): string[] {
@@ -27,6 +28,7 @@ export function lintChat(p: string, o: { link?: string | null; noLink?: boolean;
   if (OPENERS.test(prose)) bad.push("canned opener");
   if (!NOW.test(sents[0] ?? "") && !/\b(?:realistic|realistically)\b/i.test(sents[0] ?? "")) bad.push("verdict is not first (say what is realistic now)");
   if (!LATER.test(prose)) bad.push("no mention of what comes later");
+  if (!ACTION.test(prose)) bad.push("no concrete next action (say one thing to do this week)");
   if ((prose.match(/\?/g) ?? []).length > 1) bad.push("more than one question");
   if (/!/.test(prose) || /[\u{1F300}-\u{1FAFF}☀-➿]/u.test(prose)) bad.push("exclamation mark or emoji");
   // grammar a regex can see

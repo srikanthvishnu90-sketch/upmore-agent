@@ -36,13 +36,13 @@ export interface Grounded {
   notes: string[]; rejected: Rejected[];
 }
 export function queriesFor(u: Understanding): Plan[] {
-  const fill = (s: string) => s.replace("{field}", u.field!.label).replace("{stage}", u.stageLabel.replace(/^an? /, "")).replace("{geo}", u.geo === "the US" ? "United States" : u.geo);
+  const fill = (s: string) => s.replace("{field}", u.field!.label).replace("{stage}", u.year ? `${u.year} college` : u.stageLabel.replace(/^an? /, "")).replace("{geo}", u.geo === "the US" ? "United States" : u.geo);
   return u.field!.queries.map((p) => ({ q: fill(p.q), kinds: p.kinds }));
 }
 export async function groundFor(o: { u: Understanding; search: GroundSearch; cache?: GroundCache; now: number; ttlMs?: number; maxSearches?: number; costCapUsd?: number }): Promise<Grounded> {
   const u = o.u;
   if (!u.field) return { facts: [], urls: [], from_cache: false, searches: 0, cost_usd: 0, worst_case_usd: 0, notes: ["no field to search for"], rejected: [] };
-  const key = cacheKey(u.field.id, u.stage, u.geoKey), ttl = o.ttlMs ?? CACHE_TTL_MS;
+  const key = cacheKey(u.field.id, u.year ?? u.stage, u.geoKey), ttl = o.ttlMs ?? CACHE_TTL_MS;
   const hit = o.cache ? await o.cache.get(key).catch(() => null) : null;
   if (hit && o.now - hit.at < ttl) return { facts: hit.facts, urls: hit.urls, from_cache: true, searches: 0, cost_usd: 0, worst_case_usd: 0, notes: [], rejected: [] };
   const running = inflight.get(key);

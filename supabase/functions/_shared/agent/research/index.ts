@@ -19,7 +19,7 @@ export type Publisher = (file: BriefFile) => Promise<{ url: string }>;
 export interface ResearchDeps { search: GroundSearch; cache?: GroundCache; publish?: Publisher; derive?: DeriveFn; onResult?: (r: ResearchResult, message: string) => void }
 export type ResearchResult =
   | { status: "need_field"; ask: string; note: string }
-  | { status: "ok"; brief_markdown: string; file_name: string; file_url: string | null; verdict: { now: string; later: string }; ask: string | null; assumptions: string[];
+  | { status: "ok"; brief_markdown: string; file_name: string; file_url: string | null; verdict: { now: string; later: string }; first_action: string; ask: string | null; assumptions: string[];
       sources: { n: number; url: string; label: string }[]; grounding: { searches: number; cost_usd: number; from_cache: boolean }; unsourced: string[]; dropped: string[]; note: string; facts: Fact[]; person: string[] };
 
 export async function researchCareerQuestion(o: PackInput & { deps: ResearchDeps; now: number }): Promise<ResearchResult> {
@@ -40,11 +40,11 @@ export async function researchCareerQuestion(o: PackInput & { deps: ResearchDeps
   let file_url: string | null = null;
   if (o.deps.publish) { try { file_url = (await o.deps.publish({ name: file_name, kind: "research_brief", subject: u.field.label, markdown: b.markdown })).url; } catch (e) { console.error("research brief publish:", e instanceof Error ? e.message : e); } }
   const result: ResearchResult = {
-    status: "ok", brief_markdown: b.markdown, file_name, file_url, verdict: { now: u.field.now, later: u.field.later }, ask: u.ask, assumptions: u.assumptions,
+    status: "ok", brief_markdown: b.markdown, file_name, file_url, verdict: { now: u.field.now, later: u.field.later }, first_action: u.field.slots.foundation, ask: u.ask, assumptions: u.assumptions,
     facts: g.facts, person, sources: b.sources, grounding: { searches: g.searches, cost_usd: g.cost_usd, from_cache: g.from_cache }, unsourced, dropped: b.dropped,
-    note: "Reply with ONE short plain paragraph (about 60 to 90 words, no list, no heading, no opener): first the honest verdict for this person (what is realistic now, then what comes later), in your own words, using only their facts and the verdict above; then say the full plan is in the file" +
-      (file_url ? ", and write NO link: code adds the file link after your paragraph" : " (the file is not attached in this environment: do not mention a file or a link, give the verdict only)") +
-      ". Put no figure, date or name in the paragraph that is not in the brief's sourced lines. " + (u.ask ? `You may end with this one question: ${u.ask}` : "Ask nothing."),
+    note: "Reply with ONE short plain paragraph (about 60 to 90 words, no list, no heading, no opener): first the honest verdict for this person (what is realistic now, then what comes later, with the one timing fact that matters most for their stage if the brief has it), in your own words, using only their facts and the verdict above; then ONE concrete thing to do this week (the first action: " + u.field.slots.foundation.replace(/\.$/, "") + "); then say the full plan, timeline and honest odds are in the file" +
+      (file_url ? ", and write NO link: code adds the file link after your paragraph" : " (the file is not attached in this environment: do not mention a file or a link, give the verdict and the first action only)") +
+      ". Put no figure, date or name in the paragraph that is not in the brief's sourced lines; where the brief says it found no sourced figure, say plainly that you do not know it rather than guessing. " + (u.ask ? `You may end with this one question: ${u.ask}` : "Ask nothing."),
   };
   o.deps.onResult?.(result, o.message);
   return result;

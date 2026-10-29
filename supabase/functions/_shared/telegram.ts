@@ -25,7 +25,7 @@ export const TELEGRAM_API = "https://api.telegram.org";
 export const TELEGRAM_CHARS = 4096;
 export const TELEGRAM_CAPTION = 1024; // a photo's caption
 // deno-lint-ignore no-explicit-any
-const inlineKeyboard = (rows: { text: string; data?: string; loginUrl?: string; url?: string }[][]): any => ({ inline_keyboard: rows.map((row) => row.map((b) => b.url ? { text: b.text.slice(0, 64), url: b.url } : b.loginUrl
+const inlineKeyboard = (rows: { text: string; data?: string; loginUrl?: string; url?: string; webApp?: string }[][]): any => ({ inline_keyboard: rows.map((row) => row.map((b) => b.webApp ? { text: b.text.slice(0, 64), web_app: { url: b.webApp } } : b.url ? { text: b.text.slice(0, 64), url: b.url } : b.loginUrl
   ? { text: b.text.slice(0, 64), login_url: { url: b.loginUrl, request_write_access: true } }
   : { text: b.text.slice(0, 64), callback_data: String(b.data ?? "").slice(0, 64) })) });
 export const TELEGRAM_FILE_MAX = 20 * 1024 * 1024; // what a bot may download (getFile)
@@ -243,7 +243,7 @@ export function telegramAdapter(o: {
           ? { reply_markup: { keyboard: [[{ text: opts.shareContact.slice(0, 64), request_contact: true }]], resize_keyboard: true, one_time_keyboard: true } }
           : last && opts?.removeKeyboard ? { reply_markup: { remove_keyboard: true } }
           : last && opts?.buttons?.length
-          ? { reply_markup: { inline_keyboard: opts.buttons.map((row) => row.map((b) => b.url ? { text: b.text.slice(0, 64), url: b.url } : b.loginUrl
+          ? { reply_markup: { inline_keyboard: opts.buttons.map((row) => row.map((b) => b.webApp ? { text: b.text.slice(0, 64), web_app: { url: b.webApp } } : b.url ? { text: b.text.slice(0, 64), url: b.url } : b.loginUrl
             ? { text: b.text.slice(0, 64), login_url: { url: b.loginUrl, request_write_access: true } }
             : { text: b.text.slice(0, 64), callback_data: String(b.data ?? "").slice(0, 64) })) } } : {};
         let r = await call("sendMessage", { chat_id: Number(address), text: bubbles[i].slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...(o.native ? { parse_mode: "HTML" } : {}), ...keyboard });

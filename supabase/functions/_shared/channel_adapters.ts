@@ -64,7 +64,7 @@ export interface InboundMessage {
 }
 // FEATURE 16: buttons under a sent message (Telegram's inline keyboard), rows of { text, data } (a tap comes back as a
 // callback with data, at most 64 bytes) or { text, loginUrl } (Telegram's login: it opens the page signed in as the user).
-export interface Button { text: string; data?: string; loginUrl?: string; url?: string }
+export interface Button { text: string; data?: string; loginUrl?: string; url?: string; webApp?: string }
 // shareContact: a one-tap "Share my phone number" button (Telegram's request_contact; the label); removeKeyboard: take that
 // button away again once the number arrived.
 export interface SendOptions { buttons?: Button[][]; shareContact?: string; removeKeyboard?: boolean }

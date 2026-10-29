@@ -1,477 +1,417 @@
-// The hosted file pages (owner, 2026-10-28): "a rendered, link-opened file page, like Boardy's introduction page and Instinct":
-// from Telegram a designed page for ONE decision. Job match file (+ application proof file). Everything runs over memory
-// stores and a fake clock: no network, no model, no database.
+// The hosted jobs list page (owner, 2026-10-28): a plain list of rows (logo, company, Apply at the right, a short role description
+// under it), opened by a link from the bot, logged in by Telegram identity (Mini App initData) or a signed single-user link.
+// Everything runs over memory stores and a fake clock: no network, no model, no database.
 import assertNode from "node:assert/strict";
-import { FILE_TTL_MS, fileUrlFor, mintFileToken, verifyFileToken } from "../../supabase/functions/_shared/file_link.ts";
-import { handleFile, type FileDeps, type FileStore, type AppRow } from "../../supabase/functions/trainee-file/handler.ts";
-import { refOf, sendJobCards, hashTag, jobViewOf, type JobView, type PreparedRow } from "../../supabase/functions/_shared/telegram_jobs.ts";
+import { FILE_TTL_MS, feedUrlsFor, mintFileToken, SESSION_TTL_MS, verifyFileToken } from "../../supabase/functions/_shared/file_link.ts";
+import { initDataHash, verifyInitData } from "../../supabase/functions/_shared/telegram_webapp.ts";
+import { handleFile, type AppRow, type FileDeps, type FileStore } from "../../supabase/functions/trainee-file/handler.ts";
+import { hashTag, jobViewOf, refOf, sendJobCards, type PreparedRow } from "../../supabase/functions/_shared/telegram_jobs.ts";
 import type { TapStore } from "../../supabase/functions/_shared/channel_card_tap.ts";
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
-const SECRET = "file-link-secret-0123456789-abcdef";
+const SECRET = "file-link-secret-0123456789-abcdef", BOT = "123456:BOT-TOKEN-for-tests";
 const U = "11111111-1111-4111-8111-111111111111", V = "22222222-2222-4222-8222-222222222222";
 const NOW = Date.parse("2026-10-28T12:00:00Z");
-const H = "ab".repeat(32), H2 = "cd".repeat(32), PID = "33333333-3333-4333-8333-333333333333", CARD = "44444444-4444-4444-8444-444444444444";
-const BASE = "https://trainee.example/file";
+const H = "ab".repeat(32), H2 = "cd".repeat(32), CARD = "44444444-4444-4444-8444-444444444444";
+const BASE = "https://trainee.example/file", LIST = "0123456789";
+const pid = (n: number) => `33333333-3333-4333-8333-${String(n).padStart(12, "0")}`;
 
-const hit = (n: number, extra: Record<string, unknown> = {}) => ({ job_id: `greenhouse:acme:${n}`, company: "Acme", title: `Data Analyst ${n}`, location: "Austin, TX", url: `https://boards.greenhouse.io/acme/jobs/${n}`,
-  first_seen_at: "2026-10-27T12:00:00Z", pay: "$90k-$110k", fit: { reasons: ["You list SQL", "Your last role was analytics", "You are in Austin", "A fourth reason"], gaps: ["No Tableau on file"] }, ...extra });
-const row = (n: number, extra: Record<string, unknown> = {}) => ({ job_id: `greenhouse:acme:${n}`, provider: "greenhouse", pay: "$90k-$110k", remote: "hybrid", seniority_band: "mid", posted_at: "2026-10-25T09:00:00Z", deadline: "2026-11-15T00:00:00Z",
-  description: "<p>About us</p><p>Requirements</p><ul><li>3 years of SQL</li><li>Dashboards</li></ul>", company_domain: "acme.com", ...extra });
-const prepared = (hash = H): PreparedRow => ({ id: PID, job_id: "greenhouse:acme:1", company: "Acme", url: "https://boards.greenhouse.io/acme/jobs/1", payload_hash: hash, state: "ready",
-  card_lines: ["Data Analyst at Acme"], payload: { resume_sha256: "f".repeat(64), resume_name: "ada-resume.pdf", fields: [
-    { name: "first_name", label: "First name", value: "Ada" }, { name: "cover_letter_text", label: "Cover note", value: "I built the pricing model at my last job." },
-    { name: "work_auth", label: "Authorized to work in the US?", value: "Yes" }] } });
+const hit = (n: number, extra: Record<string, unknown> = {}) => ({ job_id: `greenhouse:acme:${n}`, company: n === 1 ? "Acme" : `Co${n}`, title: `Data Analyst ${n}`, location: "Austin, TX", url: `https://boards.greenhouse.io/acme/jobs/${n}`, pay: "$90k", ...extra });
+const row = (n: number, extra: Record<string, unknown> = {}) => ({ job_id: `greenhouse:acme:${n}`, provider: "greenhouse", company_domain: n === 1 ? "acme.com" : null,
+  description: "<p>Build dashboards and own the weekly pricing report for the growth team.</p><p>Requirements</p><ul><li>3 years of SQL</li></ul>", ...extra });
+const prepared = (n: number, hash = H): PreparedRow => ({ id: pid(n), job_id: `greenhouse:acme:${n}`, company: "Acme", url: `https://boards.greenhouse.io/acme/jobs/${n}`, payload_hash: hash, state: "ready",
+  card_lines: [], payload: { resume_sha256: "f".repeat(64), resume_name: "ada-resume.pdf", fields: [{ name: "first_name", label: "First name", value: "Ada" }] } });
+const appRow = (state: string, extra: Partial<AppRow> = {}): AppRow => ({ id: "j", state, reason: null, confirmation_id: null, created_at: new Date(NOW).toISOString(), updated_at: new Date(NOW).toISOString(), email_confirmed_at: null, payload: {}, company: "Acme", url: "u", ...extra });
 
-function memStore(init: { prepared?: PreparedRow | null; app?: AppRow | null; wanted?: boolean; postings?: any[] } = {}) {
-  const mem = new Map<string, any>();
-  const log = { wants: [] as string[], passes: [] as string[], saved: [] as string[] };
-  let prep = init.prepared ?? null;
-  let app = init.app ?? null;
+// A memory store holding user U's list of N postings (ids 1..N), each prepared unless told otherwise.
+function mem(n = 3, o: { unprepared?: number[]; apps?: Record<number, AppRow>; wanted?: number[]; users?: string[] } = {}) {
+  const kv = new Map<string, any>();
+  const preps = new Map<number, PreparedRow | null>();
+  const apps = new Map<number, AppRow>(Object.entries(o.apps ?? {}).map(([k, v]) => [Number(k), v]));
+  const log = { wants: [] as number[], answered: [] as any[], opened: [] as string[] };
+  const num = (jobId: string) => Number(jobId.split(":").pop());
   const store: FileStore = {
-    async remember(u, ref, job, shownAs) { mem.set(`${u}|job|${ref}`, { job, shownAs }); },
-    async recall(u, ref) { return mem.get(`${u}|job|${ref}`) ?? null; },
-    async rememberList(u, id, refs) { mem.set(`${u}|list|${id}`, refs); },
-    async recallList(u, id) { return mem.get(`${u}|list|${id}`) ?? null; },
-    async postings() { return init.postings ?? []; },
-    async save(u, ref) { log.saved.push(ref); return "saved"; },
-    async prepared(u) { return u === U ? prep : null; },
-    async applied(u) { return u === U && !!app; },
-    async want(_u, job) { log.wants.push(job.job_id); return { result: "queued" }; },
-    async pass(u, ref) { const k = `${u}|pass|${ref}`; if (mem.has(k)) return "already"; mem.set(k, 1); log.passes.push(ref); return "passed"; },
-    async passed(u, ref) { return mem.has(`${u}|pass|${ref}`); },
-    async appRow(u) { return u === U ? app : null; },
-    async wanted(u) { return u === U && !!init.wanted; },
+    async remember(u, ref, job, shownAs) { kv.set(`${u}|job|${ref}`, { job, shownAs }); },
+    async recall(u, ref) { return kv.get(`${u}|job|${ref}`) ?? null; },
+    async rememberList(u, id, refs) { kv.set(`${u}|list|${id}`, refs); },
+    async recallList(u, id) { return kv.get(`${u}|list|${id}`) ?? null; },
+    async postings(ids) { return ids.map((id) => row(num(id))); },
+    async save() { return "saved"; },
+    async prepared(u, jobId) { return u === U ? preps.get(num(jobId)) ?? null : null; },
+    async applied(u, jobId) { return u === U && apps.has(num(jobId)); },
+    async want(_u, job) { log.wants.push(num(job.job_id)); return { result: "queued" }; },
+    async appRow(u, jobId) { return u === U ? apps.get(num(jobId)) ?? null : null; },
+    async wanted(u, url) { return u === U && (o.wanted ?? []).includes(Number(url.split("/").pop())); },
   };
-  return { store, log, setPrepared: (p: PreparedRow | null) => { prep = p; }, setApp: (a: AppRow | null) => { app = a; } };
+  const refs: string[] = [];
+  const ready = (async () => {
+    for (let i = 1; i <= n; i++) {
+      const view = jobViewOf(hit(i), row(i));
+      const ref = await refOf(U, view.job_id);
+      refs.push(ref);
+      await store.remember(U, ref, view, "text");
+      if (!(o.unprepared ?? []).includes(i)) preps.set(i, prepared(i));
+    }
+    await store.rememberList(U, LIST, refs);
+  })();
+  return { store, log, refs, ready, preps, apps };
 }
-function deps(m: ReturnType<typeof memStore>, tapLog: { answered: any[]; opened: string[] }, o: { now?: number; hash?: () => string; env?: Record<string, string | undefined> } = {}): FileDeps {
+function deps(m: ReturnType<typeof mem>, o: { now?: number; hash?: (n: number) => string; env?: Record<string, string | undefined>; telegramUsers?: Record<string, string> } = {}): FileDeps {
   const hash = o.hash ?? (() => H);
+  let current = 1;
   const tap: TapStore = {
-    async card(_u, id) { return { id, items: [{ n: 1, prepared_id: PID, payload_hash: hash() }], state: "open", user_id: U } as any; },
-    async prepared() { return [{ id: PID, payload_hash: hash(), company: "Acme" }]; },
-    async answer(_u, card, approve) { tapLog.answered.push({ card, approve }); return approve.length ? [{ n: 1, company: "Acme", result: "queued" }] : [{ n: 1, company: "Acme", result: "declined" }]; },
+    async card(_u, id) { return { id, items: [{ n: 1, prepared_id: pid(current), payload_hash: hash(current) }], state: "open", user_id: U } as any; },
+    async prepared() { return [{ id: pid(current), payload_hash: hash(current), company: "Acme" }]; },
+    async answer(_u, card, approve) { m.log.answered.push({ card, approve, n: current }); return approve.length ? [{ n: 1, company: "Acme", result: "queued" }] : [{ n: 1, company: "Acme", result: "declined" }]; },
   };
-  const env = { TRAINEE_FILE_LINK_SECRET: SECRET, TRAINEE_FILE_BASE_URL: BASE, ...(o.env ?? {}) };
+  const env: Record<string, string | undefined> = { TRAINEE_FILE_LINK_SECRET: SECRET, TRAINEE_FILE_BASE_URL: BASE, TELEGRAM_BOT_TOKEN: BOT, TRAINEE_BOT_URL: "https://t.me/TraineeBot", ...(o.env ?? {}) };
   return { store: m.store, now: () => o.now ?? NOW, env: { get: (k) => env[k] },
-    cards: { async open(_u, ids) { tapLog.opened.push(...ids); return { id: CARD, items: [{ n: 1, prepared_id: ids[0], payload_hash: hash() }], shown_at: new Date(NOW).toISOString() }; } }, tap };
+    cards: { async open(_u, ids) { m.log.opened.push(...ids); current = Number(ids[0].split("-").pop()); return { id: CARD, items: [{ n: 1, prepared_id: ids[0], payload_hash: hash(current) }], shown_at: new Date(NOW).toISOString() }; } },
+    tap, userOfTelegram: async (id) => o.telegramUsers?.[id] ?? null };
 }
-const newLog = () => ({ answered: [] as any[], opened: [] as string[] });
-
-// The card exists the way the bot leaves it: remembered under (user, ref). Returns a ready token for it.
-async function seed(m: ReturnType<typeof memStore>, user = U, n = 1, h: Record<string, unknown> = {}, kind: "match" | "proof" = "match") {
-  const view = jobViewOf(hit(n, h), (m.store as any).__rows?.[n] ?? row(n));
-  const ref = await refOf(user, view.job_id);
-  await m.store.remember(user, ref, view, "photo");
-  const t = (await mintFileToken({ secret: SECRET, userId: user, ref, kind, now: NOW }))!;
-  return { view, ref, t };
-}
+const tok = async (user = U, list = LIST, now = NOW) => (await mintFileToken({ secret: SECRET, userId: user, list, now }))!;
 const get = (d: FileDeps, t: string, extra = "") => handleFile(new Request(`https://x.example/f?t=${encodeURIComponent(t)}${extra}`), d);
-const post = (d: FileDeps, fields: Record<string, string>) =>
-  handleFile(new Request("https://x.example/f", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(fields).toString() }), d);
+const post = (d: FileDeps, f: Record<string, string>) => handleFile(new Request("https://x.example/f", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(f).toString() }), d);
+const plain = (h: string) => h.replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/\s+/g, " ");
+async function ref(n: number) { return await refOf(U, `greenhouse:acme:${n}`); }
 
-// ---- accessibility checks on a rendered page (no DOM library: the checks are on the markup we write)
-function a11y(html: string) {
-  assert(/^<!doctype html>/i.test(html), "doctype");
-  assert(/<html lang="en"/.test(html), "html lang");
-  assert(/<meta name="viewport" content="width=device-width, initial-scale=1"/.test(html), "viewport");
-  assert(/<title>[^<]{3,}<\/title>/.test(html), "title");
-  eq((html.match(/<h1[ >]/g) ?? []).length, 1, "exactly one h1");
-  const levels = [...html.matchAll(/<h([1-6])[ >]/g)].map((x) => Number(x[1]));
-  for (let i = 1; i < levels.length; i++) assert(levels[i] - levels[i - 1] <= 1, `heading levels do not skip: ${levels}`);
-  for (const img of html.matchAll(/<img\b[^>]*>/g)) assert(/\balt="[^"]+"/.test(img[0]), `img has alt text: ${img[0]}`);
-  for (const inp of html.matchAll(/<input\b[^>]*>/g)) assert(/type="hidden"/.test(inp[0]) || /aria-label=/.test(inp[0]), `input is hidden or labelled: ${inp[0]}`);
-  for (const b of html.matchAll(/<button\b[^>]*>([^<]*)</g)) assert(b[1].trim().length > 1, "button has text");
-  assert(!/<script\b/i.test(html), "no script");
-  assert(/prefers-color-scheme:\s*dark/.test(html), "dark mode");
-  assert(/min-height:\s*(4[4-9]|[5-9][0-9])px/.test(html), "tap targets of at least 44px");
-  assert(/<main\b/.test(html) && /<header\b/.test(html), "landmarks");
+// Telegram's own signing of Mini App data, as the documented algorithm says (an independent implementation of it here).
+async function signedInit(telegramId: string, authDate: number, token = BOT, extra: Record<string, string> = {}) {
+  const p = new URLSearchParams({ auth_date: String(authDate), query_id: "AAH", user: JSON.stringify({ id: Number(telegramId), first_name: "Ada" }), ...extra });
+  const enc = new TextEncoder();
+  const hmac = async (k: BufferSource, m: string) => await crypto.subtle.sign("HMAC", await crypto.subtle.importKey("raw", k, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]), enc.encode(m));
+  const check = [...p.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, v]) => `${k}=${v}`).join("\n");
+  const hash = [...new Uint8Array(await hmac(await hmac(enc.encode("WebAppData"), token), check))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  p.set("hash", hash);
+  return p.toString();
 }
-const plain = (html: string) => html.replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/\s+/g, " ");
 
 // ================================================================== tokens
-Deno.test("token: binds one user, one card and a kind; verifies; nothing readable inside beyond opaque ids", async () => {
-  const t = (await mintFileToken({ secret: SECRET, userId: U, ref: "a".repeat(12), kind: "match", now: NOW }))!;
+Deno.test("token: binds one user and one list; expires; refuses forgery, a wrong key, garbage and a missing secret", async () => {
+  const t = await tok();
   const v = await verifyFileToken(t, SECRET, NOW + 1000);
-  assert(v.ok);
-  if (v.ok) eq([v.claims.u, v.claims.r, v.claims.k, v.claims.e], [U, "a".repeat(12), "match", NOW + FILE_TTL_MS]);
-  assert(!t.includes("Acme") && !/\s/.test(t));
-});
-
-Deno.test("token: expires; refuses a forged user id, a wrong key, garbage, and a missing or short secret", async () => {
-  const t = (await mintFileToken({ secret: SECRET, userId: U, ref: "a".repeat(12), kind: "match", now: NOW }))!;
+  assert(v.ok && v.claims.u === U && v.claims.r === LIST && v.claims.e === NOW + FILE_TTL_MS);
   eq(await verifyFileToken(t, SECRET, NOW + FILE_TTL_MS), { ok: false, why: "expired" });
-  eq(await verifyFileToken(t, SECRET, NOW + FILE_TTL_MS - 1).then((x) => x.ok), true);
-  // swap the claims for another user's, keep the signature
-  const other = (await mintFileToken({ secret: SECRET, userId: V, ref: "a".repeat(12), kind: "match", now: NOW }))!;
-  const forged = `${other.split(".").slice(0, 2).join(".")}.${t.split(".")[2]}`;
-  eq(await verifyFileToken(forged, SECRET, NOW), { ok: false, why: "bad_signature" });
+  const other = await tok(V);
+  eq(await verifyFileToken(`${other.split(".").slice(0, 2).join(".")}.${t.split(".")[2]}`, SECRET, NOW), { ok: false, why: "bad_signature" });
   eq(await verifyFileToken(t, "another-secret-0123456789-abcdef", NOW), { ok: false, why: "bad_signature" });
-  for (const junk of ["", "x", "v1.a.b", "v2." + t.slice(3), null, undefined, 5]) assert(!(await verifyFileToken(junk, SECRET, NOW)).ok);
+  for (const junk of ["", "x", "v1.a.b", null, undefined, 5]) assert(!(await verifyFileToken(junk, SECRET, NOW)).ok);
   eq(await verifyFileToken(t, undefined, NOW), { ok: false, why: "not_configured" });
-  eq(await verifyFileToken(t, "short", NOW), { ok: false, why: "not_configured" });
-  eq(await mintFileToken({ secret: undefined, userId: U, ref: "a".repeat(12), kind: "match", now: NOW }), null);
-  eq(await mintFileToken({ secret: SECRET, userId: U, ref: "not-a-ref", kind: "match", now: NOW }), null);
-});
-
-Deno.test("token: the link is built only when the secret and an https base are set; a lifetime is capped at 72 hours", async () => {
-  const env = (o: Record<string, string>) => ({ get: (k: string) => o[k] });
-  eq(await fileUrlFor(env({}), U, "a".repeat(12), "match", NOW), null);
-  eq(await fileUrlFor(env({ TRAINEE_FILE_LINK_SECRET: SECRET, TRAINEE_FILE_BASE_URL: "http://x.example/file" }), U, "a".repeat(12), "match", NOW), null);
-  eq(await fileUrlFor(env({ TRAINEE_FILE_BASE_URL: BASE }), U, "a".repeat(12), "match", NOW), null);
-  const u = await fileUrlFor(env({ TRAINEE_FILE_LINK_SECRET: SECRET, TRAINEE_FILE_BASE_URL: BASE }), U, "a".repeat(12), "match", NOW);
-  assert(u && u.startsWith(`${BASE}?t=v1.`));
-  const long = (await mintFileToken({ secret: SECRET, userId: U, ref: "a".repeat(12), kind: "match", now: NOW, ttlMs: 999 * 3600_000 }))!;
+  eq(await mintFileToken({ secret: undefined, userId: U, list: LIST, now: NOW }), null);
+  eq(await mintFileToken({ secret: SECRET, userId: U, list: "nope", now: NOW }), null);
+  const long = (await mintFileToken({ secret: SECRET, userId: U, list: LIST, now: NOW, ttlMs: 999 * 3600_000 }))!;
   eq(await verifyFileToken(long, SECRET, NOW + 73 * 3600_000), { ok: false, why: "expired" });
 });
 
-// ================================================================== the Telegram card carries the link
-Deno.test("telegram: a card gets an 'Open file' URL button only when the link is configured, and the existing three buttons are unchanged", async () => {
-  const sent: any[] = [];
-  const m = memStore({ postings: [row(1)] }), log = newLog();
-  const d = deps(m, log);
-  const send = { photo: async (a: any) => { sent.push(a); return { ok: true }; }, text: async () => ({ ok: true, id: "1" }) };
-  await sendJobCards({ userId: U, hits: [hit(1)], deps: { ...d, fileLink: (u, r) => fileUrlFor(d.env, u, r, "match", NOW) }, send });
-  const rowsA = sent[0].buttons;
-  eq(rowsA[0].map((b: any) => b.text), ["Apply", "Details", "Save"]);
-  assert(rowsA[1][0].url.startsWith(`${BASE}?t=v1.`) && rowsA[1][0].text === "Open file");
-  const ref = await refOf(U, "greenhouse:acme:1");
-  const v = await verifyFileToken(new URL(rowsA[1][0].url).searchParams.get("t"), SECRET, NOW);
-  assert(v.ok && v.claims.u === U && v.claims.r === ref);
-  sent.length = 0;
-  await sendJobCards({ userId: U, hits: [hit(1)], deps: d, send });
-  eq(sent[0].buttons.length, 1);
+Deno.test("links: the bot gets a Mini App URL and a signed-link fallback only when configured (https base)", async () => {
+  const env = (o: Record<string, string>) => ({ get: (k: string) => o[k] });
+  eq(await feedUrlsFor(env({}), U, LIST, NOW), { webApp: null, url: null });
+  eq(await feedUrlsFor(env({ TRAINEE_FILE_LINK_SECRET: SECRET, TRAINEE_FILE_BASE_URL: "http://x.example/file" }), U, LIST, NOW), { webApp: null, url: null });
+  const l = await feedUrlsFor(env({ TRAINEE_FILE_LINK_SECRET: SECRET, TRAINEE_FILE_BASE_URL: BASE, TELEGRAM_BOT_TOKEN: BOT }), U, LIST, NOW);
+  eq(l.webApp, `${BASE}?list=${LIST}`);
+  assert(l.url!.startsWith(`${BASE}?t=v1.`));
 });
 
-// ================================================================== the match file
-Deno.test("match file: header, source labels on every fact, at most 3 'why' bullets, disclosures, one h1, accessible, no script", async () => {
-  const m = memStore({ postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t } = await seed(m);
-  const r = await get(deps(m, log), t);
+// ================================================================== Telegram initData (Mini App login)
+Deno.test("initData: a correctly signed payload gives the Telegram id; tampered, wrong-bot, expired, future and malformed are refused", async () => {
+  const good = await signedInit("777", NOW / 1000 - 60);
+  eq(await verifyInitData(good, BOT, NOW), { ok: true, telegramId: "777", authDate: NOW / 1000 - 60 });
+  eq((await initDataHash(good, BOT)).length, 64);
+  // tampered: a different user id under the same hash
+  const p = new URLSearchParams(good); p.set("user", JSON.stringify({ id: 888 }));
+  eq(await verifyInitData(p.toString(), BOT, NOW), { ok: false, why: "bad_hash" });
+  // an added field, a different bot, a stolen hash on other data
+  const added = new URLSearchParams(good); added.set("start_param", "x");
+  eq(await verifyInitData(added.toString(), BOT, NOW), { ok: false, why: "bad_hash" });
+  eq(await verifyInitData(good, "999:OTHER-BOT-TOKEN-for-tests", NOW), { ok: false, why: "bad_hash" });
+  // expired (older than an hour) and from the future
+  eq(await verifyInitData(await signedInit("777", NOW / 1000 - 3601), BOT, NOW), { ok: false, why: "stale" });
+  eq(await verifyInitData(await signedInit("777", NOW / 1000 + 600), BOT, NOW), { ok: false, why: "future" });
+  for (const junk of ["", "hash=abc", "auth_date=1", null, undefined, 5]) assert(!(await verifyInitData(junk, BOT, NOW)).ok);
+  eq(await verifyInitData(good, undefined, NOW), { ok: false, why: "not_configured" });
+  eq(await verifyInitData(await signedInit("0", NOW / 1000), BOT, NOW), { ok: false, why: "missing" });
+});
+
+Deno.test("mini app: opening the page with no token serves the sign-in step; signed initData of a linked account opens that account's list; nothing else does", async () => {
+  const m = mem(2); await m.ready;
+  const d = deps(m, { telegramUsers: { "777": U } });
+  const boot = await handleFile(new Request(`https://x.example/f?list=${LIST}`), d);
+  eq(boot.status, 200);
+  const bootHtml = await boot.text();
+  assert(bootHtml.includes("tgWebAppData") && bootHtml.includes(`data-list="${LIST}"`) && !bootHtml.includes("Acme"), "the bootstrap page shows no job");
+  assert(/script-src 'sha256-[A-Za-z0-9+/=]+'/.test(boot.headers.get("content-security-policy") ?? ""), "the inline script is allowed by hash only");
+  const ok = await post(d, { list: LIST, init: await signedInit("777", NOW / 1000 - 10) });
+  eq(ok.status, 200);
+  const html = await ok.text();
+  assert(html.includes("Acme") && html.includes("Co2"));
+  const t = html.match(/name="t" value="([^"]+)"/)![1];
+  const v = await verifyFileToken(t, SECRET, NOW);
+  assert(v.ok && v.claims.u === U && v.claims.r === LIST && v.claims.e === NOW + SESSION_TTL_MS, "a session token for the verified account only");
+  // a Telegram account that is not linked, a tampered payload, an expired one
+  eq((await post(d, { list: LIST, init: await signedInit("999", NOW / 1000) })).status, 403);
+  const bad = new URLSearchParams(await signedInit("777", NOW / 1000)); bad.set("user", JSON.stringify({ id: 999 }));
+  eq((await post(d, { list: LIST, init: bad.toString() })).status, 403);
+  eq((await post(d, { list: LIST, init: await signedInit("777", NOW / 1000 - 7200) })).status, 410);
+  eq((await handleFile(new Request("https://x.example/f?list=zzz"), d)).status, 403);
+  // the linked account asking for another account's list id gets nothing (lists are read under the verified user)
+  const other = deps(m, { telegramUsers: { "888": V } });
+  const none = await post(other, { list: LIST, init: await signedInit("888", NOW / 1000) });
+  eq(none.status, 404);
+  assert(!(await none.text()).includes("Acme"));
+});
+
+// ================================================================== the list
+Deno.test("list: a row per posting with logo or lettermark, company, Apply, and a short description; one h1; own fonts and colors; no banner, labels or bullets", async () => {
+  const m = mem(10); await m.ready;
+  const r = await get(deps(m), await tok());
   eq(r.status, 200);
-  eq(r.headers.get("content-type"), "text/html; charset=utf-8");
-  assert(/no-store/.test(r.headers.get("cache-control") ?? "") && r.headers.get("referrer-policy") === "no-referrer" && /noindex/.test(r.headers.get("x-robots-tag") ?? ""));
-  assert(/default-src 'none'/.test(r.headers.get("content-security-policy") ?? "") && !/script-src/.test(r.headers.get("content-security-policy") ?? ""));
+  assert(/no-store/.test(r.headers.get("cache-control")!) && r.headers.get("referrer-policy") === "no-referrer");
   const html = await r.text();
-  a11y(html);
+  eq((html.match(/<li class="row"/g) ?? []).length, 10);
+  eq((html.match(/<h1[ >]/g) ?? []).length, 1);
+  eq((html.match(/>Apply<\/button>/g) ?? []).length, 10, "an Apply button on every row");
+  assert(/alt="Acme logo"/.test(html) && html.includes("acme.com"), "logo from the employer's own domain");
+  assert(/class="lettermark"[^>]*>C</.test(html), "a lettermark where there is no verified domain");
+  assert(!html.includes("favicons?sz=128&amp;domain=greenhouse") && !/domain=boards\.greenhouse/.test(html));
   const text = plain(html);
-  for (const want of ["Data Analyst 1", "Acme", "Austin, TX", "Hybrid", "$90k-$110k", "mid", "Oct 25", "Nov 15", "You list SQL", "Your last role was analytics", "You are in Austin"]) assert(text.includes(want), `page has "${want}"`);
-  assert(!text.includes("A fourth reason"), "at most 3 reasons");
-  assert(text.includes("From the posting") && text.includes("From your resume"));
-  assert(html.includes('<img') && html.includes("acme.com") && /alt="Acme logo"/.test(html));
-  assert(/<details[^>]*>\s*<summary[^>]*>Requirements/.test(html) && /<details[^>]*>\s*<summary[^>]*>Full posting/.test(html));
-  assert(text.includes("3 years of SQL"));
-  assert(!/<form[^>]*method="get"/i.test(html));
-  eq((html.match(/<form\b/g) ?? []).length, 2, "Pass and Apply forms only");
+  assert(text.includes("Build dashboards and own the weekly pricing report"), "short description from the posting's own text");
+  for (const gone of ["From the posting", "From your resume", "Why this fits", "Reported, not verified", "Pass", "Confirm"]) assert(!text.includes(gone), `no ${gone}`);
+  assert(text.includes("Applying with: ada-resume.pdf"));
+  assert(/<details>\s*<summary>/.test(html) && html.includes("class=\"full\""), "the full posting is behind a tap, closed by default");
+  assert(!/<details[^>]* open/.test(html));
+  // brand: Trainee's tokens and fonts, both themes by prefers-color-scheme
+  for (const tokenValue of ["#4A2F5E", "#D4C2E2", "#141414", "#4F4F57", "#E6E6EA", "#B42318", "#EDEDF0", "#A6A6B0", "#1F1F25", "#060607"]) assert(html.includes(tokenValue), `brand token ${tokenValue}`);
+  assert(/Brygada 1918/.test(html) && /family=Inter/.test(html) && /prefers-color-scheme:dark/.test(html) && /name="theme-color" content="#4A2F5E"/.test(html));
+  assert(/<html lang="en"/.test(html) && /name="viewport"/.test(html) && /min-height:\s*(4[4-9]|[5-9][0-9])px/.test(html));
+  assert(/script-src 'sha256-/.test(r.headers.get("content-security-policy")!) && !/unsafe-eval|script-src[^;]*unsafe-inline/.test(r.headers.get("content-security-policy")!));
+  for (const img of html.matchAll(/<img\b[^>]*>/g)) assert(/\balt="[^"]+"/.test(img[0]));
 });
 
-Deno.test("match file: every fact line carries a source label; a figure that came only from the search result says 'Reported, not verified'", async () => {
-  const m = memStore({ postings: [row(1, { pay: null })] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1, { pay: null }) };
-  const { t } = await seed(m);
-  const html = await (await get(deps(m, log), t)).text();
-  const dl = html.match(/<dl[\s\S]*?<\/dl>/)![0];
-  const rows = [...dl.matchAll(/<div class="fact">([\s\S]*?)<\/div>/g)].map((x) => x[1]);
-  assert(rows.length >= 6);
-  for (const r of rows) assert(/class="src"[^>]*>(From the posting|From your resume|Reported, not verified|Not listed)</.test(r), `source label on: ${plain(r)}`);
-  const pay = rows.find((r) => /Pay/.test(r))!;
-  assert(/Reported, not verified/.test(pay) && /\$90k-\$110k/.test(pay));
-  const deadline = rows.find((r) => /Apply by/.test(r))!;
-  assert(/From the posting/.test(deadline));
+Deno.test("list: posting text is untrusted and always escaped", async () => {
+  const m = mem(1); await m.ready;
+  m.store.postings = async () => [row(1, { description: `<img src=x onerror=alert(1)> 3 < 5 & "quotes" <script>alert(2)</script> and more text here` })];
+  const html = await (await get(deps(m), await tok())).text();
+  assert(!/<script>alert/.test(html) && !/<img src=x/.test(html));
 });
 
-Deno.test("match file: nothing invented; unlisted facts say 'not listed'; no reasons means no 'Why this fits you' claim", async () => {
-  const m = memStore(), log = newLog();
-  const view = jobViewOf({ job_id: "lever:x:9", company: "Zed", title: "Analyst", location: "", url: "https://jobs.lever.co/x/9" }, null);
-  const ref = await refOf(U, view.job_id);
-  await m.store.remember(U, ref, view, "text");
-  const t = (await mintFileToken({ secret: SECRET, userId: U, ref, kind: "match", now: NOW }))!;
-  const html = await (await get(deps(m, log), t)).text();
-  a11y(html);
-  const text = plain(html);
-  assert(text.includes("Pay not listed") || /Pay\s+not listed/.test(text));
-  assert(/Apply by\s+not listed/.test(text) && /Posted\s+not listed/.test(text));
-  assert(!/Why this fits you/.test(text) || /nothing on your resume/i.test(text));
-  assert(!html.includes("<img"), "no domain, so a lettermark and no guessed logo");
-  assert(/class="lettermark"[^>]*>Z</.test(html));
-});
-
-Deno.test("match file: a logo comes only from the employer's own domain; an ATS link alone gives the lettermark", async () => {
-  const m = memStore(), log = newLog();
-  (m.store as any).__rows = { 1: row(1, { company_domain: null }) };
-  const { t } = await seed(m);
-  const html = await (await get(deps(m, log), t)).text();
-  assert(!html.includes("<img") && /class="lettermark"[^>]*>A</.test(html));
-  assert(!/greenhouse\.io["&]/.test(html.match(/<img[^>]*>/)?.[0] ?? ""));
-});
-
-Deno.test("match file: posting text is untrusted and is escaped, never markup", async () => {
-  const m = memStore(), log = newLog();
-  const evil = `<script>alert(1)</script><img src=x onerror=alert(2)>`;
-  const view = jobViewOf(hit(1, { title: evil, company: "A&B <b>", fit: { reasons: [evil], gaps: [] } }), row(1, { description: `Requirements\n${evil}` }));
-  const ref = await refOf(U, view.job_id);
-  await m.store.remember(U, ref, view, "text");
-  (m.store as any).postings = async () => [row(1, { description: `Requirements\n${evil}` })];
-  const t = (await mintFileToken({ secret: SECRET, userId: U, ref, kind: "match", now: NOW }))!;
-  const html = await (await get(deps(m, log), t)).text();
-  assert(!/<script\b/i.test(html) && !/<img src=x/i.test(html) && !/<b>/.test(html));
-  assert(html.includes("A&amp;B") && !/onerror=alert/.test(html.replace(/&[a-z]+;/g, "")) || !/<img src=x/.test(html));
-});
-
-Deno.test("match file: the plain-text version carries every fact, every label and the state of every action", async () => {
-  const m = memStore({ prepared: prepared(), postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t } = await seed(m);
-  const r = await get(deps(m, log), t, "&format=text");
-  eq(r.status, 200);
-  assert(/^text\/plain/.test(r.headers.get("content-type") ?? ""));
+Deno.test("list: the plain-text version carries every row, its state and what Apply does", async () => {
+  const m = mem(3, { apps: { 2: appRow("queued") } }); await m.ready;
+  const r = await get(deps(m), await tok(), "&format=text");
+  assert(/^text\/plain/.test(r.headers.get("content-type")!));
   const txt = await r.text();
-  for (const want of ["Data Analyst 1", "Acme", "Austin, TX", "Hybrid", "Pay: $90k-$110k (From the posting)", "Level: mid", "Posted: ", "Apply by: Nov 15 (From the posting)", "Why this fits you", "• You list SQL (From your resume)",
-    "Status: available", "Pass: available", "Apply: available", "Requirements", "3 years of SQL", "Full posting", "Nothing is sent until you press Confirm"]) assert(txt.includes(want), `text has "${want}":\n${txt}`);
-  assert(!txt.includes("A fourth reason") && !/<[a-z]/i.test(txt));
+  for (const want of ["Applying with: ada-resume.pdf", "Apply to all: available (2 rows)", "1. Acme - Data Analyst 1", "Status: available", "2. Co2 - Data Analyst 2", "Status: queued", "Apply: closed", "Apply: available", "Posting: https://boards.greenhouse.io/acme/jobs/3"]) assert(txt.includes(want), `text has "${want}":\n${txt}`);
+  assert(!/<[a-z]/i.test(txt));
 });
 
-// ================================================================== isolation
-Deno.test("isolation: a token for user V can never open user U's card, even with U's exact reference; nothing of U's leaks into the answer", async () => {
-  const m = memStore({ postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const a = await seed(m, U);
-  const tokenV = (await mintFileToken({ secret: SECRET, userId: V, ref: a.ref, kind: "match", now: NOW }))!;
-  const r = await get(deps(m, log), tokenV);
+// ================================================================== isolation and link states
+Deno.test("isolation: user V's token never shows U's list, even with U's list id; no leak in any answer", async () => {
+  const m = mem(2); await m.ready;
+  const tv = await tok(V);
+  const r = await get(deps(m), tv);
   eq(r.status, 404);
   const body = await r.text();
-  for (const secret of ["Acme", "Data Analyst", "$90k", "You list SQL", "ada-resume"]) assert(!body.includes(secret), `no leak of ${secret}`);
-  // and the action path too
-  m.setPrepared(prepared());
-  const p = await post(deps(m, log), { t: tokenV, action: "confirm", tag: hashTag(H) });
+  for (const secret of ["Acme", "Data Analyst", "Co2", "ada-resume"]) assert(!body.includes(secret));
+  const p = await post(deps(m), { t: tv, action: "apply", ref: await ref(1), tag: hashTag(H) });
   eq(p.status, 404);
-  eq(log.answered, []);
-  eq(log.opened, []);
+  eq(m.log.answered, []);
+  eq(m.log.opened, []);
+  const pa = await post(deps(m), { t: tv, action: "applyall", set: "0".repeat(16) });
+  eq(pa.status, 404);
+  eq(m.log.answered, []);
 });
 
-Deno.test("isolation: two users each see only their own file from their own token", async () => {
-  const m = memStore(), log = newLog();
-  const mk = async (user: string, company: string) => {
-    const view = jobViewOf({ job_id: "greenhouse:co:1", company, title: `Role at ${company}`, location: "Remote", url: "https://careers.example.com/1" }, null);
-    const ref = await refOf(user, view.job_id);
-    await m.store.remember(user, ref, view, "text");
-    return (await mintFileToken({ secret: SECRET, userId: user, ref, kind: "match", now: NOW }))!;
-  };
-  const tu = await mk(U, "UCorp"), tv = await mk(V, "VCorp");
-  const hu = await (await get(deps(m, log), tu)).text(), hv = await (await get(deps(m, log), tv)).text();
-  assert(hu.includes("UCorp") && !hu.includes("VCorp"));
-  assert(hv.includes("VCorp") && !hv.includes("UCorp"));
-});
-
-Deno.test("link states: expired, invalid and unconfigured show a clear state with no job data and no way to act", async () => {
-  const m = memStore({ postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t } = await seed(m);
-  const late = await get(deps(m, log, { now: NOW + FILE_TTL_MS + 5 }), t);
+Deno.test("link states: expired, invalid and unconfigured show a clear state, no job data, no Apply, and a 'Get a new link' button", async () => {
+  const m = mem(2); await m.ready;
+  const t = await tok();
+  const late = await get(deps(m, { now: NOW + FILE_TTL_MS + 5 }), t);
   eq(late.status, 410);
-  const lateHtml = await late.text();
-  a11y(lateHtml);
-  assert(/expired/i.test(plain(lateHtml)) && !lateHtml.includes("Acme") && !/<form/.test(lateHtml));
-  const bad = await get(deps(m, log), t.slice(0, -3) + "AAA");
-  eq(bad.status, 403);
-  assert(/isn't valid|not valid/i.test(plain(await bad.text())));
-  const none = await get(deps(m, log, { env: { TRAINEE_FILE_LINK_SECRET: undefined } }), t);
-  eq(none.status, 503);
-  const missing = await handleFile(new Request("https://x.example/f"), deps(m, log));
-  eq(missing.status, 403);
-  const expiredPost = await post(deps(m, log, { now: NOW + FILE_TTL_MS + 5 }), { t, action: "pass" });
-  eq(expiredPost.status, 410);
-  eq(log.passes ?? [], []);
-  eq(m.log.passes, []);
+  const h = await late.text();
+  assert(/expired/i.test(plain(h)) && !h.includes("Acme") && !/<form/.test(h) && /href="https:\/\/t\.me\/TraineeBot"[^>]*>Get a new link</.test(h));
+  eq((await get(deps(m), t.slice(0, -3) + "AAA")).status, 403);
+  eq((await get(deps(m, { env: { TRAINEE_FILE_LINK_SECRET: undefined } }), t)).status, 503);
+  eq((await handleFile(new Request("https://x.example/f"), deps(m))).status, 403);
+  eq((await post(deps(m, { now: NOW + FILE_TTL_MS + 5 }), { t, action: "apply", ref: await ref(1), tag: hashTag(H) })).status, 410);
+  eq(m.log.answered, []);
+  eq((await handleFile(new Request("https://x.example/f", { method: "DELETE" }), deps(m))).status, 405);
 });
 
-// ================================================================== truthful status words
-Deno.test("status words: each state says its own truthful word, and 'applied' is never said before a submit", async () => {
-  const now = new Date(NOW).toISOString();
-  const app = (state: string, extra: Partial<AppRow> = {}): AppRow => ({ id: "j1", state, reason: null, confirmation_id: null, created_at: now, updated_at: now, email_confirmed_at: null, payload: prepared().payload as any, company: "Acme", url: "https://boards.greenhouse.io/acme/jobs/1", ...extra });
-  const cases: [string, Parameters<typeof memStore>[0], string, boolean][] = [
-    ["nothing yet", {}, "available", false],
-    ["wanted, not prepared", { wanted: true }, "preparing", false],
-    ["prepared, awaiting confirm", { prepared: prepared() }, "available", false],
-    ["approved, waiting", { app: app("queued") }, "queued", false],
-    ["being sent", { app: app("driving") }, "preparing", false],
-    ["submitted", { app: app("submitted_unconfirmed") }, "submitted", true],
-    ["employer confirmed", { app: app("confirmed", { confirmation_id: "C-123" }) }, "confirmed", true],
-    ["failed", { app: app("failed", { reason: "the form changed" }) }, "failed", false],
-    ["needs you", { app: app("needs_user", { reason: "a captcha" }) }, "failed", false],
-    ["not submitted", { app: app("not_submitted", { reason: "the posting closed" }) }, "failed", false],
-    ["unknown", { app: app("unknown_outcome") }, "unknown", false],
+// ================================================================== status words
+Deno.test("status: each state flips the row to its own truthful word; 'applied' is never said before a submit", async () => {
+  const cases: [string, ReturnType<typeof mem>, string][] = [
+    ["approved", mem(1, { apps: { 1: appRow("queued") } }), "Queued"],
+    ["preparing (wanted)", mem(1, { unprepared: [1], wanted: [1] }), "Preparing"],
+    ["being sent", mem(1, { apps: { 1: appRow("driving") } }), "Preparing"],
+    ["submitted", mem(1, { apps: { 1: appRow("submitted_unconfirmed") } }), "Submitted"],
+    ["confirmed", mem(1, { apps: { 1: appRow("confirmed", { confirmation_id: "C-123" }) } }), "Confirmed"],
+    ["failed", mem(1, { apps: { 1: appRow("failed", { reason: "the form changed" }) } }), "Failed"],
+    ["needs you", mem(1, { apps: { 1: appRow("needs_user", { reason: "a captcha" }) } }), "Needs you"],
   ];
-  for (const [name, init, word, sent] of cases) {
-    const m = memStore({ ...init, postings: [row(1)] }), log = newLog();
-    (m.store as any).__rows = { 1: row(1) };
-    const { t } = await seed(m);
-    const html = await (await get(deps(m, log), t)).text();
-    const status = html.match(/<p class="status[^"]*"[^>]*>([\s\S]*?)<\/p>/)![1];
-    assert(new RegExp(`<strong>${word}</strong>`).test(status), `${name}: word ${word} in ${status}`);
-    const txt = await (await get(deps(m, log), t, "&format=text")).text();
-    assert(txt.includes(`Status: ${word}`), `${name}: text status`);
-    if (!sent) assert(!/\bapplied\b/i.test(plain(html)) && !/\bapplied\b/i.test(txt), `${name}: never 'applied' before a submit`);
-    if (word === "failed") assert(/the form changed|a captcha|the posting closed/.test(status), `${name}: failure carries its reason`);
+  for (const [name, m, word] of cases) {
+    await m.ready;
+    const html = await (await get(deps(m), await tok())).text();
+    assert(new RegExp(`class="chip [a-z-]+" role="status">${word}</span>`).test(html), `${name}: ${word}`);
+    assert(!/>Apply<\/button>/.test(html), `${name}: no Apply button once it is in motion`);
+    if (word !== "Submitted" && word !== "Confirmed") assert(!/\bapplied\b/i.test(plain(html)), `${name}: never 'applied'`);
+    if (word === "Failed") assert(plain(html).includes("the form changed"));
+    if (word === "Needs you") assert(plain(html).includes("a captcha"));
+    if (word === "Confirmed") assert(plain(html).includes("C-123"));
   }
 });
 
-Deno.test("status words: a posting on LinkedIn, Indeed or Handshake is never applied for; the page links it to apply by hand", async () => {
-  const m = memStore(), log = newLog();
-  const view = jobViewOf({ job_id: "linkedin:1", company: "Acme", title: "Analyst", location: "NYC", url: "https://www.linkedin.com/jobs/view/1" }, null);
-  const ref = await refOf(U, view.job_id);
-  await m.store.remember(U, ref, view, "text");
-  const t = (await mintFileToken({ secret: SECRET, userId: U, ref, kind: "match", now: NOW }))!;
-  const html = await (await get(deps(m, log), t)).text();
-  assert(!/name="action" value="apply"/.test(html) && /apply there yourself/i.test(plain(html)) && html.includes("https://www.linkedin.com/jobs/view/1"));
-  const p = await post(deps(m, log), { t, action: "apply" });
-  assert(/apply there yourself|don't apply on/i.test(plain(await p.text())));
+Deno.test("status: LinkedIn, Indeed and Handshake postings are never applied for; the row links out", async () => {
+  const m = mem(1); await m.ready;
+  const view = jobViewOf(hit(1, { url: "https://www.linkedin.com/jobs/view/1" }), row(1));
+  await m.store.remember(U, await ref(1), view, "text");
+  const html = await (await get(deps(m), await tok())).text();
+  assert(!/>Apply<\/button>/.test(html) && /href="https:\/\/www\.linkedin\.com\/jobs\/view\/1"[^>]*>Apply there</.test(html));
+  const p = await post(deps(m), { t: await tok(), action: "apply", ref: await ref(1), tag: hashTag(H) });
+  assert(/apply there yourself/i.test(plain(await p.text())));
+  eq(m.log.answered, []);
   eq(m.log.wants, []);
 });
 
-// ================================================================== Apply never fires without Confirm
-Deno.test("apply: shows the exact payload and a Confirm bound to its hash; nothing is approved, queued or opened by Apply", async () => {
-  const m = memStore({ prepared: prepared(), postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t } = await seed(m);
-  const r = await post(deps(m, log), { t, action: "apply" });
+// ================================================================== one-tap Apply is the hash-bound approval
+Deno.test("apply: one tap on a prepared row approves exactly that row's payload (once, through the card path) and flips it to Queued; other rows stay available", async () => {
+  const m = mem(3); await m.ready;
+  const d = deps(m);
+  const t = await tok();
+  const first = await (await get(d, t)).text();
+  eq(m.log.answered, [], "rendering approves nothing");
+  assert(first.includes(`name="tag" value="${hashTag(H)}"`));
+  const r = await post(d, { t, action: "apply", ref: await ref(2), tag: hashTag(H) });
   eq(r.status, 200);
-  const html = await r.text();
-  a11y(html);
-  const text = plain(html);
-  for (const want of ["Data Analyst 1", "Acme", "ada-resume.pdf", "I built the pricing model at my last job.", "First name: Ada", "Authorized to work in the US?: Yes", "Nothing is sent until you press Confirm"]) assert(text.includes(want), `payload shows "${want}"`);
-  assert(html.includes(`name="tag" value="${hashTag(H)}"`) && /name="action" value="confirm"/.test(html));
-  eq(log.answered, []);
-  eq(log.opened, []);
+  eq(m.log.answered.length, 1);
+  eq(m.log.answered[0].approve, [1]);
+  eq(m.log.answered[0].n, 2, "the second row's application");
+  eq(m.log.opened, [pid(2)]);
+  // the store now holds the queued application: the list shows Queued on that row and Apply on the others
+  m.apps.set(2, appRow("queued"));
+  const after = await (await get(d, t)).text();
+  eq((after.match(/>Apply<\/button>/g) ?? []).length, 2);
+  assert(/>Queued<\/span>/.test(after));
+  // GET never approves, whatever the query says
+  await get(d, t, `&action=apply&ref=${await ref(1)}&tag=${hashTag(H)}`);
+  eq(m.log.answered.length, 1);
+});
+
+Deno.test("apply: a payload that changed since the page was drawn is refused with a refresh prompt; a wrong, missing or other-row tag approves nothing", async () => {
+  const m = mem(2); await m.ready;
+  let h = H;
+  const d = deps(m, { hash: () => h });
+  const t = await tok();
+  // the page was drawn with H; then the application changes underneath
+  m.preps.set(1, prepared(1, H2)); h = H2;
+  const r = await post(d, { t, action: "apply", ref: await ref(1), tag: hashTag(H) });
+  const txt = plain(await r.text());
+  assert(/Changed since you opened this page, so nothing was sent/.test(txt) && /Refresh/.test(txt));
+  eq(m.log.answered, []);
+  // wrong tag, missing tag, a ref that is not on the list
+  for (const f of [{ tag: "0".repeat(16) }, { tag: "" }, { tag: "zz" }]) {
+    await post(d, { t, action: "apply", ref: await ref(2), ...f });
+  }
+  const gone = await post(d, { t, action: "apply", ref: "f".repeat(12), tag: hashTag(H) });
+  eq(gone.status, 404);
+  eq(m.log.answered, []);
+  // the refreshed page carries the new tag, and tapping it approves
+  const fresh = await (await get(d, t)).text();
+  assert(fresh.includes(`value="${hashTag(H2)}"`));
+  await post(d, { t, action: "apply", ref: await ref(1), tag: hashTag(H2) });
+  eq(m.log.answered.length, 1);
+});
+
+Deno.test("apply: a row with nothing prepared yet is queued to be prepared (Preparing), never approved or called applied", async () => {
+  const m = mem(2, { unprepared: [1] }); await m.ready;
+  const d = deps(m);
+  const r = await post(d, { t: await tok(), action: "apply", ref: await ref(1), tag: "none" });
+  eq(r.status, 200);
+  eq(m.log.wants, [1]);
+  eq(m.log.answered, []);
+  eq(m.log.opened, []);
+  // a "none" tag cannot approve a row that has a prepared application the person never saw
+  await post(d, { t: await tok(), action: "apply", ref: await ref(2), tag: "none" });
+  eq(m.log.answered, []);
+  eq(m.log.wants, [1]);
+});
+
+Deno.test("apply: a row already in the queue is not queued twice", async () => {
+  const m = mem(1, { apps: { 1: appRow("queued") } }); await m.ready;
+  await post(deps(m), { t: await tok(), action: "apply", ref: await ref(1), tag: hashTag(H) });
+  eq(m.log.answered, []);
   eq(m.log.wants, []);
-  // GETting the same page never approves either, and a GET cannot carry an action
-  const g = await get(deps(m, log), t, "&action=confirm&tag=" + hashTag(H));
-  eq(g.status, 200);
-  eq(log.answered, []);
 });
 
-Deno.test("apply: Confirm fires only with the tag of the payload that is on file now; a changed payload, a wrong tag and a missing tag approve nothing", async () => {
-  const m = memStore({ prepared: prepared(H), postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t } = await seed(m);
-  let hash = H;
-  const d = deps(m, log, { hash: () => hash });
-  // no tag
-  let r = await post(d, { t, action: "confirm" });
-  assert(r.status === 400 || r.status === 409);
-  // wrong tag
-  r = await post(d, { t, action: "confirm", tag: hashTag(H2) });
-  assert(/changed after I showed it/.test(await r.text()));
-  // the payload changed after it was shown: the old tag is refused
-  m.setPrepared(prepared(H2));
-  r = await post(d, { t, action: "confirm", tag: hashTag(H) });
-  assert(/changed after I showed it/.test(await r.text()));
-  eq(log.answered, []);
-  // the right tag approves exactly once, through the same card path as the Approve button
-  hash = H2;
-  r = await post(d, { t, action: "confirm", tag: hashTag(H2) });
+Deno.test("apply: unknown actions do nothing", async () => {
+  const m = mem(1); await m.ready;
+  eq((await post(deps(m), { t: await tok(), action: "pass", ref: await ref(1) })).status, 400);
+  eq((await post(deps(m), { t: await tok(), action: "delete" })).status, 400);
+  eq(m.log.answered, []);
+});
+
+// ================================================================== Apply to all: exactly the set shown
+Deno.test("apply to all: approves exactly the shown set when its hash still matches, each row bound to its own tag", async () => {
+  const m = mem(4, { unprepared: [4] }); await m.ready;
+  const d = deps(m);
+  const t = await tok();
+  const html = await (await get(d, t)).text();
+  assert(/>Apply to all 3</.test(html), "only rows that can be approved are in the set");
+  const set = html.match(/name="set" value="([0-9a-f]{16})"/)![1];
+  const r = await post(d, { t, action: "applyall", set });
   eq(r.status, 200);
-  const html = await r.text();
-  a11y(html);
-  eq(log.answered.length, 1);
-  eq(log.answered[0].approve, [1]);
-  assert(/<strong>queued<\/strong>/.test(html) && /not submitted/i.test(plain(html)) && !/\bapplied\b/i.test(plain(html)));
+  eq(m.log.answered.map((a) => a.n).sort(), [1, 2, 3]);
+  eq(m.log.opened.length, 3);
 });
 
-Deno.test("apply: with no prepared application it queues the posting to be prepared and says 'preparing', never 'applied'; a second Apply queues nothing twice", async () => {
-  const m = memStore({ postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t } = await seed(m);
-  const r = await post(deps(m, log), { t, action: "apply" });
-  const html = await r.text();
-  eq(m.log.wants, ["greenhouse:acme:1"]);
-  assert(/<strong>preparing<\/strong>/.test(html) && !/\bapplied\b/i.test(plain(html)) && !/name="action" value="confirm"/.test(html));
-  eq(log.answered, []);
+Deno.test("apply to all: a changed payload, a changed set or a wrong hash approves nothing and says to refresh", async () => {
+  const m = mem(3); await m.ready;
+  let h = H;
+  const d = deps(m, { hash: () => h });
+  const t = await tok();
+  const html = await (await get(d, t)).text();
+  const set = html.match(/name="set" value="([0-9a-f]{16})"/)![1];
+  for (const bad of ["0".repeat(16), "", "x"]) {
+    const r = await post(d, { t, action: "applyall", set: bad });
+    assert(/changed since you opened it, so nothing was approved/.test(plain(await r.text())));
+  }
+  // one row's application changed after the page was drawn: the set is no longer the one shown
+  m.preps.set(2, prepared(2, H2));
+  const r2 = await post(d, { t, action: "applyall", set });
+  assert(/changed since you opened it, so nothing was approved/.test(plain(await r2.text())));
+  // one row got approved elsewhere: the set shrinks, so the old hash is refused
+  m.preps.set(2, prepared(2, H)); m.apps.set(3, appRow("queued"));
+  const r3 = await post(d, { t, action: "applyall", set });
+  assert(/nothing was approved/.test(plain(await r3.text())));
+  eq(m.log.answered, []);
+  eq(m.log.opened, []);
 });
 
-Deno.test("apply: an exact duplicate (already in the queue) is refused, once", async () => {
-  const now = new Date(NOW).toISOString();
-  const m = memStore({ app: { id: "j", state: "queued", reason: null, confirmation_id: null, created_at: now, updated_at: now, email_confirmed_at: null, payload: {}, company: "Acme", url: "u" }, postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t } = await seed(m);
-  const html = await (await post(deps(m, log), { t, action: "apply" })).text();
-  assert(/already in your applications/.test(plain(html)));
-  eq(m.log.wants, []);
-  eq(log.answered, []);
+Deno.test("apply to all: shown only for two or more approvable rows", async () => {
+  const one = mem(3, { unprepared: [2, 3] }); await one.ready;
+  assert(!/Apply to all/.test(await (await get(deps(one), await tok())).text()));
+  const two = mem(2); await two.ready;
+  assert(/Apply to all 2/.test(await (await get(deps(two), await tok())).text()));
 });
 
-Deno.test("pass: records the decision, sends nothing, and the file then says so", async () => {
-  const m = memStore({ prepared: prepared(), postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t, ref } = await seed(m);
-  const r = await post(deps(m, log), { t, action: "pass" });
-  eq(r.status, 200);
-  assert(/Nothing was sent/.test(plain(await r.text())));
-  eq(m.log.passes, [ref]);
-  eq(log.answered, []);
-  const again = await (await get(deps(m, log), t)).text();
-  assert(/You passed on this posting/.test(plain(again)));
-});
-
-Deno.test("post: unknown actions and a kind mismatch do nothing", async () => {
-  const m = memStore({ prepared: prepared(), postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t } = await seed(m);
-  const r = await post(deps(m, log), { t, action: "approve-all" });
-  eq(r.status, 400);
-  const proofTok = (await seed(m, U, 1, {}, "proof")).t;
-  const r2 = await post(deps(m, log), { t: proofTok, action: "apply" });
-  eq(r2.status, 400);
-  eq(log.answered, []);
-  eq(m.log.wants, []);
-  const del = await handleFile(new Request("https://x.example/f", { method: "DELETE" }), deps(m, log));
-  eq(del.status, 405);
-});
-
-// ================================================================== proof file
-Deno.test("proof file: what was sent, the truthful status, the employer's confirmation if there is one, and no actions", async () => {
-  const at = "2026-10-28T10:00:00Z";
-  const app: AppRow = { id: "j1", state: "confirmed", reason: null, confirmation_id: "C-123", created_at: at, updated_at: "2026-10-28T11:00:00Z", email_confirmed_at: "2026-10-28T11:00:00Z", payload: prepared().payload as any, company: "Acme", url: "https://boards.greenhouse.io/acme/jobs/1" };
-  const m = memStore({ app, postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t } = await seed(m, U, 1, {}, "proof");
-  const r = await get(deps(m, log), t);
-  eq(r.status, 200);
-  const html = await r.text();
-  a11y(html);
-  const text = plain(html);
-  assert(/Application proof/.test(text) && /<strong>confirmed<\/strong>/.test(html));
-  for (const want of ["Data Analyst 1", "Acme", "C-123", "ada-resume.pdf", "I built the pricing model at my last job.", "First name: Ada", "Oct 28"]) assert(text.includes(want), `proof has "${want}"`);
-  assert(!/<form/.test(html), "a proof file has no actions");
-  const txt = await (await get(deps(m, log), t, "&format=text")).text();
-  assert(txt.includes("Status: confirmed") && txt.includes("C-123") && txt.includes("Confirmation: C-123"));
-});
-
-Deno.test("proof file: submitted-but-unconfirmed says submitted and that the employer has not confirmed; no application means no proof", async () => {
-  const at = "2026-10-28T10:00:00Z";
-  const app: AppRow = { id: "j1", state: "submitted_unconfirmed", reason: null, confirmation_id: null, created_at: at, updated_at: at, email_confirmed_at: null, payload: {}, company: "Acme", url: "https://boards.greenhouse.io/acme/jobs/1" };
-  const m = memStore({ app, postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t } = await seed(m, U, 1, {}, "proof");
-  const text = plain(await (await get(deps(m, log), t)).text());
-  assert(/submitted/.test(text) && /has not confirmed/i.test(text) && !/<strong>confirmed/.test(text));
-  m.setApp(null);
-  const none = await get(deps(m, log), t);
-  eq(none.status, 404);
-  assert(/no application/i.test(plain(await none.text())));
-});
-
-Deno.test("match file links to the proof file once an application exists, with its own proof token for the same user", async () => {
-  const at = "2026-10-28T10:00:00Z";
-  const app: AppRow = { id: "j1", state: "queued", reason: null, confirmation_id: null, created_at: at, updated_at: at, email_confirmed_at: null, payload: {}, company: "Acme", url: "u" };
-  const m = memStore({ app, postings: [row(1)] }), log = newLog();
-  (m.store as any).__rows = { 1: row(1) };
-  const { t, ref } = await seed(m);
-  const html = await (await get(deps(m, log), t)).text();
-  const href = html.match(/href="([^"]*)"[^>]*>Open the proof file/)![1].replace(/&amp;/g, "&");
-  const tok = new URL(href, "https://x.example").searchParams.get("t")!;
-  const v = await verifyFileToken(tok, SECRET, NOW);
-  assert(v.ok && v.claims.k === "proof" && v.claims.u === U && v.claims.r === ref);
+// ================================================================== the bot's message
+Deno.test("bot: a mass list is ONE short line plus the link and a Mini App button, no per-job cards; a short list keeps its cards", async () => {
+  const sent: any[] = [];
+  const m = mem(0); await m.ready;
+  const d = deps(m);
+  const send = { photo: async (a: any) => { sent.push({ kind: "photo", ...a }); return { ok: true }; }, text: async (a: any) => { sent.push({ kind: "text", ...a }); return { ok: true, id: "1" }; } };
+  const full = { ...d, feedLinks: (u: string, l: string) => feedUrlsFor(d.env, u, l, NOW) };
+  const many = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => hit(n));
+  const res = await sendJobCards({ userId: U, hits: many, deps: full, send });
+  eq(res, { sent: 1, total: 8 });
+  eq(sent.length, 1);
+  assert(/^8 jobs for you\. Open the list: https:\/\/trainee\.example\/file\?t=v1\./.test(sent[0].text) && sent[0].text.split("\n").length === 1);
+  eq(sent[0].buttons[0][0].text, "Open the list");
+  assert(sent[0].buttons[0][0].webApp.startsWith(`${BASE}?list=`));
+  // the list is remembered so the page can read it, under this user only
+  const listId = sent[0].buttons[0][0].webApp.split("list=")[1];
+  eq((await m.store.recallList(U, listId))!.length, 8);
+  eq(await m.store.recallList(V, listId), null);
+  sent.length = 0;
+  await sendJobCards({ userId: U, hits: [hit(1), hit(2)], deps: full, send });
+  eq(sent.filter((s) => s.kind === "text" && /jobs for you/.test(s.text)).length, 0);
+  assert(sent.length === 2, "two postings keep their own cards");
 });

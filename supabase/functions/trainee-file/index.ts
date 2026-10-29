@@ -6,12 +6,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { supabaseTapStore } from "../_shared/channel_card_tap.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { supabaseCardStore } from "../_shared/career_apply_cards.ts";
-import { supabaseFileStore } from "./store.ts";
+import { supabaseFileStore, supabaseUserOfTelegram } from "./store.ts";
 import { handleFile } from "./handler.ts";
 
 serve((req) => {
   const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) return new Response("not configured", { status: 503 });
   const admin = createClient(url, key, { auth: { persistSession: false } });
-  return handleFile(req, { store: supabaseFileStore(admin), cards: supabaseCardStore(admin), tap: supabaseTapStore(admin), now: Date.now, env: Deno.env, events: supabaseEventStore(admin) });
+  return handleFile(req, { store: supabaseFileStore(admin), cards: supabaseCardStore(admin), tap: supabaseTapStore(admin), now: Date.now, env: Deno.env, events: supabaseEventStore(admin), userOfTelegram: supabaseUserOfTelegram(admin) });
 });

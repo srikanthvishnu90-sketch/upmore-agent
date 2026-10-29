@@ -1,201 +1,157 @@
-// The file pages' model and markup (owner, 2026-10-28): ONE decision per page, readable in 30 seconds, from Telegram.
-// Pure functions: a model in, HTML or plain text out. No script (the disclosures are <details>, the actions are forms),
-// so the page works with nothing but a browser and the plain-text twin carries every fact and every action's state.
+// The jobs list page (owner, 2026-10-28): a plain list of rows. Each row: logo, company name, Apply at the far right; under it a
+// short description of the role; tapping the description opens the full posting. One tiny line on top says which resume the
+// Apply taps use. Pure functions: a model in, HTML or plain text out.
 //
-// Rules that do not move: a fact is shown only when the posting (or a tool reading the person's confirmed resume) states it,
-// each with its source; the status word is one of available / preparing / queued / submitted / confirmed / failed / unknown
-// and says what is true; "applied" is never written before a submit; the logo comes only from the employer's own domain.
-import { agoOf, BLOCKED_HOST, logoUrl, requirementsOf, sourceOf, type JobView, type PostingRow } from "./telegram_jobs.ts";
+// Rules that do not move: the status word says what is true (Queued / Preparing / Submitted / Confirmed / Failed / Needs you /
+// Unknown) and "applied" is never written before a submit; the logo comes only from the employer's own domain, else a lettermark;
+// posting text is untrusted and always escaped.
+import type { JobView } from "./telegram_jobs.ts";
 
-export type Word = "available" | "preparing" | "queued" | "submitted" | "confirmed" | "failed" | "unknown";
+export type Word = "queued" | "preparing" | "submitted" | "confirmed" | "failed" | "needs you" | "unknown";
 export interface Status { word: Word; detail: string }
 export interface AppRow {
   id: string; state: string; reason: string | null; confirmation_id: string | null; created_at: string; updated_at: string;
   email_confirmed_at: string | null; payload: Record<string, unknown>; company: string; url: string;
 }
-export type Src = "From the posting" | "From your resume" | "Reported, not verified" | "Not listed";
-export interface Fact { label: string; value: string; src: Src }
+export interface Row {
+  ref: string; job: JobView; logo: string | null; snippet: string; full: string | null;
+  status: Status | null; // null: nothing yet, so the row offers Apply
+  tag: string | null; // first 16 hex of the payload hash this row's Apply is bound to; null when nothing is prepared yet
+  resume: string | null; byHand: boolean; note?: string;
+}
+export interface Feed { token: string; rows: Row[]; setHash: string | null; setSize: number; top?: string; botUrl?: string | null }
 
+export const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 export const dayOf = (iso: string | null | undefined) => { const t = iso ? Date.parse(iso) : NaN; if (Number.isNaN(t)) return null; const d = new Date(t); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; };
-export const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+export const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export function statusOf(o: { app: AppRow | null; wanted: boolean; prepared: boolean }): Status {
-  const a = o.app, who = a?.company || "The employer", on = dayOf(a?.updated_at);
+// null = available (no status to show). Details are plain words about what is true.
+export function statusOf(o: { app: AppRow | null; wanted: boolean }): Status | null {
+  const a = o.app, who = a?.company || "The employer";
   if (a) {
-    const conf = a.confirmation_id ? ` (confirmation ${a.confirmation_id})` : "";
     switch (a.state) {
-      case "confirmed": return { word: "confirmed", detail: `Submitted, and ${who} confirmed it${conf}.` };
-      case "submitted_unconfirmed": return { word: "submitted", detail: `Submitted${on ? ` on ${on}` : ""}. ${who} has not confirmed it yet${conf}.` };
-      case "queued": return { word: "queued", detail: "You approved it. It waits for the apply worker and is not submitted yet." };
-      case "driving": return { word: "preparing", detail: "Being sent now; not submitted yet." };
-      case "needs_user": return { word: "failed", detail: `Stopped before it was sent; it needs you: ${a.reason ?? "no reason recorded"}.` };
-      case "failed": case "not_submitted": return { word: "failed", detail: `Not sent: ${a.reason ?? "no reason recorded"}.` };
-      case "unknown_outcome": return { word: "unknown", detail: `I can't tell whether it reached ${who}. It will not be sent again.` };
+      case "confirmed": return { word: "confirmed", detail: `${who} confirmed it${a.confirmation_id ? ` (${a.confirmation_id})` : ""}.` };
+      case "submitted_unconfirmed": return { word: "submitted", detail: `${who} hasn't confirmed it yet.` };
+      case "queued": return { word: "queued", detail: "We haven't started it yet." };
+      case "driving": return { word: "preparing", detail: "Sending now; not submitted yet." };
+      case "needs_user": return { word: "needs you", detail: a.reason ?? "It stopped and needs you." };
+      case "failed": case "not_submitted": return { word: "failed", detail: a.reason ?? "No reason was recorded." };
+      case "unknown_outcome": return { word: "unknown", detail: `We can't tell whether it reached ${who}. It won't be sent again.` };
       default: return { word: "unknown", detail: `Recorded as ${a.state}; not known to be sent.` };
     }
   }
-  if (o.wanted) return { word: "preparing", detail: "Queued to be prepared. Nothing has been sent." };
-  if (o.prepared) return { word: "available", detail: "Your application is prepared. Nothing is sent until you press Confirm." };
-  return { word: "available", detail: "Nothing has been sent. Press Apply and I'll prepare it for you to check." };
+  return o.wanted ? { word: "preparing", detail: "Getting it ready. Nothing has been sent." } : null;
 }
 
-export interface Model {
-  job: JobView; kind: "match" | "proof"; token: string; proofToken: string | null;
-  logo: string | null; facts: Fact[]; reasons: string[]; gaps: string[];
-  requirements: string | null; fullPosting: string | null;
-  status: Status; passed: boolean; hasApp: boolean; byHand: boolean; hasPrepared: boolean;
-  app: AppRow | null; sent: string[];
+// A short description from the posting's own text: its first sentences, never more than ~150 characters. No text, no invention:
+// then the role's place, if the posting states it.
+export function snippetOf(job: JobView, description: string | null | undefined): string {
+  const plain = String(description ?? "").replace(/<\/(p|li|h\d|div)>/gi, ". ").replace(/<br\s*\/?>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").replace(/(\. ){2,}/g, ". ").trim();
+  if (plain.length > 20) return clip(plain, 150);
+  return [job.location, job.remote === "remote" ? "Remote" : job.remote === "hybrid" ? "Hybrid" : job.remote === "onsite" ? "On-site" : ""].filter(Boolean).join(" · ");
 }
-export function factsOf(job: JobView, row: PostingRow | null, now: number): Fact[] {
-  const f: Fact[] = [];
-  const nl = (label: string): Fact => ({ label, value: "not listed", src: "Not listed" });
-  const loc = row?.location ? { v: String(row.location), s: "From the posting" as Src } : job.location ? { v: job.location, s: "Reported, not verified" as Src } : null;
-  f.push(loc ? { label: "Location", value: loc.v, src: loc.s } : nl("Location"));
-  const mode = row?.remote === "remote" ? "Remote" : row?.remote === "hybrid" ? "Hybrid" : row?.remote === "onsite" ? "On-site" : null;
-  if (mode) f.push({ label: "Work mode", value: mode, src: "From the posting" });
-  else if (job.remote) f.push({ label: "Work mode", value: job.remote === "remote" ? "Remote" : job.remote === "hybrid" ? "Hybrid" : "On-site", src: "Reported, not verified" });
-  f.push(row?.pay ? { label: "Pay", value: String(row.pay), src: "From the posting" } : job.pay ? { label: "Pay", value: job.pay, src: "Reported, not verified" } : nl("Pay"));
-  if (row?.seniority_band) f.push({ label: "Level", value: String(row.seniority_band), src: "From the posting" });
-  else if (job.level) f.push({ label: "Level", value: job.level, src: "Reported, not verified" });
-  const posted = row?.posted_at ? agoOf(row.posted_at, now) : job.posted_at ? agoOf(job.posted_at, now) : null;
-  f.push(posted ? { label: "Posted", value: posted, src: row?.posted_at ? "From the posting" : "Reported, not verified" } : nl("Posted"));
-  const dl = row?.deadline ?? job.deadline;
-  f.push(dl && dayOf(dl) ? { label: "Apply by", value: dayOf(dl)!, src: row?.deadline ? "From the posting" : "Reported, not verified" } : nl("Apply by"));
-  if (job.source) f.push({ label: "Listed on", value: job.source, src: "From the posting" });
-  return f;
+export function fullOf(description: string | null | undefined): string | null {
+  const plain = String(description ?? "").replace(/<\/(p|li|h\d|div)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n").replace(/<li[^>]*>/gi, "• ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
+  return plain ? clip(plain, 12000) : null;
 }
-export const blockedByHand = (url: string) => { try { return BLOCKED_HOST.test(new URL(url).hostname); } catch { return false; } };
-export const fullPostingOf = (row: PostingRow | null): string | null => {
-  const r = requirementsOf(row?.description);
-  return r ? clip(r.label === "Requirements" ? String(row?.description ?? "").replace(/<\/(p|li|h\d|div)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim() : r.text, 12000) : null;
-};
+export const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
 
 // ---------------------------------------------------------------- html
 const CSS = `
-:root{--bg:#f6f5f1;--card:#fff;--ink:#14161a;--mute:#4a505a;--line:#d5d2c9;--accent:#0b4fd6;--accent-ink:#fff;--ok:#0a6b34;--warn:#8a4b00;--bad:#a4161a;color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root{--bg:#101215;--card:#1a1d22;--ink:#f2f3f5;--mute:#b4bac4;--line:#3a3f48;--accent:#7aa7ff;--accent-ink:#0a0f1a;--ok:#5fd68a;--warn:#f0b35a;--bad:#ff8d8f}}
+:root{--bg:#FFFFFF;--panel:#F5F4F7;--ink:#141414;--mute:#4F4F57;--line:#E6E6EA;--accent:#4A2F5E;--accent-hover:#5C3B74;--accent-ink:#FFFFFF;--link:#4A2F5E;--queued:#4A2F5E;--ok:#141414;--bad:#B42318;--warn:#B42318;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#000000;--panel:#060607;--ink:#EDEDF0;--mute:#A6A6B0;--line:#1F1F25;--accent:#D4C2E2;--accent-hover:#FFFFFF;--accent-ink:#141414;--link:#D4C2E2;--queued:#D4C2E2;--ok:#7FB89A;--bad:#E07A6E;--warn:#E3B061}}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.wrap{max-width:640px;margin:0 auto;padding:16px}
-.skip{position:absolute;left:-999px}.skip:focus{left:16px;top:8px;background:var(--card);padding:8px}
-header{display:flex;gap:14px;align-items:center;padding:8px 0 16px}
-.logo{position:relative;flex:none;width:64px;height:64px;border-radius:14px;overflow:hidden;background:var(--card);border:1px solid var(--line)}
-.lettermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:var(--accent)}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.45 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;letter-spacing:-.005em;-webkit-font-smoothing:antialiased}
+h1{font-family:'Brygada 1918',Georgia,serif;font-weight:500}
+.wrap{max-width:640px;margin:0 auto;padding:12px 16px 32px}
+header{padding:8px 0 6px}.brand{display:flex;align-items:center;gap:10px;margin-bottom:10px}.mark{width:32px;height:32px;flex:none}
+.wm{font-family:'Brygada 1918',Georgia,serif;font-weight:700;font-size:24px;letter-spacing:-.01em}
+h1{margin:0;font-size:26px;line-height:1.2}
+.with{margin:4px 0 0;font-size:14px;color:var(--mute)}
+.all{margin:0}.all button,.lnk{display:inline-flex;align-items:center;min-height:44px;padding:0;border:0;background:none;color:var(--link);font:inherit;font-size:16px;font-weight:600;text-decoration:underline;cursor:pointer}
+.top-note{margin:8px 0;padding:10px 12px;border:2px solid var(--bad);border-radius:10px;background:var(--panel)}
+ul.rows{list-style:none;margin:0;padding:0}
+.row{padding:12px 0;border-top:1px solid var(--line)}
+.head{display:flex;align-items:center;gap:12px}
+.logo{position:relative;flex:none;width:48px;height:48px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--panel)}
+.lettermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Brygada 1918',Georgia,serif;font-size:24px;font-weight:700;color:var(--link)}
 .logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;color:transparent;font-size:0}
-.eyebrow{margin:0;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
-h1{margin:2px 0;font-size:24px;line-height:1.25}.company{margin:0;color:var(--mute)}
-h2{font-size:17px;margin:0 0 8px}
-section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}
-.status{margin:0;padding:10px 12px;border-radius:10px;border:2px solid var(--line)}
-.status strong{text-transform:uppercase;letter-spacing:.04em}
-.s-confirmed,.s-submitted{border-color:var(--ok)}.s-queued,.s-preparing,.s-available{border-color:var(--accent)}.s-failed,.s-unknown{border-color:var(--bad)}
-dl{margin:0}.fact{display:grid;grid-template-columns:7.5em 1fr;gap:2px 10px;padding:8px 0;border-top:1px solid var(--line)}.fact:first-child{border-top:0}
-dt{color:var(--mute)}dd{margin:0;font-weight:600}.src{grid-column:2;font-size:13px;font-weight:400;color:var(--mute)}
-ul{margin:0;padding-left:20px}li{margin:6px 0}li .src{display:block;font-size:13px;color:var(--mute)}
-details{border-top:1px solid var(--line);padding:4px 0}summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-weight:600}
-.body{white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 10px;color:var(--ink)}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}.actions form{margin:0}
-.btn,button{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:10px 16px;border-radius:12px;border:2px solid var(--accent);background:transparent;color:var(--accent);font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
-.primary{background:var(--accent);color:var(--accent-ink)}
-a{color:var(--accent)}.linkrow{display:block;min-height:44px;padding:10px 0}
-footer{color:var(--mute);font-size:14px;padding:8px 0 24px}
-:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-@media (max-width:420px){.actions{grid-template-columns:1fr}.fact{grid-template-columns:1fr}.src{grid-column:1}}
+.name{flex:1;min-width:0;font-weight:700;font-size:19px;overflow-wrap:anywhere}
+.act{flex:none;margin:0}
+.apply,.chip{display:inline-flex;align-items:center;justify-content:center;min-width:96px;min-height:48px;padding:6px 16px;border-radius:999px;font:inherit;font-weight:600;text-decoration:none}
+.apply{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}.apply:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.chip{border:2px solid var(--line);color:var(--ink)}
+.chip.queued,.chip.preparing,.chip.submitted{border-color:var(--queued);color:var(--ink)}.chip.confirmed{border-color:var(--ok);color:var(--ok)}.chip.failed,.chip.unknown{border-color:var(--bad);color:var(--bad)}.chip.needs-you{border-color:var(--warn);color:var(--warn)}
+details{margin:2px 0 0 60px}summary{list-style:none;cursor:pointer;min-height:44px;padding:4px 0}
+summary::-webkit-details-marker{display:none}
+.role{display:block;font-weight:600}.desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--mute);font-size:16px}
+details[open] .desc{display:block;-webkit-line-clamp:unset}
+.full{white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;margin:6px 0}
+.note{margin:2px 0 0 60px;font-size:15px;color:var(--mute)}.note a,details a,.top-note a{color:var(--link)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:8px}
+@media (max-width:360px){.apply,.chip{min-width:80px;padding:6px 10px}details,.note{margin-left:0}}
 `;
-export function layout(title: string, inner: string): string {
+const OG = `<meta property="og:title" content="Your jobs on Trainee"><meta property="og:description" content="Tap Apply on any row.">`;
+export function layout(title: string, inner: string, o: { script?: string; bodyAttrs?: string } = {}): string {
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#4A2F5E" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">${OG}
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234A2F5E'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='40' font-weight='700' text-anchor='middle' fill='%23fff'%3ET%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Brygada+1918:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>${esc(clip(title, 90))}</title><style>${CSS}</style></head>
-<body><a class="skip" href="#main">Skip to the file</a><div class="wrap">${inner}</div></body></html>`;
+<body${o.bodyAttrs ? " " + o.bodyAttrs : ""}><div class="wrap">${inner}</div>${o.script ? `<script>${o.script}</script>` : ""}</body></html>`;
 }
-const head = (m: { job: JobView; logo: string | null }, eyebrow: string) => {
-  const initial = esc((m.job.company.trim()[0] ?? "?").toUpperCase());
-  const img = m.logo ? `<img src="${esc(m.logo)}" alt="${esc(m.job.company)} logo" width="64" height="64" loading="lazy" referrerpolicy="no-referrer">` : "";
-  return `<header><div class="logo"><span class="lettermark" aria-hidden="true">${initial}</span>${img}</div><div><p class="eyebrow">${esc(eyebrow)}</p><h1>${esc(m.job.title || "Job posting")}</h1><p class="company">${esc(m.job.company)}</p></div></header>`;
-};
-const statusP = (s: Status) => `<p class="status s-${s.word}" role="status"><strong>${s.word}</strong> ${esc(s.detail)}</p>`;
+// In-place flip without a reload: every .ajax form posts, the response page replaces the list. Without script the forms post and
+// the response is the whole page. The script is a constant (the CSP allows exactly its hash).
+export const FEED_SCRIPT = `(function(){var r=document.getElementById("root");if(!r||!window.fetch||!window.DOMParser)return;r.addEventListener("submit",function(e){var f=e.target;if(!f.classList||!f.classList.contains("ajax"))return;e.preventDefault();var b=f.querySelector("button");if(b)b.disabled=true;fetch(location.href,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams(new FormData(f)).toString()}).then(function(x){return x.text()}).then(function(t){var d=new DOMParser().parseFromString(t,"text/html").getElementById("root");if(d){r.innerHTML=d.innerHTML}else{f.submit()}}).catch(function(){f.submit()})})})();`;
+export const BOOT_SCRIPT = `(function(){var p=new URLSearchParams(location.hash.slice(1)),d=p.get("tgWebAppData");if(!d){document.getElementById("nodata").hidden=false;return}var f=document.createElement("form");f.method="post";function a(n,v){var i=document.createElement("input");i.type="hidden";i.name=n;i.value=v;f.appendChild(i)}a("init",d);a("list",document.body.getAttribute("data-list"));document.body.appendChild(f);f.submit()})();`;
+
+const BRAND = `<div class="brand"><svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Trainee"><rect width="64" height="64" rx="14" fill="#4A2F5E"/><text x="32" y="45" font-family="Georgia,serif" font-size="40" font-weight="700" text-anchor="middle" fill="#fff">T</text></svg><span class="wm">Trainee</span></div>`;
 const hidden = (token: string, action: string, extra = "") => `<input type="hidden" name="t" value="${esc(token)}"><input type="hidden" name="action" value="${action}">${extra}`;
-const REVIEW_NOTE = "Nothing is sent until you press Confirm.";
 
-export function renderMatch(m: Model): string {
-  const facts = m.facts.map((f) => `<div class="fact"><dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd><span class="src">${esc(f.src)}</span></div>`).join("");
-  const why = m.reasons.length ? `<section aria-labelledby="why"><h2 id="why">Why this fits you</h2><ul>${m.reasons.slice(0, 3).map((r) => `<li>${esc(r)}<span class="src">From your resume</span></li>`).join("")}</ul></section>` : "";
-  const gaps = m.gaps.length ? `<section aria-labelledby="gaps"><h2 id="gaps">Not on your resume yet</h2><ul>${m.gaps.slice(0, 2).map((r) => `<li>${esc(r)}<span class="src">From your resume</span></li>`).join("")}</ul></section>` : "";
-  const more = `${m.requirements ? `<details><summary>Requirements</summary><p class="body">${esc(m.requirements)}</p></details>` : ""}${m.fullPosting ? `<details><summary>Full posting</summary><p class="body">${esc(m.fullPosting)}</p></details>` : ""}`;
+function rowHtml(r: Row, token: string): string {
+  const j = r.job;
+  const initial = esc((j.company.trim()[0] ?? "?").toUpperCase());
+  const img = r.logo ? `<img src="${esc(r.logo)}" alt="${esc(j.company)} logo" width="48" height="48" loading="lazy" referrerpolicy="no-referrer">` : "";
   let act: string;
-  if (m.hasApp) act = `<p>This posting is already in your applications.</p>${m.proofToken ? `<a class="btn primary" href="?t=${esc(m.proofToken)}">Open the proof file</a>` : ""}`;
-  else {
-    const pass = m.passed ? `<p>You passed on this posting. Nothing was sent.</p>` : `<form method="post">${hidden(m.token, "pass")}<button type="submit">Pass</button></form>`;
-    const apply = m.byHand ? `<p>I don't apply on LinkedIn, Indeed or Handshake for you. Apply there yourself.</p><a class="btn primary" href="${esc(m.job.url)}" rel="noopener noreferrer">Open the posting</a>`
-      : `<form method="post">${hidden(m.token, "apply")}<button type="submit" class="primary">Apply</button></form>`;
-    act = m.passed && !m.byHand ? `${pass}<div class="actions">${apply}</div>` : `<div class="actions">${pass}${apply}</div>${m.byHand ? "" : `<p>${REVIEW_NOTE} Apply shows you the exact application first.</p>`}`;
-  }
-  const link = m.job.url && !m.byHand ? `<a class="linkrow" href="${esc(m.job.url)}" rel="noopener noreferrer">Open the original posting</a>` : "";
-  const inner = `${head(m, "Job match file")}<main id="main">
-<section aria-labelledby="st"><h2 id="st">Status</h2>${statusP(m.status)}</section>
-<section aria-labelledby="job"><h2 id="job">The job</h2><dl>${facts}</dl></section>${why}${gaps}
-<section aria-labelledby="more"><h2 id="more">Details</h2>${more || "<p>The full posting text is not on file.</p>"}${link}</section>
-<section aria-labelledby="go"><h2 id="go">Your decision</h2>${act}</section></main>
-<footer>This link is only for you and expires. <a href="?t=${esc(m.token)}&amp;format=text">Plain-text version</a></footer>`;
-  return layout(`${m.job.title} at ${m.job.company} - Trainee`, inner);
+  if (r.status) act = `<span class="chip ${r.status.word.replace(" ", "-")}" role="status">${esc(cap1(r.status.word))}</span>`;
+  else if (r.byHand) act = `<a class="apply" href="${esc(j.url)}" rel="noopener noreferrer" aria-label="Open ${esc(j.title)} at ${esc(j.company)} to apply there yourself">Apply there</a>`;
+  else act = `<form method="post" class="ajax act">${hidden(token, "apply", `<input type="hidden" name="ref" value="${r.ref}"><input type="hidden" name="tag" value="${r.tag ?? "none"}">`)}<button type="submit" class="apply" aria-label="Apply to ${esc(j.title)} at ${esc(j.company)}">Apply</button></form>`;
+  const more = r.full ? `<p class="full">${esc(r.full)}</p>${hostOf(j.url) ? `<p><a href="${esc(j.url)}" rel="noopener noreferrer">Open on ${esc(hostOf(j.url))}</a></p>` : ""}` : `<p class="full">The full posting text isn't on file.</p>${hostOf(j.url) ? `<p><a href="${esc(j.url)}" rel="noopener noreferrer">Open on ${esc(hostOf(j.url))}</a></p>` : ""}`;
+  const note = r.note ? `<p class="note">${esc(r.note)} <a href="?t=${esc(token)}">Refresh</a></p>` : r.status && r.status.word !== "queued" && r.status.word !== "preparing" ? `<p class="note">${esc(r.status.detail)}</p>` : r.status ? `<p class="note">${esc(r.status.detail)}</p>` : r.byHand ? `<p class="note">Not applied for automatically on this site.</p>` : "";
+  return `<li class="row" id="r-${r.ref}"><div class="head"><span class="logo"><span class="lettermark" aria-hidden="true">${initial}</span>${img}</span><span class="name">${esc(j.company)}</span>${act}</div>
+<details><summary><span class="role">${esc(j.title)}</span><span class="desc">${esc(r.snippet)}</span></summary>${more}</details>${note}</li>`;
 }
 
-export function renderProof(m: Model): string {
-  const a = m.app!;
-  const rows: [string, string][] = [["Approved", dayOf(a.created_at) ?? "not recorded"], ["Last update", dayOf(a.updated_at) ?? "not recorded"], ["Employer confirmation", a.confirmation_id ?? "none yet"]];
-  const inner = `${head(m, "Application proof file")}<main id="main">
-<section aria-labelledby="st"><h2 id="st">Status</h2>${statusP(m.status)}</section>
-<section aria-labelledby="tl"><h2 id="tl">What happened</h2><dl>${rows.map(([k, v]) => `<div class="fact"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl></section>
-<section aria-labelledby="sent"><h2 id="sent">What was approved to send</h2>${m.sent.map((l) => `<p class="body">${esc(l)}</p>`).join("")}</section>
-<section aria-labelledby="back"><h2 id="back">More</h2><a class="btn" href="?t=${esc(m.token)}&amp;view=match">Back to the job</a></section></main>
-<footer>This link is only for you and expires. <a href="?t=${esc(m.token)}&amp;format=text">Plain-text version</a></footer>`;
-  return layout(`Application proof: ${m.job.title} at ${m.job.company} - Trainee`, inner);
+export function renderFeed(f: Feed): string {
+  const names = [...new Set(f.rows.map((r) => r.resume).filter(Boolean))] as string[];
+  const withLine = names.length ? `<p class="with">Applying with: ${esc(names.join(", "))}</p>` : "";
+  const all = f.setHash && f.setSize >= 2 ? `<form method="post" class="ajax all">${hidden(f.token, "applyall", `<input type="hidden" name="set" value="${f.setHash}">`)}<button type="submit">Apply to all ${f.setSize}</button></form>` : "";
+  const top = f.top ? `<p class="top-note" role="alert">${esc(f.top)} <a href="?t=${esc(f.token)}">Refresh</a></p>` : "";
+  const inner = `<div id="root"><header>${BRAND}<h1>Your jobs</h1>${withLine}${all}</header><main id="main">${top}<ul class="rows">${f.rows.map((r) => rowHtml(r, f.token)).join("")}</ul></main></div>`;
+  return layout("Your jobs - Trainee", inner, { script: FEED_SCRIPT });
+}
+export function renderBootstrap(list: string): string {
+  return layout("Opening your jobs - Trainee", `<header>${BRAND}<h1>Opening your jobs</h1></header><main id="main"><p>Signing you in with Telegram.</p><p id="nodata" hidden>Open this page from the button in Telegram, or use the link Trainee sent you.</p><noscript><p>This needs JavaScript. Use the link Trainee sent you instead.</p></noscript></main>`, { script: BOOT_SCRIPT, bodyAttrs: `data-list="${esc(list)}"` });
+}
+// A link that cannot be used: says why, shows nothing about any job, offers a way to get a new one.
+export function renderLinkState(title: string, paras: string[], botUrl?: string | null): string {
+  return layout(`${title} - Trainee`, `<header>${BRAND}<h1>${esc(title)}</h1></header><main id="main">${paras.map((p) => `<p>${esc(p)}</p>`).join("")}${botUrl ? `<p><a class="apply" href="${esc(botUrl)}" rel="noopener noreferrer">Get a new link</a></p>` : ""}</main>`);
 }
 
-export function renderReview(m: Model, lines: string[], tag: string): string {
-  const inner = `${head(m, "Check the application")}<main id="main">
-<section aria-labelledby="pay"><h2 id="pay">Exactly what will be sent</h2>${lines.map((l) => `<p class="body">${esc(l)}</p>`).join("")}<p><strong>${REVIEW_NOTE}</strong></p></section>
-<section aria-labelledby="go"><h2 id="go">Your decision</h2><div class="actions">
-<form method="post">${hidden(m.token, "confirm", `<input type="hidden" name="tag" value="${esc(tag)}">`)}<button type="submit" class="primary">Confirm</button></form>
-<a class="btn" href="?t=${esc(m.token)}">Cancel</a></div>
-<p>To change an answer, the cover note or the resume, tell Trainee in Telegram. The new version gets a fresh Confirm and this one stops working.</p></section></main>
-<footer>This link is only for you and expires.</footer>`;
-  return layout(`Check: ${m.job.title} at ${m.job.company} - Trainee`, inner);
-}
-
-// A short result page: a line of what happened, the status when it matters, a way back.
-export function renderMessage(o: { m: Pick<Model, "job" | "logo" | "token">; eyebrow: string; paras: string[]; status?: Status; again?: boolean }): string {
-  const inner = `${head(o.m, o.eyebrow)}<main id="main"><section aria-labelledby="r"><h2 id="r">${o.status ? "Status" : "Result"}</h2>${o.status ? statusP(o.status) : ""}${o.paras.map((p) => `<p>${esc(p)}</p>`).join("")}
-<a class="btn" href="?t=${esc(o.m.token)}">Back to the job</a></section></main><footer>This link is only for you and expires.</footer>`;
-  return layout(`${o.eyebrow}: ${o.m.job.title} - Trainee`, inner);
-}
-
-// A link that cannot be used: says why, shows nothing about any job, offers no action.
-export function renderLinkState(title: string, paras: string[]): string {
-  return layout(`${title} - Trainee`, `<header><div><p class="eyebrow">Trainee</p><h1>${esc(title)}</h1></div></header><main id="main"><section aria-labelledby="w"><h2 id="w">What to do</h2>${paras.map((p) => `<p>${esc(p)}</p>`).join("")}</section></main>`);
-}
-
-// ---------------------------------------------------------------- plain text twin
-export function renderText(m: Model): string {
-  const L: string[] = [];
-  const a = m.app;
-  L.push(m.kind === "proof" ? "Application proof file" : "Job match file", m.job.title, m.job.company, "", `Status: ${m.status.word}`, m.status.detail, "");
-  if (m.kind === "proof" && a) {
-    L.push(`Approved: ${dayOf(a.created_at) ?? "not recorded"}`, `Last update: ${dayOf(a.updated_at) ?? "not recorded"}`, `Confirmation: ${a.confirmation_id ?? "none yet"}`, "", "What was approved to send:", ...m.sent, "");
-    return L.join("\n");
-  }
-  for (const f of m.facts) L.push(`${f.label}: ${f.value} (${f.src})`);
-  if (m.reasons.length) L.push("", "Why this fits you:", ...m.reasons.slice(0, 3).map((r) => `• ${r} (From your resume)`));
-  if (m.gaps.length) L.push("", "Not on your resume yet:", ...m.gaps.slice(0, 2).map((r) => `• ${r} (From your resume)`));
-  if (m.requirements) L.push("", "Requirements:", clip(m.requirements, 4000));
-  if (m.fullPosting) L.push("", "Full posting:", clip(m.fullPosting, 6000));
-  L.push("", "Actions:");
-  L.push(`Pass: ${m.hasApp ? "closed (already in your applications)" : m.passed ? "done (you passed)" : "available"}`);
-  L.push(`Apply: ${m.byHand ? "not automated on this site; apply there yourself" : m.hasApp ? "closed (already in your applications)" : "available"}`);
-  L.push(`${REVIEW_NOTE} Apply shows the exact application first.`);
-  if (m.job.url) L.push("", `Posting: ${m.job.url}`);
-  L.push("", "To act, open this link in a browser, or tell Trainee in Telegram.");
+// ---------------------------------------------------------------- plain text twin: every row, its state, what Apply does
+export function renderText(f: Feed): string {
+  const names = [...new Set(f.rows.map((r) => r.resume).filter(Boolean))];
+  const L = ["Your jobs", ...(names.length ? [`Applying with: ${names.join(", ")}`] : []), `Apply to all: ${f.setHash && f.setSize >= 2 ? `available (${f.setSize} rows)` : "not available"}`, ""];
+  f.rows.forEach((r, i) => {
+    L.push(`${i + 1}. ${r.job.company} - ${r.job.title}`);
+    if (r.snippet) L.push(`   ${r.snippet}`);
+    L.push(`   Status: ${r.status ? r.status.word : "available"}${r.status ? ` (${r.status.detail})` : ""}`);
+    L.push(`   Apply: ${r.status ? "closed" : r.byHand ? "not automated on this site; apply there yourself" : "available"}`);
+    if (r.job.url) L.push(`   Posting: ${r.job.url}`);
+    if (r.note) L.push(`   ${r.note}`);
+  });
+  L.push("", "To act, open this link in a browser. Apply approves exactly the application prepared for that row.");
   return L.join("\n");
 }

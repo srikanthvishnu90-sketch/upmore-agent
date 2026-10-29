@@ -603,6 +603,18 @@ python3 "$HERE/career_outreach_replies_load.py" "${PSQL[@]}"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027210000_career_people_provider.sql"
 echo "== career_people_provider_scale.py (1M people rows: indexed dedupe; 55,000 lookups, 20 workers: exactly once, fair)"
 python3 "$HERE/career_people_provider_scale.py" "${PSQL[@]}"
+# NETWORKING SCENARIOS (20261029160000): the address guards over the provider above (a role inbox is never format
+# evidence; webmail domains learn no format; a bounced format infers nobody new). After 20261027210000's re-application
+# just above, which would otherwise overwrite them; twice (idempotent), then the scale run's functions again.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029160000_career_email_format_guards.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029160000_career_email_format_guards.sql"
+echo "== career_email_format_guards (a role inbox teaches no format; webmail learns none; a bounced format is suspended)"
+"${PSQL[@]}" -t -A -o /dev/null -c "do \$\$ begin
+  if not public.career_email_is_role('careers@stripe.com') then raise exception 'FAIL careers@ is a role inbox'; end if;
+  if public.career_email_is_role('jane.doe@stripe.com') then raise exception 'FAIL a person is not a role inbox'; end if;
+  if not public.career_email_is_webmail('gmail.com') then raise exception 'FAIL gmail.com is webmail'; end if;
+  raise notice 'ok   role inboxes and webmail are recognized by the format guards';
+end \$\$;" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left
 # (the card-cloud bridge included). The test applies it (twice) over production's shape, then checks the whole schema:
 # no SECURITY DEFINER function anon can run, none without a fixed search_path.

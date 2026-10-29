@@ -77,9 +77,12 @@ Deno.test("production path: a confirmed location is no longer ignored, so an in-
   const g = gatePicks([{ ...rec(1), content: rec(1) } as any], { facts: chatScreenFacts(CareerProfile.confirmedFacts(p)), now: NOW });
   assert.equal(g.ok.length, 1, JSON.stringify(g.held));
   assert.equal(g.asks.length, 0);
+  // Owner ruling (round 6): no confirmed location is NOT a reason to hold or ask. The posting proceeds, labeled "not checked".
   const none = gatePicks([{ ...rec(1), content: rec(1) } as any], { facts: [], now: NOW });
-  assert.equal(none.ok.length, 0);
-  assert.equal(none.asks[0].fact, "location");
+  assert.equal(none.ok.length, 1);
+  assert.equal(none.held.length, 0);
+  assert.equal(none.asks.length, 0);
+  assert.deepEqual(none.unchecked.map((u) => u.facts), [["location"]]);
 });
 
 const asked = (fact: string) => ({ intent: "career_apply_queue", meta: { screen_ask: [{ fact, question: "q" }], screen_held: [] } });
@@ -102,6 +105,8 @@ Deno.test("answers parse only when they answer: commands, questions and chatter 
 });
 
 Deno.test("question -> answer -> saved confirmed fact -> the screen reads it and the held posting is queued", async () => {
+  // Round 6: the only question the screen asks is relocation, and only when a CONFIRMED home exists, the posting is in person somewhere else
+  // and the person has not said whether they would move. Unknown location / sponsorship / etc. never hold.
   const profile: any = CareerProfile.createProfile({});
   const wants = memoryWantStore();
   const RECS = { a: rec(1), b: rec(2, { description: "We do not provide visa sponsorship. In-office." }) };
@@ -110,39 +115,51 @@ Deno.test("question -> answer -> saved confirmed fact -> the screen reads it and
     posting: async (id) => Object.values(RECS).find((r) => r.job_id === id) ?? null,
   });
   const list = Object.values(RECS).map((r) => ({ id: r.job_id, title: r.title, company: r.company, location: r.location, url: r.url }));
-  // 1. Nothing confirmed: both are held and the questions are asked once, riding the reply's meta.
-  const r1 = await turn("apply to all of them", chatScreenFacts(CareerProfile.confirmedFacts(profile)), list);
-  assert.equal(r1!.screen!.counts.held, 2, r1!.reply);
+  const addFact = (p: any, f: any) => CareerProfile.addFact(p, f);
+  // 0. Nothing confirmed at all: both proceed (and are queued), nothing is asked.
+  const r0 = await turn("apply to all of them", chatScreenFacts(CareerProfile.confirmedFacts(profile)), list);
+  assert.equal(r0!.screen!.counts.held, 0, r0!.reply);
+  assert.equal(r0!.screen!.asks.length, 0);
+  assert.equal(wants.dump().u1?.length, 2, "unknown facts never hold a posting");
+  wants.dump(); // (the store is per test; use a fresh one for the held path)
+  const wants2 = memoryWantStore();
+  const turn2 = (message: string, facts: any[], shortlist: ShortlistEntry[]) => applyManyTurn({
+    message, userId: "u1", now: NOW, wants: wants2, apps: async () => [], facts, shortlist, postings: { search: async () => [] },
+    posting: async (id) => Object.values(RECS).find((r) => r.job_id === id) ?? null,
+  });
+  // 1. A confirmed home in another city and a confirmed "I need sponsorship": b is knocked out at once ("we do not provide sponsorship");
+  //    a is in person in Austin, relocation unknown: held, with ONE question.
+  saveScreenFact(profile, addFact, "location", { value: "Chicago, IL", text: "Lives in Chicago, IL" }, "Chicago, IL", new Date(NOW).toISOString());
+  saveScreenFact(profile, addFact, "sponsorship", { value: "yes", text: "Needs visa sponsorship" }, "yes", new Date(NOW).toISOString());
+  const r1 = await turn2("apply to all of them", chatScreenFacts(CareerProfile.confirmedFacts(profile)), list);
+  assert.equal(r1!.screen!.counts.held, 1, r1!.reply);
+  assert.equal(r1!.screen!.dropped.length, 1);
   const meta = screenMeta(r1!.screen)!;
-  assert.deepEqual((meta.screen_ask as any[]).map((a) => a.fact).sort(), ["location", "sponsorship"]);
-  assert.deepEqual(wants.dump().u1 ?? [], []);
-  // 2. The person answers; each answer is a confirmed profile fact in the profile, in the real shape.
-  const rerun = (held: any[]) => turn("apply to all of them", chatScreenFacts(CareerProfile.confirmedFacts(profile)), held.map((h) => ({ id: h.job_id, title: h.title, company: h.company, location: "", url: h.url })));
-  // Round 4: a yes/no question takes only an exact yes / no, so "...and I will need visa sponsorship" saves the place and NOT the sponsorship
-  // answer (nothing wrong is written); the sponsorship question stays open and the person answers it with a yes.
-  const a1 = await screenAnswerTurn({ message: "I live in Austin, TX and I will need visa sponsorship", now: NOW, last: { intent: "career_apply_queue", meta }, profile, addFact: (p, f) => CareerProfile.addFact(p, f), rerun });
-  assert.ok(a1, "the place is taken");
-  assert.deepEqual(a1!.saved.map((s) => s.fact), ["location"]);
-  assert.equal(CareerProfile.confirmedFacts(profile).filter((f: any) => f.screen_key === "sponsorship").length, 0, "the sponsorship phrase wrote nothing");
-  assert.deepEqual(((a1!.meta as any).screen_ask as any[]).map((x) => x.fact), ["sponsorship"], "the sponsorship question is still open");
-  assert.deepEqual((a1!.meta as any).screen_buttons, ["Yes", "No"], "a single yes/no question open carries the Yes / No buttons");
-  const a = await screenAnswerTurn({ message: "yes", now: NOW, last: { intent: "career_apply_queue", meta: a1!.meta as any }, profile, addFact: (p, f) => CareerProfile.addFact(p, f), rerun });
+  assert.deepEqual((meta.screen_ask as any[]).map((a) => a.fact), ["relocation"]);
+  assert.equal((meta.screen_ask as any[])[0].question, "Would you relocate for this role? Reply yes or no.");
+  assert.deepEqual(meta.screen_buttons, ["Yes", "No"]);
+  assert.deepEqual(wants2.dump().u1 ?? [], []);
+  // 2. A sentence is not an answer: nothing is written, asked again once. An exact "yes" is: a confirmed profile fact in the real shape.
+  const rerun = (held: any[]) => turn2("apply to all of them", chatScreenFacts(CareerProfile.confirmedFacts(profile)), held.map((h) => ({ id: h.job_id, title: h.title, company: h.company, location: "", url: h.url })));
+  const sentence = await screenAnswerTurn({ message: "I would move for this role", now: NOW, last: { intent: "career_apply_queue", meta }, profile, addFact, rerun });
+  assert.deepEqual(sentence!.saved, []);
+  assert.equal(CareerProfile.confirmedFacts(profile).filter((f: any) => f.screen_key === "relocation").length, 0);
+  const a = await screenAnswerTurn({ message: "yes", now: NOW, last: { intent: "career_apply_queue", meta: sentence!.meta as any }, profile, addFact, rerun });
   assert.ok(a, "the answer is taken");
-  assert.deepEqual(a!.saved.map((s) => s.fact), ["sponsorship"]);
-  const kept = CareerProfile.confirmedFacts(profile).filter((f: any) => f.screen_key);
-  assert.equal(kept.length, 2);
-  assert.ok(kept.every((f: any) => f.status === "confirmed" && f.needs_confirmation === false && f.source === "screen_answer" && f.evidence[0].includes(f.screen_key === "location" ? "Austin" : "yes")));
-  // 3. The screen reads them now: posting a (silent on sponsorship) queued; b ("we do not provide sponsorship") knocked out for someone who needs it, not asked again.
-  assert.equal(wants.dump().u1?.length, 1, a!.reply);
+  assert.deepEqual(a!.saved, [{ fact: "relocation", value: "yes" }]);
+  const kept = CareerProfile.confirmedFacts(profile).filter((f: any) => f.screen_key === "relocation");
+  assert.equal(kept.length, 1);
+  assert.ok(kept.every((f: any) => f.status === "confirmed" && f.needs_confirmation === false && f.source === "screen_answer" && f.evidence[0].includes("yes")));
+  // 3. The screen reads it now: posting a is queued, nothing is asked again.
+  assert.equal(wants2.dump().u1?.length, 1, a!.reply);
   assert.match(a!.reply, /Saved \(/);
-  assert.match(a!.reply, /Screened out 1/);
   assert.equal(screenMeta((a as any).screen), null);
   // 4. And a later turn, from the profile alone, no longer asks.
   const f = screenOf(profile);
-  assert.equal(f.location?.value, "Austin, TX");
+  assert.equal(f.location?.value, "Chicago, IL");
   assert.equal(f.sponsorship?.value, "yes");
   // 5. A correction replaces the earlier answer rather than adding a second one.
-  saveScreenFact(profile, (p, x) => CareerProfile.addFact(p, x), "location", { value: "Denver, CO", text: "Lives in Denver, CO" }, "Denver, CO", new Date(NOW).toISOString());
+  saveScreenFact(profile, addFact, "location", { value: "Denver, CO", text: "Lives in Denver, CO" }, "Denver, CO", new Date(NOW).toISOString());
   assert.equal(screenOf(profile).location?.value, "Denver, CO");
   assert.equal(profile.facts.filter((x: any) => x.screen_key === "location").length, 1);
 });

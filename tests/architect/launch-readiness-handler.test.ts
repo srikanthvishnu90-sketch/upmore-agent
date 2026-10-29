@@ -94,7 +94,7 @@ Deno.test({ name: "launch readiness at the real handler: spend ceiling, turn ord
     globalThis.fetch = fakeOpenAI as typeof fetch;
     handler = await careerHandler(pg, PEOPLE);
     const say = async (c: Chat, message: string) => { const r = await c.say(message); eq(r.status, 200, r.reply); return r; };
-    const costRows = async (pid: string) => Number((await pg.sql(`select count(*) from public.agent_turn_costs where user_id = '${pid}'`)).trim());
+    const costRows = async (pid: string) => Number((await pg.sql(`select count(*) from public.agent_turn_costs where user_id = '${pid}' and calls > 0`)).trim()); // rows with model calls; a zero-call turn leaves a calls = 0 row (2026-10-28)
     const spendToday = (pid: string, usdMicros: number, calls: number, ago = "0 minutes") => pg.sql(`insert into public.agent_turn_costs
       (user_id, provider, models, calls, usd_micros, created_at) values ('${pid}', 'openai', '{gpt-5-mini}', ${calls}, ${usdMicros}, now() - interval '${ago}')`);
 
@@ -362,13 +362,13 @@ Deno.test({ name: "launch readiness at the real handler: spend ceiling, turn ord
       }
     });
 
-    await t.step("Q2: without the server's prepare, the apply reply says the extension prepares it; nothing is filled or sent", async () => {
+    await t.step("Q2: without the server's prepare, the apply reply says it is queued to be prepared (OWNER LIST #1, 2026-10-28: never the extension); nothing is filled or sent", async () => {
       // #194's resume rule: an apply is queued only for a person with a confirmed resume on file (setup, as the product holds it).
       await pg.sql(confirmedResumeSql(P(12)));
       const r = await say(handler!.chat("tok-lr12"), "apply to the TEST Analyst role at TEST Wording Employer");
       eq(await pg.sql(`select posting_key || ':' || state from public.career_apply_wanted where user_id = '${P(12)}'`), "greenhouse:lrapply:42:waiting", "queued, waiting");
       eq(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${P(12)}'`), "0", "nothing approved or enqueued to send");
-      assert(/Trainee extension prepares it on your computer/.test(r.reply) && !/I prepare it before you ask/.test(r.reply), `the reply says what will happen: ${r.reply}`);
+      assert(/in your queue to be prepared/.test(r.reply) && !/extension|30 days|I prepare it before you ask/i.test(r.reply), `the reply says what will happen: ${r.reply}`);
     });
   } finally {
     handler?.restore();

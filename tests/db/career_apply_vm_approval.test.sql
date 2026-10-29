@@ -56,6 +56,21 @@ select pg_temp.approve('00000000-0000-4000-8000-0000000fa002','APPR-OTH',pg_temp
 select pg_temp.enq(pg_temp.pl('00000000-0000-4000-8000-0000000fa001','APPR-OTH'));
 select t.ok(pg_temp.refusal('APPR-OTH') = 'NOT_APPROVED', 'another person''s approval: refused');
 
+-- The settings key list is additive (20261028180000 read it from pg_constraint): every key allowed before is still allowed, rows survive,
+-- and a second application changes nothing.
+\set vmmig `echo "$UPMORE_ROOT/supabase/migrations/20261028180000_career_apply_vm_worker.sql"`
+delete from career_cloud_settings;
+insert into career_cloud_settings(key,value) values ('CAREER_CLOUD_APPLY','off'),('owner_user_id','x'),('gate_user_ids','x'),('CAREER_AGENT_SUBMIT','off'),('CAREER_CLOUD_TEXT_CARDS','on');
+\i :vmmig
+\i :vmmig
+select t.ok((select count(*) = 5 from career_cloud_settings), 'existing settings rows survive the migration, twice');
+select t.ok((select bool_and(pg_get_constraintdef((select oid from pg_constraint where conname = 'career_cloud_settings_key_check')) like '%' || k || '%')
+ from unnest(array['CAREER_CLOUD_APPLY','owner_user_id','gate_user_ids','CAREER_AGENT_SUBMIT','CAREER_CLOUD_TEXT_CARDS','APPLY_VM','APPLY_VM_USER_IDS','APPLY_VM_ALLOW_LOCAL']) k),
+ 'every key allowed before (CAREER_CLOUD_TEXT_CARDS included) is still allowed, and the three VM keys are added');
+insert into career_cloud_settings(key,value) values ('APPLY_VM','off'),('APPLY_VM_USER_IDS','x'),('APPLY_VM_ALLOW_LOCAL','off');
+update career_cloud_settings set value = 'off' where key = 'CAREER_CLOUD_TEXT_CARDS';
+select t.must_fail($$insert into career_cloud_settings(key,value) values ('NOT_A_KEY','x')$$, 'career_cloud_settings_key_check', 'an unknown key is still refused');
+
 select t.ok(not has_function_privilege('authenticated', 'public.career_apply_vm_approval_refusal(public.career_apply_jobs,timestamptz)', 'EXECUTE')
  and not has_function_privilege('anon', 'public.career_apply_vm_approval_refusal(public.career_apply_jobs,timestamptz)', 'EXECUTE')
  and not has_function_privilege('apply_vm_worker', 'public.career_apply_vm_approval_refusal(public.career_apply_jobs,timestamptz)', 'EXECUTE'), 'the check is not callable by the people or the worker role');

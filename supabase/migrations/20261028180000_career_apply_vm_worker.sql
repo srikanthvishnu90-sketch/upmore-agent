@@ -23,9 +23,21 @@
 -- owner's id (or '*': every person who said yes to cloud sending); APPLY_VM_ALLOW_LOCAL = 'on' only for the dry run on mock forms.
 -- No number of ours limits the volume. What slows a portal is that portal refusing (career_apply_host_refused_for).
 
-alter table public.career_cloud_settings drop constraint if exists career_cloud_settings_key_check;
-alter table public.career_cloud_settings add constraint career_cloud_settings_key_check
-  check (key in ('CAREER_CLOUD_APPLY', 'owner_user_id', 'gate_user_ids', 'CAREER_AGENT_SUBMIT', 'APPLY_VM', 'APPLY_VM_USER_IDS', 'APPLY_VM_ALLOW_LOCAL'));
+-- ADDITIVE: the allowed keys are whatever the constraint allows now (read from pg_constraint, so a key an earlier migration added, such as
+-- CAREER_CLOUD_TEXT_CARDS, is never lost), plus any key already stored in the table, plus the three VM keys. Idempotent.
+do $$
+declare def text; keys text[];
+begin
+ select pg_get_constraintdef(c.oid) into def from pg_constraint c
+  where c.conrelid = 'public.career_cloud_settings'::regclass and c.conname = 'career_cloud_settings_key_check';
+ select array_agg(distinct k) into keys from (
+   select m[1] as k from regexp_matches(coalesce(def, ''), $re$'([A-Za-z0-9_]+)'$re$, 'g') m
+   union select key from public.career_cloud_settings
+   union select unnest(array['APPLY_VM', 'APPLY_VM_USER_IDS', 'APPLY_VM_ALLOW_LOCAL'])) x;
+ alter table public.career_cloud_settings drop constraint if exists career_cloud_settings_key_check;
+ execute format('alter table public.career_cloud_settings add constraint career_cloud_settings_key_check check (key in (%s))',
+  (select string_agg(quote_literal(k), ', ' order by k) from unnest(keys) k));
+end $$;
 
 alter table public.career_apply_jobs add column if not exists vm_worker text;
 alter table public.career_apply_jobs add column if not exists vm_heartbeat_at timestamptz;
@@ -358,3 +370,4 @@ begin
  end if;
  return new;
 end $$;
+revoke all on function public.career_apply_jobs_confirmation() from public, anon, authenticated; -- a trigger function: the trigger runs it, nobody calls it

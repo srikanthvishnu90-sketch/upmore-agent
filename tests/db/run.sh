@@ -549,17 +549,17 @@ if [[ -f "$BRIDGE_PATH" ]]; then
     -c "select set_config('upmore.test.disposable','card-cloud-daily-cap',false)" \
     -f "$HERE/pending/career_apply_card_cloud_daily_cap.test.sql"
 fi
-# The apply VM (20261028180000), twice (idempotent), then its test: a row is claimed only with a stored approval (cloud_bound_refusal), so it follows the card-cloud bridge that holds the approvals.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261028180000_career_apply_vm_worker.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261028180000_career_apply_vm_worker.sql"
-echo "== career_apply_vm_approval.test.sql (the VM claim refuses NOT_APPROVED: no approval, wrong hash, revoked, expired, another person's)"
-"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_vm_approval.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # FEATURE 17 (20261026230017): hosted apply (the text-card cloud route, preparation requests, the bounded push). Last in
 # file order, after the card-cloud bridge as go-live applies it; applied twice (idempotent).
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026230017_career_cloud_hosted_apply.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026230017_career_cloud_hosted_apply.sql"
 echo "== career_cloud_hosted_apply.test.sql (text cards to the cloud behind every switch and cap; hosted preparation limits; the asked-for card shown at once)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_cloud_hosted_apply.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# The apply VM (20261028180000), twice (idempotent), then its test: a row is claimed only with a stored approval (cloud_bound_refusal), so it follows the card-cloud bridge that holds the approvals and the hosted-apply file whose settings key (CAREER_CLOUD_TEXT_CARDS) it must keep.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261028180000_career_apply_vm_worker.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261028180000_career_apply_vm_worker.sql"
+echo "== career_apply_vm_approval.test.sql (the VM claim refuses NOT_APPROVED: no approval, wrong hash, revoked, expired, another person's)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_vm_approval.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # FEATURE 16 (20261026210016): OWNER RULE 2026-10-26, never queued, claimed, prepared or carded without a resume; applied
 # twice (idempotent), last, after every phase (the bridge's pending tests included) that queues synthetic payloads.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210016_career_resume_required.sql"

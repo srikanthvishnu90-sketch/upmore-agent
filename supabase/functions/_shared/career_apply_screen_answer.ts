@@ -18,8 +18,14 @@ export function screenMeta(screen?: GateResult | null): Record<string, unknown> 
   return { screen_ask: screen.asks.map((a) => ({ fact: a.fact, question: a.question })), screen_held: screen.held.map((h) => ({ job_id: h.job_id, company: h.company, title: h.title, url: h.url })) };
 }
 
-const YES = /^(?:y|yes|yeah|yep|yup|sure|i do|i would|i will|i need (?:it|that|sponsorship)|definitely|absolutely|correct)\b/i;
-const NO = /^(?:n|no|nope|nah|i do not|i don'?t|i would not|i wouldn'?t|i won'?t|not really|never)\b/i;
+// A real yes / no only. "I don't know", "idk", "skip", "maybe" are NOT a no (D-007: never invent an answer): nothing is saved.
+const UNSURE_PHRASE = /\b(?:(?:do\s*not|don'?t|didn'?t)\s+know|dunno|idk|no\s+(?:idea|clue)|not\s+(?:sure|certain)|unsure|uncertain|undecided|maybe|perhaps|possibly|it\s+depends|depends|prefer\s+not|rather\s+not\s+say|not\s+telling|no\s+comment)\b/i;
+const UNSURE_WORD = /^\W*(?:skip|skipped|pass|later|n\/?a|none|nothing|nil|null|unknown|whatever|anything|anywhere|nowhere|somewhere|secret|private|test|asdf|\?+|ok|okay|hmm+|um+|uh+)\W*$/i;
+const UNSURE = { test: (m: string) => !m.trim() || UNSURE_PHRASE.test(m) || UNSURE_WORD.test(m) };
+const YES = /^(?:y|yes|yeah|yep|yup|sure|i do|i would|i will|i need (?:it|that|sponsorship)|definitely|absolutely|correct)\b(?!.*\b(?:not|n't|never|no)\b)/i;
+const NO = /^(?:n|no|nope|nah|nay|not really|never|negative|i (?:do not|don'?t|would not|wouldn'?t|will not|won'?t)\s*)(?:\b|$)(?!.*\b(?:know|sure|idea|clue)\b)/i;
+const NEG = /\b(?:not|n't|never|non|no longer|cannot|unwilling|won'?t|wouldn'?t|can'?t|rather not|prefer not to|no)\b|\bn'?t\b/i;
+const BAD_PLACE = /^(?:skip|idk|none|pass|later|nowhere|anywhere|somewhere|unknown|here|there|home|earth|planet|nope|nah|not\b.*|no\b.*|n\/a|na|nil|null|undefined|test|asdf|secret|private|whatever|everywhere|the world|world|global|globe|remote|online|internet|mars|moon)$/i;
 const COMMAND = /\b(apply|queue|send|show|list|find|search|cancel|set|draft|write|tell me|remind|what|how|why|who|when|where|can you|could you|please)\b/i;
 const NUM_WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20 };
 const clean = (m: string) => String(m ?? "").replace(/[’`]/g, "'").replace(/\s+/g, " ").trim();
@@ -41,30 +47,38 @@ export function parseScreenAnswer(fact: ScreenFactKey, raw: string, alone: boole
   const named = KEYWORD[fact].test(m);
   if (!alone && !named) return null;
   const lead = (re: RegExp) => re.test(m);
+  if (UNSURE.test(m)) return null; // an unsure / skipped / empty reply answers nothing
   switch (fact) {
     case "location": {
       if (/\?/.test(m) || (COMMAND.test(m) && !/\b(live|based|located|reside)\b/i.test(m))) return null;
       if (/\b(want|prefer|looking|seeking|relocat\w*|remote|interested|work in)\b/i.test(m)) return null;
       const stripped = placeOf(m).replace(/^(?:i'?m|i am)\s+(?:in|from)\s+/i, "").replace(/\s+and\s+(?:no|yes|i)\b.*$/i, "").trim();
       if (!/^[A-Za-z][A-Za-z.' -]*(?:,\s*[A-Za-z][A-Za-z.' -]*)*$/.test(stripped) || stripped.length > 60 || stripped.split(/\s+/).length > 6) return null;
-      if (/\b(yes|no|nope|yeah|ok|okay|sure|thanks|thank you|hi|hello|hey|maybe)\b/i.test(stripped)) return null;
+      if (/\b(yes|no|nope|yeah|ok|okay|sure|thanks|thank you|hi|hello|hey|maybe)\b/i.test(stripped) || BAD_PLACE.test(stripped) || stripped.length < 2) return null;
       return { value: stripped, text: `Lives in ${stripped}` };
     }
     case "relocation": {
-      if (lead(NO) || /\b(not|n't|never|won'?t)\b[^.]*\b(relocat\w*|move)\b|\bno relocation\b/i.test(m)) return { value: "no", text: "Not open to relocating" };
-      if (lead(YES) || /\b(open|willing|happy|able)\b[^.]*\b(relocat\w*|move)\b|\bwould (?:relocate|move)\b/i.test(m)) return { value: m, text: `Open to relocating: ${m}` };
+      const reloc = /\b(?:relocat\w*|move|moving|moved)\b/i.test(m);
+      if (reloc ? NEG.test(m) : lead(NO)) return { value: "no", text: "Not open to relocating" };
+      if (reloc ? /\b(?:open|willing|happy|able|would|will|ready|glad|fine|can|keen)\b/i.test(m) || lead(YES) : lead(YES)) return { value: m, text: `Open to relocating: ${m}` };
       return null;
     }
     case "sponsorship": {
-      if (/\b(do not|don'?t|won'?t|will not|never|no longer)\b[^.]*\bneed\b|\bno\b[^.]*\bsponsor|\bwithout sponsor|\bnot needed\b/i.test(m) || (alone && lead(NO))) return { value: "no", text: "Does not need visa sponsorship" };
-      if (/\b(need|needs|require|will need|would need)\b/i.test(m) || (alone && lead(YES))) return { value: "yes", text: "Needs visa sponsorship" };
+      if (/\b(do not|don'?t|won'?t|will not|never|no longer|not)\b[^.]*\b(?:need|require)\w*|\bno\b[^.]*\b(?:sponsor|need)|\bwithout sponsor|\bnot needed\b|\bno need\b/i.test(m) || (alone && lead(NO))) return { value: "no", text: "Does not need visa sponsorship" };
+      if (/\b(need|needs|require|requires|will need|would need)\b/i.test(m) || (alone && lead(YES))) return { value: "yes", text: "Needs visa sponsorship" };
       return null;
     }
     case "citizenship": {
-      if (/\b(non|not)[- ]?(?:an? )?(?:u\.?s\.?|american)\s+citizen|\b(green card|permanent resident)\b/i.test(m)) return { value: "no", text: "Not a US citizen" };
-      if (/\b(?:u\.?s\.?|american|united states)\s+citizen\b/i.test(m) && !/\b(not|n't|non)\b/i.test(m)) return { value: "yes", text: "US citizen" };
-      const c = /\bcitizen(?:ship)?\s+of\s+([A-Za-z][A-Za-z ]{1,30})/i.exec(m);
-      if (c) return { value: c[1].trim(), text: `Citizen of ${c[1].trim()}` };
+      const neg = NEG.test(m.replace(/\bno\b(?=\s+(?:longer))/i, "")) && !/^(?:yes|yeah|yep|y)\b/i.test(m);
+      const us = /\b(?:u\.?s\.?a?\.?|american|america|united states)\b/i.test(m);
+      const of = /\bcitizen(?:ship)?\s+(?:of|in)\s+([A-Za-z][A-Za-z ]{1,30})/i.exec(m);
+      if (/\b(green card|permanent resident)\b/i.test(m)) return neg ? null : { value: "no", text: "Not a US citizen" };
+      if (of && !/^(?:the\s+)?(?:u\.?s\.?a?\.?|united states|america)\b/i.test(of[1].trim())) {
+        return neg ? null : { value: of[1].trim(), text: `Citizen of ${of[1].trim()}` }; // "not a citizen of India" says nothing about the US
+      }
+      if (/\bcitizen/i.test(m) || /\bamerican\b/i.test(m)) {
+        if (us || !/\b(?:of|in)\s+[A-Z]/.test(m)) return neg ? { value: "no", text: "Not a US citizen" } : { value: "yes", text: "US citizen" };
+      }
       if (alone && lead(NO)) return { value: "no", text: "Not a US citizen" };
       if (alone && lead(YES)) return { value: "yes", text: "US citizen" };
       return null;
@@ -127,9 +141,19 @@ export async function screenAnswerTurn(o: ScreenAnswerDeps): Promise<ScreenAnswe
   const answers = parseScreenAnswers(facts, msg);
   const intent = o.last?.intent ?? "career_apply_queue";
   if (!answers.length) {
+    const held0 = (o.last?.meta?.screen_held ?? []) as HeldPosting[];
     // A bare yes / no with several questions open is an answer to none of them: say which, keep the questions.
     if (facts.length > 1 && (YES.test(msg) || NO.test(msg)) && msg.split(/\s+/).length <= 3) {
-      return { reply: `That was a few questions, so I don't know which one that answers. ${asked.map((a) => a.question).join(" ")} Answer them in one message, for example "${exampleFor(facts)}".`, status: "which", intent, saved: [], meta: { screen_ask: asked, screen_held: o.last?.meta?.screen_held ?? [] } };
+      return { reply: `That was a few questions, so I don't know which one that answers. ${asked.map((a) => a.question).join(" ")} Answer them in one message, for example "${exampleFor(facts)}".`, status: "which", intent, saved: [], meta: { screen_ask: asked, screen_held: held0, ...(o.last?.meta?.screen_reasked ? { screen_reasked: true } : {}) } };
+    }
+    // A reply that is not an answer (I don't know, skip, a place that is none, a short non-answer) saves NOTHING (D-007). Ask once more;
+    // when it was already asked twice, leave the postings held and drop the question: they wait until the person says.
+    const nonAnswer = UNSURE.test(msg) || (facts.length === 1 && msg.split(/\s+/).length <= 4 && !COMMAND.test(msg) && !/\?/.test(msg));
+    if (nonAnswer) {
+      if (!o.last?.meta?.screen_reasked) {
+        return { reply: `I need a real answer for that, so I haven't saved anything. ${asked.map((a) => a.question).join(" ")}`, status: "asking", intent, saved: [], meta: { screen_ask: asked, screen_held: held0, screen_reasked: true } };
+      }
+      return { reply: `No problem, I haven't saved an answer and I'll keep ${held0.length === 1 ? "that posting" : "those postings"} on hold. Tell me ${asked.map((a) => LABEL[a.fact]).join(" and ")} whenever you want them screened.`, status: "held", intent, saved: [] };
     }
     return null;
   }

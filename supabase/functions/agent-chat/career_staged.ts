@@ -91,6 +91,23 @@ export function probeCtx<T extends Record<string, unknown>>(ctx: T): T {
   return out as T;
 }
 
+// An OPEN entry question ("how do I get hired as an investment banker", "how do I break into consulting", "how do I become
+// a data analyst"), from any stage, naming no company. The router answers it from the library: a posting-requirements
+// definition (company_intel, payload role_kb_stats / role_kb_absent) or a generic path list (path_plan, plan_paths). Neither
+// is a researched answer for this person, so with CAREER_KNOWLEDGE=on (the research tool exists) the brain takes it and calls
+// research_career_question. Company-specific asks never match here: the router gives them a company file or a campaign, and
+// a result carrying a company stays code's. "What do data analyst postings require?" is not an entry question: library.
+const OPEN_ENTRY = /\b(?:how\s+(?:do|can|would|should|could)\s+(?:i|we|someone|a\s+\w+)|how\s+to|what(?:'s|\s+is)\s+the\s+(?:best\s+)?way\s+to|what\s+should\s+i\s+do\s+to|where\s+do\s+i\s+start\s+to)\b[^?.!]*\b(?:get\s+hired|get\s+a\s+job|get\s+an?\s+(?:internship|offer|entry)|get\s+into|break\s+into|breaking\s+into|become|land\s+an?|start\s+a\s+career)\b/i;
+const OPEN_ENTRY_KINDS = new Set(["role_kb_stats", "role_kb_absent", "plan_paths"]);
+export function openCareerQuestion(env: Env, message: string, intent: string, result: unknown): boolean {
+  if (env.get("CAREER_KNOWLEDGE") !== "on") return false;
+  if (intent !== "company_intel" && intent !== "path_plan") return false;
+  if (!OPEN_ENTRY.test(message)) return false;
+  const r = (result && typeof result === "object" ? result : {}) as Record<string, any>;
+  if (has(r, "company") || has(r, "comparison") || has(r, "offer")) return false;
+  return OPEN_ENTRY_KINDS.has(String(r.payload?.kind ?? r.artifact?.kind ?? ""));
+}
+
 export type StagedDecision = { brain: boolean; mode: BrainMode; intent: string | null; reason: string };
 
 // Whether this turn goes to the brain in staged mode. Called only after every code-first turn has passed on it.
@@ -111,6 +128,7 @@ export function stagedDecision(o: { env: Env; message: string; ctx: Record<strin
   } else intent = probe.intent ?? null;
   if (!intent) return { brain: false, mode, intent: null, reason: "router_claimed" };
   if (routerKept(o.env).has(intent)) return { brain: false, mode, intent, reason: "kept_on_router" };
+  if (openCareerQuestion(o.env, o.message, intent, probe.result)) return { brain: true, mode, intent, reason: "open_career_question" };
   if (!STAGED_BRAIN_INTENTS.includes(intent)) return { brain: false, mode, intent, reason: "action" };
   if (codeProduct(intent, probe.result)) return { brain: false, mode, intent, reason: "code_product" };
   return { brain: true, mode, intent, reason: "question" };

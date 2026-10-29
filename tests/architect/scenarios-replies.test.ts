@@ -171,6 +171,12 @@ Deno.test({ name: `replies at scale, end to end on Postgres: ${E2E} sampled scen
   const db = await railDb();
   try {
     await supabaseParity(db.pg as any);
+    // The schema under test carries 20261029100000's rules (a CI-only failure looked like the older functions).
+    const live = await rows(db, `select proname, (prosrc like '%(2) A follow-up of this person''s already queued%') as reply_rule,
+        (prosrc like '%(3) What the rail itself already cancelled%') as takeback_rule
+      from pg_proc where proname in ('career_outreach_reply_apply', 'career_outreach_rail_takeback') order by proname`);
+    eq(live.map((r: any) => [r.proname, r.proname === "career_outreach_reply_apply" ? r.reply_rule : r.takeback_rule]),
+      [["career_outreach_rail_takeback", true], ["career_outreach_reply_apply", true]], `the reply rules migration is applied: ${JSON.stringify(live)}`);
     const double = postgrestDouble(db.pg as any, { url: "http://supabase.test", serviceKey: "service-test-key", users: {} });
     const admin = createClient("http://supabase.test", "service-test-key", { global: { fetch: double.fetch as typeof fetch }, auth: { persistSession: false, autoRefreshToken: false } });
     const gmail = new FakeGmail(), box = fakeMailbox(gmail);

@@ -336,7 +336,8 @@ function enrich(message: string, base: SearchAsk | null): SearchAsk | null {
   const role = st.role || base?.role || "";
   if (!searchWords(role).length) return null;
   const orRemote = /\b(?:or|and|\/)\s*remote\b|\bremote\s*(?:or|and|\/)\s|\bhybrid\b/i.test(message);
-  const place = st.place ?? base?.place ?? null, remote = st.remote || !!base?.remote;
+  // The router's own spelling of the place ("Chicago") is kept when the message's reading is the same place in lower case.
+  const place = base?.place && st.place && base.place.toLowerCase() === st.place.toLowerCase() ? base.place : st.place ?? base?.place ?? null, remote = st.remote || !!base?.remote;
   return { role, place, remote, remoteOnly: remote && !orRemote, limits: st.limits };
 }
 export function askFromRouter(message: string, routerOut: { intent?: string } | null, discovery: any): SearchAsk | null {

@@ -1,5 +1,0 @@
-{
- "kind": "human",
- "note": "WO-037 human labels: match = this person would want this alert. Written only by scripts/career/label-alerts.ts or by hand. Empty until the owner or Muse labels; the eval says NOT_RUN until then.",
- "labels": {}
-}

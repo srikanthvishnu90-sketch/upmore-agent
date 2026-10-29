@@ -1,6 +1,0 @@
-{
-  "at": "2026-10-22T22:14:11.039096+00:00",
-  "test_pid": 857196,
-  "action": "enable local Node inspector to diagnose stalled Workday cleanup; no debugger attached, no source, assertion, flag or approval changes",
-  "scope": "synthetic local test only"
-}

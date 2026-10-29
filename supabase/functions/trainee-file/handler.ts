@@ -1,16 +1,19 @@
 // trainee-file: the hosted jobs list page. Tests: tests/architect/file-page.test.ts.
 //
-// Login is Telegram's own identity: a Mini App opened by the bot's web_app button carries signed initData (HMAC with the bot
-// token), which is checked here and mapped to the linked Trainee account; or the signed, expiring, single-user link the bot
-// sends (../_shared/file_link.ts). Every read is scoped to the user id of the verified identity.
+// Login (owner, 2026-10-29; ../_shared/file_session.ts): the link the bot sends says WHICH list, never WHO opened it, so it opens
+// a phone sign-in and nothing private. The code is texted only to the confirmed phone of the account the link was issued for,
+// and a session starts only when the code proves that same account. A Mini App opened by the bot's web_app button is a separate
+// Telegram login (signed initData, mapped to the linked account). Either way: a server-side session, revocable, checked against
+// the account again on every request. Every read is scoped to the session's account.
 //
 // The Apply tap IS the approval: it carries the first 16 hex of the payload hash shown for that row, the payload is read again
 // at the tap, and a payload that changed since the page was drawn is refused with a refresh prompt (D-MS-1). The approval runs
 // through tapJob's Confirm (the same path as Telegram's Confirm button: cards.open then tapCard, once). "Apply to all" carries
 // the hash of the exact set shown; it approves nothing unless the set is still exactly that.
-import { FILE_TTL_MS, mintFileToken, SESSION_TTL_MS, verifyFileToken, type FileClaims } from "../_shared/file_link.ts";
+import { FILE_TTL_MS, verifyFileToken, type FileClaims } from "../_shared/file_link.ts";
+import { checkSession, CLEAR_LOGIN, CLEAR_SESSION, codeOf, LOGIN_TTL_MS, loginCookie, MAX_CODE_SENDS, MAX_CODE_TRIES, normalizePhone, SESSION_ID, sessionCookie, startSession, type PhoneAuth, type SessionStore } from "../_shared/file_session.ts";
 import { verifyInitData } from "../_shared/telegram_webapp.ts";
-import { BOOT_SCRIPT, FEED_SCRIPT, fullOf, hostOf, renderBootstrap, renderFeed, renderLinkState, renderPreview, renderText, snippetOf, statusOf, type AppRow, type Feed, type Row } from "../_shared/file_page.ts";
+import { BOOT_SCRIPT, FEED_SCRIPT, fullOf, hostOf, renderBootstrap, renderFeed, renderLinkState, renderPhoneLogin, renderPreview, renderText, signOutFoot, snippetOf, statusOf, type AppRow, type Feed, type Row } from "../_shared/file_page.ts";
 import { dayOf, BRAND, esc, layout } from "../_shared/file_page.ts";
 import { actOn, bodyHtml, COPY_SCRIPT, KIND_CSS, KIND_LABEL, textOf, type Effects, type FileRecord } from "../_shared/file_kinds.ts";
 import type { FileService } from "../_shared/file_service.ts";
@@ -20,11 +23,12 @@ export type { AppRow } from "../_shared/file_page.ts";
 export interface FileStore extends JobStore {
   appRow(userId: string, jobId: string): Promise<AppRow | null>; // this person's application row for the posting (career_apply_jobs)
   wanted(userId: string, url: string): Promise<boolean>; // queued to be prepared (career_apply_wanted)
-  claimLink(userId: string, jti: string, at: number): Promise<boolean>; // true only the first time a link token id is taken
 }
 export interface FileDeps extends Omit<JobDeps, "store"> {
   store: FileStore;
   userOfTelegram?: (telegramId: string) => Promise<string | null>; // channel_contacts: 'tg:<id>' -> the linked account
+  sessions?: SessionStore; // server-side, revocable sessions and the phone sign-ins links open (file_session.ts); absent, nothing opens
+  phone?: PhoneAuth; // the account's confirmed phone and the texted code; absent, phone sign-in is off
   files?: FileService; // the other file kinds (introduction, proof, plan, comparison, draft, brief); an id not found there is a jobs list
   fileEffects?: Effects; // what Introduce really does (send); absent, an approved introduction says it was not sent
 }
@@ -151,7 +155,17 @@ const cookieOf = (req: Request, name: string) => {
   return "";
 };
 
+// A store or provider that throws where no step expects it still gets a page: nothing was opened or sent, try again
+// (tests/architect/scenarios-file-signin.test.ts: a failing count or sign-in write used to reject with no response at all).
 export async function handleFile(req: Request, d: FileDeps): Promise<Response> {
+  try {
+    return await handleFileOnce(req, d);
+  } catch {
+    return new Response(renderLinkState("Couldn't open this just now", ["Nothing was opened and nothing was sent. Try again in a minute."]), { status: 503, headers: await headers("text/html; charset=utf-8", d.env) });
+  }
+}
+
+async function handleFileOnce(req: Request, d: FileDeps): Promise<Response> {
   const html = async (body: string, status = 200, extra: Record<string, string> = {}) => new Response(body, { status, headers: { ...(await headers("text/html; charset=utf-8", d.env)), ...extra } });
   const text = async (body: string, status = 200) => new Response(body, { status, headers: await headers("text/plain; charset=utf-8", d.env) });
   if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "POST") return html(renderLinkState("Not supported", ["This page only opens and answers."]), 405);
@@ -166,58 +180,151 @@ export async function handleFile(req: Request, d: FileDeps): Promise<Response> {
     : why === "expired" ? state("This link has expired", ["Links last a day so a forwarded one stops working. " + NEW_LINK], 410)
     : state("This link isn't valid", ["It may be cut short or changed. " + NEW_LINK], 403);
 
-  let token = "";
-  const given = fields.get("t") ?? "";
-  if (req.method === "POST") {
-    if (given) token = given; // a session token in a form field (never the single-use link)
-    else {
-      const list = fields.get("list") ?? "";
-      if (!/^[0-9a-f]{10}$/.test(list) || !fields.get("init")) return state("This link isn't valid", ["It may be cut short or changed. " + NEW_LINK], 403);
-      // Mini App login: Telegram's signed initData, then the account that Telegram identity is linked to.
-      const init = await verifyInitData(fields.get("init"), d.env.get("TELEGRAM_BOT_TOKEN"), d.now());
-      if (!init.ok) {
-        if (init.why === "not_configured") return state("Sign-in isn't set up yet", ["Telegram sign-in isn't switched on yet, so nothing can be opened. Nothing was sent."], 503);
-        if (init.why === "stale") return state("This sign-in has expired", ["Close this screen and open the list again from Telegram."], 410);
-        return state("Telegram couldn't verify this sign-in", ["Nothing was opened. Open the list again from the button in Telegram."], 403);
-      }
-      const user = d.userOfTelegram ? await d.userOfTelegram(init.telegramId).catch(() => null) : null;
-      if (!user) return state("This Telegram account isn't linked", ["Share your phone number with Trainee in the Telegram chat first, then open the list again."], 403);
-      const minted = await mintFileToken({ secret, userId: user, list, now: d.now(), ttlMs: SESSION_TTL_MS, kind: "s" });
-      if (!minted) return state("Sign-in isn't set up yet", ["The page's link signing isn't switched on yet, so nothing can be opened."], 503);
-      token = minted;
-    }
-  } else if (given) {
-    // The fallback link: taken ONCE, exchanged for an HttpOnly session cookie, then redirected to a clean URL. The token never stays in a URL.
+  const sessions = d.sessions;
+  if (!sessions) return state("Sign-in isn't set up yet", ["The jobs page isn't switched on yet, so nothing can be opened. Nothing was sent."], 503);
+  const check = (id: string) => checkSession(id, { sessions, phone: d.phone, userOfTelegram: d.userOfTelegram, now: d.now() });
+  const signedOut = (why: string) => why === "error" ? state("Couldn't open this just now", ["Nothing was sent. Try again in a minute."], 503)
+    : why === "expired" ? state("You were signed out", ["Sign-ins last two hours. " + NEW_LINK], 401)
+    : why === "revoked" || why === "unbound" ? state("You were signed out", ["This sign-in was ended. " + NEW_LINK], 401)
+    : state("This link isn't valid", ["It may be cut short or changed. " + NEW_LINK], 403);
+  const action = req.method === "POST" ? (fields.get("action") ?? "") : "";
+  const given = req.method === "GET" || req.method === "HEAD" ? (url.searchParams.get("t") ?? "") : "";
+
+  // ---- the link from the bot: says WHICH list, never WHO opened it. It opens a phone sign-in, never the list itself.
+  if (given) {
     const c = await verifyFileToken(given, secret, d.now());
     if (!c.ok) return bad(c.why);
     if (c.claims.k !== "l") return bad("malformed");
     if (CRAWLER.test(req.headers.get("user-agent") ?? "")) {
-      // A file of another kind: the preview names the kind and nothing of what is in it.
+      // A link preview fetch: the brand card and, for a file of another kind, the kind's name; nothing about the person (not even
+      // how many jobs) and the link is not touched.
       const g = d.files ? await d.files.get(c.claims.u, c.claims.r).catch(() => null) : null;
-      if (g && g.state !== "missing") return html(layout("Trainee", `<header>${BRAND}<h1>A file from Trainee</h1></header><main id="main"><p>Open this link in your browser, or from Telegram.</p></main>`, { og: { title: `${KIND_LABEL[g.rec.kind]} from Trainee`, description: "Open in Trainee.", image: ogImage(d.env) } }));
-      // A link preview fetch must not use up the link: it gets the preview tags and nothing about any job.
-      const n = ((await d.store.recallList(c.claims.u, c.claims.r).catch(() => null)) ?? []).length;
-      return html(renderPreview({ title: `${n} match${n === 1 ? "" : "es"} for you`, description: "Tap Apply on any job. Opens in Trainee.", image: ogImage(d.env) }));
+      if (g && g.state !== "missing") return html(layout("Trainee", `<header>${BRAND}<h1>A file from Trainee</h1></header><main id="main"><p>Open this link in your browser, or from Telegram.</p></main>`, { og: { title: `${KIND_LABEL[g.rec.kind]} from Trainee`, description: "Sign in to open it.", image: ogImage(d.env) } }));
+      return html(renderPreview({ title: "Your jobs from Trainee", description: "Sign in with your phone number to see them.", image: ogImage(d.env) }));
     }
-    const first = await d.store.claimLink(c.claims.u, c.claims.j, d.now()).catch(() => null);
-    if (first === null) return state("Couldn't open this just now", ["Nothing was used up. Try the link again in a minute."], 503);
-    if (!first) return state("This link was already used", ["A link opens your jobs once, so a forwarded copy can't. " + NEW_LINK], 410);
-    const session = await mintFileToken({ secret, userId: c.claims.u, list: c.claims.r, now: d.now(), ttlMs: SESSION_TTL_MS, kind: "s" });
-    if (!session) return bad("not_configured");
-    return html("", 303, { location: url.pathname, "set-cookie": `tf_s=${session}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}` });
+    const cur = await check(cookieOf(req, "tf_s"));
+    if (cur.ok && cur.userId !== c.claims.u) {
+      return html(layout("A different account - Trainee", `<header>${BRAND}<h1>This link is for a different Trainee account</h1></header><main id="main"><p>You are signed in as someone else here, so nothing from this link was opened. Sign out first, then open the link again.</p>${signOutFoot(cookieOf(req, "tf_s"))}</main>`), 403);
+    }
+    const row = await sessions.beginLogin({ jti: c.claims.j, userId: c.claims.u, list: c.claims.r, at: d.now(), expiresAt: Math.min(d.now() + LOGIN_TTL_MS, c.claims.e) }).catch(() => null);
+    if (!row) return state("Couldn't open this just now", ["Nothing was used up. Try the link again in a minute."], 503);
+    if (row.user_id !== c.claims.u || row.list !== c.claims.r) return bad("malformed");
+    if (cur.ok) {
+      // Already signed in on this browser as the same account (by phone or Telegram): the link only picks the list.
+      await sessions.finishLogin(c.claims.j, d.now()).catch(() => false);
+      await sessions.setList(cur.idHash, c.claims.r).catch(() => {});
+      return html("", 303, { location: url.pathname });
+    }
+    if (row.done_at) return state("This link was already used", ["A link opens a sign-in once. " + NEW_LINK], 410);
+    return html("", 303, { location: url.pathname, "set-cookie": loginCookie(given) });
+  }
+
+  const locked = () => state("Too many wrong codes", ["This link is locked so nobody can guess the code. " + NEW_LINK], 429);
+  // ---- phone sign-in steps (the pending link is in the HttpOnly tf_l cookie)
+  if (action === "phone_start" || action === "phone_verify" || action === "phone_reset") return phoneStep(action);
+  async function phoneStep(step: string): Promise<Response> {
+    const lt = await verifyFileToken(cookieOf(req, "tf_l"), secret, d.now());
+    if (!lt.ok) return lt.why === "expired" ? bad("expired") : state("Open your link again", ["This sign-in isn't open any more. " + NEW_LINK], 403);
+    if (lt.claims.k !== "l") return bad("malformed");
+    const row = await sessions!.login(lt.claims.j).catch(() => null);
+    if (!row || row.user_id !== lt.claims.u) return state("Open your link again", ["This sign-in isn't open any more. " + NEW_LINK], 403);
+    if (row.done_at) return state("This link was already used", ["A link opens a sign-in once. " + NEW_LINK], 410);
+    if (d.now() >= Date.parse(row.expires_at)) return state("This sign-in has expired", ["Codes must be typed within 15 minutes. " + NEW_LINK], 410);
+    if (row.tries >= MAX_CODE_TRIES) return locked();
+    const page = (st: "phone" | "code", note?: string, status = 200) => html(renderPhoneLogin({ step: st, note, botUrl: bot }), status);
+    const down = () => state("Couldn't open this just now", ["Nothing was sent. Try again in a minute."], 503);
+    if (!d.phone) return state("Phone sign-in isn't switched on yet", ["Nothing was opened and nothing was sent."], 503);
+    if (step === "phone_reset") { await sessions!.setPhone(row.jti, null, false).catch(() => {}); return page("phone"); }
+    if (step === "phone_start") {
+      const phone = normalizePhone(fields.get("phone"));
+      if (!phone) return page("phone", "That doesn't look like a phone number. Include the country code if it's outside the US.", 400);
+      // Whether texting is switched on is asked BEFORE the number is compared, so the answer cannot depend on the number.
+      if (d.phone.ready && !(await d.phone.ready().catch(() => false))) return state("Phone sign-in isn't switched on yet", ["No code was sent. Nothing was opened."], 503);
+      const own = await d.phone.accountPhone(row.user_id).catch(() => undefined);
+      if (own === undefined) return down();
+      const matched = !!own && own === phone;
+      if (!(await sessions!.setPhone(row.jti, phone, matched).then(() => true, () => false))) return down();
+      // The same answer whether or not the number is the account's: a forwarded link never learns whose it is. So a number
+      // that matched answers exactly as any other number does, also when its texts are used up or the text could not go out
+      // (a different note there told a stranger "this is the account's number"; scenarios-file-signin.test.ts).
+      if (matched) {
+        const counted = await sessions!.countSend(row.jti, MAX_CODE_SENDS).catch(() => null);
+        if (counted === null) return down();
+        if (counted) {
+          const sent = await d.phone.send(phone).catch(() => ({ ok: false as const, why: "refused" as const }));
+          if (!sent.ok) console.error(`trainee-file: the sign-in code was not texted (${sent.why})`);
+        }
+      }
+      return page("code");
+    }
+    // phone_verify
+    if (!row.phone) return page("phone");
+    const tried = await sessions!.countTry(row.jti, MAX_CODE_TRIES).catch(() => null);
+    if (tried === null) return down();
+    if (!tried) return locked();
+    const code = codeOf(fields.get("code"));
+    const who = code && row.matched ? await d.phone.check(row.phone, code).catch(() => null) : null;
+    const still = who === row.user_id ? await d.phone.accountPhone(row.user_id).catch(() => null) : null;
+    if (who !== row.user_id || still !== row.phone) return page("code", "That code didn't work. Check the latest text and try again.", 401);
+    const finished = await sessions!.finishLogin(row.jti, d.now()).catch(() => null);
+    if (finished === null) return down();
+    if (!finished) return state("This link was already used", ["A link opens a sign-in once. " + NEW_LINK], 410);
+    const id = await startSession(sessions!, { userId: row.user_id, via: "phone", phone: row.phone, telegramId: null, list: row.list, now: d.now() }).catch(() => "");
+    if (!id) return state("Couldn't open this just now", ["Nothing was opened. This link is used up, so " + NEW_LINK.charAt(0).toLowerCase() + NEW_LINK.slice(1)], 503);
+    return new Response("", { status: 303, headers: [...Object.entries(await headers("text/html; charset=utf-8", d.env)), ["location", url.pathname], ["set-cookie", sessionCookie(id)], ["set-cookie", CLEAR_LOGIN]] });
+  }
+
+  let token = "";
+  let checked: Awaited<ReturnType<typeof check>> | null = null;
+  if (req.method === "POST" && !fields.get("t")) {
+    const list = fields.get("list") ?? "";
+    if (!/^[0-9a-f]{10}$/.test(list) || !fields.get("init")) return state("This link isn't valid", ["It may be cut short or changed. " + NEW_LINK], 403);
+    // Mini App login: Telegram's signed initData, then the account that Telegram identity is linked to (a Telegram login, not a phone check).
+    const init = await verifyInitData(fields.get("init"), d.env.get("TELEGRAM_BOT_TOKEN"), d.now());
+    if (!init.ok) {
+      if (init.why === "not_configured") return state("Sign-in isn't set up yet", ["Telegram sign-in isn't switched on yet, so nothing can be opened. Nothing was sent."], 503);
+      if (init.why === "stale") return state("This sign-in has expired", ["Close this screen and open the list again from Telegram."], 410);
+      return state("Telegram couldn't verify this sign-in", ["Nothing was opened. Open the list again from the button in Telegram."], 403);
+    }
+    const user = d.userOfTelegram ? await d.userOfTelegram(init.telegramId).catch(() => null) : null;
+    if (!user) return state("This Telegram account isn't linked", ["Share your phone number with Trainee in the Telegram chat first, then open the list again."], 403);
+    token = await startSession(sessions, { userId: user, via: "telegram", phone: null, telegramId: init.telegramId, list, now: d.now() }).catch(() => "");
+    if (!token) return state("Couldn't open this just now", ["Nothing was sent. Try again in a minute."], 503);
+  } else if (req.method === "POST") {
+    token = fields.get("t") ?? ""; // an action: the session's own value in the form (a cookie alone approves nothing)
   } else {
     const list = url.searchParams.get("list") ?? "";
     if (/^[0-9a-f]{10}$/.test(list)) return html(renderBootstrap(list)); // the Mini App page: reads Telegram's signed data and posts it back
     token = cookieOf(req, "tf_s");
-    if (!token) return state("This link isn't valid", ["It may be cut short or changed. " + NEW_LINK], 403);
+    // A link opened on this browser that is waiting for the phone sign-in.
+    const pending = async (): Promise<Response | null> => {
+      const lt = await verifyFileToken(cookieOf(req, "tf_l"), secret, d.now());
+      if (!lt.ok || lt.claims.k !== "l") return null;
+      const row = await sessions.login(lt.claims.j).catch(() => null);
+      if (row && !row.done_at && row.user_id === lt.claims.u && d.now() < Date.parse(row.expires_at)) return row.tries >= MAX_CODE_TRIES ? locked() : html(renderPhoneLogin({ step: row.phone ? "code" : "phone", botUrl: bot }));
+      return null;
+    };
+    if (!SESSION_ID.test(token)) return (await pending()) ?? state("This link isn't valid", ["It may be cut short or changed. " + NEW_LINK], 403);
+    // An ended session's cookie (signed out elsewhere, expired, phone changed) must not hide the sign-in a NEW link opened:
+    // the browser keeps tf_s until its Max-Age, and every read would say "signed out, open a new link" in a loop
+    // (scenarios-file-signin.test.ts). The pending sign-in wins and the dead cookie is cleared.
+    checked = await check(token);
+    if (!checked.ok && checked.why !== "error") {
+      const p = await pending();
+      if (p) { p.headers.append("set-cookie", CLEAR_SESSION); return p; }
+    }
   }
 
-  const check = await verifyFileToken(token, secret, d.now());
-  if (!check.ok) return bad(check.why);
-  if (check.claims.k !== "s") return bad("malformed");
-  const claims = check.claims;
+  // ---- every private read and action: the session again, checked against the account right now
+  const s = checked ?? await check(token);
+  if (!s.ok) return signedOut(s.why);
+  if (action === "signout" || action === "signout_all") {
+    const ok = await (action === "signout" ? sessions.revoke(s.idHash, d.now()) : sessions.revokeAll(s.userId, d.now())).then(() => true, () => false);
+    if (!ok) return state("Couldn't sign out just now", ["You are still signed in. Try again in a minute."], 503);
+    return new Response(renderLinkState("Signed out", [action === "signout" ? "You are signed out on this device." : "You are signed out everywhere this page was open.", "Open a new link from Trainee to sign in again."], bot), { status: 200, headers: [...Object.entries(await headers("text/html; charset=utf-8", d.env)), ["set-cookie", CLEAR_SESSION]] });
+  }
+  const claims = { u: s.userId, r: s.list, k: "s", j: "0".repeat(16), i: 0, e: Date.parse(s.row.expires_at) } as FileClaims;
   const { u } = claims;
-  const action = req.method === "POST" ? (fields.get("action") ?? "") : "";
   if (d.files) {
     const g = await d.files.get(u, claims.r).catch(() => null);
     if (g && g.state !== "missing") return handleKind({ g, d, claims, token, action, fields, req, html, text, state });

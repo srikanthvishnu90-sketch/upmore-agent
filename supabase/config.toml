@@ -68,6 +68,10 @@ verify_jwt = false
 [functions.trainee-file]
 verify_jwt = false
 
+# Hosted account-connect page: the signed, expiring, single-use link (or Telegram's signed Mini App data) is the credential.
+[functions.trainee-connect]
+verify_jwt = false
+
 # Owner monitoring: the scheduler carries no JWT; the OPS_MONITOR_TOKEN authenticates in the handler.
 [functions.ops-monitor]
 verify_jwt = false

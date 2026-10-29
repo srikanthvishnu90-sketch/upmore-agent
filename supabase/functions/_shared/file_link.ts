@@ -1,14 +1,14 @@
-// Signed, expiring, single-user link tokens for the hosted jobs list page.
+// Signed, expiring link tokens for the hosted file pages.
 //
-// The bot mints a token only for the person whose linked Telegram identity (phone share) it already resolved, so the token is
-// a capability for ONE person's ONE list, never the first proof of who someone is. The claims are opaque (user id, list id,
-// two times); every page read is scoped to the user id inside the signed claims. No password, no code typed anywhere.
+// A link token says WHICH list (user id, list id, two times) and is signed so it cannot be altered; it is NOT proof of who
+// opened it (owner, 2026-10-29): a forwarded or copied link reaches whoever holds it. So a link opens a phone sign-in and
+// nothing private (./file_session.ts): the code goes to the confirmed phone of the account in the claims, and only a code
+// that proves that account starts a session. The link is used up by that sign-in, once.
 //
 //   v1.<base64url claims JSON>.<base64url HMAC-SHA-256("v1." + claims, TRAINEE_FILE_LINK_SECRET)>
 export const FILE_TTL_MS = 24 * 3600_000;
-export const SESSION_TTL_MS = 2 * 3600_000; // a Mini App session, minted after Telegram's signed initData checks out
-// k "l": the link the bot sends (single-use: exchanged once for a session cookie, never accepted again); k "s": a session (cookie or
-// Mini App), accepted for reading and, with its own value in a form field, for actions. j: a random id, used to take a link once.
+// k "l": the link the bot sends (opens a phone sign-in; used up by it, once). k "s": kept for the token format only; sessions are
+// server side now (file_session.ts) and the page never accepts a signed "s" token. j: a random id, the link's sign-in row.
 export type TokenKind = "l" | "s";
 export interface FileClaims { u: string; r: string; k: TokenKind; j: string; i: number; e: number }
 export type FileTokenCheck =

@@ -1,6 +1,6 @@
 // /file -> the trainee-file edge function, served as a real HTML page. Supabase answers an edge function's HTML as
 // text/plain on its own domain, so this thin proxy (no logic, no secrets beyond the function's public URL) returns the same
-// body as HTML with the page's security headers. The signed token in the link is the only credential.
+// body as HTML with the page's security headers. The function signs people in itself (phone code or Telegram).
 const UPSTREAM = process.env.TRAINEE_FILE_UPSTREAM; // e.g. https://<project>.supabase.co/functions/v1/trainee-file
 const KEEP = ["cache-control", "referrer-policy", "x-robots-tag", "x-content-type-options", "content-security-policy"];
 const PASS_REQ = ["cookie", "user-agent"];
@@ -18,7 +18,9 @@ async function pass(request) {
   const wantsText = src.searchParams.get("format") === "text";
   const h = new Headers({ "content-type": wantsText ? "text/plain; charset=utf-8" : "text/html; charset=utf-8" });
   for (const k of KEEP) { const v = r.headers.get(k); if (v) h.set(k, v); }
-  const sc = r.headers.get("set-cookie"); if (sc) h.append("set-cookie", sc);
+  // Each cookie as its own header (a sign-in sets the session and clears the pending link in one answer; joined, both break).
+  const cookies = typeof r.headers.getSetCookie === "function" ? r.headers.getSetCookie() : [r.headers.get("set-cookie")].filter(Boolean);
+  for (const c of cookies) h.append("set-cookie", c);
   if (r.status >= 300 && r.status < 400 && r.headers.get("location")) h.set("location", "/file"); // the clean URL on this site, never the upstream path
   return new Response(r.status >= 300 && r.status < 400 ? null : body, { status: r.status, headers: h });
 }

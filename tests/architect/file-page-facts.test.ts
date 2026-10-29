@@ -2,7 +2,8 @@
 // trainee-telegram, and the list page's Apply screens the posting against them. Fake admin and stores, no network.
 import assert from "node:assert/strict";
 import { CareerProfile } from "../../supabase/functions/_shared/router_core.career.js";
-import { mintFileToken } from "../../supabase/functions/_shared/file_link.ts";
+import { signedIn } from "./file-session-fakes.ts";
+const A = signedIn();
 import { jobViewOf, refOf } from "../../supabase/functions/_shared/telegram_jobs.ts";
 import { buildFileDeps } from "../../supabase/functions/trainee-file/deps.ts";
 import { handleFile, type FileStore } from "../../supabase/functions/trainee-file/handler.ts";
@@ -39,10 +40,10 @@ async function applyOnList(acct: unknown) {
     async claimLink() { return true; },
   } as unknown as FileStore;
   const built = buildFileDeps(adminWith(acct, reads), env, () => NOW);
-  const d = { ...built, store };
+  const d = { ...built, ...A.deps, store };
   const v = jobViewOf(hit, row as any), ref = await refOf(U, v.job_id);
   await store.remember(U, ref, v, "text"); await store.rememberList(U, LIST, [ref]);
-  const t = (await mintFileToken({ secret: SECRET, userId: U, list: LIST, now: NOW }))!;
+  const t = await A.tok(U, LIST, NOW);
   const res = await handleFile(new Request("https://x.example/f", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ t, action: "apply", ref, tag: "none" }).toString() }), d);
   return { built, text: await res.text(), wants, reads };
 }

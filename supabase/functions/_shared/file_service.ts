@@ -10,6 +10,7 @@ export interface FileKindStore {
   get(userId: string, id: string): Promise<FileRecord | null>;
   patch(userId: string, id: string, state: Record<string, unknown>): Promise<void>; // merges into the record's state
   revoke(userId: string, id: string, at: number): Promise<boolean>;
+  claim(userId: string, id: string, name: string, at: number): Promise<boolean>; // atomic once-only: true for the first caller of (user, file, name) only
 }
 export type FileRead = { state: "ok"; rec: FileRecord } | { state: "expired" | "revoked"; rec: FileRecord } | { state: "missing" };
 // A row of the person's own application record (career_apply_jobs). The ONLY place "From Trainee's records" values come from.
@@ -22,6 +23,7 @@ export interface FileService {
   patchState(userId: string, id: string, state: Record<string, unknown>): Promise<void>;
   revoke(userId: string, id: string): Promise<boolean>;
   ttlHours(): number;
+  claim(userId: string, id: string, name: string): Promise<boolean>;
 }
 
 const STATUS: Record<string, string> = { queued: "queued", driving: "prepared", needs_user: "prepared", submitted_unconfirmed: "submitted", confirmed: "confirmed", failed: "failed", not_submitted: "failed" };
@@ -31,7 +33,6 @@ export function proofFromRow(row: ApplicationRow, now: number): { ok: true; data
   const status = STATUS[row.state];
   if (!status) return { ok: false, error: `the application's outcome is not known (recorded as ${row.state}), so there is nothing to show` };
   const reason = String(row.reason ?? "").trim();
-  const sent = status === "submitted" || status === "confirmed";
   const fields = (Array.isArray((row.payload as any)?.fields) ? (row.payload as any).fields : []) as any[];
   const answers = fields.filter((f) => f && !SECRETISH.test(`${f.name ?? ""} ${f.label ?? ""}`) && !/file/i.test(String(f.type ?? "")) && String(f.value ?? "").trim())
     .slice(0, 30).map((f) => ({ question: String(f.label ?? f.name ?? "Field").replace(/\s+/g, " ").trim().slice(0, 80), answer: String(f.value).replace(/\s+/g, " ").trim().slice(0, 500), source: "From Trainee's records" }));
@@ -39,7 +40,8 @@ export function proofFromRow(row: ApplicationRow, now: number): { ok: true; data
     : row.state === "needs_user" && reason ? [{ item: "Waiting for you", outcome: "skipped", reason: reason.slice(0, 300) }] : [];
   const rn = String((row.payload as any)?.resume_name ?? "").replace(/\s+/g, " ").trim().slice(0, 100);
   const dest = (() => { try { return new URL(String(row.url ?? "")).hostname.replace(/^www\./, ""); } catch { return ""; } })();
-  return { ok: true, data: { title: `Application to ${row.company}`.slice(0, 80), company: row.company, status, prepared_at: row.created_at, as_of: row.updated_at, ...(sent ? { submitted_at: row.updated_at } : {}),
+  return { ok: true, data: { title: `Application to ${row.company}`.slice(0, 80), company: row.company, status, prepared_at: row.created_at, as_of: row.updated_at,
+    // No submit time: the row has none (claimed_at is when the drive started, not when it was sent), so the page says "Last updated".
     ...(status === "confirmed" && row.confirmation_id ? { confirmation: { id: row.confirmation_id } } : {}), ...(dest ? { destination: dest } : {}), ...(rn ? { resume: rn } : {}), answers, problems } };
 }
 
@@ -74,6 +76,7 @@ export function createFileService(o: { store: FileKindStore; env: Env; now: () =
       return o.now() >= rec.expires_at ? { state: "expired", rec } : { state: "ok", rec };
     },
     patchState: (userId, id, state) => o.store.patch(userId, id, state),
+    claim: (userId, id, name) => o.store.claim(userId, id, name, o.now()),
     revoke: (userId, id) => o.store.revoke(userId, id, o.now()),
   };
 }
@@ -83,12 +86,14 @@ export function memoryFileStore(): FileKindStore & { size(): number; all(): File
   const m = new Map<string, FileRecord>();
   const k = (u: string, id: string) => `${u}|${id}`;
   const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x));
+  const claims = new Set<string>();
   return {
     size: () => m.size, all: () => [...m.values()].map(copy),
     async put(r) { m.set(k(r.userId, r.id), copy(r)); },
     async get(u, id) { const r = m.get(k(u, id)); return r ? copy(r) : null; },
     async patch(u, id, state) { const r = m.get(k(u, id)); if (r) r.state = { ...r.state, ...copy(state) }; },
     async revoke(u, id, at) { const r = m.get(k(u, id)); if (!r || r.revoked_at !== null) return false; r.revoked_at = at; return true; },
+    async claim(u, id, name) { const key = `${k(u, id)}|claim|${name}`; if (claims.has(key)) return false; claims.add(key); return true; }, // no await between check and set: atomic
   };
 }
 
@@ -108,5 +113,12 @@ export function supabaseFileKindStore(admin: any): FileKindStore {
     put: write, get: read,
     async patch(u, id, state) { const r = await read(u, id); if (r) await write({ ...r, state: { ...r.state, ...state } }); },
     async revoke(u, id, at) { const r = await read(u, id); if (!r || r.revoked_at !== null) return false; await write({ ...r, revoked_at: at }); return true; },
+    // Insert-if-absent on the table's unique (user_id, key): the database lets exactly one concurrent insert win. Any other error is surfaced, never treated as won.
+    async claim(u, id, name, at) {
+      const r = await admin.from("career_watch_kv").insert({ user_id: u, key: `tf:claim:${id}:${name}`, value: { at: new Date(at).toISOString() }, updated_at: new Date(at).toISOString() });
+      if (!r.error) return true;
+      if (r.error.code === "23505") return false;
+      throw new Error(`claim: ${r.error.message}`);
+    },
   };
 }

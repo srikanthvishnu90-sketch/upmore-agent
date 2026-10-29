@@ -106,7 +106,7 @@ Deno.test("application_proof is built from the record: every value comes from th
   const r = await w.svc.create(U, "application_proof", { application_id: "job-1" });
   assert(r.ok, JSON.stringify(r));
   const d = (await w.store.get(U, (r as { id: string }).id))!.data;
-  eq([d.company, d.status, d.confirmation, d.submitted_at, d.destination, d.resume, d.from_record], ["Acme", "confirmed", { id: "GH-4471" }, "2026-10-28T10:00:00.000Z", "boards.greenhouse.io", "ada-resume.pdf", true]);
+  eq([d.company, d.status, d.confirmation, d.submitted_at, d.destination, d.resume, d.from_record], ["Acme", "confirmed", { id: "GH-4471" }, undefined, "boards.greenhouse.io", "ada-resume.pdf", true]);
   eq(d.answers.map((a: any) => [a.question, a.answer, a.source]), [["First name", "Ada", "From Trainee's records"]], "secrets and files are not copied");
   const text = textOf((await w.store.get(U, (r as { id: string }).id))!, { now: NOW });
   assert(text.includes("Company: Acme [From Trainee's records]"));
@@ -136,4 +136,40 @@ Deno.test("a stored application proof that code did not build from a record is n
 Deno.test("the records label renders only on an application proof built from a record", () => {
   const rec: FileRecord = { id: "0123456789", userId: U, kind: "research_brief", data: { ...BRIEF, findings: [{ label: "Pay", value: "$200k", source: "From Trainee's records" }] }, state: {}, tag: null, created_at: NOW, expires_at: NOW + 1e6, revoked_at: null };
   assert(!textOf(rec, { now: NOW }).includes("$200k"), "an unsourced fact is not rendered");
+});
+
+// ---- round 3 probes
+Deno.test("probe r3-3: more placeholders, spaced-out letters and Cyrillic/Greek look-alikes are refused (small denylist, by design)", () => {
+  for (const v of ["none given", "Pending", "not disclosed", "u n k n o w n", "U N K N O W N.", "unknоwn" /* Cyrillic o */, "unkոown".replace("ո", "n"), "υnknown" /* Greek upsilon */, "ΝΑ" /* Greek capital nu + alpha */, "tbd".replace("b", "ь"), "n​/​a"]) {
+    const x = clone(BRIEF); x.findings[0].value = v;
+    assert(!validateKind("research_brief", x).ok, `${JSON.stringify(v)} accepted`);
+  }
+  const ok = clone(BRIEF); ok.findings[0].value = "Pending FDA review of the new device"; assert(validateKind("research_brief", ok).ok, "a real sentence that starts with a denylisted word is fine");
+  const ok2 = clone(BRIEF); ok2.findings[0].value = "A B testing platform"; assert(validateKind("research_brief", ok2).ok);
+  const sp = clone(BRIEF); sp.findings[0].value = "Pythоn [Frоm the posting]"; assert(!validateKind("research_brief", sp).ok, "look-alike spoof of a label");
+});
+Deno.test("probe r3-2: two simultaneous Introduce taps attempt exactly one send", async () => {
+  const store = memoryFileStore();
+  const svc = createFileService({ store, env: { get: (k) => ENV[k] }, now: () => NOW });
+  const made = (await svc.create(U, "introduction", INTRO)) as { id: string };
+  let sends = 0;
+  const stub: FileStore = { async remember() {}, async recall() { return null; }, async rememberList() {}, async recallList() { return null; }, async postings() { return []; }, async save() { return "saved"; }, async prepared() { return null; }, async applied() { return false; },
+    async want() { return { result: "queued" }; }, async appRow() { return null; }, async claimLink() { return true; }, async wanted() { return false; } };
+  const d: FileDeps = { store: stub, now: () => NOW, env: { get: (k) => ENV[k] }, cards: { async open() { throw new Error("no"); } }, tap: {} as never, files: svc,
+    fileEffects: { async introduce() { sends++; await new Promise((r) => setTimeout(r, 15)); return { ok: true }; } } };
+  const t = (await mintFileToken({ secret: SECRET, userId: U, list: made.id, now: NOW, kind: "s" }))!;
+  const tag = (await store.get(U, made.id))!.tag!;
+  const tap = (action: string) => handleFile(new Request("https://x.example/f", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ t, action, tag }).toString() }), d);
+  await Promise.all([tap("introduce"), tap("introduce"), tap("introduce"), tap("pass")]);
+  const choice = (await store.get(U, made.id))?.state.choice;
+  eq(sends, choice === "passed" ? 0 : 1, `${sends} sends attempted, choice ${choice}: exactly one decision wins, and Pass and Introduce exclude each other`);
+});
+Deno.test("probe r3-1: a proof built from a row says 'Last updated', never 'Submitted' (the row has no submit time)", async () => {
+  const store = memoryFileStore();
+  const svc = createFileService({ store, env: { get: (k) => ENV[k] }, now: () => NOW, records: { async application() { return { state: "confirmed", reason: null, confirmation_id: "GH-1", created_at: "2026-10-28T09:00:00Z", updated_at: "2026-10-28T10:00:00Z", company: "Acme", payload: {} } as never; } } });
+  const r = (await svc.create(U, "application_proof", { application_id: "j" })) as { id: string };
+  const rec = (await store.get(U, r.id))!;
+  eq(rec.data.submitted_at, undefined);
+  const t = textOf(rec, { now: NOW });
+  assert(/Last updated: Oct 28, 10:00 UTC/.test(t) && !/Submitted:/.test(t), t);
 });

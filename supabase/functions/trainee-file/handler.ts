@@ -286,7 +286,7 @@ async function handleKind(o: { g: Exclude<Awaited<ReturnType<FileService["get"]>
     return o.state("File removed", ["This file is removed. The link no longer opens it."], 200);
   }
   if (action) {
-    const r = await actOn(rec, action, fields, d.now(), d.fileEffects, (patch) => files.patchState(u, rec.id, patch));
+    const r = await actOn(rec, action, fields, d.now(), d.fileEffects, (patch) => files.patchState(u, rec.id, patch), () => files.claim(u, rec.id, "choice"));
     if (r.status === 400) return o.state("Not done", [r.note], 400);
     if (r.patch) await files.patchState(u, rec.id, r.patch);
     note = r.note;

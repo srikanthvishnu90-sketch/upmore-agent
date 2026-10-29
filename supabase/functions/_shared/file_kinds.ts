@@ -29,9 +29,22 @@ export type Validated = { ok: true; data: any } | { ok: false; errors: string[] 
 // ---------------------------------------------------------------- validation helpers
 // Normalised before comparing: Unicode folded, zero-width and format characters dropped, everything but letters and digits turned into
 // single spaces, lower case. So "n/a.", "TBD.", "unknown" + a zero-width space, an em dash and "..." all read as what they are.
-const PLACEHOLDERS = new Set(["unknown", "n a", "na", "none", "null", "undefined", "nil", "tbd", "tba", "tbc", "todo", "tk", "xxx", "not known", "unknown value", "not given", "not stated", "not available", "not specified", "not applicable", "not provided", "unspecified", "undisclosed", "to be determined", "to be announced", "to be confirmed", "placeholder", "redacted", "empty", "blank", "no data", "no info", "no information", "nothing", "lorem ipsum"]);
-const fold = (t: string) => t.normalize("NFKC").replace(/[\p{Cf}]/gu, "");
-const isPlaceholder = (t: string) => { const n = fold(t).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim(); return n === "" || PLACEHOLDERS.has(n); };
+// The denylist is deliberately small: it catches the usual stand-ins, not every way of saying "no value". The schema's real defence is
+// that a fact needs a source label and the fact guard checks it against what the person or a tool said.
+const PLACEHOLDERS = new Set(["none given", "pending", "not disclosed", "unknown", "n a", "na", "none", "null", "undefined", "nil", "tbd", "tba", "tbc", "todo", "tk", "xxx", "not known", "unknown value", "not given", "not stated", "not available", "not specified", "not applicable", "not provided", "unspecified", "undisclosed", "to be determined", "to be announced", "to be confirmed", "placeholder", "redacted", "empty", "blank", "no data", "no info", "no information", "nothing", "lorem ipsum"]);
+// Look-alike letters from Cyrillic and Greek, mapped to the Latin letter they imitate (a small map, not the full Unicode confusables table).
+const CONFUSABLE = new Map(Object.entries({ "\u0430": "a", "\u0435": "e", "\u043E": "o", "\u0440": "p", "\u0441": "c", "\u0443": "y", "\u0445": "x", "\u043A": "k", "\u043D": "h", "\u0432": "b", "\u043C": "m", "\u0442": "t", "\u044C": "b", "\u0456": "i", "\u0458": "j", "\u0455": "s", "\u0501": "d", "\u04CF": "l",
+  "\u03B1": "a", "\u03BF": "o", "\u03BD": "v", "\u03C5": "u", "\u03C1": "p", "\u03B5": "e", "\u03B9": "i", "\u03BA": "k", "\u03C4": "t", "\u03C7": "x", "\u03B7": "n", "\u03B2": "b", "\u03B3": "y" }));
+// Capitals first (Greek capital Nu looks like N, its lower case looks like v), then lower case.
+for (const [from, to] of [["\u0391", "a"], ["\u0392", "b"], ["\u0395", "e"], ["\u0396", "z"], ["\u0397", "h"], ["\u0399", "i"], ["\u039A", "k"], ["\u039C", "m"], ["\u039D", "n"], ["\u039F", "o"], ["\u03A1", "p"], ["\u03A4", "t"], ["\u03A5", "y"], ["\u03A7", "x"],
+  ["\u0410", "a"], ["\u0412", "b"], ["\u0415", "e"], ["\u041A", "k"], ["\u041C", "m"], ["\u041D", "h"], ["\u041E", "o"], ["\u0420", "p"], ["\u0421", "c"], ["\u0422", "t"], ["\u0423", "y"], ["\u0425", "x"]]) CONFUSABLE.set(from, to);
+const fold = (t: string) => [...t.normalize("NFKC").replace(/[\p{Cf}]/gu, "")].map((c) => CONFUSABLE.get(c) ?? c).join("").toLowerCase();
+const isPlaceholder = (t: string) => {
+  let n = fold(t).replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const parts = n.split(" ");
+  if (parts.length > 1 && parts.every((p) => p.length === 1)) n = parts.join(""); // "u n k n o w n" and "n a"
+  return n === "" || PLACEHOLDERS.has(n);
+};
 // Template tokens ("[Your Name]", "{{first_name}}", "<name>") are never an approvable fact or message.
 const TEMPLATE = /\[[^\]\n]{1,60}\]|\{\{[^}]*\}\}|\{[A-Za-z_ ]{2,30}\}|<[^>\n]{1,40}>|\byour[_ ](?:name|company|title|role)\b|\binsert\b/i;
 // Text that imitates a source label inside a value ("Python [From the posting]") would pass for one.
@@ -122,8 +135,9 @@ const KINDS: Record<Exclude<KindId, "job_list">, (raw: unknown, v: V) => any> = 
     const submitted_at = v.time(x.submitted_at, "submitted_at"), prepared_at = v.time(x.prepared_at, "prepared_at"), as_of = v.time(x.as_of, "as_of", false);
     const has = !!(conf && (conf.id || conf.url || conf.screenshot_url));
     if (status === "queued" || status === "prepared") { if (submitted_at || has) v.err("status", `${status} cannot carry a submit time or a confirmation: nothing was submitted`); }
-    if (status === "submitted" && !submitted_at) v.err("submitted_at", "submitted needs the time it was submitted");
-    if (status === "confirmed") { if (!submitted_at) v.err("submitted_at", "confirmed needs the time it was submitted"); if (!has) v.err("confirmation", "confirmed needs a confirmation id or link from the employer"); }
+    // A row has no submit time, so code-built data carries none and the page says "Last updated"; a hand-made one must give it.
+    if (status === "submitted" && !submitted_at && !v.trusted) v.err("submitted_at", "submitted needs the time it was submitted");
+    if (status === "confirmed") { if (!submitted_at && !v.trusted) v.err("submitted_at", "confirmed needs the time it was submitted"); if (!has) v.err("confirmation", "confirmed needs a confirmation id or link from the employer"); }
     if (status === "failed" && !problems.some((p) => p.outcome === "failed")) v.err("problems", "failed needs at least one failed item with its reason");
     return { from_record: true, title: v.str(x.title, "title", { max: 80 }), company: v.str(x.company, "company", { max: 100 }), role: v.str(x.role, "role", { max: 120, opt: true }), destination: v.str(x.destination, "destination", { max: 120, opt: true }), status, prepared_at, submitted_at, as_of,
       ...(has ? { confirmation: { id: conf!.id, url: conf!.url, screenshot_url: conf!.screenshot_url } } : {}), resume: v.str(x.resume, "resume", { max: 100, opt: true }), answers, problems };
@@ -215,14 +229,17 @@ export interface ActResult { ok: boolean; status: number; note: string; patch?: 
 export interface Effects { introduce?(userId: string, rec: FileRecord): Promise<{ ok: boolean; reason?: string }> }
 // One tap. Returns the note to show and the state to keep; never throws for a refused tap.
 // `persist` stores a state patch at once: the approval is written BEFORE any send is attempted, so a crash or a second tap can never send twice.
-export async function actOn(rec: FileRecord, action: string, form: URLSearchParams, now: number, fx: Effects = {}, persist?: (patch: Record<string, unknown>) => Promise<void>): Promise<ActResult> {
+// `claim` is the atomic, once-only decision (insert-if-absent in the store): the first caller gets true, every other tap false.
+export async function actOn(rec: FileRecord, action: string, form: URLSearchParams, now: number, fx: Effects = {}, persist?: (patch: Record<string, unknown>) => Promise<void>, claim?: () => Promise<boolean>): Promise<ActResult> {
   const views = actionsOf(rec), view = views.find((a) => a.id === action);
   if (!view || action === "copy") return { ok: false, status: 400, note: "That is not something this file can do. Nothing was sent." };
   if (rec.kind === "introduction") {
     if (view.state !== "available") return { ok: false, status: 200, note: view.note ?? "Already decided." };
-    if (action === "pass") return { ok: true, status: 200, note: "Passed. Nothing was sent.", patch: { choice: "passed", at: now } };
+    const decided = { ok: false, status: 200, note: "Already decided. Nothing more was sent." };
+    if (action === "pass") { if (claim && !(await claim())) return decided; return { ok: true, status: 200, note: "Passed. Nothing was sent.", patch: { choice: "passed", at: now } }; }
     const tag = form.get("tag") ?? "";
     if (!/^[0-9a-f]{16}$/.test(tag) || tag !== rec.tag || tag !== await tagOf(rec.kind, rec.data)) return { ok: false, status: 200, note: "Changed since you opened this page, so nothing was sent." };
+    if (claim && !(await claim())) return decided; // two taps at once: only the first goes on
     await persist?.({ choice: "approved", at: now, tag });
     if (!fx.introduce) return { ok: true, status: 200, note: "Approved. Not sent: sending isn't switched on yet.", patch: { choice: "approved", at: now, tag } };
     const r = await fx.introduce(rec.userId, rec).catch((e) => ({ ok: false, reason: e instanceof Error ? e.message : "failed" }));
@@ -271,7 +288,7 @@ export function bodyHtml(rec: FileRecord, token: string): string {
       const c = d.confirmation ?? {};
       const kv = (k: string, v: unknown, s: Source = RECORDS) => v ? factHtml({ value: String(v), source: s }, k) : "";
       main = `<p class="state ${esc(d.status)}" role="status"><strong>${esc(cap1(d.status))}.</strong> ${esc(STATUS_NOTE[d.status] ?? "")}</p>`
-        + sec("What was submitted", dl(kv("Company", d.company) + kv("Role", d.role) + kv("Sent to", d.destination) + kv("Resume", d.resume) + kv("Prepared", when(d.prepared_at)) + kv("Submitted", when(d.submitted_at)) + kv("Recorded as of", when(d.as_of))))
+        + sec("What was submitted", dl(kv("Company", d.company) + kv("Role", d.role) + kv("Sent to", d.destination) + kv("Resume", d.resume) + kv("Prepared", when(d.prepared_at)) + kv("Submitted", when(d.submitted_at)) + kv("Last updated", when(d.as_of))))
         + sec("Confirmation", dl(kv("Confirmation ID", c.id)) + [linkHtml(c.url, "Open the confirmation"), linkHtml(c.screenshot_url, "Open the screenshot")].filter(Boolean).map((x) => `<p>${x}</p>`).join(""))
         + sec("Answers given", dl(Fs(d.answers, true).map((a) => factHtml(a, a.question)).join("")))
         + sec("Not done", `<ul class="why">${(d.problems ?? []).filter((p: any) => p?.reason).map((p: any) => `<li><strong>${esc(cap1(p.outcome))}:</strong> ${esc(p.item)}. ${esc(p.reason)} ${src(RECORDS)}</li>`).join("")}</ul>`.replace(/^<ul class="why"><\/ul>$/, ""))
@@ -318,7 +335,7 @@ export function textOf(rec: FileRecord, o: { now: number; url?: string }): strin
       L.push(`Status: ${cap1(d.status)}. ${STATUS_NOTE[d.status] ?? ""}`, "");
       h("What was submitted"); L.push(`- Company: ${d.company} [${RECORDS}]`);
       if (d.role) L.push(`- Role: ${d.role} [${RECORDS}]`);
-      for (const [k, v] of [["Sent to", d.destination], ["Resume", d.resume], ["Prepared", when(d.prepared_at)], ["Submitted", when(d.submitted_at)], ["Recorded as of", when(d.as_of)]]) if (v) L.push(`- ${k}: ${v} [${RECORDS}]`);
+      for (const [k, v] of [["Sent to", d.destination], ["Resume", d.resume], ["Prepared", when(d.prepared_at)], ["Submitted", when(d.submitted_at)], ["Last updated", when(d.as_of)]]) if (v) L.push(`- ${k}: ${v} [${RECORDS}]`);
       L.push(""); if (c.id || c.url || c.screenshot_url) { h("Confirmation"); if (c.id) L.push(`- Confirmation ID: ${c.id} [${RECORDS}]`); if (c.url) L.push(`- Confirmation: ${c.url}`); if (c.screenshot_url) L.push(`- Screenshot: ${c.screenshot_url}`); L.push(""); }
       if (Fs(d.answers, true).length) { h("Answers given"); Fs(d.answers, true).forEach((a) => L.push(factText(a, a.question))); L.push(""); }
       const pr = (d.problems ?? []).filter((p: any) => p?.reason); if (pr.length) { h("Not done"); pr.forEach((p: any) => L.push(`- ${cap1(p.outcome)}: ${p.item}. ${p.reason} [${RECORDS}]`)); L.push(""); }

@@ -12,15 +12,17 @@
 // - Apply never sends. Tapping it shows the EXACT prepared application (the posting, the one resume it was prepared with, every
 //   answer, the cover note) with Confirm / Edit / Cancel. Confirm is the hash-bound approval (D-MS-1): the button carries the
 //   first 16 hex of the prepared payload's hash, the payload is read again at the tap, and a payload that changed since it was
-//   shown is refused, never sent. Confirm then goes through the same card-answer path as the Approve button (tapCard), so the
-//   database re-checks the hash, once, within the card's window.
+//   shown is refused, never sent. Confirm then opens and answers a card of that one payload in ONE transaction
+//   (career_apply_card_confirm_as: the same card-answer function as the Approve button), so the database re-checks the hash,
+//   once, and two approvals at once cannot close each other's card in between (a store without it: open, then tapCard).
 // - With no prepared application yet (the prepare worker is not connected), Apply queues the posting to be prepared and says so:
 //   queued, not applied. Nothing is claimed that did not happen.
 // - Only an exact duplicate (this person, this posting) blocks an application (D-MS-3). LinkedIn, Indeed and Handshake postings
 //   are never automated: the card says to apply there yourself and links the posting.
 // - Per-chat isolation: every button's reference is derived from the person and the posting (sha256 of "<user>|<job id>"), every
 //   read is scoped to the person who tapped, and a tap from a chat that is no one's account never reaches this file.
-import { type CardStore } from "./career_apply_cards.ts";
+import { answerText, type CardResult, type CardStore } from "./career_apply_cards.ts";
+import { recordEvents } from "./agent/timeline.ts";
 import { chatScreenFacts, contentOf } from "./career_apply_gate.ts";
 import { statedFactsBefore } from "./career_account_memory.ts";
 import { CareerProfile } from "./router_core.career.js";
@@ -63,7 +65,7 @@ export interface JobStore {
 
 export interface JobDeps {
   store: JobStore;
-  cards: Pick<CardStore, "open">;
+  cards: Pick<CardStore, "open"> & Partial<Pick<CardStore, "confirm">>; // confirm: one card opened and answered at once (the deployed store has it)
   tap: TapStore;
   now: () => number;
   env: { get(k: string): string | undefined };
@@ -527,14 +529,20 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
 
   // Confirm: the hash-bound approval. The payload is read again now; the tag on the button must be the tag of what is on file.
   if (t.op === "confirm") {
-    const prep = await deps.store.prepared(userId, job.job_id).catch(() => null);
-    if (!prep || hashTag(prep.payload_hash) !== t.tag) {
-      await say(`That application changed after I showed it, so nothing was approved. Tap Apply on the card again to see the current one.`);
-      return { toast: "Changed. Nothing approved.", status: "changed" };
-    }
-    if (await deps.store.applied(userId, job.job_id).catch(() => false)) {
+    // Already in the applications (approved by another tap at the same moment, on another device, or sent elsewhere): that is
+    // what is said, never "changed" or "could not open": the payload it approved is no longer a ready one, so check this first,
+    // and again whenever the approval below finds the prepared application gone.
+    const applied = () => deps.store.applied(userId, job.job_id).catch(() => false);
+    const duplicate = async (): Promise<JobTapResult> => {
       await say(`You already have ${job.company} in your applications, so I won't queue it twice.`);
       return { toast: "Already applied.", status: "duplicate" };
+    };
+    if (await applied()) return duplicate();
+    const prep = await deps.store.prepared(userId, job.job_id).catch(() => null);
+    if (!prep || hashTag(prep.payload_hash) !== t.tag) {
+      if (!prep && await applied()) return duplicate();
+      await say(`That application changed after I showed it, so nothing was approved. Tap Apply on the card again to see the current one.`);
+      return { toast: "Changed. Nothing approved.", status: "changed" };
     }
     if (byHandUrl(job.url) || byHandUrl(String((prep.payload as Record<string, unknown>)?.destination ?? prep.url ?? ""))) {
       await say(`I don't apply on LinkedIn, Indeed or Handshake for you, so nothing was approved. Open it and apply there yourself:\n${job.url}`);
@@ -543,8 +551,34 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
     if (secretFields(prep).length) { await say(`That application has a field that needs you (a password, code or similar), so nothing was approved. Finish it yourself on the employer's form:\n${prep.url}`); return { toast: "Needs you.", status: "needs_you" }; }
     const screened = await screenedOut(userId, job, deps);
     if (screened) { await say(`Nothing was approved: ${screened}`); return { toast: "Not approved.", status: "screened" }; }
+    if (deps.cards.confirm) {
+      // One transaction: the card opened and answered together, bound to exactly this hash, so no other approval running at the
+      // same moment can close it in between (two at once each approve their own; the same posting twice goes once).
+      let got: { card?: { id: string }; results: CardResult[] };
+      try { got = await deps.cards.confirm(userId, [prep.id], [prep.payload_hash]); } catch (e) {
+        if (await applied()) return duplicate();
+        if (/card_changed|invalid card/.test(String((e as Error)?.message ?? e))) {
+          await say(`That application changed after I showed it, so nothing was approved. Tap Apply on the card again.`);
+          return { toast: "Changed. Nothing approved.", status: "changed" };
+        }
+        await say("I couldn't open the approval just now, so nothing was approved. Tap Confirm again in a minute.");
+        return { toast: "Nothing approved.", status: "failed" };
+      }
+      const results = Array.isArray(got?.results) ? got.results : [];
+      await recordEvents(deps.events ?? null, results.map((r) => ({
+        user_id: userId, at: deps.now(), kind: r.result === "queued" ? "application_approved" : "status_change", subject: r.company,
+        detail: { card: got.card?.id ?? null, n: r.n, result: r.result, via: "telegram button" }, source: "card",
+      })));
+      if (results.length === 1 && results[0].result === "queued") { await say(QUEUED_REPLY(job.company, job.title)); return { toast: "Confirmed, queued.", status: "confirmed" }; }
+      if (results.length && results.every((r) => r.result === "duplicate")) return duplicate();
+      await say(answerText(results, {}));
+      return { toast: "Nothing approved.", status: "answered" };
+    }
     let card;
-    try { card = await deps.cards.open(userId, [prep.id]); } catch { await say("I couldn't open the approval just now, so nothing was approved. Tap Confirm again in a minute."); return { toast: "Nothing approved.", status: "failed" }; }
+    try { card = await deps.cards.open(userId, [prep.id]); } catch {
+      if (await applied()) return duplicate();
+      await say("I couldn't open the approval just now, so nothing was approved. Tap Confirm again in a minute."); return { toast: "Nothing approved.", status: "failed" };
+    }
     if (card.items?.length !== 1 || card.items[0].prepared_id !== prep.id || card.items[0].payload_hash !== prep.payload_hash) {
       await say(`That application changed after I showed it, so nothing was approved. Tap Apply on the card again.`);
       return { toast: "Changed. Nothing approved.", status: "changed" };

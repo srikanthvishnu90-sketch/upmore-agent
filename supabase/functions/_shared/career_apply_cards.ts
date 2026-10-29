@@ -43,6 +43,11 @@ export interface CardResult {
 export interface CardStore {
   pending(userId: string): Promise<Prepared[]>; // ready, or shown on a card that closed: oldest first
   open(userId: string, ids: string[]): Promise<Card>;
+  // One Confirm (the jobs page's Apply, Telegram's Confirm): open a card of exactly these prepared applications, each still at
+  // exactly the hash the person approved, and approve every item, in ONE transaction (career_apply_card_confirm_as). Opening a
+  // card closes the person's other open cards, so an open and an answer in two calls let two approvals at once close each
+  // other's card and both approve nothing. Throws card_changed (a hash differs) or invalid card (no longer open to approve).
+  confirm?(userId: string, ids: string[], hashes: string[]): Promise<{ card: Card; results: CardResult[] }>;
   latestOpen(userId: string): Promise<Card | null>;
   answer(userId: string, cardId: string, approve: number[]): Promise<CardResult[]>;
   lastAssistantIntent(threadId: string): Promise<string | null>;
@@ -639,6 +644,9 @@ export function supabaseCardStore(admin: any): CardStore {
     },
     async open(userId, ids) {
       return must(await admin.rpc("career_apply_card_open_as", { p_user: userId, p_ids: ids }), "open a card");
+    },
+    async confirm(userId, ids, hashes) {
+      return must(await admin.rpc("career_apply_card_confirm_as", { p_user: userId, p_ids: ids, p_hashes: hashes }), "confirm a card");
     },
     async latestOpen(userId) {
       const rows = must(

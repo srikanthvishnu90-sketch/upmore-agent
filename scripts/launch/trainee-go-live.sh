@@ -224,6 +224,7 @@ MIGRATIONS=(
   20261029200000_career_connector_disconnect_rules.sql
   20261029230000_trainee_file_sessions.sql
   20261030000000_career_outbox_parts_order.sql
+  20261030010000_career_apply_card_confirm.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -327,6 +328,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_send_go') and exists (select 1 from pg_proc where proname = 'career_connector_waiting')"
   "to_regclass('public.trainee_file_sessions') is not null and to_regclass('public.trainee_file_logins') is not null and exists (select 1 from pg_proc where proname = 'trainee_file_login_count') and exists (select 1 from pg_proc where proname = 'trainee_file_sessions_revoke_all')"
   "exists (select 1 from pg_proc where proname = 'career_outbox_claim' and prosrc like '%e.id not in (select x.id from cand x)%') and exists (select 1 from pg_proc where proname = 'career_outbox_claim_user' and prosrc like '%e.id not in (select x.id from cand x)%') and exists (select 1 from pg_constraint where conname = 'career_outbox_part' and pg_get_constraintdef(oid) not like '%<= 50%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_card_confirm_for') and exists (select 1 from pg_proc where proname = 'career_apply_card_confirm_as')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

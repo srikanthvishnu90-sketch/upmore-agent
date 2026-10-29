@@ -8,8 +8,11 @@
 //
 // The Apply tap IS the approval: it carries the first 16 hex of the payload hash shown for that row, the payload is read again
 // at the tap, and a payload that changed since the page was drawn is refused with a refresh prompt (D-MS-1). The approval runs
-// through tapJob's Confirm (the same path as Telegram's Confirm button: cards.open then tapCard, once). "Apply to all" carries
-// the hash of the exact set shown; it approves nothing unless the set is still exactly that.
+// through tapJob's Confirm (the same path as Telegram's Confirm button: one card opened and answered in one transaction, once).
+// "Apply to all" carries the hash of the exact set shown; it approves nothing unless the set is still exactly that when it is
+// read. Taps at once are each judged against the list as it is when they run: an Apply that queued a row first changes the set
+// (the Apply to all then approves nothing and says so); an Apply to all that ran first leaves that Apply "Already in your
+// applications". Either way each posting is approved once.
 import { FILE_TTL_MS, verifyFileToken, type FileClaims } from "../_shared/file_link.ts";
 import { checkSession, CLEAR_LOGIN, CLEAR_SESSION, codeOf, LOGIN_TTL_MS, loginCookie, MAX_CODE_SENDS, MAX_CODE_TRIES, normalizePhone, SESSION_ID, sessionCookie, startSession, type PhoneAuth, type SessionStore } from "../_shared/file_session.ts";
 import { verifyInitData } from "../_shared/telegram_webapp.ts";

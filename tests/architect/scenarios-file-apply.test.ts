@@ -56,7 +56,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 const dayOf = (iso: string | null | undefined) => { const t = iso ? Date.parse(iso) : NaN; if (Number.isNaN(t)) return null; const d = new Date(t); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; };
 
 // ---------------------------------------------------------------- the world: each posting's truth
-interface Prep { id: string; payload: Record<string, unknown>; hash: string; state: "ready" | "approved" | "declined" | "expired"; secrets: string[]; hidden: string[]; needsYou: boolean }
+interface Prep { id: string; payload: Record<string, unknown>; hash: string; state: "ready" | "shown" | "approved" | "declined" | "expired"; secrets: string[]; hidden: string[]; needsYou: boolean }
 interface Post {
   spec: PostingSpec; n: number; job: JobView; ref: string; url: string; jobId: string; ownDomain: string | null; row: PostingRow | null; deadline: string | null;
   hashes: string[]; // every payload hash this row ever had (stale tags come from here)
@@ -158,7 +158,9 @@ const appRowOf = (a: App, company: string, now: number): AppRow => ({ id: `app-$
   email_confirmed_at: null, payload: a.payload, company, url: a.url });
 
 // ---------------------------------------------------------------- the memory world (the database's rules as plain code)
-async function memWorld(s: Scenario, auth: ReturnType<typeof signedIn>): Promise<World> {
+// hooks.approving: awaited by every approval step that can interleave with another request's (the card read after an open, and a
+// confirm before it runs), so a test can hold requests there and force an interleaving.
+async function memWorld(s: Scenario, auth: ReturnType<typeof signedIn>, hooks: { approving?: (what: "card" | "confirm") => Promise<void> } = {}): Promise<World> {
   const now = T0;
   const posts = await postsOf(s, now, U, s.id % 1000);
   const r0 = rng(s.id * 13 + 1);
@@ -172,11 +174,12 @@ async function memWorld(s: Scenario, auth: ReturnType<typeof signedIn>): Promise
     const p = posts[i], version = p.hashes.length + 1;
     const made = payloadOf(p, spec, version, now, U);
     const hash = await sha(canonical(made.payload));
-    for (const old of preps[i]) if (old.state === "ready") old.state = "expired";
+    for (const old of preps[i]) if (old.state === "ready" || old.state === "shown") old.state = "expired";
     preps[i].push({ id: pid(), payload: made.payload, hash, state: "ready", secrets: made.secrets, hidden: made.hidden, needsYou: made.needsYou });
     p.hashes.push(hash);
   };
-  const cur = (i: number) => preps[i].findLast((x) => x.state === "ready") ?? null;
+  const cur = (i: number) => preps[i].findLast((x) => x.state === "ready" || x.state === "shown") ?? null;
+  const open = (x: Prep) => x.state === "ready" || x.state === "shown";
   for (let i = 0; i < posts.length; i++) {
     const p = posts[i].spec;
     if (p.prep) await addPrep(i, p.prep);
@@ -225,10 +228,12 @@ async function memWorld(s: Scenario, auth: ReturnType<typeof signedIn>): Promise
   const cards = new Map<string, { id: string; user_id: string; items: { n: number; prepared_id: string; payload_hash: string }[]; state: string; shown_at: string }>();
   const prepById = (id: string) => { for (let i = 0; i < preps.length; i++) for (const p of preps[i]) if (p.id === id) return { i, p }; return null; };
   const tap: TapStore = {
-    async card(u, id) { const c = cards.get(id); return c && c.user_id === u ? structuredClone(c) : null; },
+    async card(u, id) { await hooks.approving?.("card"); const c = cards.get(id); return c && c.user_id === u ? structuredClone(c) : null; },
     async prepared(u, ids) { return ids.map((id) => prepById(id)).filter(Boolean).map((x) => ({ id: x!.p.id, payload_hash: x!.p.hash, company: String(x!.p.payload.company) })); void u; },
     // career_apply_card_answer_for: once per card, each item only if it still hashes to the card's hash; career_apply_enqueue: once per posting (its id or its link).
-    async answer(u, cardId, approve) {
+    async answer(u, cardId, approve) { return answerCard(u, cardId, approve); },
+  };
+  function answerCard(u: string, cardId: string, approve: number[]) {
       const c = cards.get(cardId);
       if (!c || c.user_id !== u) throw new Error("invalid card answer");
       if (c.state !== "open") throw new Error("card_answered");
@@ -238,7 +243,7 @@ async function memWorld(s: Scenario, auth: ReturnType<typeof signedIn>): Promise
         let result: string;
         if (x.p.hash !== it.payload_hash) result = "changed";
         else if (!approve.includes(it.n)) result = "declined";
-        else if (x.p.state !== "ready") result = "refused";
+        else if (!open(x.p)) result = "refused";
         else if (sentByLink(posts[x.i].jobId, posts[x.i].url)) result = "duplicate";
         else {
           apps.set(posts[x.i].jobId, { state: "queued", reason: null, job_id: posts[x.i].jobId, url: posts[x.i].url, payload: x.p.payload, via: "approval" });
@@ -248,17 +253,29 @@ async function memWorld(s: Scenario, auth: ReturnType<typeof signedIn>): Promise
         x.p.state = result === "queued" ? "approved" : "declined";
         return { n: it.n, company: String(x.p.payload.company), result };
       });
-    },
+  }
+  // career_apply_card_open_for: every item ready or shown, each now shown; a newer card closes the person's other open cards.
+  const openCard = (u: string, ids: string[]) => {
+    const items = ids.map((id, k) => { const x = prepById(id); if (!x || !open(x.p)) throw new Error("invalid card"); return { n: k + 1, prepared_id: id, payload_hash: x.p.hash }; });
+    for (const id of ids) prepById(id)!.p.state = "shown";
+    for (const c of cards.values()) if (c.user_id === u && c.state === "open") c.state = "answered";
+    const id = `44444444-4444-4444-8444-${String(s.id * 1000 + ++cardN).padStart(12, "0")}`;
+    cards.set(id, { id, user_id: u, items, state: "open", shown_at: new Date(now).toISOString() });
+    return { id, items, shown_at: new Date(now).toISOString() };
   };
   const { facts } = profileFacts(s.needsSponsor);
   const env: Record<string, string | undefined> = { TRAINEE_FILE_LINK_SECRET: "file-link-secret-0123456789-abcdef", TRAINEE_FILE_BASE_URL: "https://trainee.example/file", TRAINEE_BOT_URL: "https://t.me/TraineeBot", TRAINEE_LOGO_URL: LOGO_TPL[s.logo] || undefined };
   const deps: FileDeps = { ...auth.deps, store, now: () => now, env: { get: (k) => env[k] }, events: null, facts: async () => facts,
-    cards: { async open(u, ids) {
-      const items = ids.map((id, k) => { const x = prepById(id); if (!x || x.p.state !== "ready") throw new Error("invalid card"); return { n: k + 1, prepared_id: id, payload_hash: x.p.hash }; });
-      const id = `44444444-4444-4444-8444-${String(s.id * 1000 + ++cardN).padStart(12, "0")}`;
-      cards.set(id, { id, user_id: u, items, state: "open", shown_at: new Date(now).toISOString() });
-      return { id, items, shown_at: new Date(now).toISOString() } as any;
-    } },
+    cards: {
+      async open(u, ids) { return openCard(u, ids) as any; },
+      // career_apply_card_confirm_for: the hashes the person approved, then the open and the answer with nothing in between.
+      async confirm(u, ids, hashes) {
+        await hooks.approving?.("confirm");
+        if (ids.some((id, k) => prepById(id)?.p.hash !== hashes[k])) throw new Error("card_changed");
+        const card = openCard(u, ids);
+        return { card, results: answerCard(u, card.id, card.items.map((x) => x.n)) } as any;
+      },
+    },
     tap };
   for (const p of posts) await store.remember(U, p.ref, p.job, "text");
   await store.rememberList(U, LIST, posts.map((p) => p.ref));
@@ -469,7 +486,35 @@ function checkPage(w: World, S: Snapshot, ex: Expect[], set: { hash: string | nu
 }
 
 // ---------------------------------------------------------------- the runner
-async function runScenario(s: Scenario, w: World, rep: Report, tok: string): Promise<Seen | null> {
+// Taps at once are judged as SOME one-at-a-time order of them (each against the list as the ones before it left it), never as
+// all of them against the list before any ran: an Apply that queued a row first legitimately changes the set an Apply to all
+// carries (it then approves nothing, by its contract), and an Apply to all that ran first leaves the Apply nothing to do. What
+// each order approves, from this file's own model of the truth: the exact current tag of an approvable row approves it; the
+// exact current set approves every member; a row approved earlier in the order is in the applications (as is its twin by link).
+function withApproved(w: World, S: Snapshot, i: number): Snapshot {
+  const p = w.posts[i];
+  const app: App = { state: "queued", reason: null, job_id: p.jobId, url: p.url, payload: S.preps[i]?.payload ?? {}, via: "approval" };
+  return { ...S, apps: S.apps.map((a, j) => a ?? (w.posts[j].jobId === p.jobId || w.posts[j].url === p.url ? app : null)) };
+}
+const ordersOf = <T,>(xs: T[]): T[][] => xs.length <= 1 ? [xs] : xs.flatMap((x, k) => ordersOf([...xs.slice(0, k), ...xs.slice(k + 1)]).map((rest) => [x, ...rest]));
+async function serialOutcomes(w: World, S0: Snapshot, reqs: { kind: string; i: number; tag?: string }[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>(); // the approved rows (sorted, joined) -> one order that approves exactly them
+  for (const order of ordersOf(reqs.map((r, k) => ({ ...r, k })))) {
+    let S = S0;
+    const approved = new Set<number>();
+    for (const r of order) {
+      const ex = expectAll(w, S);
+      const go = r.kind === "apply" ? (ex[r.i].approvable && r.tag === ex[r.i].form ? [r.i] : [])
+        : r.kind === "applyall" ? await (async () => { const c = await setHashOf(w, ex); return c.hash && r.tag === c.hash ? c.members : []; })() : [];
+      for (const i of go) { approved.add(i); S = withApproved(w, S, i); }
+    }
+    const key = [...approved].sort((a, b) => a - b).join(",");
+    if (!out.has(key)) out.set(key, order.map((r) => `${r.kind}#${r.k + 1}`).join(" then "));
+  }
+  return out;
+}
+
+async function runScenario(s: Scenario, w: World, rep: Report, tok: string, o: { parOrder?: "forward" | "reverse" } = {}): Promise<Seen | null> {
   rep.scenarios++;
   const fail = (k: string, m: string) => { const l = rep.violations.get(k) ?? []; if (l.length < 50) l.push(m); else l.length++; rep.violations.set(k, l); };
   const r = rng(s.id * 101 + 3);
@@ -527,15 +572,31 @@ async function runScenario(s: Scenario, w: World, rep: Report, tok: string): Pro
     const S = await w.snapshot(), ex = expectAll(w, S), cur = await setHashOf(w, ex);
     const wantsBefore = w.wantCalls.length;
     const reqs = st.k === "par" ? st.steps : [st];
-    const out = st.k === "par" ? await Promise.all(reqs.map((x) => one(x, S, ex, cur))) : [await one(st, S, ex, cur)];
+    // o.parOrder (the regression below): the taps of a "par" step one after another, in that order, instead of at once.
+    const out = st.k !== "par" ? [await one(st, S, ex, cur)] : !o.parOrder ? await Promise.all(reqs.map((x) => one(x, S, ex, cur)))
+      : await (async () => { const done = new Map<Step, Awaited<ReturnType<typeof one>>>(); for (const x of o.parOrder === "reverse" ? [...reqs].reverse() : reqs) done.set(x, await one(x, S, ex, cur)); return reqs.map((x) => done.get(x)!); })();
     const S2 = await w.snapshot(), ex2 = expectAll(w, S2), cur2 = await setHashOf(w, ex2);
-    // approvals: only what was allowed; everything that had to be approved was; never twice for one posting
+    // approvals: only what was allowed; everything that had to be approved was; never twice for one posting. Taps at once:
+    // exactly what one of their one-at-a-time orders approves (serialOutcomes), whichever order the scheduler happened to pick.
     const allowed = new Set(out.flatMap((x) => [...x.allowed])), must = new Set(out.flatMap((x) => [...x.must]));
+    if (st.k === "par") {
+      const outcomes = await serialOutcomes(w, S, out);
+      const got = w.posts.map((p, i) => (S2.approvals.get(p.jobId) ?? 0) > (S.approvals.get(p.jobId) ?? 0) ? i : -1).filter((i) => i >= 0);
+      if (!outcomes.has(got.join(","))) {
+        fail("approval: taps at once approved what no one-at-a-time order of them approves", `#${s.id} rows ${got.map((i) => i + 1).join(",") || "none"} approved; ${[...outcomes].map(([k, v]) => `${v}: ${k ? k.split(",").map((i) => Number(i) + 1).join(",") : "none"}`).join(" | ")} ${JSON.stringify(out.map((x) => [x.kind, x.tag]))}`);
+      }
+      // the Apply that lost to another tap of the same posting says it is already in the applications, never that it changed or failed
+      for (const x of out) {
+        if (x.kind !== "apply" || !x.must.size || !got.includes(x.i) || x.resp.status !== 200) continue;
+        const note = readPage(x.resp.html).rows[x.i]?.note ?? "";
+        if (/Changed since|changed after|could ?n.t|Nothing was approved|not approved/i.test(note)) fail("approval: a tap that lost to another approval of the same posting did not say it is already in the applications", `#${s.id} row ${x.i + 1}: ${note}`);
+      }
+    }
     w.posts.forEach((p, i) => {
       const before = S.approvals.get(p.jobId) ?? 0, after = S2.approvals.get(p.jobId) ?? 0;
       if (after > 1) fail("approval: a posting approved twice", `#${s.id} row ${i + 1}`);
-      if (after > before) { rep.approvals++; if (!allowed.has(i)) fail("approval: approved without the exact current tag or set", `#${s.id} step ${st.k} row ${i + 1}: ${JSON.stringify(out.map((x) => [x.kind, x.tag]))}`); }
-      if (must.has(i) && after === before && !(S.apps[i])) fail("approval: the exact current tag or set approved nothing (liveness)", `#${s.id} step ${st.k} row ${i + 1} (${p.spec.url}) ${JSON.stringify(out.map((x) => [x.kind, x.tag]))}: ${textOf(out[0].resp.html).slice(-300)}`);
+      if (after > before) { rep.approvals++; if (st.k !== "par" && !allowed.has(i)) fail("approval: approved without the exact current tag or set", `#${s.id} step ${st.k} row ${i + 1}: ${JSON.stringify(out.map((x) => [x.kind, x.tag]))}`); }
+      if (st.k !== "par" && must.has(i) && after === before && !(S.apps[i])) fail("approval: the exact current tag or set approved nothing (liveness)", `#${s.id} step ${st.k} row ${i + 1} (${p.spec.url}) ${JSON.stringify(out.map((x) => [x.kind, x.tag]))}: ${textOf(out[0].resp.html).slice(-300)}`);
       if (must.has(i) && after > before) rep.liveness["Apply as shown -> queued"] = (rep.liveness["Apply as shown -> queued"] ?? 0) + 1;
     });
     // preparation: only for an unprepared row the person tapped with no tag, that is not in motion, not by hand, and passes the screen
@@ -681,6 +742,54 @@ Deno.test("want: the queue's refusal codes reach the person as words, never as a
   eq(r.result, "refused");
   assertNode.ok(!/_/.test(String(r.reason)) && /already in your applications/.test(String(r.reason)), String(r.reason));
 });
+
+// ================================================================== taps at once, with the interleaving forced (no timing)
+// Found by an independent re-run of the at-scale battery on a loaded 4-core box (7 violations, 0 in CI): a "par" step of an Apply
+// (the row's exact current tag) and Apply to all (the exact current set) at once, where neither approved the other rows of the
+// set. Two causes, each pinned here so the verdict never depends on the scheduler:
+//  - the oracle demanded every member of the set even when the Apply ran first and so changed the set (an Apply to all of a set
+//    that no longer exists approves nothing, by its contract); it now accepts exactly what some one-at-a-time order approves;
+//  - the product's approval was two calls (open a card, then answer it), and opening a card closes the person's other open cards
+//    (career_apply_card_open_for), so two approvals at once could close each other's card and both approve nothing. One Confirm is
+//    now one transaction (career_apply_card_confirm_as; the memory store models both the closing and the confirm).
+// gate(n): the first n approval steps wait until all n have arrived, then go together; later ones pass.
+const gate = (n: number) => { let k = 0, go!: () => void; const all = new Promise<void>((r) => { go = r; }); return async () => { if (++k === n) go(); if (k <= n) await all; }; };
+Deno.test({ name: "taps at once, forced: two Applies held at the approval approve both rows; the same row twice approves it once and the other tap says 'Already in your applications'; Apply and Apply to all in either order approve exactly what that order does; #1432 and #1742 replayed both ways", sanitizeOps: false, sanitizeResources: false, async fn() {
+  const A = signedIn();
+  const failed: string[] = [];
+  const approvedRows = (w: World, S: Snapshot) => w.posts.map((p, i) => S.approvals.get(p.jobId) ? i + 1 : 0).filter(Boolean);
+  const run = async (name: string, s: Scenario, o: { parOrder?: "forward" | "reverse"; held?: number }, want: (w: World, S: Snapshot, seen: Seen | null) => string | null) => {
+    const rep = newReport();
+    const w = await memWorld(s, A, o.held ? { approving: gate(o.held) } : {});
+    const seen = await runScenario(s, w, rep, await A.tok(U, LIST, T0), { parOrder: o.parOrder });
+    if (printReport(`forced: ${name}`, rep)) failed.push(`${name}: an invariant failed`);
+    const why = want(w, await w.snapshot(), seen);
+    if (why) failed.push(`${name}: ${why}`);
+  };
+  const three = () => [POST(1), POST(2, { url: "lever" }), POST(3, { url: "ashby" })];
+  const apply = (row: number): Step => ({ k: "apply", row, tag: "seen", r: 0 });
+  // Two different rows, both held after the approval starts: before, the second card closed the first and row 1 approved nothing.
+  await run("two Applies on two rows, held together", SC(920_001, three(), [{ k: "get" }, { k: "par", steps: [apply(0), apply(1)] }]), { held: 2 },
+    (w, S) => JSON.stringify(approvedRows(w, S)) === "[1,2]" ? null : `approved rows ${approvedRows(w, S)}, want 1,2`);
+  // The same row twice, held together: approved once; the other tap is told it is already in the applications (the oracle checks the note).
+  await run("the same Apply twice, held together", SC(920_002, three(), [{ k: "get" }, { k: "par", steps: [apply(0), apply(0)] }]), { held: 2 },
+    (w, S) => JSON.stringify(approvedRows(w, S)) === "[1]" && S.approvals.get(w.posts[0].jobId) === 1 ? null : `approved rows ${approvedRows(w, S)}, want 1 once`);
+  // Apply to all twice and an Apply, the first approval steps held together: every member approved once.
+  await run("two Apply to alls and an Apply, held together", SC(920_003, three(), [{ k: "get" }, { k: "par", steps: [{ k: "applyall", set: "seen" }, { k: "applyall", set: "seen" }, apply(2)] }]), { held: 3 },
+    (w, S) => JSON.stringify(approvedRows(w, S)) === "[1,2,3]" ? null : `approved rows ${approvedRows(w, S)}, want 1,2,3`);
+  // Apply then Apply to all of the page both came from: the Apply changed the set, so Apply to all approves nothing and says so.
+  await run("Apply, then Apply to all of the same page", SC(920_004, three(), [{ k: "get" }, { k: "par", steps: [apply(1), { k: "applyall", set: "seen" }] }]), { parOrder: "forward" },
+    (w, S) => JSON.stringify(approvedRows(w, S)) === "[2]" ? null : `approved rows ${approvedRows(w, S)}, want 2 only`);
+  // Apply to all first: every member, and the Apply finds its row already in the applications.
+  await run("Apply to all, then Apply of the same page", SC(920_005, three(), [{ k: "get" }, { k: "par", steps: [apply(1), { k: "applyall", set: "seen" }] }]), { parOrder: "reverse" },
+    (w, S, seen) => JSON.stringify(approvedRows(w, S)) === "[1,2,3]" && seen?.rows[1]?.chip === "Queued" ? null : `approved rows ${approvedRows(w, S)}, want 1,2,3`);
+  // The two scenarios the loaded box failed, replayed in each order and held together.
+  for (const id of [1432, 1742]) {
+    const s = SCENARIOS.find((x) => x.id === id)!;
+    for (const o of [{ parOrder: "forward" as const }, { parOrder: "reverse" as const }, { held: 2 }]) await run(`#${id} ${JSON.stringify(o)}`, s, o, () => null);
+  }
+  eq(failed, [], "taps at once are judged by what one at a time would do, and each approval holds whatever the interleaving");
+} });
 
 // ================================================================== part 1: every scenario over the memory stores
 Deno.test({ name: `file apply at scale: ${SCENARIOS.length} seeded scenarios (1-30 postings in every state; Apply, Apply to all, refresh, taps at once, payloads changing) through handleFile over memory stores; every invariant after every request`, sanitizeOps: false, sanitizeResources: false, async fn() {

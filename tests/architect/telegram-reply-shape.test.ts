@@ -219,3 +219,12 @@ Deno.test("transport: a long answer reaches Telegram as two text messages and no
   assert(!t.calls.some((c) => c.method === "sendDocument"), "nothing to download");
   assert(t.calls.filter((c) => c.method === "sendMessage").length <= 2);
 });
+
+Deno.test("attach_document: off for advice and research turns, on only when the person asks for a file", async () => {
+  const { attachAsked } = await import("../../supabase/functions/_shared/agent/attach_tool.ts");
+  for (const m of ["I'm 34, a high school teacher, and want to become a UX designer. What should I do?", "research Acme for me", "what should my next five steps be", "compare these two offers", "give me a plan for this quarter"]) assert(!attachAsked(m), m);
+  for (const m of ["send me a file with that", "can you give me a PDF of the plan", "attach it as a .md", "make it downloadable"]) assert(attachAsked(m), m);
+  // the brain registers the tool only behind that check (no other path adds it)
+  const src = await Deno.readTextFile(new URL("../../supabase/functions/agent-chat/career_brain.ts", import.meta.url));
+  assert(/o\.shape && attachAsked\(o\.message\) \? \[attachTool\(\)\]/.test(src) && (src.match(/attachTool\(\)/g) ?? []).length === 1);
+});

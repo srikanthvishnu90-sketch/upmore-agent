@@ -9,9 +9,11 @@
 // scoped to the user id inside the verified claims; a user id in a form is never read.
 import { CONNECT_SESSION_TTL_MS, connectSecret, mintConnectToken, reasonKey, verifyConnectToken } from "../_shared/connect_link.ts";
 import { verifyInitData } from "../_shared/telegram_webapp.ts";
-import { CONNECT_BOOT, CONNECT_SCRIPT, previewOg, renderBootstrap, renderConnect, renderDone, renderPreview, renderState, type PState, type ProviderId, type ProviderView } from "../_shared/connect_page.ts";
+import { connectHeaders as headers } from "../_shared/connect_landing.ts";
+import { previewOg, renderBootstrap, renderConnect, renderDone, renderPreview, renderState, type PState, type ProviderId, type ProviderView } from "../_shared/connect_page.ts";
 
 export type { ProviderId } from "../_shared/connect_page.ts";
+export { connectLanding } from "../_shared/connect_landing.ts";
 export interface ProviderInfo { configured: boolean; scopes: string[] } // scopes: what the consent URL asks for, from the code that builds it
 export interface ProviderState { state: PState; email: string | null }
 export interface ConnectDeps {
@@ -25,16 +27,12 @@ export interface ConnectDeps {
   userOfTelegram?: (telegramId: string) => Promise<string | null>; // channel_contacts: 'tg:<id>' -> the linked account
 }
 
-const sha = async (s: string) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, "0")).join("");
-const b64 = (h: string) => btoa(h.match(/../g)!.map((x) => String.fromCharCode(parseInt(x, 16))).join(""));
-const scriptHashes = (async () => `'sha256-${b64(await sha(CONNECT_SCRIPT))}' 'sha256-${b64(await sha(CONNECT_BOOT))}'`)();
-const FRAMES = "https://web.telegram.org https://*.telegram.org";
-async function headers(type: string): Promise<Record<string, string>> {
-  return { "cache-control": "no-store", "referrer-policy": "no-referrer", "x-robots-tag": "noindex, nofollow", "x-content-type-options": "nosniff", "content-type": type,
-    "content-security-policy": `default-src 'none'; script-src ${await scriptHashes} https://telegram.org; connect-src 'self'; img-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; form-action 'self' https://accounts.google.com https://login.microsoftonline.com; base-uri 'none'; frame-ancestors ${FRAMES}` };
-}
+const scrub = (s: string) => s.replace(/c1\.[A-Za-z0-9_.-]+/g, "c1.[redacted]").replace(/([?&]t=)[^\s&]+/g, "$1[redacted]");
 const PROVIDERS: ProviderId[] = ["google", "microsoft"];
-const CRAWLER = /TelegramBot|Twitterbot|facebookexternalhit|Slackbot|WhatsApp|Discordbot|LinkedInBot/i;
+// Link-preview fetchers, security scanners and anything that does not look like a person's browser: they get the preview card and
+// never use up the link. HEAD never does either.
+const CRAWLER = /bot|crawl|spider|preview|scan|facebookexternalhit|Slack|WhatsApp|Discord|Embedly|Skype|SafeLinks|Barracuda|Proofpoint|Mimecast|curl|wget|python-requests|okhttp|HeadlessChrome/i;
+const looksAutomated = (req: Request) => { const ua = req.headers.get("user-agent") ?? ""; return req.method === "HEAD" || !/^Mozilla\//.test(ua) || CRAWLER.test(ua); };
 const cookieOf = (req: Request, name: string) => {
   for (const part of (req.headers.get("cookie") ?? "").split(";")) { const [k, ...v] = part.trim().split("="); if (k === name) return v.join("="); }
   return "";
@@ -81,7 +79,7 @@ export async function handleConnect(req: Request, d: ConnectDeps): Promise<Respo
     const c = await verifyConnectToken(given, secret, d.now());
     if (!c.ok) return bad(c.why);
     if (c.claims.k !== "l") return bad("malformed");
-    if (CRAWLER.test(req.headers.get("user-agent") ?? "")) {
+    if (looksAutomated(req)) {
       // A link preview fetch must not use up the link: it gets the preview card and nothing about any person.
       return html(renderPreview(previewOg(c.claims.w)));
     }
@@ -127,18 +125,7 @@ export async function handleConnect(req: Request, d: ConnectDeps): Promise<Respo
     const providers: ProviderView[] = PROVIDERS.map((id) => ({ id, configured: info[id].configured, state: st[id].state, email: st[id].email, scopes: info[id].scopes }));
     return html(renderConnect({ token, reason: reasonKey(claims.w), providers, botUrl: bot }));
   } catch (e) {
-    console.error("[trainee-connect]", String((e as Error)?.message ?? e).slice(0, 160));
+    console.error("[trainee-connect]", scrub(String((e as Error)?.message ?? e)).slice(0, 160)); // never a link token
     return state("Couldn't do that just now", ["Nothing was changed that I can confirm. Try again in a minute."], 503);
   }
-}
-
-// Where an OAuth callback (gmail-oauth, outlook-oauth) sends the person: the page's calm done state, with the way back to
-// Telegram. Null until the owner has switched the connect page on (TRAINEE_CONNECT_BASE_URL), so the callbacks keep their own
-// plain pages until then.
-export function connectLanding(env: { get(k: string): string | undefined }, o: { provider: ProviderId; ok: boolean; denied: boolean; email: string | null }): Promise<Response> | null {
-  const base = (env.get("TRAINEE_CONNECT_BASE_URL") || "").trim();
-  if (!/^https:\/\/[^\s?#]+$/.test(base)) return null;
-  const botUrl = (env.get("TRAINEE_BOT_URL") || "").trim();
-  const outcome = o.ok ? "connected" : o.denied ? "denied" : "failed";
-  return headers("text/html; charset=utf-8").then((h) => new Response(renderDone({ outcome, provider: o.provider, email: o.email, botUrl: /^https:\/\//.test(botUrl) ? botUrl : null }), { status: o.ok || o.denied ? 200 : 400, headers: h }));
 }

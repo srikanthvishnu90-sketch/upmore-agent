@@ -48,7 +48,8 @@ function mem(o: Opt = {}) {
   return { d, log };
 }
 const link = (u = U, reason = "replies", now = NOW, ttlMs?: number) => mintConnectToken({ secret: SECRET, userId: u, reason, channel: "telegram", now, kind: "l", ttlMs });
-const get = (d: ConnectDeps, url: string, headers: Record<string, string> = {}) => handleConnect(new Request(url, { headers }), d);
+const BROWSER = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile Safari/604.1";
+const get = (d: ConnectDeps, url: string, headers: Record<string, string> = {}) => handleConnect(new Request(url, { headers: { "user-agent": BROWSER, ...headers } }), d);
 const post = (d: ConnectDeps, fields: Record<string, string>, headers: Record<string, string> = {}) =>
   handleConnect(new Request(BASE, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", ...headers }, body: new URLSearchParams(fields).toString() }), d);
 // Opens the single-use link the way a browser does: GET ?t= -> 303 + cookie -> GET with the cookie.
@@ -335,4 +336,44 @@ Deno.test("the OAuth callbacks land on the page's done state once it is switched
   assert(/connectLanding\(Deno\.env/.test(g) && /access_denied/.test(g));
   const o = await Deno.readTextFile(new URL("../../supabase/functions/outlook-oauth/index.ts", import.meta.url));
   assert(/landing: \(o\) => connectLanding\(Deno\.env, \{ provider: "microsoft"/.test(o));
+});
+
+Deno.test("the one-time link survives HEAD, scanners and fetchers with no browser identity; only a browser GET takes it", async () => {
+  const { d } = mem();
+  const t = (await link())!, u = `${BASE}?t=${encodeURIComponent(t)}`;
+  const head = await handleConnect(new Request(u, { method: "HEAD", headers: { "user-agent": BROWSER } }), d);
+  eq(head.status, 200, "HEAD answers with the preview and uses nothing up");
+  for (const ua of ["", "Microsoft Office Protocol Discovery", "Mozilla/5.0 (compatible; Barracuda Sentinel)", "python-requests/2.31", "curl/8.0", "Mozilla/5.0 (compatible; Googlebot/2.1)", "Slackbot-LinkExpanding 1.0", "Mozilla/5.0 Safari/537.36 SafeLinks"]) {
+    const r = await handleConnect(new Request(u, { headers: ua ? { "user-agent": ua } : {} }), d);
+    eq(r.status, 200, `scanner "${ua}" gets the preview`);
+    assert(!/class="primary"/.test(await r.text()), "and no action");
+  }
+  eq((await get(d, u)).status, 303, "after all that, the person's own tap still works");
+  eq((await get(d, u)).status, 410, "and only once");
+});
+
+Deno.test("an error is logged without the link token", async () => {
+  const { d } = mem();
+  d.status = async () => { throw new Error(`boom for ${BASE}?t=${"c1.AAAAAAAAAAAA.BBBBBBBBBBBB"} and c1.CCCCCCCCCCCC.DDDDDDDDDDDD`); };
+  const logged: string[] = [], real = console.error;
+  console.error = (...a: unknown[]) => { logged.push(a.join(" ")); };
+  try { const { html } = await open(d); assert(/Couldn't do that just now/.test(html.replace(/&#39;/g, "'"))); } finally { console.error = real; }
+  assert(logged.length === 1 && !/c1\.[A-Z]{6}/.test(logged[0]) && /redacted/.test(logged[0]), logged.join("|"));
+});
+
+Deno.test("flag off, nothing changes: a denied career consent keeps the old landing; flag on, the page; no cross-function imports in the OAuth functions", async () => {
+  const { connectPageOn } = await import("../../supabase/functions/_shared/connect_landing.ts");
+  eq([connectPageOn({ get: () => undefined }), connectPageOn({ get: () => "http://x.example/c" }), connectPageOn({ get: () => BASE })], [false, false, true]);
+  const src = async (f: string) => await Deno.readTextFile(new URL(`../../supabase/functions/${f}`, import.meta.url));
+  const g = await src("gmail-oauth/index.ts");
+  // The state is read for a denied consent only behind the flag, so with the flag off `purpose` stays "gmail": the legacy redirect, byte for byte.
+  assert(/if \(connectPageOn\(Deno\.env\)\) try \{ purpose = \(await verifyState\(url\.searchParams\.get\("state"\)/.test(g), "denied-consent purpose lookup is behind the flag");
+  assert(/purpose === "career" \? careerLanding\(ok\)/.test(g) && /Response\.redirect\(`\$\{APP_URL\}\/#you\?gmail=/.test(g), "the legacy landing is still there");
+  for (const f of ["gmail-oauth/index.ts", "outlook-oauth/index.ts"]) {
+    const imports = [...(await src(f)).matchAll(/from "(\.\.\/[^"]+)"/g)].map((m) => m[1]);
+    assert(imports.every((i) => i.startsWith("../_shared/")), `${f} imports only ../_shared: ${imports.filter((i) => !i.startsWith("../_shared/"))}`);
+  }
+  // A flag-off run of the landing is null for every outcome.
+  const { connectLanding } = await import("../../supabase/functions/_shared/connect_landing.ts");
+  for (const o of [{ ok: true, denied: false }, { ok: false, denied: true }, { ok: false, denied: false }]) eq(connectLanding({ get: () => undefined }, { provider: "google", email: null, ...o }), null);
 });

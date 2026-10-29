@@ -55,7 +55,7 @@ import { disconnectGoogle, disconnectReply } from "../_shared/google_disconnect.
 // came from and the tasks that waited for Gmail resume (_shared/connectors.ts).
 import { afterConnect, handleConnectorLink } from "../_shared/connectors.ts";
 import { chatThroughAgent, deliverer } from "../_shared/channel_runtime.ts";
-import { connectLanding } from "../trainee-connect/handler.ts";
+import { connectLanding, connectPageOn } from "../_shared/connect_landing.ts";
 
 // deno-lint-ignore no-explicit-any
 const later = (p: Promise<unknown>) => { const rt = (globalThis as any).EdgeRuntime; if (rt?.waitUntil) rt.waitUntil(p); };
@@ -130,7 +130,8 @@ serve(async (req) => {
         if (url.searchParams.get("error")) {
           denied = url.searchParams.get("error") === "access_denied";
           // Which grant this was: the signed state says; an unreadable state is the legacy landing, as before.
-          try { purpose = (await verifyState(url.searchParams.get("state") || "", stateSecret)).purpose; } catch { /* legacy landing */ }
+          // Only with the connect page switched on: off, a denied consent lands exactly where it always did.
+          if (connectPageOn(Deno.env)) try { purpose = (await verifyState(url.searchParams.get("state") || "", stateSecret)).purpose; } catch { /* legacy landing */ }
           return done(false);
         }
         const code = url.searchParams.get("code") || "";

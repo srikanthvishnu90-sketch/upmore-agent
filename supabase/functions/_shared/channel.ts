@@ -73,6 +73,12 @@ export const HELD_NOTE = "held: outside WhatsApp's 24-hour window; it goes out w
 export const PAUSED_NOTE = "not sent: the person paused Trainee (or stopped or erased it) after this was queued";
 export const ALERTS_OFF_NOTE = "not sent: the person's job alerts no longer ask for this (paused, stopped or changed after it was queued)";
 export const STOPPED_REPLY_NOTE = "not sent: the person texted STOP after the message this answers; only a message sent after STOP is answered";
+// PROACTIVE SCENARIOS (2026-10-29): a job alert or daily report is news on its day, not later. Rows wait in the outbox while
+// the person has no texting channel (the dashboard's matches feed reads them there), and when they connected one, every
+// alert and report of the weeks before went out at once, each still saying "first seen 20 min ago". Past this age, an
+// alert or report is not sent; the dashboard still lists it.
+export const ALERT_STALE_MS = 48 * 3600000;
+export const STALE_NOTE = "not sent: a job alert or report more than 48 hours past its time is no longer news";
 
 // budgetMs: a run that has used its time stops before the next row (a long card is many bubbles, each paced by the
 // provider); what it claimed and did not reach goes back for the next run (the store's release), never half sent.
@@ -140,6 +146,9 @@ export async function deliverDue(o: {
     }
     // A job alert or report queued before the person paused or stopped their alerts by text (their watch, not the
     // account) is checked again now. Not wanted: not sent. A check that cannot be read leaves the row for the next run.
+    if (/^(alert|report):/.test(m.key) && o.now - m.deliver_at > ALERT_STALE_MS) {
+      await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: STALE_NOTE }); r.skipped_opt_out++; continue;
+    }
     if (/^(alert|report):/.test(m.key) && o.store.alertWanted) {
       let wanted: boolean | null;
       try { wanted = await o.store.alertWanted(m); } catch (e) { console.error("deliver: the job alerts could not be read:", e instanceof Error ? e.message : String(e)); wanted = null; }

@@ -50,7 +50,16 @@ serve((req) => {
         .in("state", ["confirmed", "submitted_unconfirmed", "needs_user", "failed", "not_submitted", "unknown_outcome"]).gte("updated_at", since)
         .or("source.is.null,source.neq.email").limit(2000);
       if (error) throw new Error(`read finished applications: ${error.message}`);
-      return data ?? [];
+      // With each, the person's zone and quiet hours (null and the defaults when none are on file): a receipt waits them out.
+      const users = [...new Set((data ?? []).map((r: any) => r.user_id))];
+      if (!users.length) return [];
+      const prefs = await admin.from("career_alert_prefs").select("user_id,tz,prefs").in("user_id", users);
+      if (prefs.error) throw new Error(`read quiet hours: ${prefs.error.message}`);
+      const of = new Map((prefs.data ?? []).map((p: any) => [p.user_id, p]));
+      return (data ?? []).map((r: any) => {
+        const p: any = of.get(r.user_id);
+        return { ...r, tz: p?.tz ?? null, quiet_start: p?.prefs?.quiet_start, quiet_end: p?.prefs?.quiet_end };
+      });
     },
     readyApplications: async () => {
       const { data, error } = await admin.from("career_apply_prepared").select("id,user_id,company,card_lines,created_at")
@@ -145,7 +154,10 @@ serve((req) => {
       for (let i = 0; i < ids.length; i += 500) {
         const { data, error } = await admin.rpc("career_quiet_users", { p_users: ids.slice(i, i + 500) });
         if (error) throw new Error(`read who is paused: ${error.message}`);
-        for (const r of data ?? []) out.add(String(r.user_id));
+        // PROACTIVE SCENARIOS (2026-10-29): a one-column RETURNS TABLE can come back as bare ids (Postgres makes it a
+        // function of that one type) or as {user_id}; read as {user_id} only, bare ids made nobody paused, and a paused or
+        // stopped person got every alert and receipt queued. Either shape is read.
+        for (const r of data ?? []) out.add(String(r?.user_id ?? r));
       }
       return out;
     },

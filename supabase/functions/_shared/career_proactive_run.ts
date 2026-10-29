@@ -7,7 +7,7 @@
 // own gate again at the moment of queuing (matchPosting: their keywords, place and relevance floor; and news, not
 // backlog), so nothing below the person's threshold is ever sent; and the weekly cap is counted from the outbox (a store
 // that cannot count sends no alerts). Each alert carries its posting's first_seen_at, for the latency report.
-import { DEFAULT_PREFS, fitFloorOk, matchPosting, planProactive, quietAt } from "./career_alerts.ts";
+import { DEFAULT_PREFS, fitFloorOk, localDay, matchPosting, planProactive, quietAt, zoneOr } from "./career_alerts.ts";
 import { alertFits } from "./career_alert_fit.ts";
 import { freshWhenSeen } from "./career_fresh.ts";
 import type { AlertRow, AlertStore, Outbox } from "./career_alert_store.ts";
@@ -35,8 +35,9 @@ export function partialError<T>(message: string, partial: T): Error & { partial:
   return Object.assign(new Error(message), { partial });
 }
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
-const localDate = (at: number, tz: string) =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
+// The person's local date; a zone the runtime does not know reads as the default zone (career_alerts.ts zoneOr), never a
+// RangeError that stops everyone's run.
+const localDate = (at: number, tz: string | null | undefined) => localDay(at, tz);
 
 // A row made from watches set by text (prefs.interests, career_watch_alerts.ts) sends only what the person's watch record
 // says now (career_watch_kv, career:watch-profile:<user>, read through `watches`): the alert settings are a copy, and a
@@ -91,7 +92,23 @@ export async function runAlerts(o: {
   // A new local day starts the person's count over. The last 7 days' alerts count against the weekly cap; a store that
   // cannot say how many were sent leaves no room (Infinity), so a counting failure never turns into a flood.
   const week = o.store.alertsSince ? await o.store.alertsSince(new Date(o.now - 7 * 86400000).toISOString()) : null;
-  const users: AlertRow[] = rows.map((r) => ({ ...r, instant_sent_today: r.sent_on === localDate(o.now, r.tz) ? r.instant_sent_today : 0,
+  // PROACTIVE SCENARIOS (2026-10-29): alerts a run queued and never counted. A run that queues and then dies before saving
+  // its counters (a crash, a timeout, a save error) leaves the person's count and last check where they were; the next run
+  // plans the same postings again and, freshest first, puts newer ones ahead of them: a cap of 3 a day became 5. The
+  // alerts already queued for postings this run would plan again (first seen at or after the person's last check) count
+  // against today before planning. A store that cannot say is counted at each duplicate the run meets instead.
+  const checked = Math.max(o.now - 26 * 3600000, Math.min(...rows.map((r) => Date.parse(r.last_checked_at)).filter(Number.isFinite)));
+  const queued = o.store.alertKeysSince
+    ? await o.store.alertKeysSince(new Date(Number.isFinite(checked) ? checked : o.now - 26 * 3600000).toISOString())
+      .catch((e) => { console.error("alerts: the queued alerts could not be read; each duplicate is counted instead:", errText(e)); return null; })
+    : null;
+  const seenAt = new Map(postings.map((p) => [`alert:${p.job_id}`, Date.parse(String(p.first_seen_at ?? ""))]));
+  const counted = new Map<string, Set<string>>();
+  for (const r of rows) {
+    const since = Date.parse(r.last_checked_at);
+    counted.set(r.id, new Set([...(queued?.get(r.id) ?? [])].filter((k) => (seenAt.get(k) ?? -Infinity) >= since)));
+  }
+  const users: AlertRow[] = rows.map((r) => ({ ...r, instant_sent_today: (r.sent_on === localDate(o.now, r.tz) ? r.instant_sent_today : 0) + counted.get(r.id)!.size,
     sent_this_week: week ? week.get(r.id) ?? 0 : Infinity }));
   const byId = new Map(postings.map((p) => [p.job_id, p]));
   // F7: the fit to each matching posting, for people whose watch record carries their confirmed facts; ranked and floored
@@ -118,7 +135,9 @@ export async function runAlerts(o: {
           if (Number.isFinite(seen)) firstSeen = new Date(seen).toISOString();
         }
         const fresh = await o.outbox.enqueue(u.id, { key: p.key, kind: p.kind, text: p.text, at: p.at, ...(firstSeen ? { first_seen_at: firstSeen } : {}) });
-        if (!fresh) { stats.duplicates++; continue; }
+        // An alert already queued, not counted above (a run alongside this one queued it after this run read the outbox, or
+        // the store cannot list them), counts against today's cap too.
+        if (!fresh) { stats.duplicates++; if (p.kind === "alert" && !counted.get(u.id)!.has(p.key)) sent++; continue; }
         if (p.kind === "alert") { sent++; stats.alerts++; } else { reported = true; stats.reports++; }
       }
       const today = localDate(o.now, u.tz);
@@ -208,16 +227,23 @@ export async function runPrepareAhead(o: {
 // per receipt:<id>, ever), whether or not the person has job alerts on. Returns how many were queued now.
 // WO-027: a receipt queued for the first time is also written to the person's timeline (application_finished, once,
 // since the outbox key is once ever); a timeline that cannot be written never stops a receipt.
-export async function runReceipts(o: { outbox: Outbox; now: number; finished: (sinceIso: string) => Promise<ReceiptRow[]>; events?: EventStore | null }): Promise<number> {
+// PROACTIVE SCENARIOS (2026-10-29): a receipt waits out the person's quiet hours like every other text Trainee starts. It
+// was queued for the run's own time, so an application that finished overnight (the cloud runs through the night) was
+// texted at 3 am. A row that carries the person's zone (`tz`, null when none is on file: the reader in index.ts adds it,
+// with their quiet hours) is held to the end of their quiet hours; a reader that says nothing of the zone keeps the old
+// timing.
+export type ReceiptDue = ReceiptRow & { tz?: string | null; quiet_start?: number; quiet_end?: number };
+export async function runReceipts(o: { outbox: Outbox; now: number; finished: (sinceIso: string) => Promise<ReceiptDue[]>; events?: EventStore | null }): Promise<number> {
   const rows = await o.finished(new Date(o.now - 26 * 3600000).toISOString());
   const byId = new Map(rows.map((r) => [`receipt:${r.id}`, r]));
   let n = 0;
   const failed: string[] = [];
   for (const r of planReceipts(rows, o.now)) {
     try {
-      if (!(await o.outbox.enqueue(r.userId, { key: r.key, kind: r.kind, text: r.text, at: r.at }))) continue;
-      n++;
       const row = byId.get(r.key);
+      const at = row && row.tz !== undefined ? awake(o.now, row.tz, row) : r.at;
+      if (!(await o.outbox.enqueue(r.userId, { key: r.key, kind: r.kind, text: r.text, at }))) continue;
+      n++;
       await recordEvent(o.events, {
         user_id: r.userId, at: o.now, kind: "application_finished", subject: row?.company ?? "",
         detail: { application: row?.id ?? null, state: row?.state ?? null, url: row?.url ?? null, reason: row?.reason ?? null, confirmation_id: row?.confirmation_id ?? null },
@@ -276,7 +302,7 @@ export interface MailStats { people: number; not_wired: number; statuses: number
 function awake(now: number, tz: string | null | undefined, q: { quiet_start?: number; quiet_end?: number }): number {
   const quiet = { quiet_start: q.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: q.quiet_end ?? DEFAULT_PREFS.quiet_end };
   let at = now;
-  try { while (quietAt(at, tz || "America/New_York", quiet) && at < now + 86400000) at += 15 * 60000; } catch { return now; }
+  while (quietAt(at, zoneOr(tz), quiet) && at < now + 86400000) at += 15 * 60000;
   return at;
 }
 // WO-034: with an interview store, an interview invite found in this run is briefed in this run: its stated facts are
@@ -380,7 +406,7 @@ export async function runMail(o: {
         if ((await o.confirm.confirm(p.user_id, c)) !== "confirmed") continue;
         stats.confirmations++;
         if (c.mail_kind !== "received") continue;
-        const text = receiptText({ company: c.company, url: c.url, state: "confirmed", email_confirmed_at: c.mail_at, tz: p.tz });
+        const text = receiptText({ company: c.company, url: c.url, state: "confirmed", email_confirmed_at: c.mail_at, tz: p.tz ? zoneOr(p.tz) : p.tz });
         if (await o.outbox.enqueue(p.user_id, { key: `status:confirmed:${c.id}`, kind: "status", text, at })) stats.statuses++;
       }
     }
@@ -408,7 +434,7 @@ export async function runInterviewDrafts(o: {
       const rows = await o.interviews.list(p.user_id);
       const apps = foldEvents(await o.drafts.applications(p.user_id), await o.drafts.events(p.user_id));
       const at = awake(o.now, p.tz, p);
-      for (const d of interviewDrafts(rows, apps, o.now, p.tz || "America/New_York")) {
+      for (const d of interviewDrafts(rows, apps, o.now, zoneOr(p.tz))) {
         if (await o.drafts.saveDraft(p.user_id, d) && await o.outbox.enqueue(p.user_id, { key: `followup:${d.key}`, kind: "followup", text: draftOffer(d), at })) n++;
       }
     } catch (e) {
@@ -428,7 +454,7 @@ export async function runDigest(o: { outbox: Outbox; now: number; store: DigestS
   let n = 0;
   const failed: string[] = [];
   for (const p of await o.store.people(o.now)) {
-    const tz = p.tz || "America/New_York";
+    const tz = zoneOr(p.tz);
     const { due, week } = digestDue(p.prefs ?? DEFAULT_DIGEST, o.now, tz);
     if (!due) continue;
     try {

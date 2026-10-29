@@ -48,7 +48,10 @@ export function chatThroughAgent(url: string, key: string, o: { retryDelayMs?: n
       : [];
     // JOB CARDS: the postings the turn's search found (agent-chat puts them on the response), sent as cards after the reply.
     const postings = Array.isArray(body.postings) ? (body.postings as unknown[]).filter((p) => p && typeof p === "object").slice(0, 200) : [];
-    return { status: res.status, reply: String(body.reply ?? ""), threadId: typeof body.thread_id === "string" ? body.thread_id : null, ...(parts ? { parts } : {}), ...(cardId ? { cardId } : {}), ...(resultStatus ? { resultStatus } : {}), ...(artifacts.length ? { artifacts } : {}), ...(postings.length ? { postings } : {}) };
+    // F09: the posting screen's yes/no question rides meta.screen_buttons = ["Yes","No"]; only exactly that is honored.
+    const sb = Array.isArray(meta.screen_buttons) ? meta.screen_buttons : null;
+    const screenButtons = !!sb && sb.length === 2 && sb[0] === "Yes" && sb[1] === "No";
+    return { status: res.status, reply: String(body.reply ?? ""), threadId: typeof body.thread_id === "string" ? body.thread_id : null, ...(parts ? { parts } : {}), ...(cardId ? { cardId } : {}), ...(resultStatus ? { resultStatus } : {}), ...(artifacts.length ? { artifacts } : {}), ...(postings.length ? { postings } : {}), ...(screenButtons ? { screenButtons } : {}) };
   };
 }
 

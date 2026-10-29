@@ -63,3 +63,7 @@ verify_jwt = false
 # the jobs secret authenticate in the handler (_shared/outlook_connector.ts).
 [functions.outlook-oauth]
 verify_jwt = false
+
+# Owner monitoring: the scheduler carries no JWT; the OPS_MONITOR_TOKEN authenticates in the handler.
+[functions.ops-monitor]
+verify_jwt = false

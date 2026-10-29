@@ -38,94 +38,62 @@ const KEYWORD: Record<ScreenFactKey, RegExp> = {
   education_level: /\b(bachelor\w*|master\w*|ph\.?d|doctorate|mba|degree|associate|high school|ged|b\.?s|m\.?s|b\.?a|b\.?tech)\b/i,
 };
 // Words that make a "place" something else: another question's answer, or yes / no wording. A location is a place only.
-const OTHER_TOPIC = /\b(?:sponsor\w*|visa|h-?1b|opt|work permit|authori[sz]ed|need|needs|needed|require\w*|citizen\w*|green card|permanent resident|relocat\w*|move|moving|degree|bachelor\w*|master\w*|ph\.?d|doctorate|mba|years?|yrs?|experience|yes|yeah|yep|no|nope|nah|not|don'?t|do not|won'?t|cannot|can'?t)\b/i;
-// Sponsorship, strictly: a leading yes / no must AGREE with what follows it. "No, I need sponsorship" contradicts itself, so it
-// is ambiguous and saves nothing (D-007); only a leading yes / no with nothing else (or only a courtesy) stands alone.
-const NEED_NO = /\b(?:(?:do|does|did|will|would|am|are|is|have)\s+not|don'?t|doesn'?t|didn'?t|won'?t|wouldn'?t|haven'?t|never|no longer|not)\s+(?:\w+\s+){0,2}?(?:need|require)\w*|\bno\s+(?:(?:visa|work)\s+)?sponsorship(?:\s+(?:is\s+)?(?:needed|required|necessary))?|\bwithout\s+(?:\w+\s+)?sponsor\w*|\bnot\s+(?:needed|required)|\bno\s+need\b|\bneed\s+no\b/i;
-const NEED_NO_ALL = new RegExp(NEED_NO.source, "gi");
-const NEED_YES = /\b(?:need|needs|require|requires|needing)\b/i;
-const SPONSOR_WORD = /\b(?:sponsor\w*|visa|h-?1b|opt|work permit|authori[sz]ed)\b/i;
-const LEAD_YES = /^(?:yes|yeah|yep|yup|y|sure)\b[,.!:;\s-]*/i;
-const LEAD_NO = /^(?:no|nope|nah|n)\b[,.!:;\s-]*/i;
-const FILLER_YES = /^(?:please|thanks?|thank you|i do|i will|i would|definitely|absolutely|correct|that'?s right)?\W*$/i;
-const FILLER_NO = /^(?:please|thanks?|thank you|not really|i do not|i don'?t|i'?m (?:good|fine)|that'?s all|that'?s right|correct)?\W*$/i;
-function sponsorshipVerdict(m: string, alone: boolean): "yes" | "no" | null {
-  const noNeed = NEED_NO.test(m);
-  const rest = m.replace(NEED_NO_ALL, " ");
-  const yesNeed = NEED_YES.test(rest);
-  if (noNeed && yesNeed) return null; // says both
-  const content: "yes" | "no" | null = noNeed ? "no" : yesNeed ? "yes" : null;
-  const lead: "yes" | "no" | null = LEAD_NO.test(m) ? "no" : LEAD_YES.test(m) ? "yes" : null;
-  if (lead && content && lead !== content) return null; // "No, I need sponsorship": ambiguous, nothing is written
-  if (lead) {
-    if (content) return content;
-    const tail = m.replace(lead === "no" ? LEAD_NO : LEAD_YES, "").trim();
-    return alone && (lead === "no" ? FILLER_NO : FILLER_YES).test(tail) ? lead : null;
-  }
-  if (!content) return null;
-  return SPONSOR_WORD.test(m) || (alone && /\b(?:it|that|one|any)\b|\bno need\b/i.test(m)) ? content : null;
-}
+const OTHER_TOPIC = /\b(?:sponsor\w*|visa|h-?1b|opt|work permit|authori[sz]ed|need|needs|needed|require\w*|citizen\w*|green card|permanent resident|relocat\w*|move|moving|degree|bachelor\w*|master\w*|ph\.?d|doctorate|mba|years?|yrs?|experience|y|n|yes|yeah|yep|yup|no|nope|nah|not|don'?t|do not|won'?t|cannot|can'?t)\b/i;
 export interface Parsed { value: string | number; text: string }
 
-// One question, one message (or one clause of it). `alone` is true when this question is the only one open, so a bare
-// yes / no / place / number answers it; with several open, a clause must name its subject.
+// ONE table: question -> the only forms it accepts. A yes/no question accepts the WHOLE trimmed message, case-insensitive and
+// punctuation-stripped, equal to yes / y / yeah / yep / no / n / nope (what the Yes / No buttons send) and nothing else: never a
+// phrase, never a sentence that happens to contain one ("No, I need sponsorship" is not a "no"). A phrase can be read two ways, and the
+// wrong way records a person who needs sponsorship as a citizen (D-007). Free text is for the place (validated as a place) and for
+// years ("N years" only). Every ScreenFactKey must have a row (the type enforces it), so no question can be left unguarded.
+const YES_FORMS = new Set(["yes", "y", "yeah", "yep"]);
+const NO_FORMS = new Set(["no", "n", "nope"]);
+const yesNoOf = (m: string): "yes" | "no" | null => { const t = m.toLowerCase().replace(/[^a-z]/g, ""); return YES_FORMS.has(t) ? "yes" : NO_FORMS.has(t) ? "no" : null; };
+type Form = { kind: "yesno"; yes: Parsed; no: Parsed } | { kind: "free"; parse: (m: string, named: boolean) => Parsed | null };
+const FORMS: Record<ScreenFactKey, Form> = {
+  sponsorship: { kind: "yesno", yes: { value: "yes", text: "Needs visa sponsorship" }, no: { value: "no", text: "Does not need visa sponsorship" } },
+  citizenship: { kind: "yesno", yes: { value: "yes", text: "US citizen" }, no: { value: "no", text: "Not a US citizen" } },
+  relocation: { kind: "yesno", yes: { value: "yes", text: "Open to relocating" }, no: { value: "no", text: "Not open to relocating" } },
+  location: { kind: "free", parse: (m) => {
+    if (/\?/.test(m) || (COMMAND.test(m) && !/\b(live|based|located|reside)\b/i.test(m))) return null;
+    if (/\b(want|prefer|looking|seeking|remote|interested|work in)\b/i.test(m)) return null;
+    if (OTHER_TOPIC.test(m)) return null; // an answer to another question (sponsorship, visa, citizenship, a degree, years, yes / no) is not a place
+    const stripped = placeOf(m).replace(/^(?:i'?m|i am)\s+(?:in|from)\s+/i, "").trim();
+    if (!/^[A-Za-z][A-Za-z.' -]*(?:,\s*[A-Za-z][A-Za-z.' -]*)*$/.test(stripped) || stripped.length > 60 || stripped.split(/\s+/).length > 6) return null;
+    if (stripped.split(/[\s,]+/).some((w) => /^(?:y|n|ye+s+|ye+a+h*|ye+p+|yu+p+|no+|no+pe+|na+h+)$/i.test(w))) return null; // yes / no in any spelling is not a place
+    if (OTHER_TOPIC.test(stripped) || /\b(ok|okay|sure|thanks|thank you|hi|hello|hey|maybe)\b/i.test(stripped) || BAD_PLACE.test(stripped) || stripped.length < 2) return null;
+    return { value: stripped, text: `Lives in ${stripped}` };
+  } },
+  years_experience: { kind: "free", parse: (m) => {
+    const w = m.toLowerCase().replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b/g, (x) => String(NUM_WORDS[x])).replace(/[.!]+$/, "").trim();
+    const n = /^(?:i have |i've got |i got )?(?:about |around |roughly |almost |nearly |over |just over )?(\d{1,2}(?:\.\d)?)\s*\+?\s*(?:years?|yrs?)(?: of (?:professional |work |relevant )?experience)?$/.exec(w);
+    if (!n) return null;
+    const v = Number(n[1]);
+    return v >= 0 && v <= 50 ? { value: v, text: `${v} years of professional experience` } : null;
+  } },
+  education_level: { kind: "free", parse: (m) => {
+    if (/\?/.test(m) || m.length > 80 || /\b(?:yes|yeah|yep|no|nope|sponsor\w*|visa|citizen\w*|need|needs|relocat\w*|years?|yrs?|not|don'?t)\b/i.test(m)) return null;
+    const lvl = educationLevelOf(m.replace(/\bexpected\b/gi, "")) ?? (/\b(finishing|finish|expected)\b/i.test(m) ? educationLevelOf(m.replace(/\b(pursuing|expected|finishing|currently)\b/gi, "")) : null);
+    return lvl ? { value: lvl, text: `Highest degree: ${lvl.replace("_", " ")}` } : null;
+  } },
+};
+export const YES_NO_FACTS = (Object.keys(FORMS) as ScreenFactKey[]).filter((f) => FORMS[f].kind === "yesno");
+export const isYesNoFact = (f: ScreenFactKey) => FORMS[f].kind === "yesno";
+
+// `alone` is true when this question is the only one open; with several open a bare yes / no answers none of them.
 export function parseScreenAnswer(fact: ScreenFactKey, raw: string, alone: boolean): Parsed | null {
   const m = clean(raw).replace(/[.!]+$/, "");
   if (!m || m.length > 200) return null;
+  const form = FORMS[fact];
+  if (form.kind === "yesno") {
+    if (!alone) return null;
+    const a = yesNoOf(m);
+    return a === "yes" ? form.yes : a === "no" ? form.no : null;
+  }
+  if (UNSURE.test(m)) return null; // an unsure / skipped / empty reply answers nothing
   const named = KEYWORD[fact].test(m);
   if (!alone && !named) return null;
-  const lead = (re: RegExp) => re.test(m);
-  if (UNSURE.test(m)) return null; // an unsure / skipped / empty reply answers nothing
-  switch (fact) {
-    case "location": {
-      if (/\?/.test(m) || (COMMAND.test(m) && !/\b(live|based|located|reside)\b/i.test(m))) return null;
-      if (/\b(want|prefer|looking|seeking|relocat\w*|remote|interested|work in)\b/i.test(m)) return null;
-      if (OTHER_TOPIC.test(m)) return null; // an answer to another question (sponsorship, visa, citizenship, a degree, years) is not a place
-      const stripped = placeOf(m).replace(/^(?:i'?m|i am)\s+(?:in|from)\s+/i, "").replace(/\s+and\s+(?:no|yes|i)\b.*$/i, "").trim();
-      if (!/^[A-Za-z][A-Za-z.' -]*(?:,\s*[A-Za-z][A-Za-z.' -]*)*$/.test(stripped) || stripped.length > 60 || stripped.split(/\s+/).length > 6) return null;
-      if (/\b(yes|no|nope|yeah|ok|okay|sure|thanks|thank you|hi|hello|hey|maybe)\b/i.test(stripped) || BAD_PLACE.test(stripped) || stripped.length < 2) return null;
-      return { value: stripped, text: `Lives in ${stripped}` };
-    }
-    case "relocation": {
-      const reloc = /\b(?:relocat\w*|move|moving|moved)\b/i.test(m);
-      if (reloc ? NEG.test(m) : lead(NO)) return { value: "no", text: "Not open to relocating" };
-      if (reloc ? /\b(?:open|willing|happy|able|would|will|ready|glad|fine|can|keen)\b/i.test(m) || lead(YES) : lead(YES)) return { value: m, text: `Open to relocating: ${m}` };
-      return null;
-    }
-    case "sponsorship": {
-      const v = sponsorshipVerdict(m, alone);
-      return v === "no" ? { value: "no", text: "Does not need visa sponsorship" } : v === "yes" ? { value: "yes", text: "Needs visa sponsorship" } : null;
-    }
-    case "citizenship": {
-      const neg = NEG.test(m.replace(/\bno\b(?=\s+(?:longer))/i, "")) && !/^(?:yes|yeah|yep|y)\b/i.test(m);
-      const us = /\b(?:u\.?s\.?a?\.?|american|america|united states)\b/i.test(m);
-      const of = /\bcitizen(?:ship)?\s+(?:of|in)\s+([A-Za-z][A-Za-z ]{1,30})/i.exec(m);
-      if (/\b(green card|permanent resident)\b/i.test(m)) return neg ? null : { value: "no", text: "Not a US citizen" };
-      if (of && !/^(?:the\s+)?(?:u\.?s\.?a?\.?|united states|america)\b/i.test(of[1].trim())) {
-        return neg ? null : { value: of[1].trim(), text: `Citizen of ${of[1].trim()}` }; // "not a citizen of India" says nothing about the US
-      }
-      if (/\bcitizen/i.test(m) || /\bamerican\b/i.test(m)) {
-        if (us || !/\b(?:of|in)\s+[A-Z]/.test(m)) return neg ? { value: "no", text: "Not a US citizen" } : { value: "yes", text: "US citizen" };
-      }
-      if (alone && lead(NO)) return { value: "no", text: "Not a US citizen" };
-      if (alone && lead(YES)) return { value: "yes", text: "US citizen" };
-      return null;
-    }
-    case "years_experience": {
-      if (/\?/.test(m)) return null;
-      const w = m.toLowerCase().replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b/g, (x) => String(NUM_WORDS[x]));
-      const n = /\b(\d{1,2}(?:\.\d)?)\s*\+?\s*(?:years?|yrs?)?\b/.exec(w);
-      if (!n || (!named && !/^(?:about|around|roughly|almost|nearly|just over|over)?\s*\d{1,2}(?:\.\d)?\s*\+?$/.test(w.replace(/\byears?\b/, "").trim()))) return null;
-      const v = Number(n[1]);
-      if (!(v >= 0 && v <= 50)) return null;
-      return { value: v, text: `${v} years of professional experience` };
-    }
-    case "education_level": {
-      if (/\?/.test(m)) return null;
-      const lvl = educationLevelOf(m.replace(/\bexpected\b/gi, "")) ?? (/\b(finishing|finish|expected)\b/i.test(m) ? educationLevelOf(m.replace(/\b(pursuing|expected|finishing|currently)\b/gi, "")) : null);
-      return lvl ? { value: lvl, text: `Highest degree: ${lvl.replace("_", " ")}` } : null;
-    }
-  }
+  return form.parse(m, named);
 }
 
 // The several questions one message may answer ("Austin, TX; no relocation; I need sponsorship"): clause by clause.
@@ -171,17 +139,21 @@ export async function screenAnswerTurn(o: ScreenAnswerDeps): Promise<ScreenAnswe
   if (!answers.length) {
     const held0 = (o.last?.meta?.screen_held ?? []) as HeldPosting[];
     // A bare yes / no with several questions open is an answer to none of them: say which, keep the questions.
-    if (facts.length > 1 && (YES.test(msg) || NO.test(msg)) && msg.split(/\s+/).length <= 3) {
+    if (facts.length > 1 && yesNoOf(msg)) {
       return { reply: `That was a few questions, so I don't know which one that answers. ${asked.map((a) => a.question).join(" ")} Answer them in one message, for example "${exampleFor(facts)}".`, status: "which", intent, saved: [], meta: { screen_ask: asked, screen_held: held0, ...(o.last?.meta?.screen_reasked ? { screen_reasked: true } : {}) } };
     }
     // A reply that is not an answer (I don't know, skip, a place that is none, a short non-answer) saves NOTHING (D-007). Ask once more;
     // when it was already asked twice, leave the postings held and drop the question: they wait until the person says.
     // So is a reply that answers ANOTHER question, or leads with yes / no and then contradicts itself ("No, I need sponsorship"): nothing is written.
-    const touches = !/\?/.test(msg) && !COMMAND.test(msg) && (YES.test(msg) || NO.test(msg) || LEAD_YES.test(msg) || LEAD_NO.test(msg) || /\b(?:sponsor\w*|visa|h-?1b|work permit|citizen\w*|green card|relocat\w*|degree|bachelor\w*|master\w*|ph\.?d)\b/i.test(msg));
-    const nonAnswer = UNSURE.test(msg) || touches || (facts.length === 1 && msg.split(/\s+/).length <= 4 && !COMMAND.test(msg) && !/\?/.test(msg));
+    // A yes/no question takes exactly yes or no: anything else (a sentence, another question's answer, "Austin") that is not a command or
+    // a question of its own is a non-answer. Nothing is written; it is asked again once, with "Reply yes or no" and Yes / No buttons.
+    const yn = facts.some(isYesNoFact);
+    const touches = !/\?/.test(msg) && !COMMAND.test(msg.replace(/\bplease\b/gi, "")) && (yn || /\b(?:sponsor\w*|visa|h-?1b|work permit|citizen\w*|green card|relocat\w*|degree|bachelor\w*|master\w*|ph\.?d)\b/i.test(msg) || !!yesNoOf(msg));
+    const nonAnswer = UNSURE.test(msg) || touches || (facts.length === 1 && msg.split(/\s+/).length <= 4 && !COMMAND.test(msg.replace(/\bplease\b/gi, "")) && !/\?/.test(msg));
     if (nonAnswer) {
       if (!o.last?.meta?.screen_reasked) {
-        return { reply: `I need a real answer for that, so I haven't saved anything. ${asked.map((a) => a.question).join(" ")}`, status: "asking", intent, saved: [], meta: { screen_ask: asked, screen_held: held0, screen_reasked: true } };
+        return { reply: `${yn ? "Reply yes or no. " : ""}I need a real answer for that, so I haven't saved anything. ${asked.map((a) => a.question).join(" ")}`, status: "asking", intent, saved: [],
+          meta: { screen_ask: asked, screen_held: held0, screen_reasked: true, ...(yn ? { screen_buttons: ["Yes", "No"] } : {}) } };
       }
       return { reply: `No problem, I haven't saved an answer and I'll keep ${held0.length === 1 ? "that posting" : "those postings"} on hold. Tell me ${asked.map((a) => LABEL[a.fact]).join(" and ")} whenever you want them screened.`, status: "held", intent, saved: [] };
     }

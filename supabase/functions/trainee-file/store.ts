@@ -1,5 +1,6 @@
 // The jobs page's store over Supabase: the Telegram job store plus the application row and the "to be prepared" check.
 import { supabaseJobStore } from "../_shared/telegram_jobs.ts";
+import { wantsFrom } from "../_shared/career_apply_want.ts";
 import type { FileStore } from "./handler.ts";
 import type { LoginRow, PhoneAuth, SessionRow, SessionStore } from "../_shared/file_session.ts";
 
@@ -10,12 +11,22 @@ export function supabaseFileStore(admin: any): FileStore {
   const must = (r: any, what: string) => { if (r.error) throw new Error(`${what}: ${r.error.message}`); return r.data; };
   return {
     ...base,
-    async appRow(u, jobId) {
-      const rows = must(await admin.from("career_apply_jobs").select("id,state,reason,confirmation_id,created_at,updated_at,email_confirmed_at,payload,company,url").eq("user_id", u).eq("job_id", jobId).limit(1), "read the application");
-      return rows?.[0] ?? null;
+    // By the posting's id, else by its link: the same posting found under another id is already in the applications (each posting
+    // goes at most once), and the row says where it stands instead of offering Apply again.
+    async appRow(u, jobId, url) {
+      const cols = "id,state,reason,confirmation_id,created_at,updated_at,email_confirmed_at,payload,company,url";
+      const rows = must(await admin.from("career_apply_jobs").select(cols).eq("user_id", u).eq("job_id", jobId).limit(1), "read the application");
+      if (rows?.[0] || !url) return rows?.[0] ?? null;
+      const byLink = must(await admin.from("career_apply_jobs").select(cols).eq("user_id", u).eq("url", url).order("created_at", { ascending: false }).limit(1), "read the application");
+      return byLink?.[0] ?? null;
     },
-    async wanted(u, url) {
-      const rows = must(await admin.from("career_apply_wanted").select("posting_key").eq("user_id", u).eq("url", url).limit(1), "read the queue");
+    // The queue stores a posting by its key and its board form's link (career_apply_want.ts wantsFrom: a Greenhouse posting's form is
+    // on job-boards.greenhouse.io, a Lever posting's at .../apply), so the shown link alone never found it: a row queued to be
+    // prepared kept offering Apply instead of saying Preparing (scenarios-file-apply.test.ts, real Postgres).
+    async wanted(u, url, job) {
+      const key = job ? wantsFrom([{ url: job.url, job_id: job.job_id, company: job.company, title: job.title }], 0).ok[0]?.posting_key ?? null : null;
+      const q = admin.from("career_apply_wanted").select("posting_key").eq("user_id", u);
+      const rows = must(await (key ? q.eq("posting_key", key) : q.eq("url", url)).limit(1), "read the queue");
       return !!rows?.length;
     },
   };

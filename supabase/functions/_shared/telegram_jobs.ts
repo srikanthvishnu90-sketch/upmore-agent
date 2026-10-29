@@ -28,6 +28,7 @@ import { screenPicks } from "./career_apply_want.ts";
 import { tapCard, type TapStore } from "./channel_card_tap.ts";
 import { cardDigest } from "./channel_card_tap.ts";
 import { type Button } from "./channel_adapters.ts";
+import { neverOpen } from "./career_people_sites.ts";
 
 export const TG_CAPTION_MAX = 1024;
 export const PAGE_SIZE = 5;
@@ -95,7 +96,7 @@ export const jobButtons = (ref: string): Button[][] => [[{ text: "Apply", data: 
 export const confirmButtons = (ref: string, tag: string): Button[][] => [[{ text: "Confirm", data: `jcy:${ref}:${tag}` }, { text: "Edit", data: `jce:${ref}` }, { text: "Cancel", data: `jcx:${ref}` }]];
 
 // ---------------------------------------------------------------- the card
-const AGGREGATOR = /(^|\.)(greenhouse\.io|lever\.co|ashbyhq\.com|myworkdayjobs\.com|workday\.com|smartrecruiters\.com|workable\.com|icims\.com|jobvite\.com|linkedin\.com|indeed\.com|joinhandshake\.com|glassdoor\.com|ziprecruiter\.com|builtin\.com|wellfound\.com)$/i;
+const AGGREGATOR = /(^|\.)(greenhouse\.io|lever\.co|ashbyhq\.com|myworkdayjobs\.com|workday\.com|smartrecruiters\.com|workable\.com|icims\.com|jobvite\.com|linkedin\.com|indeed\.com|joinhandshake\.com|glassdoor\.com|ziprecruiter\.com|builtin\.com|wellfound\.com|bamboohr\.com|recruitee\.com|breezy\.hr|applytojob\.com|teamtailor\.com|pinpointhq\.com|jazzhr\.com|rippling\.com|taleo\.net|successfactors\.com|oraclecloud\.com|ultipro\.com|paylocity\.com|dayforcehcm\.com|adp\.com|personio\.de|join\.com|remoteok\.com|weworkremotely\.com|dice\.com|monster\.com|simplyhired\.com|careerbuilder\.com|ycombinator\.com|otta\.com|hired\.com)$/i;
 const host = (u: string) => { try { return new URL(u).hostname.toLowerCase(); } catch { return ""; } };
 const PROVIDER_NAME: Record<string, string> = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", smartrecruiters: "SmartRecruiters", workday: "Workday" };
 export const sourceOf = (jobId: string, provider?: string | null) => {
@@ -103,14 +104,27 @@ export const sourceOf = (jobId: string, provider?: string | null) => {
   return PROVIDER_NAME[p] ?? (p ? p[0].toUpperCase() + p.slice(1) : null);
 };
 // The employer's own site, when the posting says it (company_domain) or the link is on the employer's own careers host. An
-// ATS or job-board host says nothing about the employer, so no domain (and no logo) comes from it.
+// ATS or job-board host says nothing about the employer, so no domain (and no logo) comes from it. A link's host counts as the
+// employer's only when its name is the employer's name (careers.acme.com for Acme): a list of every applicant-tracking and
+// job-board host can never be complete (tests/architect/scenarios-file-apply.test.ts: acme.bamboohr.com showed BambooHR's logo
+// as Acme's; LinkedIn's short-link host and Indeed's UK host showed theirs).
+const SECOND_LEVEL = /^(co|com|ac|org|net|gov|edu|ne|or)$/;
+const registrableLabel = (h: string) => { const l = h.split("."); return l.length >= 3 && SECOND_LEVEL.test(l[l.length - 2]) && l[l.length - 1].length === 2 ? l[l.length - 3] : l[l.length - 2] ?? ""; };
+const companySlug = (c: string) => String(c ?? "").toLowerCase().replace(/&/g, "and").replace(/\b(inc|llc|ltd|corp|corporation|co|company|gmbh|the)\b\.?/g, "").replace(/[^a-z0-9]/g, "");
+export function hostIsEmployers(h: string, company: string): boolean {
+  const label = registrableLabel(h).replace(/[^a-z0-9]/g, ""), slug = companySlug(company);
+  if (!label || !slug) return false;
+  if (label === slug) return true;
+  const first = String(company ?? "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)[0] ?? "";
+  return (Math.min(label.length, slug.length) >= 4 && (label.includes(slug) || slug.includes(label))) || (first.length >= 4 && label.startsWith(first));
+}
 export function logoDomain(job: Pick<JobView, "company_domain" | "url" | "company">, env: { get(k: string): string | undefined }): string | null {
   const given = String(job.company_domain ?? "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
   if (/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(given)) return given;
   const h = host(job.url);
-  if (h && !AGGREGATOR.test(h)) {
+  if (h && !AGGREGATOR.test(h) && !neverOpen(h)) {
     const bare = h.replace(/^(www|careers|jobs|job|apply|boards|hiring)\./, "");
-    if (/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(bare)) return bare;
+    if (/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(bare) && hostIsEmployers(bare, job.company)) return bare;
   }
   // Off by default: a guess from the company's name can show another company's logo.
   if ((env.get("TRAINEE_LOGO_GUESS") || "") === "on") {
@@ -315,6 +329,14 @@ const secretValue = (v: unknown): boolean => {
 };
 const hasValue = (v: unknown) => v !== null && v !== undefined && (typeof v === "string" ? v.trim() !== "" : typeof v === "object" ? Object.keys(v as object).length > 0 : true);
 const isSecretish = (f: any) => SECRET_TYPE.test(String(f?.type ?? "").trim()) || SECRETISH.test(`${f?.name ?? ""} ${f?.label ?? ""} ${f?.id ?? ""} ${f?.key ?? ""} ${f?.placeholder ?? ""} ${f?.autocomplete ?? ""} ${f?.kind ?? ""} ${f?.type ?? ""}`);
+// A field the person must fill in themselves: a secret-looking name, label or type (even while it is empty), or a value that looks like one.
+export const isSecretField = (f: any) => isSecretish(f) || (hasValue(f?.value) && secretValue(f?.value));
+// A top-level payload key (other than the form's fields) that names a secret with a value, or holds one at any depth.
+export function secretKey(k: string, v: unknown): boolean { if (SECRETISH.test(k) && hasValue(v)) return true; if (BOOKKEEPING.has(k)) return false; const sub: string[] = []; secretPaths(v, k, sub); return sub.length > 0; }
+// The payload's own bookkeeping (who, which posting, which resume file by its hash, when it expires): never a secret, so never scanned for
+// secret-looking VALUES (a resume's sha256 or an account id with a long run of digits passes the card-number check about one time in a
+// hundred, which made every application carrying it "needs you"). Their keys are still checked.
+const BOOKKEEPING = new Set(["version", "user_id", "job_id", "company", "url", "title", "resume_sha256", "privacy_epoch", "account_version", "expires_at", "kind"]);
 // Any key at any depth that names a secret and carries a value, or any value that looks like one: the path to it (never the value).
 function secretPaths(v: unknown, path: string, out: string[], depth = 0): void {
   if (depth > 6 || v === null || v === undefined) return;
@@ -340,7 +362,7 @@ export function secretFields(p: PreparedRow): string[] {
   const out: string[] = [];
   const fields: any[] = Array.isArray(pl.fields) ? pl.fields : [];
   fields.forEach((f, i) => { if (isSecretish(f) && hasValue(f?.value)) out.push(clean(f.label ?? f.name, 120) || `field ${i + 1}`); else if (f && hasValue(f?.value) && secretValue(f.value)) out.push(clean(f.label ?? f.name, 120) || `field ${i + 1}`); });
-  for (const [k, v] of Object.entries(pl)) { if (k === "fields") continue; const sub: string[] = []; if (SECRETISH.test(k) && hasValue(v)) sub.push(k); else secretPaths(v, k, sub); out.push(...sub.map((x) => clean(x, 120))); }
+  for (const [k, v] of Object.entries(pl)) { if (k === "fields") continue; const sub: string[] = []; if (SECRETISH.test(k) && hasValue(v)) sub.push(k); else if (!BOOKKEEPING.has(k)) secretPaths(v, k, sub); out.push(...sub.map((x) => clean(x, 120))); }
   (Array.isArray(p.card_lines) ? p.card_lines : []).forEach((l, i) => { if (secretLine(String(l ?? ""))) out.push(`card line ${i + 1}`); });
   return out;
 }
@@ -361,7 +383,7 @@ export function payloadLines(p: PreparedRow, job: JobView | null): string[] {
   const shown = new Set(["fields", "resume_sha256", "resume_name", "resume_file", "title"]);
   const extraAll = Object.entries(pl).filter(([k]) => !shown.has(k));
   const extraSecret: string[] = [];
-  const extra = extraAll.filter(([k, v]) => { const sub: string[] = []; if (SECRETISH.test(k) && hasValue(v)) sub.push(k); else secretPaths(v, k, sub); if (sub.length) { extraSecret.push(...sub); return false; } return true; });
+  const extra = extraAll.filter(([k, v]) => { const sub: string[] = []; if (SECRETISH.test(k) && hasValue(v)) sub.push(k); else if (!BOOKKEEPING.has(k)) secretPaths(v, k, sub); if (sub.length) { extraSecret.push(...sub); return false; } return true; });
   const cardLines = (Array.isArray(p.card_lines) ? p.card_lines : []).map((l) => String(l ?? ""));
   const cardSecret = cardLines.filter(secretLine).length;
   const needsYou = [...secret.map(name), ...extraSecret.map((x) => clean(x, 120)), ...(cardSecret ? [`${cardSecret} line${cardSecret > 1 ? "s" : ""} of the card (left out)`] : [])];
@@ -415,16 +437,23 @@ export async function screenedOut(userId: string, job: JobView, deps: JobDeps): 
   const UNREADABLE = "I couldn't check that posting just now (it may have closed), so nothing was queued. Tap Apply again in a minute.";
   try { row = (await deps.store.postings([job.job_id]))[0] ?? null; } catch { return UNREADABLE; }
   if (!row) return UNREADABLE; // no row on file is an unreadable posting, not a clean one: fail closed
-  const content = contentOf(row ?? { posted_at: job.posted_at, first_seen_at: job.first_seen_at, remote: job.remote });
   const facts = await (deps.facts?.(userId) ?? Promise.resolve([])).catch(() => []);
-  const r = screenPicks([{ job_id: job.job_id, url: job.url, company: job.company, title: job.title, location: job.location, content }], { apps: [], facts, now: deps.now() });
+  return postingVerdict(job, row, facts, !!deps.facts, deps.now());
+}
+// The same screen as a pure verdict over a posting row already read (the list page screens every row it offers with one read).
+export function postingVerdict(job: JobView, row: PostingRow, facts: any[], factsWired: boolean, now: number): string | null {
+  const content = contentOf(row);
+  const r = screenPicks([{ job_id: job.job_id, url: job.url, company: job.company, title: job.title, location: job.location, content }], { apps: [], facts, now });
   if (r.ok.length) return null;
   // Without a confirmed-facts source wired in (deps.facts), a "held until you confirm a fact" result is not a verdict about the
   // posting; closed, stale and scam-looking still stop it. With the source wired in, a held posting is stopped and the ask shown.
-  const hard = deps.facts ? r.refused : r.refused.filter((x) => x.ask !== "fact");
+  const hard = factsWired ? r.refused : r.refused.filter((x) => x.ask !== "fact");
   if (!hard.length) return null;
   return hard[0].said ?? "that posting didn't pass the posting screen";
 }
+// LinkedIn, Indeed and Handshake on any suffix or spelling of their host (a trailing-dot host, the short-link host, a country domain): never automated.
+export const byHandHost = (h: string) => BLOCKED_HOST.test(h) || neverOpen(h);
+export const byHandUrl = (u: string) => { try { return byHandHost(new URL(u).hostname); } catch { return false; } };
 
 export async function tapJob(o: { userId: string; data: string; messageId: string | null; deps: JobDeps; send: JobSender }): Promise<JobTapResult> {
   const t = parseJobTap(o.data);
@@ -472,7 +501,7 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
 
   if (t.op === "apply") {
     const h = (() => { try { return new URL(job.url).hostname; } catch { return ""; } })();
-    if (BLOCKED_HOST.test(h)) {
+    if (byHandHost(h)) {
       await say(`I don't apply on LinkedIn, Indeed or Handshake for you. Open it and apply there yourself:\n${job.url}`);
       return { toast: "Apply there yourself.", status: "never_automated" };
     }
@@ -506,6 +535,10 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
     if (await deps.store.applied(userId, job.job_id).catch(() => false)) {
       await say(`You already have ${job.company} in your applications, so I won't queue it twice.`);
       return { toast: "Already applied.", status: "duplicate" };
+    }
+    if (byHandUrl(job.url) || byHandUrl(String((prep.payload as Record<string, unknown>)?.destination ?? prep.url ?? ""))) {
+      await say(`I don't apply on LinkedIn, Indeed or Handshake for you, so nothing was approved. Open it and apply there yourself:\n${job.url}`);
+      return { toast: "Apply there yourself.", status: "never_automated" };
     }
     if (secretFields(prep).length) { await say(`That application has a field that needs you (a password, code or similar), so nothing was approved. Finish it yourself on the employer's form:\n${prep.url}`); return { toast: "Needs you.", status: "needs_you" }; }
     const screened = await screenedOut(userId, job, deps);
@@ -575,7 +608,11 @@ export function supabaseJobStore(admin: any): JobStore {
       const w = wantsFrom([{ url: job.url, job_id: job.job_id, company: job.company, title: job.title }], at);
       if (w.refused.length) return { result: "refused", reason: w.refused[0].reason };
       const r = await supabaseWantStore(admin).put(userId, w.ok);
-      if (r.refused?.length) return { result: "refused", reason: r.refused[0].reason === "daily_cap" ? "it's over the daily pace you set yourself" : String(r.refused[0].reason) };
+      // The database's refusal codes in the person's words, never the code itself.
+      if (r.refused?.length) {
+        const code = String(r.refused[0].reason);
+        return { result: "refused", reason: code === "daily_cap" ? "it's over the daily pace you set yourself" : code === "duplicate_job" ? "this posting is already in your applications, and each posting goes at most once" : "the apply queue refused it" };
+      }
       return { result: r.already.length ? "already" : "queued" };
     },
   };

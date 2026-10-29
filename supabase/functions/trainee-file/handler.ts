@@ -17,12 +17,16 @@ import { BOOT_SCRIPT, FEED_SCRIPT, fullOf, hostOf, renderBootstrap, renderFeed, 
 import { dayOf, BRAND, esc, layout } from "../_shared/file_page.ts";
 import { actOn, bodyHtml, COPY_SCRIPT, KIND_CSS, KIND_LABEL, textOf, type Effects, type FileRecord } from "../_shared/file_kinds.ts";
 import type { FileService } from "../_shared/file_service.ts";
-import { BLOCKED_HOST, hashTag, logoDomain, logoUrl, screenedOut, tapJob, type JobDeps, type JobSender, type JobStore, type JobView, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
+import { byHandUrl, hashTag, isSecretField, logoDomain, logoUrl, postingVerdict, secretFields, secretKey, tapJob, type JobDeps, type JobSender, type JobStore, type JobView, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
 
 export type { AppRow } from "../_shared/file_page.ts";
 export interface FileStore extends JobStore {
-  appRow(userId: string, jobId: string): Promise<AppRow | null>; // this person's application row for the posting (career_apply_jobs)
-  wanted(userId: string, url: string): Promise<boolean>; // queued to be prepared (career_apply_wanted)
+  // This person's application row for the posting (career_apply_jobs): by its id, else by its link (the same posting found under
+  // another id is the same application; each posting goes at most once).
+  appRow(userId: string, jobId: string, url?: string): Promise<AppRow | null>;
+  // Queued to be prepared (career_apply_wanted): by the posting's key, as the queue stores it (its board form's link, not always the
+  // link shown), else by the link.
+  wanted(userId: string, url: string, job?: JobView): Promise<boolean>;
 }
 export interface FileDeps extends Omit<JobDeps, "store"> {
   store: FileStore;
@@ -62,7 +66,7 @@ const resumeOf = (p: PreparedRow | null): string | null => {
   const s = String((p.payload as Record<string, unknown>)?.resume_sha256 ?? "");
   return /^[a-f0-9]{64}$/.test(s) ? `resume ${s.slice(0, 12)}` : null;
 };
-const byHandOf = (url: string) => { try { return BLOCKED_HOST.test(new URL(url).hostname); } catch { return false; } };
+const byHandOf = (url: string) => byHandUrl(url);
 
 // Key details: only what the posting (or the search result) states. A part from the stored posting is "From the posting"; if any part
 // came only from the search result the line says "Reported, not verified". Nothing unstated is shown.
@@ -78,30 +82,42 @@ function metaOf(job: JobView, post: PostingRow | null): { meta: string; metaSrc:
 }
 
 const ogImage = (env: { get(k: string): string | undefined }) => { const b = (env.get("TRAINEE_FILE_BASE_URL") || "").trim(); return /^https:\/\//.test(b) ? `${new URL(b).origin}/og-file.png` : null; };
-const SECRETISH = /pass(word)?|secret|token|otp|one[- ]?time|ssn|social security|card number|\bpin\b|passport|driver'?s? licen[sc]e|national id/i;
-// Every value the application will send, from the real payload the hash covers: the resume, each field, the cover note, the
-// page-set fields and the destination. A field that looks like a secret is shown as "Needs you" and makes the row unapprovable here.
-function sendOf(p: PreparedRow): { items: { label: string; value: string; needs?: boolean }[]; secret: string | null } {
+// Every value the application will send, from the real payload the hash covers, in full: the resume, each field (a file by its name),
+// the cover note, the page-set fields, every other key of the payload, and the destination. A secret-looking field or key (the same
+// rule the Telegram card's Confirm uses: telegram_jobs.ts isSecretField / secretKey / secretFields) is shown as "Needs you", never its
+// value, and makes the row unapprovable here. The payload's own bookkeeping (who, which posting, epochs, expiry) is not sent to anyone.
+const BOOKKEEPING = new Set(["version", "user_id", "job_id", "company", "url", "title", "fields", "resume_sha256", "resume_name", "resume_file", "cover_note", "page_field_names",
+  "destination", "privacy_epoch", "account_version", "expires_at", "kind", "resume_tailored", "resume_persona"]);
+const shownValue = (v: unknown) => v === "" || v === null || v === undefined ? "(empty)" : typeof v === "object" ? JSON.stringify(v) : String(v);
+function sendOf(p: PreparedRow): { items: { label: string; value: string; needs?: boolean }[]; secret: string | null; answers: boolean; cover: boolean } {
   const pl = (p.payload ?? {}) as Record<string, unknown>;
   const items: { label: string; value: string; needs?: boolean }[] = [];
-  let secret: string | null = null;
-  const sha = String(pl.resume_sha256 ?? "");
+  let secret: string | null = null, answers = false;
+  const sha = String(pl.resume_sha256 ?? ""), resumeName = String(pl.resume_name ?? ""), resumeFile = String(pl.resume_file ?? "");
   items.push({ label: "Resume", value: resumeOf(p) ?? "none attached" });
   // deno-lint-ignore no-explicit-any
   for (const f of (Array.isArray(pl.fields) ? pl.fields : []) as any[]) {
     const label = String(f?.label ?? f?.name ?? "").replace(/\s+/g, " ").trim().slice(0, 120) || "Field";
-    const value = String(f?.value ?? "").replace(/\s+/g, " ").trim();
-    if (SECRETISH.test(`${f?.name ?? ""} ${f?.label ?? ""}`)) { items.push({ label, value: "", needs: true }); secret ??= label; continue; }
-    if (/file/i.test(String(f?.type ?? "")) || (sha && value === sha)) continue; // the resume line above
-    items.push({ label, value: value.slice(0, 500) || "(empty)" });
+    if (isSecretField(f)) { items.push({ label, value: "", needs: true }); secret ??= label; continue; }
+    const v = f?.value, file = /file/i.test(String(f?.type ?? ""));
+    if ((sha && v === sha) || (file && ((resumeName && v === resumeName) || (resumeFile && v === resumeFile)))) continue; // the resume line above
+    if (shownValue(v) !== "(empty)") answers = true;
+    items.push({ label, value: file ? `file ${shownValue(v)}` : shownValue(v) });
   }
-  const cover = pl.cover_note && typeof pl.cover_note === "object" ? String((pl.cover_note as Record<string, unknown>).text ?? "").trim() : "";
-  if (cover) items.push({ label: "Cover note", value: cover.slice(0, 1500) });
-  const pageFields = Array.isArray(pl.page_field_names) ? pl.page_field_names.map(String).slice(0, 30) : [];
+  const coverRaw = typeof pl.cover_note === "string" ? pl.cover_note : pl.cover_note && typeof pl.cover_note === "object" ? (pl.cover_note as Record<string, unknown>).text : "";
+  const cover = String(coverRaw ?? "").trim();
+  if (cover) items.push({ label: "Cover note", value: cover });
+  const pageFields = Array.isArray(pl.page_field_names) ? pl.page_field_names.map(String) : [];
   if (pageFields.length) items.push({ label: "Also sent, set by the employer's page, unchanged", value: pageFields.join(", ") });
+  for (const [k, v] of Object.entries(pl)) {
+    if (BOOKKEEPING.has(k)) continue;
+    if (secretKey(k, v)) { items.push({ label: k, value: "", needs: true }); secret ??= k; continue; }
+    items.push({ label: k, value: typeof v === "string" ? v : JSON.stringify(v) });
+  }
   const dest = String(pl.destination ?? p.url ?? "");
   if (dest) items.push({ label: "Sends to", value: hostOf(dest) || dest.slice(0, 120) });
-  return { items, secret };
+  secret ??= secretFields(p)[0] ?? null; // anything else the card's Confirm would refuse (a card line, a nested value)
+  return { items, secret, answers, cover: !!cover };
 }
 // The logo only from the employer's own domain, through the configured provider, https only; the CSP allows that provider's origin only.
 function rowLogo(job: JobView, env: { get(k: string): string | undefined }): string | null {
@@ -118,19 +134,40 @@ async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: R
   const got = (await Promise.all(refs.map(async (ref) => ({ ref, c: await d.store.recall(claims.u, ref).catch(() => null) })))).filter((x) => x.c);
   if (!got.length) return null;
   const postings = await d.store.postings(got.map((x) => x.c!.job.job_id)).catch(() => [] as PostingRow[]);
+  // The posting screen (closed, stale, scam-looking, a knock-out against a CONFIRMED fact) runs on every row the page would offer,
+  // with one read of the facts: a row that cannot pass it offers no Apply and says why, so neither Apply nor "Apply to all" offers
+  // what the tap would then refuse (scenarios-file-apply.test.ts: a closed posting showed Apply and sat in the "Apply to all" set).
+  const facts = d.facts ? await d.facts(claims.u).then((f) => f ?? [], () => []) : [];
   const rows: Row[] = await Promise.all(got.map(async ({ ref, c }) => {
     const job = { ...c!.job }, post = postings.find((p) => p.job_id === job.job_id) ?? null;
     job.company_domain = job.company_domain ?? post?.company_domain ?? null;
-    const [app, prep] = await Promise.all([d.store.appRow(claims.u, job.job_id).catch(() => null), d.store.prepared(claims.u, job.job_id).catch(() => null)]);
-    const wanted = app || prep ? false : await d.store.wanted(claims.u, job.url).catch(() => false);
-    const sd = prep ? sendOf(prep) : null;
+    const [app, prep] = await Promise.all([d.store.appRow(claims.u, job.job_id, job.url).catch(() => null), d.store.prepared(claims.u, job.job_id).catch(() => null)]);
+    const wanted = app || prep ? false : await d.store.wanted(claims.u, job.url, job).catch(() => false);
+    // An application already in motion is described by its status; the prepared payload is not what it sends.
+    const sd = prep && !app ? sendOf(prep) : null;
     const status = statusOf({ app, wanted }) ?? (sd?.secret ? { word: "needs you" as const, detail: `"${sd.secret}" needs you. I never send a password, code or ID number from here; tell Trainee in Telegram.` } : null);
-    return { ref, job, logo: rowLogo(job, d.env), snippet: snippetOf(job, post?.description), full: fullOf(post?.description),
-      status, tag: prep && !sd?.secret ? hashTag(prep.payload_hash) : null, resume: resumeOf(prep), byHand: byHandOf(job.url), note: notes[ref], ...metaOf(job, post), why: job.reasons.slice(0, 2),
-      sends: sd && !sd.secret ? `Sends: ${resumeOf(prep) ?? "your resume"} + your saved answers` : undefined, send: sd?.items };
+    const byHand = byHandOf(job.url);
+    let blocked: string | null = null;
+    if (!status && !byHand) {
+      if (prep && byHandOf(String((prep.payload as Record<string, unknown>)?.destination ?? prep.url ?? ""))) blocked = "it would be sent to LinkedIn, Indeed or Handshake, which Trainee never applies on for you.";
+      else if (!post) blocked = "I couldn't check this posting just now (it may have closed). Refresh in a minute.";
+      else blocked = postingVerdict(job, post, facts, !!d.facts, d.now());
+    }
+    const tag = prep && !sd?.secret && !status && !byHand && !blocked && /^[0-9a-f]{16}$/.test(hashTag(prep.payload_hash)) ? hashTag(prep.payload_hash) : null;
+    // The short description and the key details: the stored posting's own words; a search-only detail only in the labelled line.
+    const stated = { ...job, location: post?.location ?? "", remote: post ? job.remote : null };
+    return { ref, job, logo: rowLogo(job, d.env), snippet: snippetOf(stated, post?.description), full: fullOf(post?.description),
+      status, tag, resume: app ? null : resumeOf(prep), byHand, blocked, note: notes[ref], ...metaOf(job, post), why: job.reasons.slice(0, 2),
+      sends: sd && !sd.secret ? `Sends: ${[resumeOf(prep) ?? "no resume", sd.answers ? "your saved answers" : "", sd.cover ? "a cover note" : ""].filter(Boolean).join(" + ")}` : undefined, send: sd?.items };
   }));
+  // The same posting twice on one list (the same link under two ids): only the first row offers Apply.
+  const seenUrl = new Set<string>();
+  for (const r of rows) {
+    if (!r.status && !r.byHand && !r.blocked && seenUrl.has(r.job.url)) { r.blocked = "it's the same posting as a row above."; r.tag = null; }
+    seenUrl.add(r.job.url);
+  }
   // The set "Apply to all" approves: the rows that can be approved right now, with the exact payload tag each shows.
-  const set = rows.filter((r) => !r.status && !r.byHand && r.tag);
+  const set = rows.filter((r) => !r.status && !r.byHand && !r.blocked && r.tag);
   const setHash = set.length ? (await sha(`v1|${set.map((r) => `${r.ref}:${r.tag}`).join(",")}`)).slice(0, 16) : null;
   const n = rows.length;
   // The preview card is the brand card (static, nothing about the person in a public image) plus counts the page itself shows.
@@ -344,14 +381,11 @@ async function handleFileOnce(req: Request, d: FileDeps): Promise<Response> {
       if (!row) return state("This job isn't on your list", [NEW_LINK], 404);
       if (row.status) { /* already in motion: the row shows its word, nothing more to do */ }
       else if (row.byHand) notes[ref] = "Not applied for automatically on this site. Open it and apply there yourself.";
+      // The posting screen ran when the row was read (closed, stale, scam-looking, knock-out, the same posting twice): nothing goes.
+      else if (row.blocked) notes[ref] = `${tag === "none" ? "Not queued" : "Nothing was approved"}: ${row.blocked}`;
       else if (tag === "none" && !row.tag) {
-        // The same posting screen as the card's Apply (closed, stale, scam-looking, knock-out): checked before anything is queued.
-        const why = await screenedOut(u, row.job, d);
-        if (why) notes[ref] = `Not queued: ${why}`;
-        else {
-          const w = await d.store.want(u, row.job, d.now()).catch(() => ({ result: "refused" as const, reason: "I couldn't save that just now." }));
-          if (w.result === "refused") notes[ref] = `Not queued: ${w.reason ?? "I can't open that posting's application form yet."}`;
-        }
+        const w = await d.store.want(u, row.job, d.now()).catch(() => ({ result: "refused" as const, reason: "I couldn't save that just now." }));
+        if (w.result === "refused") notes[ref] = `Not queued: ${w.reason ?? "I can't open that posting's application form yet."}`;
       } else if (!/^[0-9a-f]{16}$/.test(tag) || tag !== row.tag) {
         notes[ref] = "Changed since you opened this page, so nothing was sent.";
       } else {
@@ -364,7 +398,7 @@ async function handleFileOnce(req: Request, d: FileDeps): Promise<Response> {
       const posted = fields.get("set") ?? "";
       if (!cur || !cur.setHash || posted !== cur.setHash) top = "This list changed since you opened it, so nothing was approved.";
       else {
-        for (const r of cur.rows.filter((x) => !x.status && !x.byHand && x.tag)) {
+        for (const r of cur.rows.filter((x) => !x.status && !x.byHand && !x.blocked && x.tag)) {
           const n = await approveOne(u, r.ref, r.tag!, d);
           if (n) notes[r.ref] = n;
         }

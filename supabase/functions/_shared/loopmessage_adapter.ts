@@ -5,18 +5,20 @@
 import type { Send } from "./channel.ts";
 import { equalSecret } from "./message_service.ts";
 import { normalizeContact, toBubbles } from "./conversation.ts";
+import { imessageNativeRender } from "./channel_voice.ts";
 import { loopSend, parseLoopInbound } from "./loopmessage.ts";
 import type { ChannelAdapter, ParseResult } from "./channel_adapters.ts";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
-export function loopMessageAdapter(o: { apiKey: string; inboundSecret?: string; dailyContacts?: number; send?: Send; fetch?: typeof fetch; sleep?: (ms: number) => Promise<void> }): ChannelAdapter {
+// native (CAREER_TEXTING_NATIVE=on, CHANNEL DELIVERY SCENARIOS 2026-10-29): plain text, no markdown, in the same bubbles.
+export function loopMessageAdapter(o: { apiKey: string; inboundSecret?: string; dailyContacts?: number; send?: Send; fetch?: typeof fetch; sleep?: (ms: number) => Promise<void>; native?: boolean }): ChannelAdapter {
   const send = o.send ?? loopSend({ apiKey: o.apiKey, fetch: o.fetch, sleep: o.sleep });
   return {
     channel: "imessage", provider: "loopmessage",
     limits: { chars: 5000, packChars: 700, perChatGapMs: 250, overallPerSecond: null, windowMs: null, dailyContacts: o.dailyContacts ?? null, dailyTemplates: null },
     capabilities: { buttons: false, documents: false, previews: true, templates: false },
-    render: toBubbles,
+    render: o.native ? imessageNativeRender : toBubbles,
     send: (address, bubbles) => send(address, bubbles),
     async parseInbound(req): Promise<ParseResult> {
       if (req.method !== "POST") return { response: json({ error: "Method not allowed" }, 405) };

@@ -13,6 +13,8 @@
 // Text the person approves word for word (a card, an email or outreach draft, a reply in parts) is never shaped: the
 // caller decides that (career_reply_writer.ts writable()).
 
+import { findUrls, urlsOf } from "./channel_text.ts";
+
 export const ANSWER_MAX_CHARS = 700; // one short paragraph
 export const FILE_MAX_BYTES = 6144; // "4 KB-ish": one document carries at most this; more is split into parts
 export const MAX_FILES = 5; // per reply
@@ -25,9 +27,11 @@ export interface RawShape { answer?: unknown; attachments?: unknown; links?: unk
 
 const enc = new TextEncoder();
 export const byteLength = (s: string) => enc.encode(s).length;
-const URL_RX = /https?:\/\/[^\s<>()\]"'`]+/g;
 const trimUrl = (u: string) => u.replace(/[.,;:!?]+$/, "");
-export const urlsIn = (text: string): string[] => [...new Set((String(text ?? "").match(URL_RX) ?? []).map(trimUrl))];
+// CHANNEL DELIVERY SCENARIOS (2026-10-29): links found by channel_text.ts findUrls, so a link's own brackets are kept
+// ("…/wiki/Foo_(bar)" was sent as "…/wiki/Foo_") and the sentence's are not.
+export const urlsIn = (text: string): string[] => [...new Set(urlsOf(String(text ?? "")))];
+const withoutUrls = (line: string) => { let out = "", at = 0; for (const u of findUrls(line)) { out += line.slice(at, u.start); at = u.end; } return out + line.slice(at); };
 
 // A file name a person can read: lowercase words joined by "-", .md or .txt (anything else becomes .md), no path.
 export function safeFilename(name: unknown, fallback = "details"): { filename: string; mime: string } {
@@ -114,8 +118,8 @@ export function shapeReply(raw: RawShape, o: { allowedLinks?: Iterable<string> |
   }
   // Take every URL out of the answer text: a line that was only a link goes, a link inside a sentence leaves the sentence.
   answer = answer.split("\n").map((line) => {
-    const bare = line.replace(URL_RX, "").replace(/[\s:()\-–—•*]+/g, "");
-    return URL_RX.test(line) && !bare ? "" : line.replace(URL_RX, "").replace(/\s*\(\s*\)/g, "").replace(/[ \t]{2,}/g, " ").replace(/\s+([.,;:!?])/g, "$1").trimEnd();
+    const rest = withoutUrls(line), bare = rest.replace(/[\s:()\-–—•*]+/g, "");
+    return findUrls(line).length && !bare ? "" : rest.replace(/\s*\(\s*\)/g, "").replace(/[ \t]{2,}/g, " ").replace(/\s+([.,;:!?])/g, "$1").trimEnd();
   }).join("\n").replace(/\n{3,}/g, "\n\n").trim();
 
   // Attachments: sanitized, sized, at most MAX_FILES.

@@ -20,14 +20,31 @@
 import { equalSecret } from "./message_service.ts";
 import { type ChannelAdapter, type InboundMessage, packMessages, pacer, type ParseResult, type SendResult } from "./channel_adapters.ts";
 import { nativeRender, telegramPlain } from "./channel_voice.ts";
+import { safeSlice, utf8Bytes } from "./channel_text.ts";
 
 export const TELEGRAM_API = "https://api.telegram.org";
 export const TELEGRAM_CHARS = 4096;
 export const TELEGRAM_CAPTION = 1024; // a photo's caption
 // deno-lint-ignore no-explicit-any
-const inlineKeyboard = (rows: { text: string; data?: string; loginUrl?: string; url?: string; webApp?: string }[][]): any => ({ inline_keyboard: rows.map((row) => row.map((b) => b.webApp ? { text: b.text.slice(0, 64), web_app: { url: b.webApp } } : b.url ? { text: b.text.slice(0, 64), url: b.url } : b.loginUrl
-  ? { text: b.text.slice(0, 64), login_url: { url: b.loginUrl, request_write_access: true } }
-  : { text: b.text.slice(0, 64), callback_data: String(b.data ?? "").slice(0, 64) })) });
+// CHANNEL DELIVERY SCENARIOS (2026-10-29): a button's callback_data is 1 to 64 BYTES (Bot API, InlineKeyboardButton). It is
+// sent exactly as made or the button is left off: a cut token is a different token (a tap that can never match its card),
+// and a value over 64 bytes (any non-ASCII counts two to four) or empty made Telegram refuse the whole message, so the
+// card's words never arrived. A label is cut at 64 characters, never inside one.
+type KeyButton = { text: string; data?: string; loginUrl?: string; url?: string; webApp?: string };
+const buttonOf = (b: KeyButton) => {
+  const text = safeSlice(String(b.text ?? ""), 64);
+  if (b.webApp) return { text, web_app: { url: b.webApp } };
+  if (b.url) return { text, url: b.url };
+  if (b.loginUrl) return { text, login_url: { url: b.loginUrl, request_write_access: true } };
+  const data = String(b.data ?? "");
+  return data && utf8Bytes(data) <= 64 ? { text, callback_data: data } : null;
+};
+// deno-lint-ignore no-explicit-any
+export const inlineKeyboard = (rows: KeyButton[][]): any => ({ inline_keyboard: rows.map((row) => row.map(buttonOf).filter((b) => b !== null)).filter((row) => row.length) });
+const keyboardOf = (rows: KeyButton[][] | undefined) => {
+  const k = rows?.length ? inlineKeyboard(rows) : null;
+  return k && k.inline_keyboard.length ? k : null;
+};
 export const TELEGRAM_FILE_MAX = 20 * 1024 * 1024; // what a bot may download (getFile)
 const PACK = 1500; // the texting rule: one message carries at most 1,500 characters, longer text is split on purpose
 const SECRET_RE = /^[A-Za-z0-9_-]{32,256}$/;
@@ -196,7 +213,7 @@ export function telegramAdapter(o: {
     // https://core.telegram.org/bots/api#linkpreviewoptions, ASSUMED field names), so Telegram shows the title and image card.
     async sendLink(address, url): Promise<SendResult> {
       await pace(address);
-      const r = await call("sendMessage", { chat_id: Number(address), text: url.slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false, url, prefer_large_media: true } });
+      const r = await call("sendMessage", { chat_id: Number(address), text: safeSlice(url, TELEGRAM_CHARS), link_preview_options: { is_disabled: false, url, prefer_large_media: true } });
       if ("error" in r) return { ok: false, error: redact(`Telegram unreachable: ${r.error instanceof Error ? r.error.message : String(r.error)}`).slice(0, 200), retryable: false };
       if (r.status === 200 && r.body?.ok === true) return { ok: true, id: r.body?.result?.message_id != null ? String(r.body.result.message_id) : null };
       return { ok: false, error: `Telegram sendLink HTTP ${r.status}: ${redact(String(r.body?.description ?? "")).slice(0, 120)}`, retryable: false };
@@ -211,8 +228,8 @@ export function telegramAdapter(o: {
     // not fetch the logo) is a plain failure, and the caller sends the same card as text.
     async sendPhoto(address, p): Promise<SendResult> {
       await pace(address);
-      const r = await call("sendPhoto", { chat_id: Number(address), photo: p.photoUrl, caption: p.caption.slice(0, TELEGRAM_CAPTION),
-        ...(p.buttons?.length ? { reply_markup: inlineKeyboard(p.buttons) } : {}) });
+      const r = await call("sendPhoto", { chat_id: Number(address), photo: p.photoUrl, caption: safeSlice(p.caption, TELEGRAM_CAPTION),
+        ...(keyboardOf(p.buttons) ? { reply_markup: keyboardOf(p.buttons) } : {}) });
       if ("error" in r) return { ok: false, error: redact(`Telegram unreachable: ${r.error instanceof Error ? r.error.message : String(r.error)}`).slice(0, 200), retryable: false };
       if (r.status === 200 && r.body?.ok === true) return { ok: true, id: r.body?.result?.message_id != null ? String(r.body.result.message_id) : null };
       return { ok: false, error: `Telegram sendPhoto HTTP ${r.status}: ${redact(String(r.body?.description ?? "")).slice(0, 120)}`, retryable: false };
@@ -222,7 +239,7 @@ export function telegramAdapter(o: {
     async editMessage(address, messageId, e): Promise<SendResult> {
       const photo = !!e.caption;
       const r = await call(photo ? "editMessageCaption" : "editMessageText", { chat_id: Number(address), message_id: Number(messageId),
-        ...(photo ? { caption: e.text.slice(0, TELEGRAM_CAPTION) } : { text: e.text.slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: true } }),
+        ...(photo ? { caption: safeSlice(e.text, TELEGRAM_CAPTION) } : { text: safeSlice(e.text, TELEGRAM_CHARS), link_preview_options: { is_disabled: true } }),
         ...(e.buttons ? { reply_markup: inlineKeyboard(e.buttons) } : {}) });
       if ("error" in r) return { ok: false, error: redact(`Telegram unreachable: ${r.error instanceof Error ? r.error.message : String(r.error)}`).slice(0, 200), retryable: false };
       if (r.status === 200 && r.body?.ok === true) return { ok: true, id: String(messageId) };
@@ -242,14 +259,11 @@ export function telegramAdapter(o: {
         const keyboard = last && opts?.shareContact
           ? { reply_markup: { keyboard: [[{ text: opts.shareContact.slice(0, 64), request_contact: true }]], resize_keyboard: true, one_time_keyboard: true } }
           : last && opts?.removeKeyboard ? { reply_markup: { remove_keyboard: true } }
-          : last && opts?.buttons?.length
-          ? { reply_markup: { inline_keyboard: opts.buttons.map((row) => row.map((b) => b.webApp ? { text: b.text.slice(0, 64), web_app: { url: b.webApp } } : b.url ? { text: b.text.slice(0, 64), url: b.url } : b.loginUrl
-            ? { text: b.text.slice(0, 64), login_url: { url: b.loginUrl, request_write_access: true } }
-            : { text: b.text.slice(0, 64), callback_data: String(b.data ?? "").slice(0, 64) })) } } : {};
-        let r = await call("sendMessage", { chat_id: Number(address), text: bubbles[i].slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...(o.native ? { parse_mode: "HTML" } : {}), ...keyboard });
+          : last && keyboardOf(opts?.buttons) ? { reply_markup: keyboardOf(opts?.buttons) } : {};
+        let r = await call("sendMessage", { chat_id: Number(address), text: safeSlice(bubbles[i], TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...(o.native ? { parse_mode: "HTML" } : {}), ...keyboard });
         // V1: Telegram refused the markup, so nothing went out; the same words go again as plain text.
         if (o.native && !("error" in r) && r.status === 400 && /parse entities|can't find end|unsupported start tag/i.test(String(r.body?.description ?? ""))) {
-          r = await call("sendMessage", { chat_id: Number(address), text: telegramPlain(bubbles[i]).slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...keyboard });
+          r = await call("sendMessage", { chat_id: Number(address), text: safeSlice(telegramPlain(bubbles[i]), TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...keyboard });
         }
         if ("error" in r) {
           const e = r.error, timedOut = e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError");

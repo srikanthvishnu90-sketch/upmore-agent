@@ -11,6 +11,8 @@ import type { Send } from "./channel.ts";
 export const LOOPMESSAGE_SEND_URL = "https://a.loopmessage.com/api/v1/message/send/";
 const RETRYABLE_STATUS = new Set([429, 502, 503]);
 const MAX_TEXT = 5000;
+// Never half a character at the cut (an emoji's two halves); kept import-free (tests/trainee-go-live.test.cjs loads this file).
+const safeText = (t: string) => { const c = t.charCodeAt(MAX_TEXT - 1); return t.length <= MAX_TEXT ? t : t.slice(0, c >= 0xd800 && c <= 0xdbff ? MAX_TEXT - 1 : MAX_TEXT); };
 
 export function loopSend(o: { apiKey: string; fetch?: typeof fetch; pauseMs?: number; timeoutMs?: number; sleep?: (ms: number) => Promise<void> }): Send {
   const f = o.fetch ?? fetch, pause = o.pauseMs ?? 250, timeout = o.timeoutMs ?? 15000;
@@ -24,7 +26,7 @@ export function loopSend(o: { apiKey: string; fetch?: typeof fetch; pauseMs?: nu
       let res: Response;
       try {
         res = await f(LOOPMESSAGE_SEND_URL, { method: "POST", headers: { Authorization: o.apiKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ contact, text: bubbles[i].slice(0, MAX_TEXT) }), signal: AbortSignal.timeout(timeout) });
+          body: JSON.stringify({ contact, text: safeText(bubbles[i]) }), signal: AbortSignal.timeout(timeout) });
       } catch (e) {
         const timedOut = e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError");
         return timedOut ? { ok: false, error: `LoopMessage timed out (it may have been delivered)${after}`, retryable: false }

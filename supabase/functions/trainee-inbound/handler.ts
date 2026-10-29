@@ -9,6 +9,7 @@
 import { equalSecret } from "../_shared/message_service.ts";
 import type { Send } from "../_shared/channel.ts";
 import { loopMessageAdapter } from "../_shared/loopmessage_adapter.ts";
+import { textingNativeOn } from "../_shared/channel_voice.ts";
 import { runInbound, type InboundStore } from "../_shared/channel_inbound.ts";
 
 export { CHAT_DOWN_REPLY, SIGNUP_CLOSED_REPLY, signupAllows, turnKeyFor } from "../_shared/channel_inbound.ts";
@@ -32,7 +33,7 @@ export async function handleInbound(req: Request, d: InboundDeps): Promise<Respo
   if (!equalSecret(got, secret)) return json({ error: "forbidden" }, 403);
   const apiKey = d.env.get("LOOPMESSAGE_API_KEY") || "";
   if (!apiKey) return json({ error: "NOT_WIRED: LOOPMESSAGE_API_KEY is not set; no turn was run" }, 503);
-  const adapter = loopMessageAdapter({ apiKey, inboundSecret: secret, send: async (c, b) => await d.send(apiKey)(c, b) });
+  const adapter = loopMessageAdapter({ apiKey, inboundSecret: secret, send: async (c, b) => await d.send(apiKey)(c, b), native: textingNativeOn(d.env) });
   const parsed = await adapter.parseInbound(req);
   if ("response" in parsed) return parsed.response;
   const msg = parsed.messages[0];

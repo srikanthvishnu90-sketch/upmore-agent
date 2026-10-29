@@ -530,7 +530,7 @@ export async function employerAnswerTurn(o: Omit<ApplyChatDeps, "postings" | "sh
   const onFile = await checkListed(chosen.map((q) => ({ job_id: q.job_id ?? undefined, url: q.url, company: q.company, title: q.title })), o.posting);
   const picks: Pick[] = onFile.ok;
   const screened = screenPicks(picks, { apps, facts: o.facts ?? [], now: o.now, resolved });
-  const refused = [...onFile.refused.map((r) => `${nameOf(r)}: ${r.said ?? r.reason}`), ...screened.refused.map((r) => `${nameOf(r.posting)}: ${r.said ?? r.reason}`)];
+  const refused = [...onFile.refused.map((r) => `${nameOf(r)}: ${r.reason}`), ...screened.refused.map((r) => `${nameOf(r.posting)}: ${r.said ?? r.reason}`)];
   let queued: string[] = [], already = 0;
   if (screened.ok.length) {
     const pace = await readPace(o.limits);

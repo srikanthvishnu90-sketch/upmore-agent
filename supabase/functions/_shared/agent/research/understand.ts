@@ -8,7 +8,7 @@ import type { Derived } from "./derive.ts";
 export type StageGroup = "early_student" | "late_student" | "new_grad" | "grad_student" | "switcher" | "displaced" | "experienced" | "unknown";
 export type QType = "get_hired" | "switch" | "pay" | "credential" | "timeline" | "open";
 export interface Understanding {
-  field: Field | null; stage: StageGroup; stageLabel: string; geo: string; geoKey: string; qtype: QType;
+  field: Field | null; stage: StageGroup; stageLabel: string; year: string | null; geo: string; geoKey: string; qtype: QType;
   overlays: Overlay[]; assumptions: string[]; ask: string | null;
   confirmed: string[]; said: string[];      // facts about the person, by status; only `confirmed` may be stated as fact
 }
@@ -75,5 +75,6 @@ export function understand(o: { pack: ContextPack; message: string; derived?: De
   let ask: string | null = null;
   if (!field) ask = "Which role or field are you aiming for?";
   else if (field.local && !place) ask = `Which state are you in? ${field.label[0].toUpperCase() + field.label.slice(1)} licensing and hiring rules are set by each state.`;
-  return { field, stage, stageLabel: STAGE_LABEL[stage], geo, geoKey, qtype: qtypeOf(message), overlays, assumptions, ask, confirmed: dedupe(confirmed), said: dedupe(said) };
+  const yr = String(pack.stage.value ?? "").toLowerCase(), year = /^(?:freshman|sophomore|junior|senior)$/.test(yr) ? yr : null;
+  return { field, stage, stageLabel: STAGE_LABEL[stage], year, geo, geoKey, qtype: qtypeOf(message), overlays, assumptions, ask, confirmed: dedupe(confirmed), said: dedupe(said) };
 }

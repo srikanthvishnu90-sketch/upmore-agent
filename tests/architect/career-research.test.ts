@@ -24,6 +24,7 @@ Deno.test("general knowledge: no number, no named employer or program in any fie
   const lines: string[] = [];
   for (const f of FIELDS) lines.push(f.now, f.later, ...Object.values(f.slots), ...f.targets, ...f.credentials, ...f.who, ...f.asks, ...f.verify);
   for (const v of OVERLAYS) lines.push(v.read, v.stage ?? "", v.network ?? "", v.verify ?? "");
+  for (const f of FIELDS) lines.push(...f.cycle, f.odds);
   for (const l of lines) { const bad = unsupported(l, ""); eq(bad, [], `"${l.slice(0, 60)}" has specifics: ${bad}`); }
   ok(FIELDS.length >= 10 && ["ib", "consulting", "swe", "data", "nursing", "trades", "teaching", "pm_ops", "eng", "lnd"].every((id) => FIELDS.some((f) => f.id === id)));
   ok([...GK_TERMS].every((t) => !/goldman|lazard|mckinsey|google|meta/.test(t)));
@@ -261,7 +262,9 @@ Deno.test("reply path: a bad paragraph is regenerated once, then replaced by a p
   let m = 0;
   const b = await enforceResearchReply({ reply: bad, result: res, message: p.message, regenerate: async () => { m++; return bad; } });
   eq([b.action, m], ["fallback", 1], "one retry only");
-  ok(!/https?:/.test(b.reply) && !/\b(file|attached|link|brief)\b/i.test(b.reply) && b.reply === fallbackVerdict(res), b.reply);
+  ok(b.reply === fallbackVerdict(res) && b.reply.endsWith(LINK) && /This week:/.test(b.reply) && !/\b(attached|attachment)\b/i.test(b.reply), b.reply);
+  const nf = fallbackVerdict({ ...res, file_url: null });
+  ok(!/https?:/.test(nf) && !/\b(file|attached|link|brief)\b/i.test(nf) && /This week:/.test(nf), nf);
   const noFile = { ...res, file_url: null };
   const c = await enforceResearchReply({ reply: good + " The full plan is in the file.", result: noFile, message: p.message, regenerate: async () => good });
   eq(c.action, "regenerated"); ok(!/https?:/.test(c.reply) && !/\bfile\b/i.test(c.reply));

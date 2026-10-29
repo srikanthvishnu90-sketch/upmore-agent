@@ -15,16 +15,24 @@ export interface Field {
   who: string[];                             // networking: who to talk to (categories, never people)
   asks: string[];                            // what to ask them
   verify: string[];                          // what this brief cannot know without a current source
+  cycle: string[];                           // the usual route by stage or year, in words (no dates or figures): where the person is on it
+  odds: string;                              // the honest odds in words, with no invented rate
   local?: boolean;                           // licensing or hiring rules are set by state or country
 }
 export const FIELDS: Field[] = [
   { id: "ib", label: "investment banking", detect: /investment bank|\bIB\b|private equity|\bPE (?:shop|firm)s?\b|\bM&A\b|banker/i,
+    cycle: [
+      "Freshman year: build the base, not the offer. Take accounting and finance courses, join the finance or investing club, keep grades you can defend, and start conversations with upperclassmen and alumni. Ask your career center which large banks offer programs for first-year students; I cannot confirm any from a source here, so check each bank's own careers page for eligibility and dates.",
+      "Sophomore year: the first real recruiting cycle. The summer after sophomore year is where most people win a first internship, at a boutique or middle-market bank, a small private equity shop, a corporate finance team, or a large bank's program for sophomores if one exists for your school. Technical prep (accounting, valuation, discounted cash flow, comparable companies) starts here and is tested in interviews.",
+      "Junior year: the recruiting that matters most. Large banks fill their summer analyst class from the junior class, with applications opening at the start of that year or earlier, well before the summer they cover. The junior-summer internship is how most full-time analyst offers are made, and a strong summer converts to an offer.",
+      "Senior year: with an offer you prepare to start; without one, full-time analyst recruiting at smaller banks outside the main cycle is still open, and lateral moves exist later."],
+    odds: "The large-bank analyst classes are small next to the number of applicants and lean on a short list of schools. From a school that is not on that list the usual route is boutique or middle-market banks first, with grades, a finance-club record, a modeling project and alumni introductions doing the work the school name would otherwise do. Treat the large-bank seat as possible but not the plan you depend on.",
     queries: [
-      { q: "{field} internship recruiting timeline for {stage} students {geo}", kinds: ["timeline", "program", "eligibility"] },
-      { q: "{field} boutique and middle-market banks internships how to break in {stage}", kinds: ["employer", "program"] },
-      { q: "Bureau of Labor Statistics financial analysts personal financial advisors pay and outlook", kinds: ["pay", "outlook"] },
-      { q: "{field} analyst skills technical interview preparation accounting valuation", kinds: ["credential"] }],
-    now: "A summer analyst seat at the largest banks is rarely won this early; what you can win now is a base: coursework, a finance or investing club, a first small-firm or finance-adjacent internship, and relationships with people a few years ahead of you.",
+      { q: "{field} recruiting timeline by class year: first-year and sophomore programs, junior summer analyst internship, conversion to full-time offer {geo}", kinds: ["timeline", "program", "eligibility"] },
+      { q: "{field} first-year and sophomore early-insight programs at banks, plus boutique and middle-market banks that hire {stage} interns", kinds: ["employer", "program"] },
+      { q: "{field} analyst recruiting GPA expectations target and non-target schools technical interview accounting valuation DCF comps", kinds: ["eligibility", "credential"] },
+      { q: "Bureau of Labor Statistics financial analysts pay and outlook", kinds: ["pay", "outlook"] }],
+    now: "A summer analyst seat at the largest banks is rarely won this early; what you can win now is a base: coursework, a finance or investing club, a modeling project, a first small-firm or finance-adjacent internship, and relationships with people a few years ahead of you.",
     later: "The large-bank analyst class is recruited far ahead of the start date and is won by people with a clean story: strong grades, a prior finance internship, and technical fluency. Boutique and middle-market banks, small private equity shops, and corporate finance or valuation groups are the realistic first rungs, and they are also how people end up at larger firms later.",
     slots: { foundation: "Take the accounting and corporate finance courses, join the finance or investing club, and learn to read a financial statement end to end.", experience: "Look for a boutique investment bank, a middle-market advisory firm, a small private equity or search fund, a corporate development or valuation team, or a wealth-management office; early roles there are often unposted, so ask directly.", credential: "Build technical fluency: three-statement modeling, basic valuation, and how to talk through a deal you followed.", target: "Apply to the structured programs that open at your stage, and keep a list of every firm category you have talked to." },
     targets: ["Boutique advisory banks", "Middle-market banks", "Small private equity shops and search funds", "Corporate development and valuation groups", "Regional and wealth-management firms"],
@@ -33,6 +41,12 @@ export const FIELDS: Field[] = [
     asks: ["How did you get your first finance role, and what would you do differently?", "What did your firm look for in interns that applicants usually lack?", "Which technical skill should I be strongest in by my next recruiting season?"],
     verify: ["The exact current recruiting calendar of any single firm", "Which firms run programs for your class year this cycle", "Current analyst pay at specific firms", "Whether a given firm recruits from your school"] },
   { id: "consulting", label: "management consulting", detect: /consult(?:ing|ant)|strategy (?:firm|role)/i,
+    cycle: [
+      "Early college years: build the base. Grades, leadership roles, quantitative coursework and analytical projects, plus first conversations with alumni at firms.",
+      "Sophomore year: look for first-year and sophomore diversity or insight programs where your school is eligible, and start learning the case format.",
+      "Junior year: the main internship recruiting. Applications open early in the school year, resumes and cases are screened hard, and the summer internship is how most full-time offers are made.",
+      "Senior year and after: full-time recruiting continues at smaller and mid-size firms, and an MBA or an industry role is a common later route into the larger ones."],
+    odds: "The most selective firms take a small share of applicants, mostly from schools they recruit at. Case skill, a clean record of leadership and analytical work, and alumni referrals move the odds more than anything else you control; boutique and mid-size firms are the broader door.",
     queries: [
       { q: "{field} recruiting process timeline {stage} applicants {geo}", kinds: ["timeline", "program", "eligibility"] },
       { q: "{field} firms boutique and mid-size entry-level hiring MBA and undergraduate", kinds: ["employer", "program"] },
@@ -47,6 +61,12 @@ export const FIELDS: Field[] = [
     asks: ["What separated candidates who got offers from those who did not?", "How did you practise cases, and what would you change?", "Which firm types fit my background, and why?"],
     verify: ["Each firm's current application window and class-year eligibility", "Current compensation at any named firm", "Whether a given office is hiring this cycle"] },
   { id: "swe", label: "software engineering", detect: /software|\bswe\b|(?:web|app|mobile|front[- ]?end|back[- ]?end|full[- ]?stack) (?:dev|developer|engineer)|programmer|coding bootcamp|computer programming/i,
+    cycle: [
+      "Early college years: learn to build. Core programming courses, one or two projects you ship, and a habit of reading other people's code.",
+      "Sophomore year: look for a first internship, a research seat, or an open-source or freelance project; many large companies run early-career programs.",
+      "Junior year: the main internship recruiting season, with applications opening in the late summer and fall; practice data structures, algorithms and system basics for the interviews.",
+      "Senior year and after: return-offer conversion, or a broad application push with referrals; keep shipping while you search."],
+    odds: "Entry-level software hiring is competitive and swings with the market. A school name helps less than shipped projects, a prior internship and a referral, so those are the levers to pull; I have no sourced hiring-rate figure, so I give none.",
     queries: [
       { q: "software developer entry-level hiring timeline internships {stage} {geo}", kinds: ["timeline", "program", "eligibility"] },
       { q: "small company and startup software internships how to apply {stage}", kinds: ["employer", "program"] },
@@ -61,6 +81,12 @@ export const FIELDS: Field[] = [
     asks: ["What did your first engineering job look for in a junior hire?", "Can you look at one project of mine and tell me what is weakest?", "Which kinds of small teams hire people at my level?"],
     verify: ["Whether any named company is hiring juniors now", "Current pay at a named employer", "Which internships are open to your class year this cycle"] },
   { id: "data", label: "data analytics", detect: /data (?:analy|scien|engineer)|analytics|business intelligence/i,
+    cycle: [
+      "Early college years: SQL, spreadsheets and statistics, plus one analysis of a real dataset you can explain end to end.",
+      "Sophomore year: a first analyst internship, campus research or a volunteer analysis for a club or nonprofit.",
+      "Junior year: the main internship cycle; a portfolio of two or three analyses and SQL screens carry the interviews.",
+      "Senior year and after: apply to analyst roles in operations, finance, marketing and health settings, and move toward data science only after the analysis record is real."],
+    odds: "Analyst roles are reachable from many majors if you can show SQL and one real analysis; data scientist titles usually ask for more, often a graduate degree or a stronger quantitative record.",
     queries: [
       { q: "entry-level data analyst hiring requirements and timeline {stage} {geo}", kinds: ["timeline", "program", "eligibility"] },
       { q: "data analyst internships and rotational programs employers {stage} {geo}", kinds: ["employer", "program"] },
@@ -75,6 +101,11 @@ export const FIELDS: Field[] = [
     asks: ["What does a day of analysis look like in your role?", "Which tools did you need in your first job?", "What would make a project of mine credible to your team?"],
     verify: ["Current openings and employer-specific requirements", "Whether work authorization limits particular employers", "Current pay in your city"], local: false },
   { id: "nursing", label: "nursing", detect: /\bnurs(?:e|es|ing)\b|\bRN\b|NCLEX/i,
+    cycle: [
+      "Before and during the program: clinical placements, grades and a strong record on the clinical rotations decide where you are noticed.",
+      "Final year: apply to new-graduate residency programs, which often open before graduation, and prepare for the licensing exam.",
+      "After graduation: sit the licensing exam, finish state licensure and start on the unit that hires you; later specialties and advanced degrees open from there."],
+    odds: "New graduates are hired steadily in most regions, with the best odds for those who pass the licensing exam on the first try and stay open to the settings and shifts that hire most; the most sought-after units and programs are more competitive.",
     queries: [
       { q: "new graduate registered nurse licensure NCLEX and hiring process {geo}", kinds: ["credential", "eligibility", "timeline"] },
       { q: "new graduate nurse residency programs hospitals {geo}", kinds: ["program", "employer"] },
@@ -89,6 +120,11 @@ export const FIELDS: Field[] = [
     asks: ["What did your unit look for in new graduates?", "What was your first year like, and what helped?", "Which settings in this area hire new nurses?"],
     verify: ["Your state's current licensing steps and fees", "Which employers have open new-graduate cohorts and their deadlines", "Current pay at named employers"], local: true },
   { id: "trades", label: "electrical trade", detect: /electrician|lineman|plumb|apprentice|journeyman|\bIBEW\b|welder|hvac|carpent/i,
+    cycle: [
+      "Now: apply to registered apprenticeship programs and contractors who train, since the application windows are limited and aptitude tests come first.",
+      "Through the apprenticeship: classroom hours and logged on-the-job hours accumulate toward the journeyman license.",
+      "After the apprenticeship: sit the licensing exam, then choose between employee, foreman and contractor routes."],
+    odds: "Apprentice seats can have waitlists and limited application windows, and the earlier you apply and the more reliable your record, the better your odds; a contractor who will train you is a second door when a program is full.",
     queries: [
       { q: "electrician apprenticeship requirements how to apply and licensing {geo}", kinds: ["eligibility", "credential", "program"] },
       { q: "union and non-union electrical apprenticeship programs {geo}", kinds: ["program", "employer", "timeline"] },
@@ -103,6 +139,11 @@ export const FIELDS: Field[] = [
     asks: ["What does your program look for in applicants?", "What was the hardest part of the first year?", "Which contractors here take on new apprentices?"],
     verify: ["Current application windows, aptitude test dates and pay scales of local programs", "Your state's exact hours and exam requirements", "Whether local union halls are taking applications now"], local: true },
   { id: "teaching", label: "teaching", detect: /\bteach(?:er|ing)\b|\bclassroom\b|education degree/i,
+    cycle: [
+      "Now: confirm your state's certification route and which subjects have shortages.",
+      "During preparation: student teaching or a residency, the licensing exams, and school or district applications that often open in the spring.",
+      "First years: a provisional or initial license, a mentor, and the path to the full license."],
+    odds: "Shortage subjects and high-need districts hire most easily; popular subjects in desirable districts are competitive. Your odds depend more on subject and certification than on anything on a resume.",
     queries: [
       { q: "teacher certification requirements and alternative routes {geo}", kinds: ["credential", "eligibility", "program"] },
       { q: "school district teacher hiring timeline {geo}", kinds: ["timeline", "employer"] },
@@ -117,6 +158,11 @@ export const FIELDS: Field[] = [
     asks: ["What does your school look for in a new teacher?", "Which subjects are hardest to fill here?", "How did you move through certification?"],
     verify: ["Your state's current certification requirements and exam names", "District hiring calendars and openings", "Current pay scales by district"], local: true },
   { id: "pm_ops", label: "project management", detect: /project manag|program manag|operations (?:manag|role|analyst)|\bpmp\b|scrum|business ops/i,
+    cycle: [
+      "Now: translate what you have already run into delivery language and list the scope, team and result of each project.",
+      "Next few months: apply for coordinator, project manager and program manager roles that match your scale, and consider a credential only if listings ask for it.",
+      "Later: move from projects to programs and portfolios as you take on budget and people."],
+    odds: "Experience you can show with results beats any credential; a formal credential helps most as a screen for roles that ask for it, and I have no sourced hiring-rate figure.",
     queries: [
       { q: "project manager hiring outlook and typical requirements {stage} {geo}", kinds: ["outlook", "eligibility", "timeline"] },
       { q: "project management certification PMP eligibility requirements", kinds: ["credential", "eligibility"] },
@@ -131,6 +177,12 @@ export const FIELDS: Field[] = [
     asks: ["How is my experience read by hiring managers in your area?", "Which credential, if any, do you actually screen on?", "Which sectors need people with my background?"],
     verify: ["Current eligibility rules and fees for any certification", "Which employers are hiring now", "Current pay in your region"] },
   { id: "eng", label: "engineering", detect: /mechanical|civil|electrical engineer|chemical engineer|\bengineering\b|aerospace|\bECE\b/i,
+    cycle: [
+      "Now: secure the transfer or degree path and its credit rules in writing.",
+      "First terms: join the engineering society, find a faculty research seat or a hands-on project, and ask the cooperative education office when internship recruiting starts.",
+      "Junior year: the main internship and co-op recruiting; the internship usually becomes the return offer.",
+      "Senior year: full-time recruiting and the licensing exams that apply to your branch."],
+    odds: "Engineering hiring is steadier than most fields for people with the degree, an internship or co-op and strong core courses; the narrowing factor is usually the discipline and location rather than the degree.",
     queries: [
       { q: "community college to four-year engineering transfer pathways {geo}", kinds: ["program", "eligibility", "timeline"] },
       { q: "engineering internships and co-op programs for transfer students {geo}", kinds: ["employer", "program", "timeline"] },
@@ -145,6 +197,11 @@ export const FIELDS: Field[] = [
     asks: ["How did you land your first internship as a transfer student?", "Which courses mattered most for interviews?", "What would you do in your first semester?"],
     verify: ["Whether each of your courses transfers", "Recruiting calendars at specific employers", "Current pay for internships and entry roles"] },
   { id: "lnd", label: "instructional design and corporate training", detect: /instructional design|corporate (?:training|learning)|learning (?:and|&) development|\bL&D\b|training specialist/i,
+    cycle: [
+      "Now: turn classroom work into design language and start two or three samples.",
+      "Next few months: finish a portfolio of samples with measured outcomes and learn one authoring tool.",
+      "Then: apply to training, onboarding and curriculum roles in companies, healthcare, higher education and government."],
+    odds: "Teachers are a credible source of designers, but the roles hire on samples, so the odds rise sharply with a portfolio and a clear outcome story; I have no sourced hiring-rate figure.",
     queries: [
       { q: "instructional designer entry requirements and career changers from teaching {geo}", kinds: ["eligibility", "credential", "timeline"] },
       { q: "instructional design and training roles employers hiring former teachers", kinds: ["employer", "program"] },
@@ -206,6 +263,8 @@ export function genericField(label: string, local = false): Field {
       { q: "{field} employers and entry-level training programs hiring {geo}", kinds: ["employer", "program"] },
       { q: "Bureau of Labor Statistics O*NET {field} pay and job outlook", kinds: ["pay", "outlook"] },
       { q: "{field} license or certification required how to get it {geo}", kinds: ["credential", "eligibility"] }],
+    cycle: ["Now: learn the occupation's entry requirements from an official or industry source and write down which ones you already meet.", "Next few months: get close to the real work through a placement, trainee role, volunteering or the supervised hours the occupation requires.", "Then: apply to the employers the sources list, starting with those that train new entrants, and work toward the credential employers screen on."],
+    odds: "Your odds are set by the entry requirement and by local demand, both of which the sources should show; where no source gave a hiring rate I give none, and the first useful step is to learn how many entrants the training route takes.",
     now: "What you can realistically do now is set by this occupation's own entry requirements, so the first job is to learn exactly what they are from an official or industry source and to meet the first one.",
     later: "Once you meet the entry requirement and have a first role or placement, the next rungs are the specializations, credentials and senior roles the occupation's own industry body describes.",
     slots: { foundation: "Find the official description of the occupation, its entry requirements and its usual training route, and write down which ones you already meet.", experience: "Get close to the real work: shadow someone, volunteer, take an assistant or trainee role, or complete the supervised hours the occupation requires.", credential: "Find out which license, certification or degree employers actually screen on, and who grants it, before you pay for any course.", target: "Apply to the employer categories the sources list, starting with those that train new people." },

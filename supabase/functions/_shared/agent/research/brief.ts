@@ -50,13 +50,27 @@ export function composeBrief(o: { u: Understanding; g: Grounded; message: string
   for (const v of u.overlays) L.push("", gk(v.read));
   if (u.qtype === "pay") L.push("", "You asked about pay: the only figures in this brief are the sourced ones under \"What the data says\"; pay varies by region and employer.");
 
+  sec("Your next three actions (this week)");
+  L.push(`- ${gk(f.slots.foundation)}`, `- ${gk(`Message one person from the networking list below and ask for a fifteen-minute call. Start with: ${f.who[0][0].toLowerCase()}${f.who[0].slice(1)}.`)}`, `- ${gk(f.credentials[0])}`);
+
+  sec("The usual route and where you are on it");
+  L.push(`You are here: ${u.year ? `a ${u.year}` : u.stageLabel}.`, "", ...f.cycle.map((x) => `- ${gk(x)}`));
+  const when = byKind("timeline");
+  if (when.length) L.push("", "Dates and timing from sources I retrieved:", ...when.map((x) => `- ${x.text} ${cite(x)}`));
+  else L.push("", "No source I retrieved gave current dates for this route, so none are stated here; confirm each employer's dates on its own careers page.");
+
+  sec("Honest odds");
+  L.push(gk(f.odds));
+  const elig = byKind("eligibility");
+  if (elig.length) L.push("", "Requirements and expectations from sources I retrieved:", ...elig.map((x) => `- ${x.text} ${cite(x)}`));
+  else L.push("", "I found no sourced acceptance rate, grade cutoff or school list, so I am giving none; ask the employer or your career center for the real figures.");
+
   sec("The path, in stages");
   const stageLines = new Map<string, string[]>();
   const rungs = LADDER[u.stage];
   rungs.forEach(([when, slots], i) => {
     const lines = slots.map((s) => gk(f.slots[s]));
     if (i === 0) for (const v of u.overlays) if (v.stage) lines.push(gk(v.stage));
-    if (i === 0) for (const t of byKind("timeline")) lines.push(`${t.text} ${cite(t)}`);
     stageLines.set(when, lines);
   });
   for (const [when, lines] of stageLines) L.push(`**${when}**`, ...lines.map((x) => `- ${x}`), "");
@@ -82,13 +96,13 @@ export function composeBrief(o: { u: Understanding; g: Grounded; message: string
   if (cred.length) L.push("", "From sources I retrieved:", ...cred.map((x) => `- ${x.text} ${cite(x)}`));
 
   sec("What the data says");
-  const data = byKind("pay", "outlook", "eligibility", "timeline");
+  const data = byKind("pay", "outlook");
   if (data.length) L.push(...data.map((x) => `- ${x.text} ${cite(x)}`));
-  else L.push("No pay, outlook, eligibility or timeline figures came back from a source I could trace, so I am quoting none.");
+  else L.push("No pay or outlook figures came back from a source I could trace, so I am quoting none.");
 
   sec("What I couldn't verify");
   const miss: string[] = [...f.verify, ...u.overlays.flatMap((v) => v.verify ? [v.verify] : [])];
-  for (const [label, kinds] of [["current pay figures", ["pay"]], ["a hiring outlook", ["outlook"]], ["recruiting or application timing", ["timeline"]], ["named employers or programs", ["employer", "program"]]] as [string, Kind[]][]) {
+  for (const [label, kinds] of [["current pay figures", ["pay"]], ["a hiring outlook", ["outlook"]], ["grade, school or eligibility expectations", ["eligibility"]], ["recruiting or application timing", ["timeline"]], ["named employers or programs", ["employer", "program"]]] as [string, Kind[]][]) {
     if (!byKind(...kinds).length) miss.push(`No retrieved source for ${label}`);
   }
   miss.push(...g.notes.map(cap));

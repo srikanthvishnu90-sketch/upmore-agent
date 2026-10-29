@@ -19,8 +19,11 @@ export function problemsIn(paragraph: string, r: Ok, message: string): string[] 
   return lintChat(withLink(paragraph, r.file_url), { link: r.file_url, noLink: !r.file_url, facts: r.facts, person: r.person, message });
 }
 // Plain, short, true: what is realistic now and later (the brief's verdict lines), nothing about a file.
+// The first action and the code-minted file link are added when they exist: a failed lint never costs the person the plan.
 export function fallbackVerdict(r: Ok): string {
-  return `${firstSentence(r.verdict.now)} ${firstSentence(r.verdict.later)}`;
+  const act = r.first_action ? ` This week: ${firstSentence(r.first_action).replace(/[.]+$/, "")}.` : "";
+  const body = `${firstSentence(r.verdict.now)} ${firstSentence(r.verdict.later)}${act}`;
+  return r.file_url ? `${body} The full plan, timeline and honest odds: ${r.file_url}` : body;
 }
 export interface Enforced { reply: string; action: "kept" | "regenerated" | "fallback"; problems: string[] }
 export async function enforceResearchReply(o: { reply: string; result: Ok; message: string; regenerate: (problems: string[]) => Promise<string | null> }): Promise<Enforced> {

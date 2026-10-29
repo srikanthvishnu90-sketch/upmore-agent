@@ -552,7 +552,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // last word: no queues exactly that posting once, yes keeps it out; the same answer again is told it stands.
       const employerAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !paced && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await employerAnswerTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: employerAsk, wants: supabaseWantStore(admin),
-            apps: () => supabaseApplications(admin)(user.id), facts: screenFacts, limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid) })
+            apps: () => supabaseApplications(admin)(user.id), facts: screenFacts, limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid),
+            posting: (id) => supabasePostingsDb(admin).get(id) })
           .catch((e) => { console.error("employer answer turn:", e?.message ?? e); return null; })
         : null;
       // FEATURE 1: apply from chat (career_apply_from_chat.ts). The apply turn below also resolves positions ("apply to 1

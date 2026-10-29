@@ -391,7 +391,7 @@ export function careerTools(deps: {
         const r = await queueWants(deps.wants, c.userId, onRole.ok, c.now, { limits: deps.limits, tz: deps.tz });
         const refused = [...found.refused, ...screened.refused, ...onRole.refused, ...r.refused];
         await record(c, "apply_queued", `${r.queued} postings`, { queued: r.queued, refused: refused.length, companies: [...new Set(r.items.map((w) => w.company).filter(Boolean))].slice(0, 5) });
-        return { ...r, refused, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card. Tell them each refusal and its reason as given." };
+        return { ...r, refused, screen: screened.gate, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card. Tell them each refusal and its reason as given." };
       },
     },
     {

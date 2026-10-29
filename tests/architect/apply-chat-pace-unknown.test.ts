@@ -10,7 +10,7 @@ const posting = { job_id: "greenhouse:testco1:1", company: "Test Co 1", title: "
 const world = (limits: () => Promise<any>) => {
   const wants = memoryWantStore();
   const search = async (words: string[]) => [posting].filter((p) => words.every((w) => `${p.company} ${p.title}`.toLowerCase().includes(w.toLowerCase())));
-  return { wants, turn: () => applyTurn({ message: "apply to the Data Analyst role at Test Co 1", userId: "u1", now: NOW, postings: { search }, wants, apps: async () => [], facts: [], limits }) };
+  return { wants, turn: () => applyTurn({ message: "apply to the Data Analyst role at Test Co 1", userId: "u1", now: NOW, postings: { search }, wants, apps: async () => [], facts: [{ key: "location", value: "Chicago, IL" }, { key: "relocation", value: "yes" }], limits }) };
 };
 
 Deno.test("SERIAL-1420/b the pace lookup fails twice: the person is told, nothing is queued", async () => {

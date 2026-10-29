@@ -34,7 +34,7 @@ export interface OutboxRow {
   // WO-038, for a channel with a service window (WhatsApp): the person's last message there and the last template nudge.
   lastInboundAt?: number | null; nudgedAt?: number | null;
   // FEATURE 16: buttons under this message (the card's Approve and Decline on Telegram), set by the store from the row's card.
-  buttons?: { text: string; data?: string; loginUrl?: string }[][] | null;
+  buttons?: { text: string; data?: string; loginUrl?: string; url?: string; webApp?: string }[][] | null;
 }
 export type DeliveryMark = { status: "delivered" | "failed" | "skipped_opt_out" | "held"; at: number; error?: string; providerId?: string; providerIds?: string[]; retryAt?: number };
 export interface ChannelStore {

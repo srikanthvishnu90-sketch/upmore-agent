@@ -41,7 +41,16 @@ export interface BillingTurn { reply: string; intent: string; status: string; me
 
 // ------------------------------------------------------------------------------------------------ the asks
 const plain = (s: string) => String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/[?!.]+\s*$/, "").replace(/\s+/g, " ").trim()
-  .replace(/^(?:(?:hey|hi|ok|okay|so|please|trainee),? )+/, "").replace(/,? please$/, "").trim();
+  .replace(/^(?:(?:hey|hi|ok|okay|so|please|trainee),? )+/, "").replace(/,? please$/, "").replace(/[?!.]+$/, "").trim();
+// Common misspellings of the billing words, read as the word (scenarios 2026-10-29: "cancle my plan", "my invioces").
+// Only these whole words change; an ask still has to match a pattern below in full.
+const TYPOS: Record<string, string> = {
+  cancle: "cancel", cancell: "cancel", cansel: "cancel", cancal: "cancel", cancl: "cancel", cacnel: "cancel",
+  subscripton: "subscription", subcription: "subscription", subscribtion: "subscription", subsciption: "subscription", subscriptoin: "subscription",
+  invioces: "invoices", invoces: "invoices", invoics: "invoices", reciepts: "receipts", recipts: "receipts", reciept: "receipt",
+  payin: "paying", payng: "paying", paiyng: "paying", refnd: "refund", refud: "refund",
+};
+const typos = (t: string) => t.replace(/[a-z]+/g, (w) => TYPOS[w] ?? w);
 const WHO = "(?:this|trainee|my plan|my subscription|the plan|the subscription)";
 const MONTH = "(?: (?:a|per|each) month| monthly)?";
 const PRICE: RegExp[] = [
@@ -49,12 +58,18 @@ const PRICE: RegExp[] = [
   new RegExp(`^how much (?:is|does|do i pay for|am i paying for) ${WHO}(?: cost)?${MONTH}$`),
   new RegExp(`^(?:how much does|what does) (?:trainee|my plan|my subscription|the plan|the subscription) cost${MONTH}$`),
   /^(?:what'?s|what is|show(?: me)?|check) (?:my (?:billing|subscription)|trainee'?s pricing|the pricing)$/,
-  /^(?:my plan|my subscription|billing|my billing|pricing)$/,
+  /^(?:my plan|my subscription|billing|my billing|pricing|my bill)$/,
+  /^(?:what'?s|what is|how much is|show(?: me)?|check) my (?:bill|monthly bill|trainee bill)$/,
   /^what plan am i on$/,
+  // The next charge (scenarios 2026-10-29): answered from the row like the price.
+  /^(?:when(?:'?s| is| will be)?|what(?:'?s| is)) (?:my |the )?next (?:charge|payment|bill|billing date|renewal)(?: date)?$/,
+  /^when (?:will|do|am) i (?:be |get )?(?:charged|billed)(?: next| again)?$/,
+  /^when does (?:my )?(?:plan|subscription|trainee) renew$/,
+  /^is trainee free$/,
 ];
 const CANCEL: RegExp[] = [
   /^(?:i want to |i'?d like to |i wanna |can you |can i |could you |how do i |how can i |help me )?(?:cancel|end|stop) (?:my |the )?(?:trainee )?(?:plan|subscription|membership)(?: now)?$/,
-  /^cancel trainee$/,
+  /^(?:(?:i want to|i'?d like to|how do i|how can i|can you|help me) )?cancel trainee$/,
   /^(?:stop|quit) (?:charging|billing) (?:me|my card)$/,
   /^don'?t charge me (?:again|anymore|any more)$/,
 ];
@@ -65,10 +80,32 @@ const RECEIPTS: RegExp[] = [
   /^what (?:was|have) i (?:been )?(?:charged|billed)(?: for)?(?: so far)?$/,
   /^(?:what|how much) did (?:you|trainee) charge me$/,
 ];
-export function billingAsk(message: string): { kind: "price" | "cancel" | "receipts" } | null {
-  const t = plain(message);
+// Undoing a cancel (decided 2026-10-29, scenarios): there is no text path that restarts billing, so the ask is answered
+// from the row and nothing is changed or promised; Stripe is never called.
+const RESUME: RegExp[] = [
+  /^(?:i want to |i'?d like to |can you |can i |could you |how do i |how can i )?(?:resume|restart|reactivate|re-activate|renew|un-?cancel|undo cancel(?:ling)?) (?:my |the )?(?:trainee )?(?:plan|subscription|membership)$/,
+  /^(?:undo|reverse|take back) (?:the |my )?(?:cancel|cancellation|cancelation)(?: of my (?:plan|subscription))?$/,
+  /^(?:un-?cancel)(?: it| trainee)?$/,
+  /^(?:i changed my mind,? )?(?:keep|continue) my (?:plan|subscription) (?:going|active|after all)$/,
+];
+// A refund is never promised or issued by text (owner: no promises Trainee cannot keep); the person is told so plainly.
+const REFUND: RegExp[] = [
+  /^(?:can i (?:get|have) |i want |i'?d like |i need |give me |how do i get |how can i get |could i get |may i have )?(?:a |my )?refund(?: me)?(?: (?:for|on) (?:my |the |this |last )?(?:plan|subscription|trainee|month|payment|charge|last payment|last charge|invoice))?$/,
+  /^refund (?:me|my (?:plan|subscription|payment|last payment|charge|last charge|money))$/,
+  /^(?:i want|can i (?:get|have)|give me|i'?d like) my money back$/,
+  /^(?:do|does) (?:you|trainee) (?:do |give |offer )?refunds$/,
+];
+// "how do I cancel" with nothing after it could be an application or an interview: it is answered with how, and nothing
+// is asked or waiting (a "yes" after it approves nothing). With "my plan" / "trainee" it is the cancel ask itself.
+const CANCEL_HOW = /^(?:how (?:do|can|would) i|how to|can i|where do i|where can i) cancel$/;
+export type BillingAskKind = "price" | "cancel" | "cancel_help" | "receipts" | "resume" | "refund";
+export function billingAsk(message: string): { kind: BillingAskKind } | null {
+  const t = typos(plain(message));
   if (!t || t.length > 80) return null;
   if (CANCEL.some((re) => re.test(t))) return { kind: "cancel" };
+  if (CANCEL_HOW.test(t)) return { kind: "cancel_help" };
+  if (RESUME.some((re) => re.test(t))) return { kind: "resume" };
+  if (REFUND.some((re) => re.test(t))) return { kind: "refund" };
   if (RECEIPTS.some((re) => re.test(t))) return { kind: "receipts" };
   if (PRICE.some((re) => re.test(t))) return { kind: "price" };
   return null;
@@ -96,11 +133,18 @@ export async function cancelHash(subscriptionId: string, periodEnd: string | nul
 }
 const day = (iso: string | number | null | undefined) => {
   const t = typeof iso === "number" ? iso : Date.parse(String(iso ?? ""));
-  return Number.isFinite(t) ? new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : null;
+  // A number past the calendar's range is no date ("Invalid Date" is never said).
+  return Number.isFinite(t) && Number.isFinite(new Date(t).getTime()) ? new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : null;
 };
-const money = (cents: number, currency = "usd") => {
-  const n = (cents / 100).toFixed(2);
-  return currency.toLowerCase() === "usd" ? `$${n}` : `${n} ${currency.toUpperCase()}`;
+// Stripe amounts are in the currency's smallest unit: most have 2 decimals, these none or 3 (Stripe's currency list).
+// A currency Stripe did not state as a 3-letter code is never guessed (it used to read as USD).
+const ZERO_DECIMAL = new Set(["bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga", "pyg", "rwf", "ugx", "vnd", "vuv", "xaf", "xof", "xpf"]);
+const THREE_DECIMAL = new Set(["bhd", "jod", "kwd", "omr", "tnd"]);
+const money = (minor: number, currency: string) => {
+  const c = String(currency ?? "").trim().toLowerCase();
+  if (!/^[a-z]{3}$/.test(c)) return `${(minor / 100).toFixed(2)} (currency not stated by Stripe)`;
+  const n = ZERO_DECIMAL.has(c) ? String(minor) : THREE_DECIMAL.has(c) ? (minor / 1000).toFixed(3) : (minor / 100).toFixed(2);
+  return c === "usd" ? `$${n}` : `${n} ${c.toUpperCase()}`;
 };
 const price = (s: Subscription) => {
   if (typeof s.price_cents !== "number" || !Number.isFinite(s.price_cents)) return null;
@@ -149,6 +193,13 @@ export async function billingTurn(o: { message: string; userId: string; threadId
   if (ask?.kind === "price") return { reply: priceReply(sub), intent: BILLING_INTENT, status: sub ? sub.status : "none" };
   if (ask?.kind === "receipts") return await receipts(sub, o.stripe);
   if (ask?.kind === "cancel") return await askCancel(sub);
+  if (ask?.kind === "resume") return { reply: resumeReply(sub), intent: BILLING_INTENT, status: "resume_unavailable" };
+  if (ask?.kind === "cancel_help") {
+    return { reply: `To cancel your Trainee plan, text "cancel my plan": I'll say exactly what changes and cancel only after you say yes. To withdraw an application, say "cancel my application to" and the company.`, intent: BILLING_INTENT, status: "cancel_help" };
+  }
+  if (ask?.kind === "refund") {
+    return { reply: `I can't issue or promise a refund from chat, so nothing changed.${sub?.stripe_customer_id ? ' Say "my invoices" to see what you were charged.' : ""}`, intent: BILLING_INTENT, status: "refund_unavailable" };
+  }
 
   // A waiting cancel: only an exact yes approves it.
   const answer = cancelAnswer(o.message);
@@ -173,7 +224,14 @@ export async function billingTurn(o: { message: string; userId: string; threadId
     done = await o.stripe.cancelAtPeriodEnd(sub.stripe_subscription_id, hash);
   } catch (e) {
     console.error("billing: cancel:", safe(e));
-    return { reply: `I couldn't reach billing just now, so nothing was cancelled. Say "yes" again to retry.`, intent: BILLING_CANCEL_INTENT, status: "failed", meta: { billing_cancel: pending! } };
+    // Stripe refused it (a 4xx): nothing was applied. No answer, a 5xx or a garbled one: it may have gone through, so
+    // "nothing was cancelled" would be a guess; the retry carries the same idempotency key, so it can't cancel twice.
+    const refused = e instanceof StripeError && e.status !== null && e.status >= 400 && e.status < 500;
+    return {
+      reply: refused ? `Billing refused the request, so nothing was cancelled. Say "yes" again to retry.`
+        : `I couldn't get a clear answer from billing just now, so I can't confirm the cancel. Say "yes" again to retry; it can't cancel twice.`,
+      intent: BILLING_CANCEL_INTENT, status: "failed", meta: { billing_cancel: pending! },
+    };
   }
   if (done.cancel_at_period_end !== true) {
     return { reply: "Billing didn't confirm the cancel, so I can't say it's done. Nothing else changed; ask me again in a minute.", intent: BILLING_INTENT, status: "unconfirmed" };
@@ -183,6 +241,17 @@ export async function billingTurn(o: { message: string; userId: string; threadId
   return { reply: `Done, your plan is cancelled. ${at ? `No charge after ${at}; you keep access until then.` : "No further charges; you keep access to the end of the period you paid for."}`, intent: BILLING_INTENT, status: "cancelled" };
 }
 
+function resumeReply(s: Subscription | null): string {
+  if (!s || !s.stripe_subscription_id || ["incomplete", "incomplete_expired"].includes(s.status)) {
+    return `You're not subscribed, so there's no plan to resume. Trainee is $${PLAN_PRICE_CENTS / 100}/month.`;
+  }
+  if (s.status === "canceled") return "Your plan is cancelled, and I can't restart it by text, so nothing changed.";
+  if (ending(s)) {
+    const end = day(s.current_period_end);
+    return `Your plan is set to end ${end ? `on ${end}` : "at the end of the period you paid for"}, with no more charges. I can't undo a cancel by text yet, so nothing changed.`;
+  }
+  return "Your plan isn't cancelled, so there's nothing to resume. Nothing changed.";
+}
 function already(s: Subscription): string {
   const end = day(s.current_period_end);
   return s.status === "canceled" ? "Your plan is already cancelled. You're not being charged."
@@ -201,9 +270,15 @@ async function askCancel(sub: Subscription | null): Promise<BillingTurn> {
   };
 }
 // A link only as Stripe returned it: https on a stripe.com host, else no link.
+// The text must be the URL exactly: the URL parser drops tabs and newlines inside it, so a value with whitespace or a
+// control character (which would put a second, unchecked address on its own line in the reply) is no link at all, nor
+// is one with a user name or password before the host.
 const stripeLink = (u: unknown) => {
-  if (typeof u !== "string") return null;
-  try { const x = new URL(u); return x.protocol === "https:" && /(?:^|\.)stripe\.com$/.test(x.hostname) ? u : null; } catch { return null; }
+  if (typeof u !== "string" || /[\s\x00-\x1f\x7f]/.test(u)) return null;
+  try {
+    const x = new URL(u);
+    return x.protocol === "https:" && !x.username && !x.password && /(?:^|\.)stripe\.com$/.test(x.hostname) ? u : null;
+  } catch { return null; }
 };
 async function receipts(sub: Subscription | null, stripe: StripeBilling | null): Promise<BillingTurn> {
   if (!sub?.stripe_customer_id) return { reply: "You're not subscribed, so there are no billing receipts.", intent: BILLING_INTENT, status: "none" };
@@ -215,24 +290,38 @@ async function receipts(sub: Subscription | null, stripe: StripeBilling | null):
     console.error("billing: invoices:", safe(e));
     return { reply: "I couldn't reach billing just now, so I can't list your receipts. Nothing is guessed; ask me again in a minute.", intent: BILLING_INTENT, status: "failed" };
   }
-  const rows = list.filter((i) => i && Number.isFinite(i.created) && Number.isFinite(i.amount_paid)).slice(0, 5);
+  // Only invoices whose date and amount read as Stripe sent them: a whole, non-negative amount and a real date.
+  const rows = list.filter((i) => i && Number.isFinite(i.created) && day(i.created * 1000) !== null && Number.isSafeInteger(i.amount_paid) && i.amount_paid >= 0).slice(0, 5);
   if (!rows.length) return { reply: "No paid invoices on record at Stripe yet.", intent: BILLING_INTENT, status: "none" };
-  const lines = rows.map((i) => { const u = stripeLink(i.hosted_invoice_url); return `- ${day(i.created * 1000)}: ${money(i.amount_paid, i.currency || "usd")}${u ? ` ${u}` : " (no receipt link from Stripe)"}`; });
+  const lines = rows.map((i) => { const u = stripeLink(i.hosted_invoice_url); return `- ${day(i.created * 1000)}: ${money(i.amount_paid, i.currency)}${u ? ` ${u}` : " (no receipt link from Stripe)"}`; });
   return { reply: [`Your last ${rows.length === 1 ? "payment" : `${rows.length} payments`}:`, ...lines].join("\n"), intent: BILLING_INTENT, status: "listed" };
 }
 
 // ------------------------------------------------------------------------------------------------ Stripe and the store
 // An error's own message only, never a response body (Stripe echoes keys in some errors), and anything key-shaped masked.
 const safe = (e: unknown) => String(e instanceof Error ? e.message : e).replace(/\b(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9_]+/g, "[key]").slice(0, 200);
-export function stripeFromEnv(fetchFn: typeof fetch, key: string | undefined | null): StripeBilling | null {
-  if (!key) return null;
+// Every adapter failure is a StripeError with a fixed message (never a runtime error's text, which can quote the request
+// header or the body) and Stripe's HTTP status when it answered (null: no answer, or an answer that was not JSON).
+export class StripeError extends Error {
+  constructor(message: string, readonly status: number | null) { super(message); this.name = "StripeError"; }
+}
+export function stripeFromEnv(fetchFn: typeof fetch, key: string | undefined | null, o: { timeoutMs?: number } = {}): StripeBilling | null {
+  const k = String(key ?? "").trim();
+  if (!k) return null;
   const base = "https://api.stripe.com/v1";
   const call = async (path: string, init: RequestInit = {}) => {
-    const headers = new Headers(init.headers);
-    headers.set("authorization", `Bearer ${key}`);
-    const r = await fetchFn(`${base}${path}`, { ...init, headers });
-    if (!r.ok) { await r.body?.cancel().catch(() => {}); throw new Error(`stripe ${path.split("?")[0].replace(/\/[a-z]+_[A-Za-z0-9]+/g, "/{id}")} answered ${r.status}`); }
-    return await r.json();
+    const where = `stripe ${path.split("?")[0].replace(/\/[a-z]+_[A-Za-z0-9]+/g, "/{id}")}`;
+    let r: Response;
+    try {
+      const headers = new Headers(init.headers);
+      headers.set("authorization", `Bearer ${k}`);
+      // Never wait on Stripe forever: a hung call is "no answer", said honestly by the turn.
+      r = await fetchFn(`${base}${path}`, { ...init, headers, signal: AbortSignal.timeout(o.timeoutMs ?? 10_000) });
+    } catch (e) {
+      throw new StripeError(`${where} did not answer (${e instanceof Error && /^[A-Za-z]+$/.test(e.name) ? e.name : "error"})`, null);
+    }
+    if (!r.ok) { await r.body?.cancel().catch(() => {}); throw new StripeError(`${where} answered ${r.status}`, r.status); }
+    try { return await r.json(); } catch { throw new StripeError(`${where} answered ${r.status} with a body that is not JSON`, null); }
   };
   return {
     async cancelAtPeriodEnd(id, idempotencyKey) {
@@ -247,7 +336,7 @@ export function stripeFromEnv(fetchFn: typeof fetch, key: string | undefined | n
       const q = new URLSearchParams({ customer: customerId, status: "paid", limit: "5" });
       const j = await call(`/invoices?${q}`);
       return (Array.isArray(j?.data) ? j.data : []).map((i: any) => ({ id: String(i.id ?? ""), created: Number(i.created), amount_paid: Number(i.amount_paid),
-        currency: String(i.currency ?? "usd"), hosted_invoice_url: typeof i.hosted_invoice_url === "string" ? i.hosted_invoice_url : null }));
+        currency: typeof i.currency === "string" ? i.currency : "", hosted_invoice_url: typeof i.hosted_invoice_url === "string" ? i.hosted_invoice_url : null }));
     },
   };
 }

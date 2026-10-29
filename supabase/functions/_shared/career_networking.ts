@@ -16,7 +16,7 @@
 import { type ContactRow, contactsOf, firmKey, importContactsCsv, importContactsFile, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
 import { parsePeopleAsk, type PeopleDeps, type PersonRec, peopleTurn } from "./career_people.ts";
-import { companyKey } from "./career_people_import.ts";
+import { chatAsk, companyKey } from "./career_people_import.ts";
 import { batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type KeyedContact, type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
@@ -48,14 +48,15 @@ const GROUP = "(?:contacts|connections|people|friends|folks|alums|alumni)";
 const FILLER = /^(?:(?:so|ok|okay|hey|hi|and|now|also|please|pls|can you|could you|would you|will you|help me|actually|wait|oh|oops|no)[, ]+)+/i;
 // A firm as typed: the words after "at"/"from", up to the topic or the end.
 function firmOf(raw: string): string | null {
-  const f = raw.replace(/\s+(?:about|regarding|re|for|who|that|to|and ask|asking|right now|please)\b.*$/i, "").replace(/[?.!,;:]+$/, "").replace(/^the\s+/i, "").trim();
+  // ROUTING SCENARIOS (2026-10-29): a second ask after the firm ("... at Stripe and apply to Stripe") is not part of it.
+  const f = raw.replace(/\s+(?:about|regarding|re|for|who|that|to|and ask|asking|right now|please|and (?:apply|cancel|withdraw|connect|send|message|draft|find|show|check))\b.*$/i, "").replace(/[?.!,;:]+$/, "").replace(/^the\s+/i, "").trim();
   if (!f || f.length > 60 || /[@/\\<>]/.test(f) || f.split(/\s+/).length > 6) return null;
   return f;
 }
 
 // (b) and (c): what the message asks, or null when it is not a networking ask (the rest of the chain answers it).
 export function parseNetworkingAsk(message: string): Ask | null {
-  const t = String(message ?? "").replace(/\s+/g, " ").trim().replace(FILLER, "").replace(/[?!.]+$/, "").replace(/,?\s+instead$/i, "").trim();
+  const t = chatAsk(message).replace(FILLER, "").replace(/[?!.]+$/, "").replace(/,?\s+instead$/i, "").trim();
   if (!t || t.length > 300) return null;
   const who = [
     /^(?:who|which (?:people|contacts|connections))(?: else)? (?:do i know|do i have|in my (?:network|contacts|connections)|(?:are|is) (?:in )?my (?:contacts|connections|network))(?: (?:who |that )?works?| working)? (?:at|from|in) (.+)$/i,
@@ -97,8 +98,14 @@ export function parseNetworkingAsk(message: string): Ask | null {
     const many = /s$/i.test(role[1].trim()) && !/ss$/i.test(role[1].trim());
     return { kind: "draft", topic, target: { by: "group", firm, count: many ? verbCount : 1, role: role[1].trim().replace(/s$/i, "") } };
   }
+  // NETWORKING SCENARIOS (2026-10-29): a plural role with no article ("reach out to engineers at Stripe", "draft intros to
+  // technical recruiters at X") is the group of people with that title among their contacts at the firm, never a person
+  // named "engineers".
+  const plur = /^(?:all\s+(?:of\s+)?(?:the\s+)?)?((?:[a-z][a-z-]*\s+){0,3}(?:recruiter|engineer|manager|scientist|designer|analyst|director|lead|founder|partner|developer|associate|intern|executive|banker|consultant|researcher|architect|specialist|coordinator|officer|vp|leader|head|alum)s)$/i.exec(who2);
+  if (plur && firm) return { kind: "draft", topic, target: { by: "group", firm, count: verbCount, role: plur[1].trim().replace(/s$/i, "") } };
   const words = who2.split(/\s+/);
-  const STOP = /^(?:my|the|a|an|your|our|me|him|her|them|it|this|that|these|those|resume|cv|cover|letter|application|everyone|someone|anyone|recruiters?|people|contacts|connections)$/i;
+  // ROUTING SCENARIOS (2026-10-29): "email status" / "email updates" are the send rail's asks, never a draft to "status".
+  const STOP = /^(?:my|the|a|an|your|our|me|him|her|them|it|this|that|these|those|resume|cv|cover|letter|application|everyone|someone|anyone|recruiters?|people|contacts|connections|status|updates?)$/i;
   if (words.length < 1 || words.length > 3 || words.some((w) => !/^[A-Za-z][A-Za-z.'’-]*$/.test(w) || STOP.test(w))) return null;
   return { kind: "draft", topic, target: { by: "name", name: who2, firm } };
 }
@@ -138,7 +145,8 @@ async function heldWhy(r: ContactRow, contacted: Set<string>, dnc: Set<string>):
   if (dnc.has(await emailHash(r.email))) return "they asked not to be contacted";
   return null;
 }
-const recipientOf = (r: ContactRow): Recipient => ({ name: r.name, firm: r.firm, title: r.title, school: r.school, email: r.email!, source: `${r.file}, row ${r.row}` });
+const recipientOf = (r: ContactRow): Recipient => ({ name: r.name, firm: r.firm, title: r.title, school: r.school, email: r.email!, source: r.row ? `${r.file}, row ${r.row}` : r.file,
+  ...(r.address ? { address: r.address } : {}) });
 
 // FAMILY NETWORKING: an address the person typed for the person they named ("email Maya Chen at Stripe about a coffee
 // chat, her email is maya@stripe.com"): taken out of the ask, and kept as their own contact row (never guessed, never
@@ -345,7 +353,8 @@ async function peopleWithBook(o: NetworkingDeps): Promise<NetworkingResult | nul
   if (!o.people) return null;
   const ask = parsePeopleAsk(o.message), book = bookOf(o);
   const pre: ContactRow[] = [];
-  if (ask?.kind === "who" || ask?.kind === "alumni") pre.push(...await book.atFirm(ask.firm).catch(() => []));
+  // "who do I know" / alumni: people they know, never someone web discovery found for them (2026-10-29).
+  if (ask?.kind === "who" || ask?.kind === "alumni") pre.push(...(await book.atFirm(ask.firm).catch(() => [])).filter((r) => !r.discovered));
   if (ask?.kind === "intro") {
     if (ask.firm) pre.push(...await book.atFirm(ask.firm).catch(() => []));
     if (ask.name) pre.push(...await book.named(plain(ask.name).split(" ")[0], true).catch(() => []));
@@ -446,16 +455,27 @@ async function savedPeople(o: NetworkingDeps, want: { firm?: string | null; name
   if (want.name) recs.push(...await store.named(o.userId, want.name).catch(() => []));
   if (want.firm) recs.push(...await store.atCompany(o.userId, companyKey(normalizeFirm(want.firm))).catch(() => []));
   const firm = want.firm ? normalizeFirm(want.firm) : null;
-  const rows = recs.filter((r) => r.name && (!firm || sameFirm(normalizeFirm(r.company), firm))).map((r): ContactRow => ({
-    file: r.source_ref.replace(/, row \d+$/, "") || r.source, row: Number(/row (\d+)$/.exec(r.source_ref)?.[1] ?? 0), name: r.name!, email: r.email,
-    firm: normalizeFirm(r.company), firm_raw: r.company, company: normalizeFirm(r.company), title: r.position, school: r.school, connected_on: r.connected_on,
-  }));
+  // NETWORKING SCENARIOS (2026-10-29): a person web discovery found (source "provider") is written to only at an address
+  // that may be sent to (published or inferred, its domain's mail server found, never bounced: sendable), and the draft
+  // card says how it was found. Before, an inferred address went out unlabeled, and one whose domain has no mail server
+  // (not sendable) could be drafted to.
+  const rows = recs.filter((r) => r.name && (!firm || sameFirm(normalizeFirm(r.company), firm))).map((r): ContactRow => {
+    const found = r.source === "provider";
+    const usable = !found || (r.sendable === true && !!r.email && (r.email_status === "published" || r.email_status === "inferred"));
+    return {
+      file: found ? `named on ${r.source_url ?? "a public page"}` : r.source_ref.replace(/, row \d+$/, "") || r.source, row: found ? 0 : Number(/row (\d+)$/.exec(r.source_ref)?.[1] ?? 0),
+      name: r.name!, email: usable ? r.email : null,
+      firm: normalizeFirm(r.company), firm_raw: r.company, company: normalizeFirm(r.company), title: r.position, school: r.school, connected_on: r.connected_on,
+      ...(found ? { discovered: true as const } : {}),
+      ...(found && usable ? { address: r.email_status === "inferred" ? "inferred" as const : "published" as const } : {}),
+    };
+  });
   return rows.length ? await verifyRows(rows, o.mx ?? MX_NOT_WIRED) : [];
 }
 
 async function whoTurn(o: NetworkingDeps, firmAsked: string): Promise<NetworkingResult> {
   const firm = normalizeFirm(firmAsked), book = bookOf(o);
-  const here = await book.atFirm(firm);
+  const here = (await book.atFirm(firm)).filter((r) => !r.discovered); // people they know, not people discovery found
   if (!here.length) {
     const all = await book.total();
     if (!all.total) return { reply: `You haven't sent me any contacts yet, so I can't say who you know at ${firm}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: AT_INTENT, status: "no_contacts" };

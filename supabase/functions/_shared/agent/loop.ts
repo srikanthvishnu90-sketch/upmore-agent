@@ -6,6 +6,7 @@
 //              person approves on its exact payload (WO-005), and the model is told it is waiting.
 // Messages use the Anthropic block shape (text / tool_use / tool_result); _shared/model_gateway.ts converts to OpenAI.
 import { bracketUntraced, factSources, leakedWords, pieces, plainQuotes, postingsOf, rebuild, stripLeaks, unsourcedMoney, untracedFacts, waiverSolicits } from "./reply_guards.ts";
+import { urlsIn } from "../channel_shape.ts";
 import { STANDING_REFUSED, standingRefusal } from "./memory.ts";
 export type Effect = "read" | "write_own" | "external";
 // `turn` is this turn's own record, filled by runAgentTurn: the person's message (a confirmation must come from it) and
@@ -15,7 +16,7 @@ export type Effect = "read" | "write_own" | "external";
 // (WO-038's contract): the same text as separate messages, so a texting channel delivers each whole and in order.
 // `before` (WO-091b): the previous turn's reply as the person saw it ("" on a first turn), so a tool can check that "the
 // first one" is a posting that reply showed. Undefined only for a caller that runs a tool without the loop's history.
-export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; before?: string; show?: { intent: string; text: string; parts?: string[] } } }
+export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; before?: string; attachments?: { filename: string; content: string }[]; fileLinks?: string[]; guard?: (text: string) => string[]; seen?: string[]; show?: { intent: string; text: string; parts?: string[] } } }
 export interface ToolSpec {
   name: string;
   description: string;
@@ -33,6 +34,13 @@ export interface TurnResult {
   pending_approvals: { tool: string; input: unknown; summary: string }[];
   stopped: "final" | "max_steps" | "model_error" | "incomplete_reply";
   show?: { intent: string; text: string; parts?: string[] };
+  // JOB CARDS: the postings the turn's last successful search_jobs returned, for channels that show them as cards.
+  postings?: unknown[];
+  // REPLY SHAPE: the documents the turn staged with attach_document (each passed the fact guards), and the URLs the turn may
+  // show (those a tool returned or the person typed).
+  attachments?: { filename: string; content: string }[];
+  linksSeen?: string[];
+  fileLinks?: string[]; // FILE KINDS: links to the files create_file made this turn, minted by code; the channel sends them, the model never writes them
 }
 
 export const MAX_STEPS_REPLY = "I couldn't finish that in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do first.";
@@ -216,24 +224,40 @@ function missingAnswerBody(reply: string, message: string, receiptOnly = false, 
   const clauses = pieces(plainQuotes(reply).replace(/\b(that|this|it)'s\b/gi, "$1 is").replace(/[*_`~]/g, "")).flatMap((p) => p.text.split(/[;—–]/)).map((s) => s.trim().replace(/^(?:[-•]|\d+[.)])\s+/, "").replace(/[.!?]+$/, "").trim()).filter(Boolean);
   return clauses.length > 0 && clauses.every((s) => CLOSING_ONLY.test(s) || (!SOCIAL_MESSAGE.test(message.trim()) && (ACK_ONLY.test(s) || PROGRESS_ONLY.test(s))) || (receiptOnly && claimsIn(s).length > 0));
 }
+// REPLY SHAPE: what the turn staged and which links it may show ride the result, whichever way the turn ended.
+export async function runAgentTurn(o: Parameters<typeof runAgentTurnInner>[0]): Promise<TurnResult> {
+  const r = await runAgentTurnInner(o);
+  const attachments = o.ctx.turn?.attachments ?? [];
+  const seen = o.ctx.turn?.seen ?? [];
+  const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
+  const fileLinks = o.ctx.turn?.fileLinks ?? [];
+  return { ...r, ...(attachments.length ? { attachments } : {}), ...(fileLinks.length ? { fileLinks } : {}), linksSeen: urlsIn(`${typed}\n${seen.join("\n")}`) };
+}
 const COMPLETENESS_REPAIR = "The previous draft did not contain an answer body after output validation. Answer the person's original request using only the conversation and successful tool results already available. Give the requested content, or ask a concrete question for missing information. A generic acknowledgement, action receipt, closing confirmation or unresolved fill-in field is not the requested answer. Keep placeholders only in a draft or template the person requested. Do not invent personal facts or claim actions. Tools are disabled for this single repair; do not repeat any action.";
 
-export async function runAgentTurn(o: { system: string; history: any[]; message: string; tools: ToolSpec[]; model: ModelFn; ctx: ToolCtx; maxSteps?: number }): Promise<TurnResult> {
+async function runAgentTurnInner(o: { system: string; history: any[]; message: string; tools: ToolSpec[]; model: ModelFn; ctx: ToolCtx; maxSteps?: number }): Promise<TurnResult> {
   const max = o.maxSteps ?? 6;
   const byName = new Map(o.tools.map((t) => [t.name, t]));
   const toolDefs = o.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
   const messages: any[] = [...o.history, { role: "user", content: [{ type: "text", text: o.message }] }];
+  let found: unknown[] = [];
   const tool_calls: TurnResult["tool_calls"] = [], pending_approvals: TurnResult["pending_approvals"] = [];
   const last = [...o.history].reverse().find((m) => m && m.role === "assistant");
   const before = !last ? "" : typeof last.content === "string" ? last.content
     : Array.isArray(last.content) ? last.content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("\n") : "";
-  o.ctx.turn = { message: o.message, added: [], before };
   const saved = () => tool_calls.some((t) => t.ok && t.effect === "write_own");
   // WO-091a: what this turn's tools returned is a source for what the reply may say about the person, and names the
   // postings a raw job id stands for.
   const seen: string[] = [];
+  o.ctx.turn = { message: o.message, added: [], before, attachments: [], seen };
   const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
   const toolNames = o.tools.map((t) => t.name);
+  // FILE KINDS: the same fact guard attach_document uses, handed to create_file: what the person never said and no tool returned is refused.
+  o.ctx.turn.guard = (t: string) => {
+    const known = new Set(urlsIn(`${typed}\n${seen.join("\n")}`));
+    const sources = factSources({ state: o.ctx.state, message: o.message, history: o.history, results: seen });
+    return [...untracedFacts(t, sources).map((f) => f.word), ...unsourcedMoney(t, [typed, ...seen, ...sources]).map((m) => m.figure), ...urlsIn(t).filter((l) => !known.has(l))];
+  };
   let steps = 0, checked = false, ask = false, repairing = false;
   let repairNote = COMPLETENESS_REPAIR;
   // WO-061 (H028, H035, H007, H033): code's review of its own draft rides in that one call's system prompt, never in
@@ -243,7 +267,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   // WO-106 (eval E010, 2026-10-21: the whole reply was "Tell me if that's off."): what the model wrote beside a tool call
   // (the answer, then add_profile_fact) is kept; when the last message is only a short trailer, the answer goes first.
   const earlier: string[] = [];
-  const incomplete = (): TurnResult => ({ reply: saved() ? INCOMPLETE_AFTER_SAVE_REPLY : INCOMPLETE_REPLY, steps, tool_calls, pending_approvals, stopped: "incomplete_reply" });
+  const incomplete = (): TurnResult => ({ reply: saved() ? INCOMPLETE_AFTER_SAVE_REPLY : INCOMPLETE_REPLY, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "incomplete_reply" });
   while (steps < max) {
     steps++;
     let res;
@@ -252,8 +276,8 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     try { res = await o.model({ system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask || repairing ? { tool_choice: { type: "none" } } : {}) }); }
     catch {
       const show = o.ctx.turn?.show; // what the person must read was already made: it is the reply
-      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
-      return { reply: saved() ? MODEL_ERROR_AFTER_SAVE_REPLY : MODEL_ERROR_REPLY, steps, tool_calls, pending_approvals, stopped: "model_error" };
+      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final", show };
+      return { reply: saved() ? MODEL_ERROR_AFTER_SAVE_REPLY : MODEL_ERROR_REPLY, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "model_error" };
     }
     const content = Array.isArray(res && res.content) ? res.content : [];
     const uses = content.filter((b: any) => b && b.type === "tool_use");
@@ -265,7 +289,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     // text-only repair as a filtered-away answer, inside the remaining step budget.
     if (res?.stop_reason === "max_tokens") {
       const show = o.ctx.turn?.show;
-      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final", show };
       if (repairing || steps >= max) return incomplete();
       repairing = true;
       repairNote = "Your previous response reached its token limit before completing. Produce a concise complete answer. " + COMPLETENESS_REPAIR;
@@ -274,7 +298,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     if (!uses.length) {
       let reply = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
       const show = o.ctx.turn?.show;
-      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final", show };
       // A model may write its answer beside a tool call, then finish with only a closing question. Recover that body
       // without a length heuristic; the assembled reply still passes every truth filter below. A substantive final
       // answer always supersedes earlier text. Once a repair starts, rejected earlier text must not be reintroduced.
@@ -313,7 +337,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       const stillWaiver = waiverSolicits(reply, standingRefusal, o.message);
       if (claims.length || stillMoney.length || stillWaiver.length) {
         out = rebuild(pieces(reply), new Set([...claims.map((c) => c.index), ...stillMoney.map((m) => m.index), ...stillWaiver]));
-        if (!/[A-Za-z0-9]/.test(out) && ((stillWaiver.length && !claims.length) || !ANSWER_REQUEST.test(o.message))) return { reply: stillWaiver.length && !claims.length ? STANDING_REFUSED : CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
+        if (!/[A-Za-z0-9]/.test(out) && ((stillWaiver.length && !claims.length) || !ANSWER_REQUEST.test(o.message))) return { reply: stillWaiver.length && !claims.length ? STANDING_REFUSED : CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final" };
         // WO-061 (H018 p1): after a waiver strip the refusal must still be there; if the person asked to waive their yes
         // and nothing left says it is still needed, code says it first.
         if (stillWaiver.length && standingRefusal(o.message) && !/\b(your yes|your approval|without (asking|approval|your)|needs? (your|their) (yes|ok|okay|approval)|not kept|can'?t keep|won'?t (share|send|apply|skip))\b/i.test(out)) out = `${STANDING_REFUSED}\n\n${out}`;
@@ -330,7 +354,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
         if (!out.trim()) repairNote = "Your last answer was empty. " + COMPLETENESS_REPAIR;
         continue;
       }
-      return { reply: out, steps, tool_calls, pending_approvals, stopped: "final" };
+      return { reply: out, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final" };
     }
     const pre = content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("").trim();
     if (pre) earlier.push(pre);
@@ -351,14 +375,25 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       }
       try {
         const out = await t.run(input, o.ctx);
+        // REPLY SHAPE: a staged document passes the same guards as a reply (facts about the person, money, links) or the model is told why not.
+        const att = u.name === "attach_document" && out && typeof out === "object" ? (out as any).attachment : null;
+        if (att) {
+          const knownLinks = new Set(urlsIn(`${typed}\n${seen.join("\n")}`));
+          const sources = factSources({ state: o.ctx.state, message: o.message, history: o.history, results: seen });
+          const bad = [...untracedFacts(att.content, sources).map((f) => f.word), ...unsourcedMoney(att.content, [typed, ...seen, ...sources]).map((m) => m.figure),
+            ...urlsIn(att.content).filter((l) => !knownLinks.has(l))]; // exact match against links the person typed or a tool returned, never a substring (a cut-off or prefix URL is a different link)
+          if (bad.length) { throw new Error(`not attached: the file states things no tool returned this turn and the person did not say: ${[...new Set(bad)].slice(0, 8).join(", ")}. Remove them or mark them "not verified", then attach again.`); }
+          o.ctx.turn!.attachments!.push({ filename: att.filename, content: att.content });
+        }
         tool_calls.push({ name: t.name, ok: true, effect: t.effect });
         results.push({ type: "tool_result", tool_use_id: u.id, content: resultText(out) });
         seen.push(resultText(out));
+        if (u.name === "search_jobs" && out && Array.isArray((out as any).postings)) found = (out as any).postings.slice(0, 50);
       } catch (e) { if (e instanceof AskPerson) ask = true; fail(t.effect, e instanceof Error ? e.message : String(e), e); }
     }
     messages.push({ role: "user", content: results });
   }
   const show = o.ctx.turn?.show;
-  if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
-  return { reply: saved() ? MAX_STEPS_AFTER_SAVE_REPLY : MAX_STEPS_REPLY, steps, tool_calls, pending_approvals, stopped: "max_steps" };
+  if (show) return { reply: show.text, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "final", show };
+  return { reply: saved() ? MAX_STEPS_AFTER_SAVE_REPLY : MAX_STEPS_REPLY, steps, tool_calls, pending_approvals, ...(found.length ? { postings: found } : {}), stopped: "max_steps" };
 }

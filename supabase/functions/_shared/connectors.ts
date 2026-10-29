@@ -18,15 +18,18 @@
 // logged, returned or shown; every reply goes through say(), which refuses a token-shaped string or an internal code.
 // Microsoft (outlook_graph.ts) and Google are the only network peers, both faked at the HTTP boundary in tests.
 // deno-lint-ignore-file no-explicit-any
+import { connectLine, connectUrlsFor } from "./connect_link.ts";
 import { careerTokenFor, CAREER_READ_SCOPE, CAREER_SEND_SCOPE } from "./career_mail_gmail.ts";
-import { disconnectGoogle, disconnectReply, isGoogleDisconnect } from "./google_disconnect.ts";
+import { disconnectGoogle, disconnectReply, revokeWords } from "./google_disconnect.ts";
+import { askWords, disconnectOf, gmailConnectOf, whatsConnectedOf } from "./connector_words.ts";
 import { consentNotice, GMAIL_READONLY, GMAIL_SEND, requestableScopes } from "./google_scopes.ts";
-import { channelOf, disconnectOutlook, disconnectWords, linkBase as outlookLinkBase, OUTLOOK_DISCONNECT_RE, outlookFor, RECONNECT_REPLY, TELEGRAM_BROWSER, tokenDeps as msTokenDeps } from "./outlook_connector.ts";
+import { channelOf, disconnectOutlook, disconnectWords, linkBase as outlookLinkBase, MICROSOFT_NOTE, outlookFor, RECONNECT_REPLY, TELEGRAM_BROWSER, tokenDeps as msTokenDeps } from "./outlook_connector.ts";
 import { ENV as MS_ENV, hasScope, outlookToken, PROVIDER as MS_PROVIDER } from "./outlook_graph.ts";
 
 type Admin = any;
 export interface Env { get(k: string): string | undefined }
-export interface Deps { admin: Admin; env: Env; fetch: typeof fetch; now: () => number }
+// sleep: the wait between a provider's retries (tests pass a no-op; production waits).
+export interface Deps { admin: Admin; env: Env; fetch: typeof fetch; now: () => number; sleep?: (ms: number) => Promise<void> }
 const at = (ms: number) => new Date(ms).toISOString();
 const must = (r: any, what: string) => { if (r?.error) throw new Error(`${what}: ${r.error.message ?? r.error}`); return r?.data; };
 const split = (s: unknown) => (Array.isArray(s) ? s.map(String) : String(s ?? "").split(/[\s,]+/)).filter(Boolean);
@@ -59,7 +62,8 @@ export type TokenOut =
   | { status: "rate_limited"; retryAfterMs: number }
   | { status: "error"; detail: string };
 // erased: data kept from an earlier connection was deleted although nothing was connected.
-export interface DisconnectOut { ok: boolean; had: boolean; erased?: boolean; reply: string; failures: string[] }
+// note: what the provider said to the revoke (or where to remove the app), kept in every reply that says it disconnected.
+export interface DisconnectOut { ok: boolean; had: boolean; erased?: boolean; reply: string; failures: string[]; note?: string }
 export interface Connector {
   id: ConnectorId;
   label: string;
@@ -110,10 +114,15 @@ const gmail: Connector = {
       return tok ? { status: "ok", token: tok } : { status: "needs_reconnect" };
     } catch (e) { return { status: "error", detail: String((e as Error)?.message ?? e).slice(0, 120) }; }
   },
-  needsReconnect: async () => false, // Google's refusal shows when a token is asked for; nothing is recorded for it
+  // Google's refusal shows when a token is asked for. The sending rail records it (career_send_accounts 'needs_reconnect',
+  // cleared when the person connects again), so "what's connected" never calls a refused grant connected.
+  async needsReconnect(d, userId) {
+    const r = must(await d.admin.from("career_send_accounts").select("state").eq("user_id", userId).eq("provider", "gmail").maybeSingle(), "read the Gmail sending state");
+    return r?.state === "needs_reconnect";
+  },
   async disconnect(d, userId) {
-    const r = await disconnectGoogle(d.admin, userId, { fetch: d.fetch });
-    return { ok: r.ok, had: r.had.length > 0, erased: r.mailErased, reply: disconnectReply(r), failures: r.failures };
+    const r = await disconnectGoogle(d.admin, userId, { fetch: d.fetch, sleep: d.sleep });
+    return { ok: r.ok, had: r.had.length > 0, erased: r.mailErased, reply: disconnectReply(r), failures: r.failures, note: revokeWords(r) };
   },
 };
 
@@ -147,7 +156,7 @@ const outlook: Connector = {
   },
   async disconnect(d, userId) {
     const r = await disconnectOutlook(d.admin, userId);
-    return { ok: r.ok, had: r.had, reply: disconnectWords(r), failures: r.failures };
+    return { ok: r.ok, had: r.had, erased: r.erased, reply: disconnectWords(r), failures: r.failures, note: MICROSOFT_NOTE };
   },
 };
 
@@ -171,43 +180,62 @@ export async function statuses(d: Deps, userId: string): Promise<Status[]> {
 
 // ------------------------------------------------------------------------------------------------ disconnect, for any connector
 // The connector's own disconnect (revoke where the provider allows it, tokens and rows deleted, what was read erased, read
-// back), then the shared part: approved emails that have not gone yet are cancelled (the migration's trigger does it on the
-// row's delete; doing it here too means the order of deploys does not matter), and that is read back as well.
+// back), then the shared part: every email still waiting to go from that mailbox is cancelled by the database on the
+// row's delete (approved outreach emails not queued on the person's other mailbox, the sending rail's queued emails, the
+// replies lane's approved follow-ups; 20261028110000, 20261027200000 and 20261029200000), and that is read back.
+// CONNECTOR SCENARIOS (2026-10-29, tests/architect/scenarios-connectors.test.ts): the reply's count is what the read-back
+// shows (what waited before minus what waits after, at any volume), never the count read before the disconnect; an email
+// a worker was already sending is said as such (it may have gone), never counted as cancelled; only the mailbox's own
+// sending grant has emails waiting on it (the legacy finance grant has none).
+export interface Waiting { approved: number; queued: number; actions: number; sending: number }
+async function waiting(d: Deps, userId: string, mailbox: ConnectorId): Promise<Waiting | null> {
+  const r = await d.admin.rpc("career_connector_waiting", { p_user: userId, p_mailbox: mailbox });
+  if (r?.error || !r?.data || typeof r.data !== "object") return null;
+  const n = (k: string) => Math.max(0, Number((r.data as any)[k]) || 0);
+  return { approved: n("approved"), queued: n("queued"), actions: n("actions"), sending: n("sending") };
+}
+const emails = (n: number) => (n === 1 ? "1 approved email" : `${n} approved emails`);
 export async function disconnectConnector(d: Deps, c: Connector, userId: string): Promise<DisconnectOut> {
-  const before = await d.admin.from("career_outreach_drafts").select("id").eq("user_id", userId).eq("status", "approved").limit(200);
-  const pending = before.error ? null : (before.data ?? []).length;
+  const grant = await d.admin.from("user_oauth_connections").select("provider").eq("user_id", userId).eq("provider", c.provider);
+  const before = await waiting(d, userId, c.id);
   const r = await c.disconnect(d, userId);
   const failures = [...r.failures];
-  if (r.had && pending) {
-    const u = await d.admin.from("career_outreach_drafts").update({ status: "skipped", result: `cancelled: ${c.label} disconnected`, updated_at: at(d.now()) }).eq("user_id", userId).eq("status", "approved");
-    if (u.error) failures.push("cancel the emails still waiting to go");
+  const sender = !grant.error && (grant.data ?? []).length > 0;
+  let cancelled = 0, inFlight = 0;
+  if (grant.error || (sender && before === null)) failures.push("check that no email is still waiting to go");
+  else if (sender && before) {
+    const after = await waiting(d, userId, c.id);
+    if (after === null) failures.push("check that no email is still waiting to go");
+    else {
+      cancelled = Math.max(0, before.approved - after.approved) + Math.max(0, before.queued - after.queued) + Math.max(0, before.actions - after.actions);
+      inFlight = before.sending;
+      if (after.approved + after.queued + after.actions + after.sending > 0) failures.push("cancel the emails still waiting to go");
+    }
   }
-  const after = await d.admin.from("career_outreach_drafts").select("id").eq("user_id", userId).eq("status", "approved").limit(1);
-  if (pending === null || after.error) failures.push("check that no email is still waiting to go");
-  else if (r.had && (after.data ?? []).length) failures.push("cancel the emails still waiting to go");
   const ok = r.ok && failures.length === r.failures.length;
   let reply = r.reply;
-  if (!ok && r.ok) reply = `I disconnected ${c.label}, but I couldn't ${failures.filter((f) => !r.failures.includes(f)).join(", or ")}. Say "${c.disconnectAsk}" again to retry.`;
-  else if (ok && r.had && pending) reply += ` I also cancelled ${pending === 1 ? "1 approved email that hadn't gone yet" : `${pending} approved emails that hadn't gone yet`}; approve ${pending === 1 ? "it" : "them"} again if you still want ${pending === 1 ? "it" : "them"} sent.`;
+  const extra = failures.filter((f) => !r.failures.includes(f)).join(", or ");
+  if (!ok && r.ok) reply = r.had ? `I disconnected ${c.label}, but I couldn't ${extra}.${r.note ? ` ${r.note}` : ""} Say "${c.disconnectAsk}" again to retry.`
+    : `I couldn't ${extra} from your ${c.label}. Say "${c.disconnectAsk}" again to retry.`;
+  else if (ok && cancelled) reply += ` I also cancelled ${emails(cancelled)} that hadn't gone yet; approve ${cancelled === 1 ? "it" : "them"} again if you still want ${cancelled === 1 ? "it" : "them"} sent.`;
+  if (ok && inFlight) reply += ` ${inFlight === 1 ? "1 email was" : `${inFlight} emails were`} already being sent from your ${c.label} when you disconnected, so ${inFlight === 1 ? "it" : "they"} may have gone.`;
   return { ok, had: r.had, erased: r.erased, reply, failures: [...new Set(failures)] };
 }
 
 // ------------------------------------------------------------------------------------------------ the chat
-const WHATS_CONNECTED_RE = /^\s*(?:(?:so|ok|okay|hey)[,\s]+)?(?:what(?:'s|s| is| are)|which (?:accounts?|apps?|things|services) (?:are|have|did)|what (?:accounts?|apps?|services) (?:are|have|did)|what have i|what did i|what do you have access to|show (?:me )?my connections|my connections|list (?:my )?connections|what are my connections)(?:\s+(?:you\s+)?(?:connected|linked|hooked up))?(?:\s+to\s+(?:you|trainee))?(?:\s+(?:right\s+)?now)?\s*[?.!]*\s*$/i;
+// CONNECTOR SCENARIOS (2026-10-29): the words are read by connector_words.ts (lead-ins, typos, "what can you see",
+// "is my gmail connected", "remove gmail access"; "remove Google" is an employer, never a disconnect).
 export function isWhatsConnected(text: string): boolean {
-  const t = String(text ?? "").trim();
-  if (!WHATS_CONNECTED_RE.test(t)) return false;
-  return /connect|link|hooked|access|connections/i.test(t);
+  return whatsConnectedOf(text);
 }
-const GMAIL_CONNECT_RE = /^\s*(?:please\s+|can you\s+|i want to\s+|i'?d like to\s+|let'?s\s+)?(?:connect|link|add|hook up|set up|reconnect)\s+(?:my\s+)?(?:gmail|google(?:\s+account)?|google\s+mail)(?:\s+(?:account|email|inbox))?[\s.!?]*$/i;
 const CHECK_RE = /^\s*(?:(?:please|can you|could you|pls)\s+)?(?:check|read|scan|look through|go through|sync)\s+(?:my\s+|the\s+)?(gmail|outlook|hotmail|e-?mails?|inbox|mail|mailbox)(?:\s+inbox)?(?:\s+(?:now|again|right now|for me|for (?:updates|news|replies|responses)))*(?:\s+please)?\s*[?.!]*$/i;
 export type ConnectorAsk = { kind: "whats_connected" } | { kind: "connect"; id: ConnectorId } | { kind: "disconnect"; id: ConnectorId } | { kind: "check"; need: Need };
 export function connectorAsk(message: string): ConnectorAsk | null {
-  const t = String(message ?? "").trim();
-  if (isWhatsConnected(t)) return { kind: "whats_connected" };
-  if (isGoogleDisconnect(t)) return { kind: "disconnect", id: "gmail" };
-  if (OUTLOOK_DISCONNECT_RE.test(t)) return { kind: "disconnect", id: "outlook" };
-  if (GMAIL_CONNECT_RE.test(t)) return { kind: "connect", id: "gmail" };
+  const t = askWords(message);
+  if (whatsConnectedOf(t)) return { kind: "whats_connected" };
+  const off = disconnectOf(t);
+  if (off) return { kind: "disconnect", id: off };
+  if (gmailConnectOf(t)) return { kind: "connect", id: "gmail" };
   const m = CHECK_RE.exec(t);
   if (m) {
     const w = m[1].toLowerCase();
@@ -254,6 +282,15 @@ function linkReply(c: Connector, url: string, channel: string, lead: string, ext
   return { reply, meta: channel === "telegram" ? { link_button: { text: `Connect ${c.label}`, url } } : null };
 }
 
+
+// The account-connect page (trainee-connect): when the owner has switched it on (TRAINEE_CONNECT_BASE_URL), the bot says ONE short
+// line and the link to it, whatever the connector; the page lets the person pick Google or Microsoft and does the rest.
+async function connectPageReply(d: Deps, o: { userId: string; channel: string; reason: string }): Promise<{ reply: string; meta: Record<string, unknown> | null } | null> {
+  const u = await connectUrlsFor(d.env, o.userId, o.reason, d.now(), /^[a-z]{3,16}$/.test(o.channel) ? o.channel : "web");
+  if (!u.url) return null;
+  return { reply: connectLine(o.reason, u.url), meta: o.channel === "telegram" ? { link_button: { text: "Connect email", url: u.url } } : null };
+}
+
 // When the turn itself failed (a database read refused): the person still gets a plain, true answer, never the router's.
 export function connectorFailure(message: string): ChatOut | null {
   const a = connectorAsk(message);
@@ -279,6 +316,8 @@ export async function connectorChatTurn(d: TurnIn): Promise<ChatOut | null> {
   if (ask.kind === "connect") {
     const c = CONNECTORS[ask.id], st = s.find((x) => x.id === ask.id)!;
     if (st.state === "connected") return out(d, `${c.label} is already connected${st.email ? `: ${st.email}` : ""}. Say "${c.disconnectAsk}" to remove it.`, `career_${c.id}_connect`, "already");
+    const pageReply = c.wired(d.env) ? await connectPageReply(d, { userId: d.userId, channel, reason: "replies" }) : null;
+    if (pageReply) return out(d, pageReply.reply, `career_${c.id}_connect`, "link", pageReply.meta);
     const url = await c.issueLink(d, { userId: d.userId, threadId: d.threadId, channel });
     if (!url) return out(d, `Connecting ${c.label} isn't switched on in Trainee yet, so I can't make a link. Nothing was connected.`, `career_${c.id}_connect`, "not_wired");
     const r = linkReply(c, url, channel, `Here's a one-time link to connect your ${c.label}.`,
@@ -307,6 +346,8 @@ export async function connectorChatTurn(d: TurnIn): Promise<ChatOut | null> {
     const who = ask.need === "mail" ? "Gmail or Outlook" : pick.label;
     return out(d, `I'm still waiting for ${who} to be connected, and I'll ${words} as soon as it is${parked?.duplicate ? "" : ", along with what you asked before"}. Use the link I sent you, or text "${pick.connectAsk}" if you need a new one.`, "career_connector_need", "waiting");
   }
+  const pageReply = await connectPageReply(d, { userId: d.userId, channel, reason: "replies" });
+  if (pageReply) return out(d, pageReply.reply, "career_connector_need", "asked", pageReply.meta);
   const url = await pick.issueLink(d, { userId: d.userId, threadId: d.threadId, channel });
   if (!url) return out(d, `Connecting ${pick.label} isn't switched on in Trainee yet, so I can't make a link. Nothing was read.`, "career_connector_need", "not_wired");
   const reconnect = s.find((x) => x.id === pick.id)?.state === "needs_reconnect";

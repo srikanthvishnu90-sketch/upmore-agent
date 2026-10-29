@@ -6,7 +6,7 @@
 // Fake engines and an in-memory queue; the real database and browser are in mass-submit-pg.test.ts.
 import { cloudLoop, type CloudJob, type CloudQueue } from "../../workers/career-cloud/worker.ts";
 import { factsFromPayload, ownQueue, runLoop } from "../../workers/career-browser/approve-first.ts";
-import { backoffMs, dbHostGate, fileJournal, handBack, hostOf, localHostGate, type MassJob, massRun, PacedLimiter, pacedPool, pacingFrom, refusal } from "../../workers/career-browser/mass-run.ts";
+import { backoffMs, dbHostGate, fileJournal, handBack, hostOf, localHostGate, type MassJob, massRun, PacedLimiter, pacedPool, pacingFrom, pageRefusal, refusal } from "../../workers/career-browser/mass-run.ts";
 import { prepareAhead, prepareDoor, preparePacing, shardOf } from "../../workers/career-browser/prepare-ahead.ts";
 import { prepareHostStatus } from "../../supabase/functions/_shared/prepare_host_status.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
@@ -342,4 +342,54 @@ Deno.test("phone-only preparation status: not configured, refused, unreachable a
   eq(seen[0], "https://prep.example.test/status", "it reads the host's status, never its prepare door");
   for (const s of [off, up]) assert(!JSON.stringify(s).includes(tok), "the token is never in what it says");
   eq((await prepareHostStatus({ env: env({ CAREER_PREPARE_AHEAD_URL: "http://prep.example.test/x", CAREER_PREPARE_AHEAD_TOKEN: tok }) })).state, "unreachable", "plain http is refused");
+});
+
+// Owner rule (2026-10-27, back off then RESUME; 20261029190000): a claim let go before its engine started goes back to the
+// queue (o.putBack) instead of being ended unsent: held behind another instance's refusal on a leased queue (until the
+// hold), or the worker stopping. Its journal line is cleared BEFORE it is put back (a crash in between can never start
+// it from the old lease); a started job is never put back.
+Deno.test("mass-run: a claim let go before it started is put back (its host's hold as the time), journal line first; never one that started", async () => {
+  const gate = localHostGate();
+  const held = await gate.refused("h0.example.test", "rate_limited", 60, Date.now()); // another instance's refusal: h0 held for a minute
+  const q = queue(6, 2), r = recorder(() => 2), order: string[] = [], put: { id: string; why: string; until: number }[] = [];
+  const journal = {
+    async put(job: MassJob) { order.push(`put:${job.id}`); }, async start(id: string) { order.push(`start:${id}`); },
+    async done(id: string) { order.push(`done:${id}`); }, async list() { return []; },
+  };
+  const out = await massRun({
+    claim: q.claim, run: r.run, orphaned: never, drain: false, idleMs: 5, stop: () => r.runs.size >= 3, log: () => {}, gate, journal,
+    begin: async (jobs) => new Set(jobs.map((j) => j.id)),
+    unstarted: async (j, why) => { throw Error(`ended unsent: ${j.id} ${why}`); },
+    putBack: async (j, why, until) => { order.push(`back:${j.id}`); put.push({ id: j.id, why, until }); return { state: "queued", reason: why, recorded: true, not_before: until }; },
+    pacing: pacingFrom(() => undefined, { concurrency: 8 }),
+  });
+  eq(put.map((p) => `${p.id}:${p.why}`).sort(), ["j000:HOST_HELD", "j002:HOST_HELD", "j004:HOST_HELD"], "h0's three go back, unstarted");
+  assert(put.every((p) => p.until === held), `each not before its host's hold (${put.map((p) => p.until - held)})`);
+  for (const p of put) assert(order.indexOf(`done:${p.id}`) >= 0 && order.indexOf(`done:${p.id}`) < order.indexOf(`back:${p.id}`), `${p.id}: journal line cleared before the put-back: ${order.join(" ")}`);
+  assert(put.every((p) => !r.runs.has(p.id) && !order.includes(`start:${p.id}`)), "nothing put back had started");
+  eq([...r.runs.keys()].sort(), ["j001", "j003", "j005"], "h1's ran");
+  assert(out.filter((o) => o.state === "queued").length === 3 && out.every((o) => o.state !== "not_submitted"), JSON.stringify(out));
+  // The worker stopping with claims waiting (spacing on one host): those go back too, not ended unsent.
+  const q2 = queue(4, 1), r2 = recorder(() => 1), put2: string[] = [];
+  let stop = false;
+  await massRun({
+    claim: q2.claim, run: async (j, onStart) => { stop = true; return await r2.run(j, onStart); }, orphaned: never, drain: true, idleMs: 5, stop: () => stop, log: () => {},
+    unstarted: async (j, why) => { throw Error(`ended unsent: ${j.id} ${why}`); },
+    putBack: async (j, why) => { put2.push(`${j.id}:${why}`); return { state: "queued", reason: why, recorded: true }; },
+    pacing: pacingFrom(() => undefined, { concurrency: 4, hostSpacingMs: 1000 }),
+  });
+  eq(r2.runs.size, 1, "one started before the stop");
+  assert(put2.length >= 1 && put2.every((x) => x.endsWith(":WORKER_STOPPING")), JSON.stringify(put2));
+});
+
+// A 503 at the page is a refusal for load with or without Retry-After (scripts/apply.ts pageRefusal), as a 429 is;
+// nothing else is.
+Deno.test("mass-run: pageRefusal: 429 and 503, with or without Retry-After, are refusals for load; nothing else is", () => {
+  const at = Date.parse("2026-10-29T16:00:00Z");
+  eq(pageRefusal(503, undefined, at), { status: 503, retry_after_s: null });
+  eq(pageRefusal(503, "7", at), { status: 503, retry_after_s: 7 });
+  eq(pageRefusal(503, "soon", at), { status: 503, retry_after_s: null });
+  eq(pageRefusal(429, null, at), { status: 429, retry_after_s: null });
+  eq(pageRefusal(429, "Thu, 29 Oct 2026 16:01:00 GMT", at), { status: 429, retry_after_s: 60 });
+  for (const s of [200, 301, 302, 400, 403, 404, 500, 502, 504]) eq(pageRefusal(s, "7", at), null, String(s));
 });

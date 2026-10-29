@@ -83,7 +83,9 @@ function confirmationRefusal(c: ToolCtx, id: string): string | null {
   const t = c.turn;
   if (!t) return "no confirmation from the person in this turn";
   if (t.added.includes(id)) return `fact ${id} was added in this turn; show it to the person and wait for their reply before confirming`;
-  if (!AFFIRM.test(t.message) || DENY.test(t.message)) return "the person's message is not a plain yes; ask them to confirm the fact as written";
+  // ONBOARDING SCENARIOS (2026-10-29): a yes word anywhere was taken ("is that right?", "yeah maybe", "yes I think so?"):
+  // only a plain yes confirms (122's confirmationReply, the router's own reader).
+  if (!AFFIRM.test(t.message) || DENY.test(t.message) || CareerProfile.confirmationReply(t.message).kind !== "yes") return "the person's message is not a plain yes; ask them to confirm the fact as written";
   return null;
 }
 // D-007: a fact about the person is saved only from what they said in this turn's message: never a guess. Most of the
@@ -401,7 +403,7 @@ export function careerTools(deps: {
         const r = await queueWants(deps.wants, c.userId, onRole.ok, c.now, { limits: deps.limits, tz: deps.tz });
         const refused = [...found.refused, ...screened.refused, ...onRole.refused, ...r.refused];
         await record(c, "apply_queued", `${r.queued} postings`, { queued: r.queued, refused: refused.length, companies: [...new Set(r.items.map((w) => w.company).filter(Boolean))].slice(0, 5) });
-        return { ...r, refused, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card. Tell them each refusal and its reason as given." };
+        return { ...r, refused, screen: screened.gate, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card. Tell them each refusal and its reason as given." };
       },
     },
     {

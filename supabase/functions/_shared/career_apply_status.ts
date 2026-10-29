@@ -32,8 +32,11 @@ export function supabaseApplications(admin: any): ReadApplications {
   };
 }
 
-const plain = (s: string) => ` ${String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/[?!.]+\s*$/, "").replace(/\s+/g, " ").trim()} `;
-const ALL = /^ (?:so )?(?:where are|where'?s|how are|what'?s the status of|what is the status of|status of|any updates? on|update on|check on|show me the status of) (?:all )?(?:of )?my (?:job )?applications? $|^ (?:did|have) (?:my|any of my) applications? (?:go through|gone through|get sent|been sent|get submitted|been submitted) $/;
+const plain = (s: string) => ` ${String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/[?!.]+\s*$/, "").replace(/\s+/g, " ").trim()
+  .replace(/^[^\p{L}\p{N}"'(]+/u, "").replace(/^(?:(?:hey|hi|hello|ok|okay|pls|please)\b[,!:]?\s+)+/, "").replace(/,? (?:please|pls|thanks|thank you)$/, "")} `;
+// ROUTING SCENARIOS (2026-10-29): "apps" is "applications"; "what did I apply to" / "what have I applied to" / "show me
+// what I applied to" are the whole list; a greeting before the ask ("hey", "ok so", "please") is not part of it.
+const ALL = /^ (?:so )?(?:where are|where'?s|how are|what'?s the status of|what is the status of|status of|any updates? on|update on|check on|show me the status of) (?:all )?(?:of )?my (?:job )?(?:applications?|apps) $|^ (?:did|have) (?:my|any of my) (?:applications?|apps) (?:go through|gone through|get sent|been sent|get submitted|been submitted) $|^ (?:so )?(?:what|which (?:jobs|companies|roles|employers)|where) (?:did i apply(?: to| for)?|have i applied(?: to| for)?|i'?ve applied(?: to| for)?)(?: so far| yet)? $|^ (?:show me|tell me|list) (?:what|where) i(?:'?ve| have)? applied(?: to| for)?(?: so far)? $/;
 const ONE = [
   /^ (?:did|has|have) my application (?:to|for|at|with) (.+?) (?:go through|gone through|get sent|been sent|get submitted|been submitted|send|submit|work|land) $/,
   /^ was my application (?:to|for|at|with) (.+?) (?:sent|submitted|received|accepted) $/,
@@ -78,7 +81,9 @@ export function statusLine(a: AppRow): string {
     case "not_submitted":
       return `${name}: not sent (${a.reason ?? "no reason recorded"}).`;
     case "queued":
-      return `${name}: approved, not sent yet.`;
+      // A site that asked us to slow down before anything was sent: the same application waits and goes by itself
+      // (20261029180000 writes the reason, with when).
+      return /^waiting: /.test(String(a.reason ?? "")) ? `${name}: approved, not sent yet; ${String(a.reason).slice(0, 240)}.` : `${name}: approved, not sent yet.`;
     case "driving":
       return `${name}: being sent now; not submitted yet.`;
     default:

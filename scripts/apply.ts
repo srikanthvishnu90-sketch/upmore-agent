@@ -16,6 +16,7 @@ import {
   questionFieldType,
 } from "../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../supabase/functions/_shared/career_apply_store.ts";
+import { pageRefusal } from "../workers/career-browser/mass-run.ts";
 // How a form's fields become the planner's questions; shared with the browser extension (WO-031).
 import { bindFields as bind } from "./career/form-bind.ts";
 import { aiPolicyStatements } from "../supabase/functions/_shared/ai_policy.ts";
@@ -858,14 +859,12 @@ export async function runApply(args: string[]) {
       if (!["GET", "HEAD"].includes(req.method()) && !readQuery && !codeReq && req.url() === destination) {
         postStatus = response.status();
       }
-      // Mass submission (owner, 2026-10-27): the employer's site refusing for load (429, or 503 with Retry-After) on the
-      // page itself, before anything was filled, stops the run as not sent; the worker backs off that host for every
-      // instance and the application is not started again by this run (HOST_RATE_LIMITED, with the seconds it asked for).
-      if (main && !allowSubmit && (response.status() === 429 || (response.status() === 503 && response.headers()["retry-after"]))) {
-        const ra = String(response.headers()["retry-after"] ?? "").trim();
-        const secs = /^\d{1,6}$/.test(ra) ? Number(ra) : Number.isFinite(Date.parse(ra)) ? Math.max(0, Math.round((Date.parse(ra) - Date.now()) / 1000)) : null;
-        evidence.rate_limited = { status: response.status(), retry_after_s: secs };
-      }
+      // Mass submission (owner, 2026-10-27): the employer's site refusing for load (a 429 or a 503, with or without
+      // Retry-After: pageRefusal) on the page itself, before anything was filled, stops the run as not sent; the worker
+      // backs off that host for every instance and puts the same job back until the host allows (HOST_RATE_LIMITED, with
+      // the seconds it asked for, or none: the default doubling).
+      const refused = main && !allowSubmit ? pageRefusal(response.status(), response.headers()["retry-after"], Date.now()) : null;
+      if (refused) evidence.rate_limited = refused;
       if (uploadReq) uploadEchoes.push((await response.text()).slice(0, 20000));
       if (response.status() >= 300 && response.status() < 400) {
         const targetURL = new URL(response.headers().location || "/", req.url());

@@ -18,6 +18,7 @@ export interface Row {
   status: Status | null; // null: nothing yet, so the row offers Apply
   tag: string | null; // first 16 hex of the payload hash this row's Apply is bound to; null when nothing is prepared yet
   resume: string | null; byHand: boolean; note?: string;
+  sends?: string; send?: { label: string; value: string; needs?: boolean }[];
   meta?: string; metaSrc?: "From the posting" | "Reported, not verified" | null; why?: string[];
 }
 export interface Feed { og?: Og; token: string; rows: Row[]; setHash: string | null; setSize: number; top?: string; botUrl?: string | null }
@@ -90,7 +91,7 @@ summary::-webkit-details-marker{display:none}
 details[open] .desc{display:block;-webkit-line-clamp:unset}
 .meta,.why,.note{margin:2px 0 0 58px;font-size:15px;color:var(--mute)}.why{color:var(--ink)}
 .full{white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;margin:8px 0}
-.note a,details a,.top-note a{color:var(--link)}
+.note a,details a,.top-note a{color:var(--link)}.lnk{display:inline;min-height:44px;padding:0 4px;border:0;background:none;color:var(--link);font:inherit;text-decoration:underline;cursor:pointer}.sendh{margin:8px 0 2px;font-weight:600;font-size:15px}.send{margin:0 0 8px;padding-left:20px;font-size:15px;color:var(--mute)}.send li{margin:2px 0;overflow-wrap:anywhere}
 :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:8px}
 @media (max-width:360px){details,.meta,.why,.note{margin-left:0}.apply{min-width:80px;padding:6px 12px}}
 `;
@@ -112,6 +113,7 @@ export const FEED_SCRIPT = `(function(){${TG_READY}var r=document.getElementById
 export const BOOT_SCRIPT = `(function(){${TG_READY}var p=new URLSearchParams(location.hash.slice(1)),d=p.get("tgWebAppData");if(!d){document.getElementById("nodata").hidden=false;return}var f=document.createElement("form");f.method="post";function a(n,v){var i=document.createElement("input");i.type="hidden";i.name=n;i.value=v;f.appendChild(i)}a("init",d);a("list",document.body.getAttribute("data-list"));document.body.appendChild(f);f.submit()})();`;
 
 const BRAND = `<div class="brand"><svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Trainee"><rect width="64" height="64" rx="14" fill="#4A2F5E"/><text x="32" y="45" font-family="Georgia,serif" font-size="40" font-weight="700" text-anchor="middle" fill="#fff">T</text></svg><span class="wm">Trainee</span></div>`;
+const refresh = (token: string) => `<form method="post" class="ajax" style="display:inline">${hidden(token, "refresh")}<button type="submit" class="lnk">Refresh</button></form>`;
 const hidden = (token: string, action: string, extra = "") => `<input type="hidden" name="t" value="${esc(token)}"><input type="hidden" name="action" value="${action}">${extra}`;
 
 function rowHtml(r: Row, token: string): string {
@@ -121,20 +123,22 @@ function rowHtml(r: Row, token: string): string {
   let act: string;
   if (r.status) act = `<span class="chip ${r.status.word.replace(" ", "-")}" role="status">${esc(cap1(r.status.word))}</span>`;
   else if (r.byHand) act = `<a class="apply" href="${esc(j.url)}" rel="noopener noreferrer" aria-label="Open ${esc(j.title)} at ${esc(j.company)} to apply there yourself">Apply there</a>`;
-  else act = `<form method="post" class="ajax act">${hidden(token, "apply", `<input type="hidden" name="ref" value="${r.ref}"><input type="hidden" name="tag" value="${r.tag ?? "none"}">`)}<button type="submit" class="apply" aria-label="Apply to ${esc(j.title)} at ${esc(j.company)}">Apply</button></form>`;
+  else act = `<form method="post" class="ajax act">${hidden(token, "apply", `<input type="hidden" name="ref" value="${esc(r.ref)}"><input type="hidden" name="tag" value="${r.tag ?? "none"}">`)}<button type="submit" class="apply" aria-label="Apply to ${esc(j.title)} at ${esc(j.company)}">Apply</button></form>`;
   const more = r.full ? `<p class="full">${esc(r.full)}</p>${hostOf(j.url) ? `<p><a href="${esc(j.url)}" rel="noopener noreferrer">Open on ${esc(hostOf(j.url))}</a></p>` : ""}` : `<p class="full">The full posting text isn't on file.</p>${hostOf(j.url) ? `<p><a href="${esc(j.url)}" rel="noopener noreferrer">Open on ${esc(hostOf(j.url))}</a></p>` : ""}`;
-  const note = r.note ? `<p class="note">${esc(r.note)} <a href="?t=${esc(token)}">Refresh</a></p>` : r.status && r.status.word !== "queued" && r.status.word !== "preparing" ? `<p class="note">${esc(r.status.detail)}</p>` : r.status ? `<p class="note">${esc(r.status.detail)}</p>` : r.byHand ? `<p class="note">Not applied for automatically on this site.</p>` : "";
+  const note = r.note ? `<p class="note">${esc(r.note)} ${refresh(token)}</p>` : r.status && r.status.word !== "queued" && r.status.word !== "preparing" ? `<p class="note">${esc(r.status.detail)}</p>` : r.status ? `<p class="note">${esc(r.status.detail)}</p>` : r.byHand ? `<p class="note">Not applied for automatically on this site.</p>` : "";
   const meta = r.meta ? `<p class="meta">${esc(r.meta)}${r.metaSrc ? ` · ${esc(r.metaSrc)}` : ""}</p>` : "";
+  const sendsLine = r.sends ? `<p class="meta">${esc(r.sends)}</p>` : "";
+  const sendList = r.send?.length ? `<p class="sendh">What we send</p><ul class="send">${r.send.map((x) => `<li>${esc(x.label)}: ${x.needs ? `<strong>Needs you</strong>` : esc(x.value)}</li>`).join("")}</ul>` : "";
   const why = r.why?.length ? `<p class="why">Why it fits you: ${esc(r.why.slice(0, 2).join(" "))}</p>` : "";
-  return `<li class="row" id="r-${r.ref}"><div class="head"><span class="logo"><span class="lettermark" aria-hidden="true">${initial}</span>${img}</span><span class="name">${esc(j.company)}</span>${act}</div>
-<details><summary><span class="role">${esc(j.title)}</span><span class="desc">${esc(r.snippet)}</span></summary>${more}</details>${meta}${why}${note}</li>`;
+  return `<li class="row" id="r-${esc(r.ref)}"><div class="head"><span class="logo"><span class="lettermark" aria-hidden="true">${initial}</span>${img}</span><span class="name">${esc(j.company)}</span>${act}</div>
+<details><summary><span class="role">${esc(j.title)}</span><span class="desc">${esc(r.snippet)}</span></summary>${sendList}${more}</details>${meta}${sendsLine}${why}${note}</li>`;
 }
 
 export function renderFeed(f: Feed): string {
   const names = [...new Set(f.rows.map((r) => r.resume).filter(Boolean))] as string[];
   const withLine = names.length ? `<p class="with">Applying with: ${esc(names.join(", "))}</p>` : "";
   const all = f.setHash && f.setSize >= 2 ? `<form method="post" class="ajax all">${hidden(f.token, "applyall", `<input type="hidden" name="set" value="${f.setHash}">`)}<button type="submit">Apply to all ${f.setSize}</button></form>` : "";
-  const top = f.top ? `<p class="top-note" role="alert">${esc(f.top)} <a href="?t=${esc(f.token)}">Refresh</a></p>` : "";
+  const top = f.top ? `<p class="top-note" role="alert">${esc(f.top)} ${refresh(f.token)}</p>` : "";
   const inner = `<div id="root"><header>${BRAND}<h1>Your jobs</h1>${withLine}${all}</header><main id="main">${top}<ul class="rows">${f.rows.map((r) => rowHtml(r, f.token)).join("")}</ul></main></div>`;
   return layout("Your jobs - Trainee", inner, { script: FEED_SCRIPT, tg: true, og: f.og });
 }
@@ -160,4 +164,9 @@ export function renderText(f: Feed): string {
   });
   L.push("", "To act, open this link in a browser. Apply approves exactly the application prepared for that row.");
   return L.join("\n");
+}
+
+// What a link-preview crawler gets: the preview tags and nothing about any job.
+export function renderPreview(og: Og): string {
+  return layout("Your jobs - Trainee", `<header>${BRAND}<h1>Your jobs</h1></header><main id="main"><p>Open this link in your browser, or from Telegram, to see your jobs.</p></main>`, { og });
 }

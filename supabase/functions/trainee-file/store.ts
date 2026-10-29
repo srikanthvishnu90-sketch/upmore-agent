@@ -13,6 +13,13 @@ export function supabaseFileStore(admin: any): FileStore {
       const rows = must(await admin.from("career_apply_jobs").select("id,state,reason,confirmation_id,created_at,updated_at,email_confirmed_at,payload,company,url").eq("user_id", u).eq("job_id", jobId).limit(1), "read the application");
       return rows?.[0] ?? null;
     },
+    // A link token id is taken once: the insert's unique (user_id, key) refuses a second take. Any other error is surfaced, never treated as unused.
+    async claimLink(u, jti, at) {
+      const r = await admin.from("career_watch_kv").insert({ user_id: u, key: `tf:used:${jti}`, value: { at: new Date(at).toISOString() }, updated_at: new Date(at).toISOString() });
+      if (!r.error) return true;
+      if (r.error.code === "23505") return false;
+      throw new Error(`claim link: ${r.error.message}`);
+    },
     async wanted(u, url) {
       const rows = must(await admin.from("career_apply_wanted").select("posting_key").eq("user_id", u).eq("url", url).limit(1), "read the queue");
       return !!rows?.length;

@@ -29,6 +29,7 @@ function mem(n = 3, o: { unprepared?: number[]; apps?: Record<number, AppRow>; w
   const kv = new Map<string, any>();
   const preps = new Map<number, PreparedRow | null>();
   const apps = new Map<number, AppRow>(Object.entries(o.apps ?? {}).map(([k, v]) => [Number(k), v]));
+  const used = new Set<string>();
   const log = { wants: [] as number[], answered: [] as any[], opened: [] as string[] };
   const num = (jobId: string) => Number(jobId.split(":").pop());
   const store: FileStore = {
@@ -42,6 +43,7 @@ function mem(n = 3, o: { unprepared?: number[]; apps?: Record<number, AppRow>; w
     async applied(u, jobId) { return u === U && apps.has(num(jobId)); },
     async want(_u, job) { log.wants.push(num(job.job_id)); return { result: "queued" }; },
     async appRow(u, jobId) { return u === U ? apps.get(num(jobId)) ?? null : null; },
+    async claimLink(_u, jti) { if (used.has(jti)) return false; used.add(jti); return true; },
     async wanted(u, url) { return u === U && (o.wanted ?? []).includes(Number(url.split("/").pop())); },
   };
   const refs: string[] = [];
@@ -71,7 +73,9 @@ function deps(m: ReturnType<typeof mem>, o: { now?: number; hash?: (n: number) =
     tap, userOfTelegram: async (id) => o.telegramUsers?.[id] ?? null };
 }
 const tok = async (user = U, list = LIST, now = NOW) => (await mintFileToken({ secret: SECRET, userId: user, list, now }))!;
-const get = (d: FileDeps, t: string, extra = "") => handleFile(new Request(`https://x.example/f?t=${encodeURIComponent(t)}${extra}`), d);
+const linkTok = async (user = U, list = LIST) => (await mintFileToken({ secret: SECRET, userId: user, list, now: NOW, kind: "l" }))!;
+// A signed-in page read: the session cookie (the link itself is exchanged once, see the link tests).
+const get = (d: FileDeps, t: string, extra = "") => handleFile(new Request(`https://x.example/f${extra ? "?" + extra.replace(/^&/, "") : ""}`, { headers: { cookie: `tf_s=${t}` } }), d);
 const post = (d: FileDeps, f: Record<string, string>) => handleFile(new Request("https://x.example/f", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(f).toString() }), d);
 const plain = (h: string) => h.replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/\s+/g, " ");
 async function ref(n: number) { return await refOf(U, `greenhouse:acme:${n}`); }
@@ -111,6 +115,8 @@ Deno.test("links: the bot gets a Mini App URL and a signed-link fallback only wh
   const l = await feedUrlsFor(env({ TRAINEE_FILE_LINK_SECRET: SECRET, TRAINEE_FILE_BASE_URL: BASE, TELEGRAM_BOT_TOKEN: BOT }), U, LIST, NOW);
   eq(l.webApp, `${BASE}?list=${LIST}`);
   assert(l.url!.startsWith(`${BASE}?t=v1.`));
+  const lv = await verifyFileToken(new URL(l.url!).searchParams.get("t"), SECRET, NOW);
+  assert(lv.ok && lv.claims.k === "l", "the bot's link is the single-use kind");
 });
 
 // ================================================================== Telegram initData (Mini App login)
@@ -441,4 +447,121 @@ Deno.test("link preview and Mini App: og/twitter tags from real counts, theme-co
   assert(/script-src 'sha256-[^']+' 'sha256-[^']+' https:\/\/telegram\.org/.test(r.headers.get("content-security-policy")!));
   const m1 = mem(1); await m1.ready;
   assert(/content="1 match for you"/.test(await (await get(deps(m1), await tok())).text()));
+});
+
+// ================================================================== single-use link, cookie session
+Deno.test("link: the fallback link is taken once, exchanged for an HttpOnly Secure SameSite=Lax cookie, and redirects to a clean URL", async () => {
+  const m = mem(2); await m.ready;
+  const d = deps(m);
+  const link = await linkTok();
+  const r = await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(link)}`), d);
+  eq(r.status, 303);
+  eq(r.headers.get("location"), "/file");
+  const sc = r.headers.get("set-cookie")!;
+  assert(/^tf_s=v1\./.test(sc) && /HttpOnly/.test(sc) && /Secure/.test(sc) && /SameSite=Lax/.test(sc) && /Max-Age=7200/.test(sc));
+  assert(!r.headers.get("location")!.includes("v1.") && !(await r.text()).includes("v1."));
+  const cookie = sc.split(";")[0];
+  const page = await handleFile(new Request("https://x.example/file", { headers: { cookie } }), d);
+  eq(page.status, 200);
+  const html = await page.text();
+  assert(html.includes("Acme"));
+  assert(!/href="[^"]*[?&]t=/.test(html) && !/[?&]t=v1\./.test(html), "no token in any URL on the page");
+  // the link cannot be used again, from anywhere
+  const again = await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(link)}`), d);
+  eq(again.status, 410);
+  assert(/already used/.test(plain(await again.text())) && !(await again.text().catch(() => "")).includes("Acme"));
+  // a link token is never a session: not for actions, not as a cookie
+  const sess = cookie.split("=")[1];
+  eq((await post(d, { t: link, action: "apply", ref: await ref(1), tag: hashTag(H) })).status, 403);
+  eq((await handleFile(new Request("https://x.example/file", { headers: { cookie: `tf_s=${link}` } }), d)).status, 403);
+  eq(m.log.answered, []);
+  // and a session token is not a link
+  eq((await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(sess)}`), d)).status, 403);
+  // the session works for an action only with its own value in the form (a cookie alone approves nothing: no cross-site posting)
+  const noField = await handleFile(new Request("https://x.example/file", { method: "POST", headers: { cookie, "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ action: "apply", ref: await ref(1), tag: hashTag(H) }).toString() }), d);
+  eq(noField.status, 403);
+  eq(m.log.answered, []);
+  eq((await post(d, { t: sess, action: "apply", ref: await ref(1), tag: hashTag(H) })).status, 200);
+  eq(m.log.answered.length, 1);
+});
+
+Deno.test("link: a preview crawler (Telegram) reads the preview tags without using up the link or seeing any job; an expired or forged link never sets a cookie", async () => {
+  const m = mem(3); await m.ready;
+  const d = deps(m);
+  const link = await linkTok();
+  const bot = await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(link)}`, { headers: { "user-agent": "TelegramBot (like TwitterBot)" } }), d);
+  eq(bot.status, 200);
+  const h = await bot.text();
+  assert(h.includes('og:title" content="3 matches for you"') && !h.includes("Acme") && !bot.headers.get("set-cookie"));
+  eq((await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(link)}`), d)).status, 303, "the person's own open still works once");
+  const late = await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(await linkTok())}`), deps(m, { now: NOW + FILE_TTL_MS + 5 }));
+  eq(late.status, 410); assert(!late.headers.get("set-cookie"));
+  const forged = await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent((await linkTok()).slice(0, -3) + "AAA")}`), d);
+  eq(forged.status, 403); assert(!forged.headers.get("set-cookie"));
+});
+
+Deno.test("headers: Mini App framing is allowed for Telegram's web clients only; img-src is the logo provider only; no wildcard framing", async () => {
+  const m = mem(1); await m.ready;
+  const csp = (await get(deps(m), await tok())).headers.get("content-security-policy")!;
+  const fa = csp.match(/frame-ancestors ([^;]+)/)![1];
+  eq(fa, "https://web.telegram.org https://*.telegram.org");
+  assert(!/'none'|(^| )\*( |$)|https:( |$)|http:/.test(fa));
+  const img = csp.match(/img-src ([^;]+)/)![1];
+  eq(img, "https://www.google.com https://*.gstatic.com");
+  assert(!/(^| )https:( |$)|data:/.test(img));
+  const own = (await get(deps(m, { env: { TRAINEE_LOGO_URL: "https://logos.example/{domain}.png" } }), await tok())).headers.get("content-security-policy")!;
+  eq(own.match(/img-src ([^;]+)/)![1], "https://logos.example");
+  const none = (await get(deps(m, { env: { TRAINEE_LOGO_URL: "http://logos.example/{domain}.png" } }), await tok()));
+  assert(/img-src 'none'/.test(none.headers.get("content-security-policy")!) && !(await none.text()).includes("<img"), "an http logo provider gives no logos at all");
+});
+
+Deno.test("escaping and logo allowlist: a hostile ref and a hostile company domain never become markup; the logo needs the employer's own domain on the configured https provider", async () => {
+  const m = mem(1); await m.ready;
+  const evilRef = `x"><script>alert(1)</script><b a="`;
+  const view = jobViewOf(hit(1, { company_domain: `evil"onerror="alert(1).com` }), row(1, { company_domain: `evil"onerror="alert(1).com` }));
+  await m.store.remember(U, evilRef, view, "text");
+  await m.store.rememberList(U, LIST, [evilRef]);
+  const html = await (await get(deps(m), await tok())).text();
+  assert(!html.includes(evilRef) && !/<script>alert/.test(html) && !/<b a="/.test(html), "ref escaped everywhere");
+  assert(html.includes("x&quot;&gt;&lt;script&gt;"));
+  assert(!html.includes("<img") && /class="lettermark"[^>]*>A</.test(html), "a malformed domain gives a lettermark, not a guessed image");
+  const ok = mem(1); await ok.ready;
+  const h2 = await (await get(deps(ok), await tok())).text();
+  const src = h2.match(/<img src="([^"]+)"/)![1].replace(/&amp;/g, "&");
+  assert(new URL(src).origin === "https://www.google.com" && src.includes("domain=acme.com"));
+});
+
+// ================================================================== the approval covers only what is shown
+Deno.test("what we send: the expanded row lists every value of the real payload, the collapsed row one 'Sends:' line; a secret-looking field is 'Needs you' and cannot be one-tapped", async () => {
+  const m = mem(3); await m.ready;
+  const p = prepared(1);
+  (p.payload as any).fields = [
+    { name: "first_name", label: "First name", value: "Ada" }, { name: "email", label: "Email", value: "ada@example.com" },
+    { name: "work_auth", label: "Authorized to work in the US?", value: "Yes" }, { name: "resume", label: "Resume", type: "input_file", value: "ada-resume.pdf" }];
+  (p.payload as any).cover_note = { text: "I built the pricing model." };
+  (p.payload as any).page_field_names = ["g-recaptcha-response"];
+  (p.payload as any).destination = "https://boards.greenhouse.io/acme/jobs/1/apply";
+  m.preps.set(1, p);
+  const sec = prepared(2);
+  (sec.payload as any).fields = [{ name: "first_name", label: "First name", value: "Ada" }, { name: "account_password", label: "Account password", value: "hunter2" }];
+  m.preps.set(2, sec);
+  const html = await (await get(deps(m), await tok())).text();
+  const rows = html.split('<li class="row"').slice(1);
+  const row1 = rows[0];
+  const t1 = plain(row1);
+  for (const want of ["What we send", "Resume: ada-resume.pdf", "First name: Ada", "Email: ada@example.com", "Authorized to work in the US?: Yes", "Cover note: I built the pricing model.", "Also sent, set by the employer's page, unchanged: g-recaptcha-response", "Sends to: boards.greenhouse.io", "Sends: ada-resume.pdf + your saved answers"]) assert(t1.includes(want), `row shows "${want}": ${t1}`);
+  assert(/<details>[\s\S]*What we send[\s\S]*<\/details>/.test(row1) && /<p class="meta">Sends: /.test(row1), "values inside the expansion, one muted line outside");
+  const r2 = rows[1];
+  assert(/Account password: <strong>Needs you<\/strong>/.test(r2) && !r2.includes("hunter2"), "a secret is never printed");
+  assert(/class="chip needs-you"/.test(r2) && !/>Apply<\/button>/.test(r2) && !/Sends: /.test(r2));
+  assert(/Apply to all 2</.test(html), "the secret row is not in the set (two approvable rows of three)");
+  const set = html.match(/name="set" value="([0-9a-f]{16})"/)![1];
+  await post(deps(m), { t: await tok(), action: "applyall", set });
+  eq(m.log.answered.map((a) => a.n).sort(), [1, 3], "Apply to all never includes the row that needs you");
+  m.log.answered.length = 0; m.log.opened.length = 0;
+  const r = await post(deps(m), { t: await tok(), action: "apply", ref: await ref(2), tag: hashTag(H) });
+  eq(r.status, 200);
+  eq(m.log.answered, [], "a row that needs you cannot be approved by a posted tag");
+  await post(deps(m), { t: await tok(), action: "apply", ref: await ref(1), tag: hashTag(H) });
+  eq(m.log.answered.length, 1, "the fully shown row can");
 });

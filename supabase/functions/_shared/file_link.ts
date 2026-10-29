@@ -7,7 +7,10 @@
 //   v1.<base64url claims JSON>.<base64url HMAC-SHA-256("v1." + claims, TRAINEE_FILE_LINK_SECRET)>
 export const FILE_TTL_MS = 24 * 3600_000;
 export const SESSION_TTL_MS = 2 * 3600_000; // a Mini App session, minted after Telegram's signed initData checks out
-export interface FileClaims { u: string; r: string; i: number; e: number }
+// k "l": the link the bot sends (single-use: exchanged once for a session cookie, never accepted again); k "s": a session (cookie or
+// Mini App), accepted for reading and, with its own value in a form field, for actions. j: a random id, used to take a link once.
+export type TokenKind = "l" | "s";
+export interface FileClaims { u: string; r: string; k: TokenKind; j: string; i: number; e: number }
 export type FileTokenCheck =
   | { ok: true; claims: FileClaims }
   | { ok: false; why: "malformed" | "bad_signature" | "expired" | "not_configured" };
@@ -29,9 +32,10 @@ const SECRET_MIN = 24;
 const LIST = /^[0-9a-f]{10}$/;
 
 // null when no secret is configured (the bot then shows no link at all).
-export async function mintFileToken(o: { secret: string | undefined; userId: string; list: string; now: number; ttlMs?: number }): Promise<string | null> {
+export async function mintFileToken(o: { secret: string | undefined; userId: string; list: string; now: number; ttlMs?: number; kind?: TokenKind }): Promise<string | null> {
   if (!o.secret || o.secret.length < SECRET_MIN || !o.userId || !LIST.test(o.list)) return null;
-  const claims: FileClaims = { u: o.userId, r: o.list, i: o.now, e: o.now + Math.min(o.ttlMs ?? FILE_TTL_MS, 72 * 3600_000) };
+  const j = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const claims: FileClaims = { u: o.userId, r: o.list, k: o.kind ?? "s", j, i: o.now, e: o.now + Math.min(o.ttlMs ?? FILE_TTL_MS, 72 * 3600_000) };
   const body = b64(enc.encode(JSON.stringify(claims)));
   return `v1.${body}.${await sign(o.secret, `v1.${body}`)}`;
 }
@@ -43,7 +47,7 @@ export async function verifyFileToken(token: unknown, secret: string | undefined
   if (!same(await sign(secret, `v1.${m[1]}`), m[2])) return { ok: false, why: "bad_signature" };
   let c: Partial<FileClaims>;
   try { c = JSON.parse(unb64(m[1])); } catch { return { ok: false, why: "malformed" }; }
-  if (typeof c.u !== "string" || !c.u || !LIST.test(String(c.r)) || !Number.isFinite(c.i) || !Number.isFinite(c.e)) return { ok: false, why: "malformed" };
+  if (typeof c.u !== "string" || !c.u || !LIST.test(String(c.r)) || (c.k !== "l" && c.k !== "s") || !/^[0-9a-f]{16}$/.test(String(c.j)) || !Number.isFinite(c.i) || !Number.isFinite(c.e)) return { ok: false, why: "malformed" };
   if (now >= (c.e as number) || (c.i as number) > now + 60_000) return { ok: false, why: "expired" };
   return { ok: true, claims: c as FileClaims };
 }
@@ -53,6 +57,6 @@ export async function verifyFileToken(token: unknown, secret: string | undefined
 export async function feedUrlsFor(env: { get(k: string): string | undefined }, userId: string, list: string, now: number): Promise<{ webApp: string | null; url: string | null }> {
   const base = (env.get("TRAINEE_FILE_BASE_URL") || "").trim();
   if (!/^https:\/\/[^\s?#]+$/.test(base) || !LIST.test(list)) return { webApp: null, url: null };
-  const t = await mintFileToken({ secret: env.get("TRAINEE_FILE_LINK_SECRET"), userId, list, now });
+  const t = await mintFileToken({ secret: env.get("TRAINEE_FILE_LINK_SECRET"), userId, list, now, kind: "l" });
   return { webApp: env.get("TELEGRAM_BOT_TOKEN") ? `${base}?list=${list}` : null, url: t ? `${base}?t=${t}` : null };
 }

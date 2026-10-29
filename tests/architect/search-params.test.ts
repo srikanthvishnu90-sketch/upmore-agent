@@ -44,3 +44,14 @@ Deno.test("search params: a posting is left out only when its own text states th
   eq(outsideLimits(p("Engineer", "We are unable to sponsor work visas."), L("engineer, no sponsorship needed")), null);
   eq(outsideLimits(p("Engineer", "x", { company: "Acme" }), L("engineer at Stripe")), "company");
 });
+
+Deno.test("search params: a posting that states no level is kept under a level search", () => {
+  const p = (title: string, description = "Great team.") => ({ title, company: "TEST Co", location: "Chicago, IL", description });
+  const L = (q: string) => searchTextOf(q).limits;
+  for (const q of ["new grad software engineer", "senior software engineer"]) {
+    eq(outsideLimits(p("Software Engineer"), L(q)), null, `no level word kept: ${q}`);
+    eq(outsideLimits(p("Data Analyst"), L(q)), null, `no level word kept: ${q}`);
+  }
+  eq(outsideLimits(p("Staff Software Engineer"), L("new grad software engineer")), "level", "an explicit other level still drops");
+  eq(outsideLimits(p("Software Engineer Intern"), L("senior software engineer")), "level");
+});

@@ -130,7 +130,8 @@ export function outsideLimits(p: { title?: string; company?: string; location?: 
   if (l.company && !lc(p.company).includes(lc(l.company))) return "company";
   if (l.bands) {
     const band = CareerJobs.seniorityBand(title, text) as BandName;
-    if (!l.bands.includes(band)) return "level";
+    // seniorityBand answers "mid" when the posting carries no level word at all: that is "says nothing", so it stays.
+    if (band !== "mid" && !l.bands.includes(band)) return "level";
   }
   if (l.term) {
     const stated = [...new Set(termsIn(`${title} ${text.slice(0, 800)}`))];

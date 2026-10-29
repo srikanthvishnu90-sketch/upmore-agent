@@ -27,7 +27,7 @@ import { confirmed, draftFor, factText, type ModelFn, type OutreachStore, type R
 import { parseNetworkingAsk } from "./career_networking.ts";
 import { CAREER_READ_SCOPE, careerTokenFor } from "./career_mail_gmail.ts";
 import { connectUrl } from "./agent/integrations.ts";
-import { cleanCell, companyKey, parseCsv, parseExport, type ParsedExport, peopleFileText, type PersonRow, sha256Hex } from "./career_people_import.ts";
+import { chatAsk, cleanCell, companyKey, parseCsv, parseExport, type ParsedExport, peopleFileText, type PersonRow, sha256Hex } from "./career_people_import.ts";
 import { domainLabelOf, type GmailRead, heardFrom, isCompanyLabel } from "./career_people_gmail.ts";
 import { memorySweepStore, type SweepOutcome, type SweepSink, type SweepStore, supabaseSweepStore, sweepTurn } from "./career_people_sweep.ts";
 import { checkUrl, type PageGet, pinnedGet, readPage, type Resolver } from "./career_people_page.ts";
@@ -56,6 +56,9 @@ export type SourceKind = "own_export" | "own_gmail" | "company_page" | "person_t
 export interface PersonRec {
   id: number | null; source: Source | "thread_list"; name: string | null; email: string | null; company: string; company_key: string;
   position: string; school: string; connected_on: string | null; last_seen_at: string | null; source_ref: string; source_url: string | null; retrieved_at: string;
+  // A discovered person (source "provider"): how their address was found (published / inferred / bounced / none) and whether
+  // it may be written to (an address, its domain's mail server found, never bounced). Absent on the person's own rows.
+  email_status?: string | null; sendable?: boolean;
 }
 export const kindOf = (s: PersonRec["source"]): SourceKind => s === "gmail" ? "own_gmail" : s === "company_page" ? "company_page" : "own_export";
 export interface Intro {
@@ -102,7 +105,7 @@ export interface PeopleStore {
 }
 // deno-lint-ignore no-explicit-any
 const must = (r: { data: any; error: any }, what: string): any => { if (r.error) throw new Error(`${what}: ${r.error.message ?? r.error}`); return r.data; };
-const COLS = "id,source,name,email,company,company_key,position,school,connected_on,last_seen_at,source_ref,source_url,retrieved_at";
+const COLS = "id,source,name,email,company,company_key,position,school,connected_on,last_seen_at,source_ref,source_url,retrieved_at,email_status,sendable";
 // deno-lint-ignore no-explicit-any
 export function supabasePeopleStore(admin: any): PeopleStore {
   const esc = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
@@ -274,11 +277,12 @@ export interface PeopleResult { reply: string; intent: string; status: string }
 const NUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fourteen: 14, a: 1 };
 const plain = (s: unknown) => String(s ?? "").toLowerCase().replace(/[’']/g, "").replace(/&/g, " and ").replace(/[^\p{L}\p{N}@.]+/gu, " ").trim();
 const FILLER = /^(?:(?:so|ok|okay|hey|hi|yo|and|now|also|please|pls|plz|can you|can u|could you|could u|would you|will you|help me|actually|wait|oh|hmm|um)[, ]+)+/i;
-const tidy = (m: string) => String(m ?? "").replace(/\s+/g, " ").trim().replace(FILLER, "").replace(/[?!.]+$/, "").replace(/[, ]+(?:pls|plz|please|thanks|thx|ty)[?!.]*$/i, "").replace(/[?!.]+$/, "").trim();
+const tidy = (m: string) => chatAsk(m).replace(FILLER, "").replace(/[?!.]+$/, "").replace(/[, ]+(?:pls|plz|please|thanks|thx|ty)[?!.]*$/i, "").replace(/[?!.]+$/, "").trim();
 const firmText = (raw: string): string | null => {
   const f = raw.replace(/\s+(?:about|regarding|re|for|who|that|to|and ask|asking|please|on|from my|in my)\b.*$/i, "").replace(/[?.!,;:]+$/, "").replace(/^the\s+/i, "").trim();
   return f && f.length <= 60 && !/[@/\\<>]/.test(f) && f.split(/\s+/).length <= 6 ? f : null;
 };
+const MY_SCHOOL = /^(?:(?:my|our)\b.*|fellow|(?:school|college|university)(?:['’]s)?)$/i;
 const NAME_WORDS = /^[\p{L}][\p{L}.'’-]*(?:\s+[\p{L}][\p{L}.'’-]*){0,3}$/u;
 const NOT_A_NAME = /^(?:someone|somebody|anyone|anybody|people|a person|the|my|me|them|him|her|you|a|an|recruiters?|contacts?|connections?|everyone)\b/i;
 
@@ -341,10 +345,12 @@ export function parsePeopleAsk(message: string): Ask | null {
     const firm = firmText(m[3]);
     const lead = (m[1] ?? "").replace(/^(?:the|my|any|some|fellow|our)\s*/i, "").trim();
     const school = (m[2] ?? lead).trim() || null;
-    if (firm) return { kind: "alumni", firm, school: school && !/^(?:my|fellow|our|school)$/i.test(school) ? school : null };
+    // NETWORKING SCENARIOS (2026-10-29): "alumni from my school / my college / our university at X" names no school: the
+    // person's confirmed education is used, never a school called "my school".
+    if (firm) return { kind: "alumni", firm, school: school && !MY_SCHOOL.test(school) ? school : null };
   }
   m = /^who\s+from\s+(.+?)\s+(?:works?|is|are)\s+(?:at|in)\s+(.+)$/i.exec(t);
-  if (m) { const firm = firmText(m[2]); if (firm) return { kind: "alumni", firm, school: m[1].replace(/^(?:my\s+school|my\s+college)$/i, "").trim() || null }; }
+  if (m) { const firm = firmText(m[2]); if (firm) return { kind: "alumni", firm, school: MY_SCHOOL.test(m[1].trim()) ? null : m[1].trim() || null }; }
   // introductions
   const ir = /^(?:(?:can you |could you |help me |i (?:want|need|would like|'?d like) (?:to )?)?(?:get|find|set up|ask for|make|arrange)\s+(?:me\s+)?(?:a\s+|an\s+)?(?:warm\s+)?intro(?:duction)?\s+(?:to|with)|introduce me to|(?:a\s+|an\s+)?(?:warm\s+)?intro(?:duction)?\s+to|how (?:can|do|could) i (?:get (?:a |an )?(?:warm )?intro(?:duction)? to|get introduced to|meet|reach)|who can introduce me to|connect me (?:to|with))\s+(.+)$/i.exec(t);
   if (ir && !/^draft\b/i.test(t)) {
@@ -416,7 +422,7 @@ async function answer(o: PeopleTurnIn, d: PeopleDeps, a: Ask): Promise<PeopleRes
 // ------------------------------------------------------------------------------------------------ discovery targets
 // An ask findTargets answers. "my school alumni at Stripe" (no school named) stays alumniTurn's, which uses the
 // person's confirmed education.
-function targetAskOf(message: string): TargetAsk | null {
+export function targetAskOf(message: string): TargetAsk | null {
   // An ask that names LinkedIn, Indeed or Handshake is never a search of ours: the refusal turn answers it plainly.
   if (/\b(?:linked ?in|indeed|handshake)\b/i.test(message)) return null;
   const t = parseTargetAsk(tidy(message)) ?? parseTargetAsk(message);
@@ -600,7 +606,10 @@ async function everyoneAt(o: PeopleTurnIn, d: PeopleDeps, firm: string) {
   const list = stateRows(o).filter((p) => p.company_key === key);
   // A full page means there are more on file than one turn reads: the database's own count is the total then.
   const more = stored.length >= PAGE && d.store.tallies ? await d.store.tallies(o.userId, key) : null;
-  return { people: uniq([...stored.filter((p) => p.source !== "gmail"), ...g.rows, ...list]), gmail: g.state, sweep: g.sweep, stored: more ? more.at_company : null };
+  // NETWORKING SCENARIOS (2026-10-29): people a web search found for them (source "provider") are not people they know:
+  // "who do I know at X" listed them as contacts, with an inferred address shown as if it were theirs. Discovery answers
+  // "find recruiters at X" (labeled published / known / inferred); a draft can still reach them (savedPeople, labeled).
+  return { people: uniq([...stored.filter((p) => p.source !== "gmail" && p.source !== "provider"), ...g.rows, ...list]), gmail: g.state, sweep: g.sweep, stored: more ? more.at_company : null };
 }
 const hhmm = (iso: string) => `${iso.slice(11, 16)} UTC`;
 // What is still being read, said plainly: how far the read is, and when the rest comes (the scheduled run, or their next ask).
@@ -624,7 +633,7 @@ async function askForExport(o: PeopleTurnIn, d: PeopleDeps): Promise<string> {
 }
 async function whoTurn(o: PeopleTurnIn, d: PeopleDeps, firmAsked: string): Promise<PeopleResult | null> {
   const counts = await d.store.counts(o.userId);
-  const total = Object.values(counts).reduce((a, b) => a + (b ?? 0), 0);
+  const total = Object.entries(counts).reduce((a, [k, b]) => a + (k === "provider" ? 0 : b ?? 0), 0); // discovered people aren't contacts
   const listed = stateRows(o);
   const gmailOn = d.gmail ? !!(await d.gmail.token(o.userId).catch(() => null)) : false;
   // Only their earlier lists, no export and no Gmail: the networking turn answers, as before.

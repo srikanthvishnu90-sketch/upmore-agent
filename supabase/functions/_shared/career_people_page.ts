@@ -13,6 +13,7 @@
 // a second time, so a DNS answer that changes after the check (a near-zero TTL) is never used.
 import { cleanCell, cleanEmail, readsAsInstruction } from "./career_people_import.ts";
 import { neverOpen } from "./career_people_sites.ts";
+import { isRoleAddress, isTeamName } from "./career_contacts.ts";
 
 export const PAGE_MAX_BYTES = 2_000_000, PAGE_TIMEOUT_MS = 8_000, MAX_REDIRECTS = 3; // what one fetch may hold; no count of people (the 2 MB bounds the work)
 export const UA = "TraineeBot/1.0 (reads one page a person sent; no crawling)";
@@ -316,8 +317,11 @@ export function peopleOnPage(html: string): { people: PagePerson[]; org: string 
     if (isType(o, "Organization") && !org) org = str(o.name, 200) || null;
     if (isType(o, "Person")) {
       const name = str(o.name, 200);
-      if (name && /\p{L}/u.test(name) && !/https?:|@/.test(name)) {
-        const email = cleanEmail(String(o.email ?? "").replace(/^mailto:/i, ""));
+      if (name && /\p{L}/u.test(name) && !/https?:|@/.test(name) && !isTeamName(name)) { // a team is no person (2026-10-29)
+        // NETWORKING SCENARIOS (2026-10-29): a role inbox (careers@, recruiting-team@ ...) on a Person is the company's
+        // inbox, never that person's address: the person is kept, without it.
+        const found = cleanEmail(String(o.email ?? "").replace(/^mailto:/i, ""));
+        const email = found && !isRoleAddress(found) ? found : null;
         add({ name, title: str(o.jobTitle, 300), company: str(o.worksFor, 200), school: str(o.alumniOf, 200), email, how: "schema.org Person" });
       }
     }
@@ -330,7 +334,8 @@ export function peopleOnPage(html: string): { people: PagePerson[]; org: string 
     const email = cleanEmail(decodeURIComponent(m[1]).trim());
     if (!email) continue;
     const words = cleanCell(m[2].replace(/<[^>]*>/g, " "), 200);
-    const name = NAME_LIKE.test(words) && !readsAsInstruction(words) ? words : null;
+    // A role inbox's link words ("Careers Team", "Talent Acquisition") are never a person's name (2026-10-29).
+    const name = NAME_LIKE.test(words) && !readsAsInstruction(words) && !isRoleAddress(email) && !isTeamName(words) ? words : null;
     if ([...people].some((p) => p.email === email)) continue;
     add({ name, title: "", company: "", school: "", email, how: "mailto link" });
   }

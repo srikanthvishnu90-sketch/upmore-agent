@@ -61,14 +61,17 @@ Deno.test("single apply passes the same screen", async () => {
   }
 });
 
-Deno.test("unknown knock-out fact: held and asked once for the whole batch, never guessed", async () => {
+Deno.test("unknown knock-out fact: the posting proceeds, labeled not checked; a CONFIRMED conflicting fact still stops it (round 6)", async () => {
   const { wants, turn } = world(FACTS.filter((f) => f.key !== "citizenship"));
   const r = await turn("apply to all of them", ["good", "clearance", "unknown"]);
-  assert.deepEqual(queuedKeys(wants), [RECS.good.url]);
-  assert.equal(r!.screen!.counts.held, 2);
-  assert.equal(r!.screen!.asks.length, 1);
-  assert.equal(r!.screen!.asks[0].fact, "citizenship");
-  assert.equal((r!.reply.match(/US citizen\? Some of these/g) ?? []).length, 1, r!.reply);
+  assert.deepEqual(queuedKeys(wants), [RECS.good.url, RECS.clearance.url, RECS.unknown.url], "unknown citizenship never holds a posting");
+  assert.equal(r!.screen!.counts.held, 0);
+  assert.equal(r!.screen!.asks.length, 0);
+  assert.deepEqual(r!.screen!.unchecked.map((u) => u.facts).flat(), ["citizenship", "citizenship"], "labeled not checked");
+  // the same postings with a CONFIRMED non-US citizenship (FACTS has India): the knock-out stops them
+  const known = world();
+  await known.turn("apply to all of them", ["good", "clearance", "unknown"]);
+  assert.deepEqual(queuedKeys(known.wants), [RECS.good.url]);
   // An unconfirmed value is no fact.
   assert.equal(screenFactsFrom([{ key: "citizenship", value: "India", needs_confirmation: true }]).citizenship, undefined);
 });

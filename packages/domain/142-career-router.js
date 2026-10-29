@@ -14317,19 +14317,20 @@ const CareerRouter = (() => {
   // only the "what's my <fact kind>" family; the answer is the
   // record itself (factLine), or the honest absence — never a guess.
   function handleStatedFactReadback(text, ctx) {
-    const t = lc(text);
+    const t = lc(text).replace(/\bwher\b/g, "where").replace(/\b(?:waht|wht|wat|whta)\b/g, "what").replace(/\bwhats\b/g, "what's").replace(/\b(?:schol|shcool|scool)\b/g, "school");
     // "where did I go to school?" is the school ask too (a confirmed resume answers it first, in 130's profile recall).
-    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone)\b/) || (/\bwhere am i (based|targeting|looking)\b/.test(t) ? [null, "geography"] : null)
-      || (/\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b/.test(t) ? [null, "school"] : null);
+    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone|target role|dream role)\b/) || (/\bwhere am i (based|targeting|looking|located|living)\b|\bwhere (?:do|did) i live\b|\bwhat (?:city|town) (?:do i live in|am i (?:in|based in))\b/.test(t) ? [null, "geography"] : null)
+      || (/\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b|\bwhat (?:school|college|university) (?:did|do) i (?:go to|attend)\b/.test(t) ? [null, "school"] : null)
+      || (/\bwhat (?:roles?|jobs?|positions?|kind of (?:roles?|jobs?)) (?:am i (?:looking for|targeting|after|going for)|do i want)\b|\bwhat am i looking for\b/.test(t) ? [null, "target_role"] : null);
     if (!m) return null;
-    const kind = { "target firm": "target_firm", "target company": "target_firm", major: "majors", school: "school", city: "geography", location: "geography", geography: "geography", year: "year", "class year": "year", level: "level", tone: "tone" }[m[1]] || m[1];
+    const kind = { "target firm": "target_firm", "target company": "target_firm", major: "majors", school: "school", city: "geography", location: "geography", geography: "geography", year: "year", "class year": "year", level: "level", tone: "tone", "target role": "target_role", "dream role": "target_role" }[m[1]] || m[1];
     const all = statedFactsOf(ctx);
     const f = all.find((x) => x.kind === kind);
     if (f) {
       const reply = compose({ headline: "From your record — your words, as stated.", facts: [`On record: ${factLine(f)}.`], nextStep: "Correct it the same way you stated it, or tell me what to run on it first." });
       return { intent: "profile_recall", reply, resultStatus: "completed", sends: 0 };
     }
-    const label = { target_firm: "a target firm", majors: "a major", school: "a school", geography: "a location", year: "a class year", level: "a level", tone: "a tone" }[kind] || kind;
+    const label = { target_firm: "a target firm", majors: "a major", school: "a school", geography: "a location", year: "a class year", level: "a level", tone: "a tone", target_role: "a target role" }[kind] || kind;
     const reply = compose({ headline: "That is not on your record yet.", facts: [`You have not stated ${label} — the record holds only what you state, and nothing is assumed to fill it.`], nextStep: `State ${label} in your own words and it is recorded in this turn.` });
     return { intent: "profile_recall", reply, resultStatus: "awaiting_user", sends: 0 };
   }
@@ -14402,9 +14403,14 @@ const CareerRouter = (() => {
     // this role?") is this handler's own class even when it never
     // says "eligible" — without the question class it fell through
     // to the internship tail, which read "need … role" as a search.
-    const waQuestion = /\?/.test(s(text)) && /\b(sponsor|sponsorship|visa|work (authorization|permit)|citizenship)\b/.test(t);
+    // Also without a question mark when it is asked of the person ("do i need visa sponsorship", "am i a citizen",
+    // "what's my visa status"), and for citizenship and status words (scenarios-facts.test.ts: "am I a citizen?" read
+    // "not on your record" with the person's saved authorization on file, and "do i need visa sponsorship" got a generic
+    // H-1B essay instead of their record).
+    const waWords = /\b(sponsor|sponsorship|visa|work (authorization|authorisation|permit)|authori[sz]ed to work|citizen|citizenship|green card|permanent resident|immigration status|h-?1b|f-?1)\b/.test(t);
+    const waQuestion = waWords && (/\?/.test(s(text)) || /^(?:(?:so|and|also|wait|ok|okay|hey|quick question)[,:]?\s+)*(?:do|will|would|am|can|have|did) i\b|^(?:(?:so|and|also|wait|ok|okay|hey)[,:]?\s+)*what(?:'s| is) my\b/.test(t));
     if (!/\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t) && !waQuestion) return null;
-    if (!/\?/.test(s(text)) && !/\b(am i|do i|would i|can i|check if i)\b/.test(t)) return null;
+    if (!/\?/.test(s(text)) && !waQuestion && !/\b(am i|do i|would i|can i|check if i)\b/.test(t)) return null;
     if (/\btailor\b/.test(t)) return null; // a tailor ask owns its posting
     if (/\b(offer|negotiat|signing bonus|counter)\b/.test(t)) return null; // negotiation owns its eligibility-flavored turns
     if (/\b(is|does|would|can) (he|she|they)\b|\bmy (roommate|friend|brother|sister|classmate|coworker|co-worker|colleague|partner)\b[^.]*\beligib/.test(t)) return null; // someone else's eligibility is not graded from this record
@@ -14527,7 +14533,9 @@ const CareerRouter = (() => {
     // it land here answered a grading question with a record
     // non-sequitur ("That is not on your record…").
     const selfCheck = t.match(/\bam i (?:a |an )?(\w+)\b/);
-    if (selfCheck && /\?/.test(s(text)) && !/^(eligible|qualified)$/.test(selfCheck[1])) {
+    // "where am I based?" and "what roles am I looking for?" are read-backs of a location or a role (the stated-fact
+    // read-back below), never a "not on your record" over a record that holds them.
+    if (selfCheck && /\?/.test(s(text)) && !/^(eligible|qualified|based|located|living|looking|targeting|searching|focused|after|going|from)$/.test(selfCheck[1])) {
       const w = selfCheck[1];
       const hit = C.facts.find((f) => lc(f.value).includes(w) || lc(f.kind) === w);
       const reply = hit

@@ -281,11 +281,12 @@ async function handleKind(o: { g: Exclude<Awaited<ReturnType<FileService["get"]>
   if (o.g.state === "revoked") return o.state("This file was removed", ["It is no longer available. Ask Trainee in Telegram if you need it again."], 410);
   let rec: FileRecord = o.g.rec, note = "";
   if (action === "remove") {
-    await files.revoke(u, rec.id);
+    const done = await files.revoke(u, rec.id).catch(() => false);
+    if (!done) return o.state("Couldn't remove this file", ["It was not removed and its link still works. Try again in a minute."], 500);
     return o.state("File removed", ["This file is removed. The link no longer opens it."], 200);
   }
   if (action) {
-    const r = await actOn(rec, action, fields, d.now(), d.fileEffects);
+    const r = await actOn(rec, action, fields, d.now(), d.fileEffects, (patch) => files.patchState(u, rec.id, patch));
     if (r.status === 400) return o.state("Not done", [r.note], 400);
     if (r.patch) await files.patchState(u, rec.id, r.patch);
     note = r.note;

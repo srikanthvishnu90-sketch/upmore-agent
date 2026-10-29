@@ -22,12 +22,12 @@ const SAMPLES: Record<string, unknown> = {
   introduction: { title: "Intro to Dana Lee", person: { name: "Dana Lee", role: "Analytics Manager", company: "Acme", source: "Reported, not verified" },
     why: [{ text: "You built weekly pricing dashboards in SQL.", source: "From your resume" }, { text: "Acme is hiring a Data Analyst.", source: "From the posting" }, { text: "You want a growth-team role.", source: "From you" }],
     message: { channel: "email", subject: "Quick question about analytics at Acme", body: "Hi Dana, I build pricing dashboards and saw Acme is hiring. Could I ask you two questions about the team?" } },
-  application_proof: { title: "Application to Acme", company: "Acme", role: "Data Analyst", destination: "boards.greenhouse.io", status: "confirmed", prepared_at: "2026-10-28T09:00:00Z", submitted_at: "2026-10-28T10:00:00Z", as_of: "2026-10-28T11:00:00Z",
+  application_proof: { from_record: true, title: "Application to Acme", company: "Acme", role: "Data Analyst", destination: "boards.greenhouse.io", status: "confirmed", prepared_at: "2026-10-28T09:00:00Z", submitted_at: "2026-10-28T10:00:00Z", as_of: "2026-10-28T11:00:00Z",
     confirmation: { id: "GH-4471", url: "https://boards.greenhouse.io/acme/confirmation/4471" }, resume: "ada-resume.pdf",
     answers: [{ question: "Years of SQL", answer: "3", source: "From your resume" }, { question: "Work authorization", answer: "Yes", source: "From you" }],
     problems: [{ item: "Portfolio link", outcome: "skipped", reason: "You have not given Trainee a portfolio link." }] },
   plan_review: { title: "Your week", variant: "pipeline", period: "Oct 19 - Oct 25",
-    sections: [{ heading: "Applications", items: [{ label: "Submitted", value: "4", source: "From Trainee's records" }, { label: "Confirmed", value: "2", source: "From Trainee's records" }] }, { heading: "Interviews", items: [{ label: "Acme phone screen", value: "Thursday 2pm", source: "From you" }] }] },
+    sections: [{ heading: "Applications", items: [{ label: "Submitted", value: "4", source: "From you" }, { label: "Confirmed", value: "2", source: "Reported, not verified" }] }, { heading: "Interviews", items: [{ label: "Acme phone screen", value: "Thursday 2pm", source: "From you" }] }] },
   comparison: { title: "Acme vs Globex", options: [{ name: "Acme" }, { name: "Globex" }],
     rows: [{ label: "Base pay", cells: [{ value: "$90k", source: "From the posting" }, { value: "$95k", source: "Reported, not verified" }] }, { label: "Remote", cells: [{ value: "Hybrid", source: "From the posting" }, null] }] },
   draft: { title: "Cover letter for Acme", type: "cover_letter", to: "hiring@acme.com", subject: "Data Analyst application", body: "Dear Acme team,\n\nI build weekly pricing dashboards in SQL and would like to join your growth team.\n\nAda",
@@ -36,6 +36,8 @@ const SAMPLES: Record<string, unknown> = {
     sources: [{ title: "Acme about page", url: "https://acme.example/about" }] },
 };
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
+// application_proof data is built by code from a record; the sample is that built data (trusted), everything else is model data.
+const val = (kind: string, data: unknown) => validateKind(kind, data, { trusted: kind === "application_proof" });
 const rec = (kind: string, data: unknown = SAMPLES[kind], extra: Partial<FileRecord> = {}): FileRecord => ({ id: "0123456789", userId: U, kind: kind as never, data, state: {}, tag: null, created_at: NOW, expires_at: NOW + 3600_000, revoked_at: null, ...extra });
 // Every string a person must be able to read in a sample: all values under these keys.
 function leaves(x: unknown, out: string[] = []): string[] {
@@ -52,17 +54,17 @@ Deno.test("registry: the seven kinds, the four source labels", () => {
 });
 Deno.test("schema: every sample is accepted and a missing required part is refused, per kind", () => {
   for (const [kind, data] of Object.entries(SAMPLES)) {
-    const ok = validateKind(kind, clone(data));
+    const ok = val(kind, clone(data));
     assert(ok.ok, `${kind}: ${JSON.stringify((ok as { errors?: string[] }).errors)}`);
-    const bad = validateKind(kind, { title: "only a title" });
+    const bad = val(kind, { title: "only a title" });
     assert(!bad.ok && bad.errors.length > 0, `${kind} accepted a title and nothing else`);
-    assert(!validateKind(kind, null).ok && !validateKind(kind, "text").ok && !validateKind(kind, []).ok, `${kind} accepted a non-object`);
+    assert(!val(kind, null).ok && !val(kind, "text").ok && !val(kind, []).ok, `${kind} accepted a non-object`);
   }
   assert(!validateKind("no_such_kind", {}).ok);
   assert(!validateKind("job_list", { list: "0123456789" }).ok, "job_list is created by the job search, never by the model");
 });
 Deno.test("schema: kind-specific rules", () => {
-  const d = (kind: string, f: (x: any) => void) => { const x = clone(SAMPLES[kind]) as any; f(x); return validateKind(kind, x); };
+  const d = (kind: string, f: (x: any) => void) => { const x = clone(SAMPLES[kind]) as any; f(x); return val(kind, x); };
   assert(!d("introduction", (x) => x.why.pop()).ok, "exactly three relevance bullets");
   assert(!d("introduction", (x) => { x.why[0].source = "Reported, not verified"; }).ok, "relevance bullets are confirmed facts only");
   assert(!d("introduction", (x) => { x.message.body += " See https://evil.example"; }).ok, "no links in an outreach message");
@@ -95,13 +97,13 @@ Deno.test("unsourced facts are rejected everywhere, never guessed", () => {
   for (const [kind, pick] of paths) {
     for (const mutate of [(f: any) => { delete f.source; }, (f: any) => { f.source = ""; }, (f: any) => { f.source = "I think so"; }, (f: any) => { f.source = "From the internet"; }]) {
       const x = clone(SAMPLES[kind]) as any; mutate(pick(x));
-      const r = validateKind(kind, x);
+      const r = val(kind, x);
       assert(!r.ok && r.errors.some((e) => /source/.test(e)), `${kind} accepted a fact without a valid source`);
     }
     for (const v of ["", "   ", "unknown", "N/A", "TBD", "?", "-"]) {
       const x = clone(SAMPLES[kind]) as any; const f = pick(x); const key = "value" in f ? "value" : "text" in f ? "text" : "answer";
       f[key] = v;
-      assert(!validateKind(kind, x).ok, `${kind} accepted the placeholder ${JSON.stringify(v)} as a fact: unknown values are omitted`);
+      assert(!val(kind, x).ok, `${kind} accepted the placeholder ${JSON.stringify(v)} as a fact: unknown values are omitted`);
     }
   }
   assert(!validateKind("introduction", (() => { const x = clone(SAMPLES.introduction) as any; x.person.source = "From Trainee's records"; return x; })()).ok, "the records label is only for plan reviews and application proofs");
@@ -208,7 +210,7 @@ Deno.test("revocation: the owner's revoke (service or the page's Remove button) 
 Deno.test("page: shell + kind body, source labels shown, a11y basics, tokens/fonts of the jobs page, CSP intact", async () => {
   const w = world();
   for (const kind of Object.keys(SAMPLES)) {
-    const m = (await w.svc.create(U, kind, SAMPLES[kind])) as { id: string };
+    const m = await mk(w, kind);
     const r = await get(w.deps(), await tok(U, m.id)), html = await r.text();
     eq(r.status, 200, kind);
     assert(/<html lang="en"/.test(html) && /<h1[ >]/.test(html) && /<main/.test(html) && /viewport/.test(html), `${kind}: shell`);
@@ -277,7 +279,7 @@ Deno.test("introduction: with no sender wired the page says nothing was sent; Pa
 });
 Deno.test("application proof: statuses use the exact words; Flag stores the note; View status never changes anything", async () => {
   const w = world();
-  const m = (await w.svc.create(U, "application_proof", SAMPLES.application_proof)) as { id: string };
+  const m = await mk(w, "application_proof");
   const t = await tok(U, m.id), before = clone((await w.store.get(U, m.id))!);
   const page = plain(await (await get(w.deps(), t)).text());
   assert(/Confirmed/.test(page) && !/\bapplied\b/i.test(page) && page.includes("GH-4471") && page.includes("Portfolio link") && page.includes("Skipped"));
@@ -305,6 +307,11 @@ Deno.test("draft: editable and copyable; there is no send action, and the page s
 // ================================================================== the agent tool: create_file, link by code only
 const text = (t: string) => ({ content: [{ type: "text", text: t }], stop_reason: "end_turn" });
 const use = (name: string, input: unknown, id = "t1") => ({ content: [{ type: "tool_use", id, name, input }], stop_reason: "tool_use" });
+// A world's file of this kind: an application proof is a record built by code, so it is put in the store directly.
+async function mk(w: ReturnType<typeof world>, kind: string): Promise<{ id: string }> {
+  if (kind !== "application_proof") return (await w.svc.create(U, kind, SAMPLES[kind])) as { id: string };
+  const id = "abcdef0123"; await w.store.put(rec(kind, SAMPLES[kind], { id })); return { id };
+}
 async function turn(script: any[], w = world(), message = "make me a comparison of Acme ($90k, hybrid) and Globex ($95k)") {
   let i = 0;
   const r = await runAgentTurn({ system: "s", message, history: [], tools: [createFileTool(w.svc)], ctx: { userId: U, threadId: "th", now: NOW, state: {} }, model: async () => script[Math.min(i++, script.length - 1)] });

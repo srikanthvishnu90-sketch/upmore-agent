@@ -23,11 +23,20 @@ export interface FileRecord {
   tag: string | null; // introduction: first 16 hex of the hash of the exact message; null for the other kinds
   created_at: number; expires_at: number; revoked_at: number | null;
 }
-export interface ActionView { id: string; label: string; state: "available" | "done" | "unavailable"; note?: string }
+export interface ActionView { id: string; label: string; state: "available" | "done" | "unavailable" | "approved_not_sent"; note?: string }
 export type Validated = { ok: true; data: any } | { ok: false; errors: string[] };
 
 // ---------------------------------------------------------------- validation helpers
-const PLACEHOLDER = /^(?:unknown|n\/?a|na|none|null|undefined|tbd|tba|todo|\?+|-+|\.+|not (?:given|stated|available|specified))$/i;
+// Normalised before comparing: Unicode folded, zero-width and format characters dropped, everything but letters and digits turned into
+// single spaces, lower case. So "n/a.", "TBD.", "unknown" + a zero-width space, an em dash and "..." all read as what they are.
+const PLACEHOLDERS = new Set(["unknown", "n a", "na", "none", "null", "undefined", "nil", "tbd", "tba", "tbc", "todo", "tk", "xxx", "not known", "unknown value", "not given", "not stated", "not available", "not specified", "not applicable", "not provided", "unspecified", "undisclosed", "to be determined", "to be announced", "to be confirmed", "placeholder", "redacted", "empty", "blank", "no data", "no info", "no information", "nothing", "lorem ipsum"]);
+const fold = (t: string) => t.normalize("NFKC").replace(/[\p{Cf}]/gu, "");
+const isPlaceholder = (t: string) => { const n = fold(t).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim(); return n === "" || PLACEHOLDERS.has(n); };
+// Template tokens ("[Your Name]", "{{first_name}}", "<name>") are never an approvable fact or message.
+const TEMPLATE = /\[[^\]\n]{1,60}\]|\{\{[^}]*\}\}|\{[A-Za-z_ ]{2,30}\}|<[^>\n]{1,40}>|\byour[_ ](?:name|company|title|role)\b|\binsert\b/i;
+// Text that imitates a source label inside a value ("Python [From the posting]") would pass for one.
+const LABELS = "from the posting|from your resume|from you|reported,? not verified|from trainee['\u2019]?s records";
+const SPOOF = new RegExp(`[\\[(\u3010\uFF62]\\s*(?:${LABELS})\\s*[\\])\u3011\uFF63]|(?:^|[\u00B7|\u2014\u2013:\\-]\\s*)(?:${LABELS})\\s*$`, "i");
 const SECRETISH = /pass(?:word|wd|code)?\b|one[- ]?time|\botp\b|\b[2m]fa\b|\bssn\b|social security|card number|\bcvv\b|\bcvc\b|\bpin\b|passport|api[-_ ]?key|secret|\btoken\b/i;
 const URL_RX = /https?:\/\/|www\./i;
 const HTTPS = /^https:\/\/[^\s/]+\.[^\s/]+\S*$/;
@@ -36,16 +45,19 @@ const clean = (s: string, multi = false) => (multi ? s.replace(/\r\n?/g, "\n").r
 
 class V {
   errors: string[] = [];
-  constructor(private records: boolean) {}
+  trusted = false;
+  constructor(private records: boolean, private now: number | null = null) {}
   err(path: string, why: string) { this.errors.push(`${path}: ${why}`); }
   obj(v: unknown, path: string): Record<string, any> { if (!isObj(v)) { this.err(path, "must be an object"); return {}; } return v; }
-  str(v: unknown, path: string, o: { max?: number; opt?: boolean; multi?: boolean; fact?: boolean; links?: boolean } = {}): string | undefined {
+  str(v: unknown, path: string, o: { max?: number; opt?: boolean; multi?: boolean; fact?: boolean; links?: boolean; templ?: boolean } = {}): string | undefined {
     if (v === undefined || v === null) { if (!o.opt) this.err(path, "is required"); return undefined; }
     if (typeof v !== "string") { this.err(path, "must be text"); return undefined; }
     const t = clean(v, o.multi);
     if (!t) { if (!o.opt) this.err(path, "is empty; omit what you do not know"); else this.err(path, "is empty; omit the field instead"); return undefined; }
-    if (o.fact && PLACEHOLDER.test(t)) { this.err(path, `"${t}" is a placeholder; unknown values are omitted, not written`); return undefined; }
+    if (o.fact && isPlaceholder(t)) { this.err(path, `"${t}" is a placeholder; unknown values are omitted, not written`); return undefined; }
     if (t.length > (o.max ?? 400)) { this.err(path, `is over ${o.max ?? 400} characters`); return undefined; }
+    if (!o.templ && TEMPLATE.test(fold(t))) { this.err(path, "contains a template token like [Your Name]; write the real text or leave it out"); return undefined; }
+    if (SPOOF.test(fold(t).replace(/\s+/g, " "))) { this.err(path, "contains text that looks like a source label; the label goes in the source field only"); return undefined; }
     if (o.links === false && URL_RX.test(t)) { this.err(path, "must not contain links"); return undefined; }
     return t;
   }
@@ -72,6 +84,7 @@ class V {
   time(v: unknown, path: string, opt = true): string | undefined {
     if (v === undefined && opt) return undefined;
     if (typeof v !== "string" || Number.isNaN(Date.parse(v))) { this.err(path, "must be a date-time such as 2026-10-28T10:00:00Z"); return undefined; }
+    if (this.now !== null && Date.parse(v) > this.now + 60_000) { this.err(path, "is in the future"); return undefined; }
     return new Date(Date.parse(v)).toISOString();
   }
   // A sourced fact: label + value + source.
@@ -90,11 +103,18 @@ const KINDS: Record<Exclude<KindId, "job_list">, (raw: unknown, v: V) => any> = 
   introduction(raw, v) {
     const x = v.obj(raw, "data"), p = v.obj(x.person, "person"), m = v.obj(x.message, "message");
     const why = v.list(x.why, "why", 3, 3).map((b, i) => { const f = v.fact(b, `why[${i}]`, { valueKey: "text", labelKey: null }); if (f.source === "Reported, not verified") v.err(`why[${i}].source`, "relevance bullets come from confirmed facts only (the posting, your resume, or what you said)"); return f; });
-    return { title: v.str(x.title, "title", { max: 80 }), person: { name: v.str(p.name, "person.name", { max: 80 }), role: v.str(p.role, "person.role", { max: 100, opt: true }), company: v.str(p.company, "person.company", { max: 100, opt: true }), source: v.src(p.source, "person.source") },
+    return { title: v.str(x.title, "title", { max: 80 }), person: { name: v.str(p.name, "person.name", { max: 80, fact: true }), role: v.str(p.role, "person.role", { max: 100, opt: true, fact: true }), company: v.str(p.company, "person.company", { max: 100, opt: true, fact: true }), source: v.src(p.source, "person.source") },
       why, message: { channel: v.one(m.channel, "message.channel", ["email", "text"] as const), to: v.str(m.to, "message.to", { max: 120, opt: true }), subject: v.str(m.subject, "message.subject", { max: 120, opt: true, links: false }), body: v.str(m.body, "message.body", { max: 1200, multi: true, links: false }) } };
   },
   application_proof(raw, v) {
-    const x = v.obj(raw, "data"), status = v.one(x.status, "status", ["queued", "prepared", "submitted", "confirmed", "failed"] as const);
+    const x = v.obj(raw, "data");
+    // The model names the application; code reads the record. Company, role, status, dates and confirmation are never model-written.
+    if (!v.trusted) {
+      const extra = Object.keys(x).filter((k) => k !== "application_id");
+      if (extra.length) v.err("data", `only application_id is accepted (${extra.slice(0, 4).join(", ")} come from the application record, not from you)`);
+      return { application_id: v.str(x.application_id, "application_id", { max: 200 }) };
+    }
+    const status = v.one(x.status, "status", ["queued", "prepared", "submitted", "confirmed", "failed"] as const);
     const c = x.confirmation === undefined ? null : v.obj(x.confirmation, "confirmation");
     const conf = c ? { id: v.str(c.id, "confirmation.id", { max: 120, opt: true }), url: v.https(c.url, "confirmation.url"), screenshot_url: v.https(c.screenshot_url, "confirmation.screenshot_url") } : null;
     const answers = v.list(x.answers ?? [], "answers", 0, 30).map((a, i) => { const f = v.fact(a, `answers[${i}]`, { valueKey: "answer", labelKey: "question" }); return f; });
@@ -105,7 +125,7 @@ const KINDS: Record<Exclude<KindId, "job_list">, (raw: unknown, v: V) => any> = 
     if (status === "submitted" && !submitted_at) v.err("submitted_at", "submitted needs the time it was submitted");
     if (status === "confirmed") { if (!submitted_at) v.err("submitted_at", "confirmed needs the time it was submitted"); if (!has) v.err("confirmation", "confirmed needs a confirmation id or link from the employer"); }
     if (status === "failed" && !problems.some((p) => p.outcome === "failed")) v.err("problems", "failed needs at least one failed item with its reason");
-    return { title: v.str(x.title, "title", { max: 80 }), company: v.str(x.company, "company", { max: 100 }), role: v.str(x.role, "role", { max: 120 }), destination: v.str(x.destination, "destination", { max: 120, opt: true }), status, prepared_at, submitted_at, as_of,
+    return { from_record: true, title: v.str(x.title, "title", { max: 80 }), company: v.str(x.company, "company", { max: 100 }), role: v.str(x.role, "role", { max: 120, opt: true }), destination: v.str(x.destination, "destination", { max: 120, opt: true }), status, prepared_at, submitted_at, as_of,
       ...(has ? { confirmation: { id: conf!.id, url: conf!.url, screenshot_url: conf!.screenshot_url } } : {}), resume: v.str(x.resume, "resume", { max: 100, opt: true }), answers, problems };
   },
   plan_review(raw, v) {
@@ -124,8 +144,8 @@ const KINDS: Record<Exclude<KindId, "job_list">, (raw: unknown, v: V) => any> = 
   },
   draft(raw, v) {
     const x = v.obj(raw, "data");
-    return { title: v.str(x.title, "title", { max: 80 }), type: v.one(x.type, "type", ["email", "cover_letter", "message"] as const), to: v.str(x.to, "to", { max: 120, opt: true }), subject: v.str(x.subject, "subject", { max: 140, opt: true }),
-      body: v.str(x.body, "body", { max: 4000, multi: true }), basis: v.list(x.basis ?? [], "basis", 0, 10).map((f, i) => v.fact(f, `basis[${i}]`)) };
+    return { title: v.str(x.title, "title", { max: 80 }), type: v.one(x.type, "type", ["email", "cover_letter", "message"] as const), to: v.str(x.to, "to", { max: 120, opt: true }), subject: v.str(x.subject, "subject", { max: 140, opt: true, templ: true }),
+      body: v.str(x.body, "body", { max: 4000, multi: true, templ: true }), basis: v.list(x.basis ?? [], "basis", 0, 10).map((f, i) => v.fact(f, `basis[${i}]`)) };
   },
   research_brief(raw, v) {
     const x = v.obj(raw, "data");
@@ -134,14 +154,15 @@ const KINDS: Record<Exclude<KindId, "job_list">, (raw: unknown, v: V) => any> = 
   },
 };
 // The Trainee-records label is for the kinds that report Trainee's own records.
-const RECORDS_OK = new Set<string>(["plan_review", "application_proof"]);
+const RECORDS_OK = new Set<string>(["application_proof"]); // and only for data built by code from a record (trusted)
 
-export function validateKind(kind: string, raw: unknown): Validated {
+export function validateKind(kind: string, raw: unknown, o: { trusted?: boolean; now?: number } = {}): Validated {
   if (kind === "job_list") return { ok: false, errors: ["job_list is created by the job search, not by create_file"] };
   const fn = (KINDS as Record<string, (r: unknown, v: V) => any>)[kind];
   if (!fn) return { ok: false, errors: [`unknown kind "${kind}"; use one of: ${MODEL_KINDS.join(", ")}`] };
   if (!isObj(raw)) return { ok: false, errors: ["data: must be an object"] };
-  const v = new V(RECORDS_OK.has(kind));
+  const v = new V(!!o.trusted && RECORDS_OK.has(kind), o.now ?? null);
+  v.trusted = !!o.trusted;
   let data: any;
   try { data = fn(raw, v); } catch (e) { return { ok: false, errors: [`data: could not be read (${e instanceof Error ? e.message : String(e)})`] }; }
   if (!v.errors.length && JSON.stringify(data).length > 24_000) v.err("data", "is over 24 KB");
@@ -156,10 +177,10 @@ export async function tagOf(kind: string, data: any): Promise<string | null> {
 }
 
 // ---------------------------------------------------------------- render helpers (a stored fact with no valid source is skipped)
-const hasSrc = (f: any) => !!f && typeof f.source === "string" && ((SOURCES as readonly string[]).includes(f.source) || f.source === RECORDS) && typeof (f.value ?? f.text ?? f.answer) === "string" && !!String(f.value ?? f.text ?? f.answer).trim();
+const hasSrc = (f: any, records = false) => !!f && typeof f.source === "string" && ((SOURCES as readonly string[]).includes(f.source) || (records && f.source === RECORDS)) && typeof (f.value ?? f.text ?? f.answer) === "string" && !!String(f.value ?? f.text ?? f.answer).trim();
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const when = (t: string | number | null | undefined) => { const n = typeof t === "number" ? t : Date.parse(String(t ?? "")); if (Number.isNaN(n)) return ""; const d = new Date(n); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`; };
-const Fs = (xs: any[] | undefined) => (xs ?? []).filter(hasSrc);
+const Fs = (xs: any[] | undefined, records = false) => (xs ?? []).filter((f) => hasSrc(f, records));
 const src = (s: string) => `<span class="src">${esc(s)}</span>`;
 const factHtml = (f: any, label?: string) => `<div class="fact">${label ? `<dt>${esc(label)}</dt>` : ""}<dd>${esc(f.value ?? f.text ?? f.answer)} ${src(f.source)}</dd></div>`;
 const factText = (f: any, label?: string) => `- ${label ? `${label}: ` : ""}${f.value ?? f.text ?? f.answer} [${f.source}]`;
@@ -174,7 +195,7 @@ export function actionsOf(rec: FileRecord): ActionView[] {
   if (rec.kind === "introduction") {
     const c = st.choice as string | undefined;
     const intro: ActionView = c === "introduced" ? { id: "introduce", label: "Introduce", state: "done", note: "Approved and sent." }
-      : c === "approved" ? { id: "introduce", label: "Introduce", state: "done", note: "Approved. Not sent: sending isn't switched on yet." }
+      : c === "approved" ? { id: "introduce", label: "Introduce", state: "approved_not_sent", note: `Approved. Not sent: ${String(st.reason ?? "sending isn't switched on yet").replace(/[.\s]+$/, "")}.` }
       : c === "passed" ? { id: "introduce", label: "Introduce", state: "unavailable", note: "You passed on this one." }
       : { id: "introduce", label: "Introduce", state: "available", note: "Approves exactly this message. Nothing is sent before you tap it." };
     const pass: ActionView = c === "passed" ? { id: "pass", label: "Pass", state: "done", note: "You passed. Nothing was sent." }
@@ -193,7 +214,8 @@ export function actionsOf(rec: FileRecord): ActionView[] {
 export interface ActResult { ok: boolean; status: number; note: string; patch?: Record<string, unknown> }
 export interface Effects { introduce?(userId: string, rec: FileRecord): Promise<{ ok: boolean; reason?: string }> }
 // One tap. Returns the note to show and the state to keep; never throws for a refused tap.
-export async function actOn(rec: FileRecord, action: string, form: URLSearchParams, now: number, fx: Effects = {}): Promise<ActResult> {
+// `persist` stores a state patch at once: the approval is written BEFORE any send is attempted, so a crash or a second tap can never send twice.
+export async function actOn(rec: FileRecord, action: string, form: URLSearchParams, now: number, fx: Effects = {}, persist?: (patch: Record<string, unknown>) => Promise<void>): Promise<ActResult> {
   const views = actionsOf(rec), view = views.find((a) => a.id === action);
   if (!view || action === "copy") return { ok: false, status: 400, note: "That is not something this file can do. Nothing was sent." };
   if (rec.kind === "introduction") {
@@ -201,11 +223,12 @@ export async function actOn(rec: FileRecord, action: string, form: URLSearchPara
     if (action === "pass") return { ok: true, status: 200, note: "Passed. Nothing was sent.", patch: { choice: "passed", at: now } };
     const tag = form.get("tag") ?? "";
     if (!/^[0-9a-f]{16}$/.test(tag) || tag !== rec.tag || tag !== await tagOf(rec.kind, rec.data)) return { ok: false, status: 200, note: "Changed since you opened this page, so nothing was sent." };
+    await persist?.({ choice: "approved", at: now, tag });
     if (!fx.introduce) return { ok: true, status: 200, note: "Approved. Not sent: sending isn't switched on yet.", patch: { choice: "approved", at: now, tag } };
-    // Mark approved first so a second tap can never send twice, then send.
     const r = await fx.introduce(rec.userId, rec).catch((e) => ({ ok: false, reason: e instanceof Error ? e.message : "failed" }));
-    return r.ok ? { ok: true, status: 200, note: "Approved and sent.", patch: { choice: "introduced", at: now, sent_at: now, tag } }
-      : { ok: true, status: 200, note: `Approved. Not sent: ${String(r.reason ?? "it could not be sent").slice(0, 140)}`, patch: { choice: "approved", at: now, tag } };
+    if (r.ok) return { ok: true, status: 200, note: "Approved and sent.", patch: { choice: "introduced", at: now, sent_at: now, tag } };
+    const reason = String(r.reason ?? "it could not be sent").replace(/[.\s]+$/, "").slice(0, 140);
+    return { ok: true, status: 200, note: `Approved. Not sent: ${reason}.`, patch: { choice: "approved", at: now, tag, reason } };
   }
   if (action === "status") return { ok: true, status: 200, note: `Status as recorded on ${when(rec.data?.as_of)}: ${cap1(String(rec.data?.status))}.` };
   const note = clean(form.get("note") ?? "").slice(0, 500);
@@ -218,13 +241,14 @@ export async function actOn(rec: FileRecord, action: string, form: URLSearchPara
 export const COPY_SCRIPT = `(function(){document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-copy]");if(!b)return;var t=document.getElementById("draft-body"),s=document.getElementById("copy-status");if(!t)return;var done=function(m){if(s)s.textContent=m};t.select();if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t.value).then(function(){done("Copied.")},function(){done("Couldn't copy. Select the text and copy it.")})}else{try{done(document.execCommand("copy")?"Copied.":"Couldn't copy. Select the text and copy it.")}catch(x){done("Couldn't copy. Select the text and copy it.")}}})})();`;
 const hidden = (token: string, action: string, extra = "") => `<input type="hidden" name="t" value="${esc(token)}"><input type="hidden" name="action" value="${action}">${extra}`;
 
+const STATE_WORD = { available: "available", done: "done", unavailable: "not available", approved_not_sent: "approved, not sent" } as const;
 function actionsHtml(rec: FileRecord, token: string): string {
   const vs = actionsOf(rec);
   if (!vs.length) return "";
   const out = vs.map((a) => {
     const note = a.note ? `<p class="anote">${esc(a.note)}</p>` : "";
     if (a.id === "copy") return `<div class="act1"><button type="button" class="btn" data-copy>Copy</button><span id="copy-status" role="status"></span>${note}</div>`;
-    if (a.state !== "available") return `<div class="act1"><span class="btn off" role="status">${esc(a.label)}: ${a.state === "done" ? "done" : "not available"}</span>${note}</div>`;
+    if (a.state !== "available") return `<div class="act1"><span class="btn off" role="status">${esc(a.label)}: ${STATE_WORD[a.state]}</span>${note}</div>`;
     if (a.id === "flag") return `<form method="post" class="ajax act1">${hidden(token, "flag")}<label for="flag-note">What looks wrong</label><textarea id="flag-note" name="note" rows="3" maxlength="500"></textarea><button type="submit" class="btn">Flag a problem</button>${note}</form>`;
     const extra = a.id === "introduce" ? `<input type="hidden" name="tag" value="${esc(rec.tag ?? "")}">` : "";
     return `<form method="post" class="ajax act1">${hidden(token, a.id, extra)}<button type="submit" class="btn${a.id === "pass" ? " ghost" : ""}">${esc(a.label)}</button>${note}</form>`;
@@ -249,7 +273,7 @@ export function bodyHtml(rec: FileRecord, token: string): string {
       main = `<p class="state ${esc(d.status)}" role="status"><strong>${esc(cap1(d.status))}.</strong> ${esc(STATUS_NOTE[d.status] ?? "")}</p>`
         + sec("What was submitted", dl(kv("Company", d.company) + kv("Role", d.role) + kv("Sent to", d.destination) + kv("Resume", d.resume) + kv("Prepared", when(d.prepared_at)) + kv("Submitted", when(d.submitted_at)) + kv("Recorded as of", when(d.as_of))))
         + sec("Confirmation", dl(kv("Confirmation ID", c.id)) + [linkHtml(c.url, "Open the confirmation"), linkHtml(c.screenshot_url, "Open the screenshot")].filter(Boolean).map((x) => `<p>${x}</p>`).join(""))
-        + sec("Answers given", dl(Fs(d.answers).map((a) => factHtml(a, a.question)).join("")))
+        + sec("Answers given", dl(Fs(d.answers, true).map((a) => factHtml(a, a.question)).join("")))
         + sec("Not done", `<ul class="why">${(d.problems ?? []).filter((p: any) => p?.reason).map((p: any) => `<li><strong>${esc(cap1(p.outcome))}:</strong> ${esc(p.item)}. ${esc(p.reason)} ${src(RECORDS)}</li>`).join("")}</ul>`.replace(/^<ul class="why"><\/ul>$/, ""))
 
         + sec("Flagged by you", `<ul class="why">${(Array.isArray(rec.state?.flags) ? rec.state.flags : []).map((f: any) => `<li>${esc(when(f.at))}: ${esc(f.note)}</li>`).join("")}</ul>`.replace(/^<ul class="why"><\/ul>$/, ""));
@@ -292,10 +316,11 @@ export function textOf(rec: FileRecord, o: { now: number; url?: string }): strin
     case "application_proof": {
       const c = d.confirmation ?? {};
       L.push(`Status: ${cap1(d.status)}. ${STATUS_NOTE[d.status] ?? ""}`, "");
-      h("What was submitted"); L.push(`- Company: ${d.company} [${RECORDS}]`, `- Role: ${d.role} [${RECORDS}]`);
+      h("What was submitted"); L.push(`- Company: ${d.company} [${RECORDS}]`);
+      if (d.role) L.push(`- Role: ${d.role} [${RECORDS}]`);
       for (const [k, v] of [["Sent to", d.destination], ["Resume", d.resume], ["Prepared", when(d.prepared_at)], ["Submitted", when(d.submitted_at)], ["Recorded as of", when(d.as_of)]]) if (v) L.push(`- ${k}: ${v} [${RECORDS}]`);
       L.push(""); if (c.id || c.url || c.screenshot_url) { h("Confirmation"); if (c.id) L.push(`- Confirmation ID: ${c.id} [${RECORDS}]`); if (c.url) L.push(`- Confirmation: ${c.url}`); if (c.screenshot_url) L.push(`- Screenshot: ${c.screenshot_url}`); L.push(""); }
-      if (Fs(d.answers).length) { h("Answers given"); Fs(d.answers).forEach((a) => L.push(factText(a, a.question))); L.push(""); }
+      if (Fs(d.answers, true).length) { h("Answers given"); Fs(d.answers, true).forEach((a) => L.push(factText(a, a.question))); L.push(""); }
       const pr = (d.problems ?? []).filter((p: any) => p?.reason); if (pr.length) { h("Not done"); pr.forEach((p: any) => L.push(`- ${cap1(p.outcome)}: ${p.item}. ${p.reason} [${RECORDS}]`)); L.push(""); }
       const fl = Array.isArray(rec.state?.flags) ? rec.state.flags : []; if (fl.length) { h("Flagged by you"); fl.forEach((f: any) => L.push(`- ${when(f.at)}: ${f.note}`)); L.push(""); }
       break;
@@ -320,7 +345,7 @@ export function textOf(rec: FileRecord, o: { now: number; url?: string }): strin
       break;
   }
   const acts = actionsOf(rec);
-  if (acts.length) { h("Actions"); acts.forEach((a) => L.push(`- ${a.label}: ${a.state === "unavailable" ? "not available" : a.state}${a.note ? `. ${a.note}` : ""}`)); L.push(""); }
+  if (acts.length) { h("Actions"); acts.forEach((a) => L.push(`- ${a.label}: ${STATE_WORD[a.state]}${a.note ? `. ${a.note}` : ""}`)); L.push(""); }
   if (o.url) L.push(`Open the page: ${o.url}`);
   return L.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
 }

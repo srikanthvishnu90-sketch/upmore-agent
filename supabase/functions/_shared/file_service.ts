@@ -12,6 +12,9 @@ export interface FileKindStore {
   revoke(userId: string, id: string, at: number): Promise<boolean>;
 }
 export type FileRead = { state: "ok"; rec: FileRecord } | { state: "expired" | "revoked"; rec: FileRecord } | { state: "missing" };
+// A row of the person's own application record (career_apply_jobs). The ONLY place "From Trainee's records" values come from.
+export interface ApplicationRow { state: string; reason: string | null; confirmation_id: string | null; created_at: string; updated_at: string; email_confirmed_at?: string | null; payload: Record<string, unknown>; company: string; url?: string }
+export interface Records { application(userId: string, id: string): Promise<ApplicationRow | null> }
 export type Env = { get(k: string): string | undefined };
 export interface FileService {
   create(userId: string, kind: string, data: unknown): Promise<{ ok: true; id: string; kind: KindId; title: string; url: string | null; webApp: string | null } | { ok: false; error: string }>;
@@ -21,16 +24,44 @@ export interface FileService {
   ttlHours(): number;
 }
 
-export function createFileService(o: { store: FileKindStore; env: Env; now: () => number }): FileService {
+const STATUS: Record<string, string> = { queued: "queued", driving: "prepared", needs_user: "prepared", submitted_unconfirmed: "submitted", confirmed: "confirmed", failed: "failed", not_submitted: "failed" };
+const SECRETISH = /pass(?:word|wd|code)?\b|one[- ]?time|\botp\b|\bssn\b|social security|card number|\bcvv\b|\bpin\b|passport|api[-_ ]?key|secret|\btoken\b/i;
+// Everything on an application proof comes from the record, built here by code. The model supplies only the application id.
+export function proofFromRow(row: ApplicationRow, now: number): { ok: true; data: Record<string, unknown> } | { ok: false; error: string } {
+  const status = STATUS[row.state];
+  if (!status) return { ok: false, error: `the application's outcome is not known (recorded as ${row.state}), so there is nothing to show` };
+  const reason = String(row.reason ?? "").trim();
+  const sent = status === "submitted" || status === "confirmed";
+  const fields = (Array.isArray((row.payload as any)?.fields) ? (row.payload as any).fields : []) as any[];
+  const answers = fields.filter((f) => f && !SECRETISH.test(`${f.name ?? ""} ${f.label ?? ""}`) && !/file/i.test(String(f.type ?? "")) && String(f.value ?? "").trim())
+    .slice(0, 30).map((f) => ({ question: String(f.label ?? f.name ?? "Field").replace(/\s+/g, " ").trim().slice(0, 80), answer: String(f.value).replace(/\s+/g, " ").trim().slice(0, 500), source: "From Trainee's records" }));
+  const problems = status === "failed" && reason ? [{ item: "Submitting the application", outcome: "failed", reason: reason.slice(0, 300) }]
+    : row.state === "needs_user" && reason ? [{ item: "Waiting for you", outcome: "skipped", reason: reason.slice(0, 300) }] : [];
+  const rn = String((row.payload as any)?.resume_name ?? "").replace(/\s+/g, " ").trim().slice(0, 100);
+  const dest = (() => { try { return new URL(String(row.url ?? "")).hostname.replace(/^www\./, ""); } catch { return ""; } })();
+  return { ok: true, data: { title: `Application to ${row.company}`.slice(0, 80), company: row.company, status, prepared_at: row.created_at, as_of: row.updated_at, ...(sent ? { submitted_at: row.updated_at } : {}),
+    ...(status === "confirmed" && row.confirmation_id ? { confirmation: { id: row.confirmation_id } } : {}), ...(dest ? { destination: dest } : {}), ...(rn ? { resume: rn } : {}), answers, problems } };
+}
+
+export function createFileService(o: { store: FileKindStore; env: Env; now: () => number; records?: Records | null }): FileService {
   const ttlHours = () => { const n = Number(o.env.get("TRAINEE_FILE_TTL_HOURS")); return Number.isFinite(n) && n >= 1 && n <= 720 ? Math.floor(n) : DEFAULT_TTL_HOURS; };
   return {
     ttlHours,
     async create(userId, kind, data) {
       if (!userId) return { ok: false, error: "not created: no person to make it for" };
-      const v = validateKind(kind, data);
-      if (!v.ok) return { ok: false, error: `not created: ${v.errors.join("; ")}` };
-      const id = [...crypto.getRandomValues(new Uint8Array(5))].map((b) => b.toString(16).padStart(2, "0")).join("");
       const now = o.now();
+      let v = validateKind(kind, data, { now });
+      if (!v.ok) return { ok: false, error: `not created: ${v.errors.join("; ")}` };
+      if (kind === "application_proof") {
+        // The record is read server-side; if it can't be read, there is no file (nothing is guessed or filled in).
+        const row = o.records ? await o.records.application(userId, v.data.application_id).catch(() => null) : null;
+        if (!row) return { ok: false, error: "not created: that application isn't on record for this person (or can't be read now), so there is nothing to prove. Do not describe it." };
+        const built = proofFromRow(row, now);
+        if (!built.ok) return { ok: false, error: `not created: ${built.error}` };
+        v = validateKind(kind, built.data, { trusted: true, now });
+        if (!v.ok) return { ok: false, error: `not created: the record could not be shown (${v.errors.join("; ")})` };
+      }
+      const id = [...crypto.getRandomValues(new Uint8Array(5))].map((b) => b.toString(16).padStart(2, "0")).join("");
       const links = await feedUrlsFor(o.env, userId, id, now);
       if (!links.url && !links.webApp) return { ok: false, error: "not created: file links aren't set up yet, so the person could not open it. Tell them it isn't available yet; do not claim it was made." };
       await o.store.put({ id, userId, kind: kind as KindId, data: v.data, state: {}, tag: await tagOf(kind, v.data), created_at: now, expires_at: now + ttlHours() * 3600_000, revoked_at: null });
@@ -38,7 +69,7 @@ export function createFileService(o: { store: FileKindStore; env: Env; now: () =
     },
     async get(userId, id) {
       const rec = userId && /^[0-9a-f]{10}$/.test(id) ? await o.store.get(userId, id) : null;
-      if (!rec || rec.userId !== userId) return { state: "missing" };
+      if (!rec || rec.userId !== userId || (rec.kind === "application_proof" && rec.data?.from_record !== true)) return { state: "missing" };
       if (rec.revoked_at !== null) return { state: "revoked", rec };
       return o.now() >= rec.expires_at ? { state: "expired", rec } : { state: "ok", rec };
     },

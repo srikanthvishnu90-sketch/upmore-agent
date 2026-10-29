@@ -15,9 +15,9 @@ export function createFileTool(files: FileService): ToolSpec {
     name: FILE_TOOL, effect: "write_own",
     description: `Make a page for the person to open (a link), for detail that does not fit in a short text. Kinds: ${MODEL_KINDS.join(", ")}. `
       + "introduction: who, exactly 3 relevance bullets, and the exact outreach message (the person taps Pass or Introduce; nothing sends without it). "
-      + "application_proof: what was submitted, to whom, when, confirmation, answers given, anything failed or skipped with why; status is exactly queued, prepared, submitted, confirmed or failed. "
+      + "application_proof: give only {application_id} (the job id of an application on record); the company, role, status, dates, confirmation, answers and anything failed come from the application record, never from you. "
       + "plan_review: a weekly pipeline summary (variant pipeline) or an interview prep brief (variant interview_prep). comparison: offers or roles side by side, 2 to 4 options. draft: an email, cover letter or message the person can edit and copy. research_brief: company or role research with its sources. "
-      + "Every fact needs a source: 'From the posting', 'From your resume', 'From you', or 'Reported, not verified' (plan_review and application_proof may also use \"From Trainee's records\"). A fact without a source is refused. Leave out what you do not know; never write unknown or n/a. Facts about the person only from their confirmed profile or what they said. "
+      + "Every fact needs a source: 'From the posting', 'From your resume', 'From you', or 'Reported, not verified' (never \"From Trainee's records\": only the system attaches that, from a real record). A fact without a source is refused. Leave out what you do not know; never write unknown or n/a. Facts about the person only from their confirmed profile or what they said. "
       + "The link is added to your reply by the system after you answer: do not write a URL or link yourself. Say in a few words what the page holds, and only once this call has succeeded.",
     input_schema: { type: "object", properties: { kind: { type: "string", enum: [...MODEL_KINDS], description: "The kind of file" }, data: { type: "object", description: "The kind's data (title plus the kind's fields); each fact is {label, value, source}" } }, required: ["kind", "data"] },
     run: async (i, c) => {
@@ -26,7 +26,9 @@ export function createFileTool(files: FileService): ToolSpec {
       const v = validateKind(String(i?.kind ?? ""), i?.data);
       if (!v.ok) throw new Error(`not created: ${v.errors.join("; ")}`);
       // The same guard as attach_document: facts about the person and money must trace to the person or a tool result this turn.
-      const bad = c.turn?.guard?.(leaves(i?.data).join("\n"));
+      // Fail closed: with no fact guard available nothing is created.
+      if (typeof c.turn?.guard !== "function") throw new Error("not created: the fact check is unavailable, so no file was made");
+      const bad = c.turn.guard(leaves(i?.data).join("\n"));
       if (bad?.length) throw new Error(`not created: the file states things no tool returned this turn and the person did not say: ${[...new Set(bad)].slice(0, 8).join(", ")}. Remove them or label them "Reported, not verified", then create it again.`);
       const r = await files.create(c.userId, String(i?.kind ?? ""), i?.data);
       if (!r.ok) throw new Error(r.error);

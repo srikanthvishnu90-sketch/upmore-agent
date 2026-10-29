@@ -12,6 +12,7 @@ import { CareerPool } from "../../supabase/functions/_shared/career_pool.js";
 import * as Judge from "../../supabase/functions/_shared/career_search_judge.ts";
 import type { SearchSources, SourcePosting } from "../../supabase/functions/_shared/career_search_judge.ts";
 const { askFromRouter, searchJudgeTurn } = Judge, askFor = (Judge as any).askFor as undefined | ((m: string, o: unknown, d: unknown) => { ask: any; append: boolean } | null); // askFor is absent before 2026-10-28: the baseline then uses the router's parse alone
+import { statedBand } from "../../supabase/functions/_shared/posting_constraints.ts";
 import { matchesWords } from "../../supabase/functions/_shared/career_ingest.ts";
 import { type Band, FIXTURES, type Fam, type Fx, type Meta } from "./search-params/fixtures.ts";
 
@@ -61,11 +62,14 @@ export const CASES: Case[] = [
   { id: "c36", say: "senior backend engineer, remote, $200k or more", want: { title: /backend/i, band: ["senior"], remote: "only", payMinYr: 200000 } },
 ];
 
+// True when a level was asked for and the posting's own text states none (the fixture's ground-truth band is not shown to the code under test).
+export const unstatedLevel = (f: Fx, w: Want) => !!w.band && statedBand(f.title, f.text) === "unstated";
 // Why a posting violates a stated parameter ("" = it does not). Unknown facts never violate: only what the posting states.
-export function violation(m: Meta, w: Want): string {
+// `levelStated` false: the posting's text states no level, so the level is not graded (reported as unstated-level kept instead).
+export function violation(m: Meta, w: Want, levelStated = true): string {
   if (w.fam && !w.fam.includes(m.fam)) return `role: ${m.fam}`;
   if (w.title && !w.title.test(m.title)) return `role: ${m.title}`;
-  if (w.band && !w.band.includes(m.band)) return `level: ${m.band}`;
+  if (levelStated && w.band && !w.band.includes(m.band)) return `level: ${m.band}`;
   if (w.company && m.company.toLowerCase() !== w.company) return `company: ${m.company}`;
   if (w.remote === "only" && m.remote !== "remote") return `not remote: ${m.remote}`;
   if (w.country && m.country !== w.country) return `country: ${m.country}`;
@@ -92,7 +96,7 @@ const sources: SearchSources = {
 };
 const metaOf = new Map(FIXTURES.map((f) => [f.id, f.meta]));
 
-export interface CaseResult { id: string; say: string; route: string; parsed: unknown; via: string; returned: string[]; violations: string[]; relevant: number; found: number; pass: boolean; why: string }
+export interface CaseResult { id: string; say: string; route: string; parsed: unknown; via: string; returned: string[]; violations: string[]; unstatedKept: string[]; relevant: number; found: number; pass: boolean; why: string }
 export async function runCase(c: Case): Promise<CaseResult> {
   const ctx: any = { now: NOW, postings: FIXTURES.map(rowOf), profile: null };
   const out: any = CareerRouter.handleChat(c.say, ctx);
@@ -105,12 +109,16 @@ export async function runCase(c: Case): Promise<CaseResult> {
   }
   if (via === "router") ids = (out?.shortlist ?? []).map((s: any) => String(s.id));
   ids = ids.filter((id) => metaOf.has(id));
-  const violations = ids.map((id) => ({ id, v: violation(metaOf.get(id)!, c.want) })).filter((x) => x.v).map((x) => `${metaOf.get(x.id)!.company} ${FIXTURES.find((f) => f.id === x.id)!.title} (${x.v})`);
+  const fxOf = new Map(FIXTURES.map((f) => [f.id, f]));
+  const stated = (id: string) => !unstatedLevel(fxOf.get(id)!, c.want);
+  // Returned postings whose text states no level while one was asked for, and whose ground-truth level differs: kept by rule, reported so the leak is visible.
+  const unstatedKept = ids.filter((id) => !stated(id) && !c.want.band!.includes(metaOf.get(id)!.band)).map((id) => `${metaOf.get(id)!.company} ${metaOf.get(id)!.title} (is ${metaOf.get(id)!.band})`);
+  const violations = ids.map((id) => ({ id, v: violation(metaOf.get(id)!, c.want, stated(id)) })).filter((x) => x.v).map((x) => `${metaOf.get(x.id)!.company} ${FIXTURES.find((f) => f.id === x.id)!.title} (${x.v})`);
   const rel = new Set(FIXTURES.filter((f) => !violation(f.meta, c.want)).map((f) => f.id));
   const found = ids.filter((id) => rel.has(id)).length, need = Math.min(3, rel.size);
   const pass = violations.length === 0 && found >= need;
   const why = violations.length ? `${violations.length} violate: ${violations.slice(0, 2).join("; ")}` : found < need ? `found ${found} of ${need} needed (${rel.size} satisfy everything)` : "";
-  return { id: c.id, say: c.say, route: String(out?.intent ?? "none"), parsed: ctx.discovery?.lastParams ? { role: ctx.discovery.lastParams.roleText, where: ctx.discovery.lastParams.whereText, remote: ctx.discovery.lastParams.remote } : null, via: ask ? via : `${via}(no ask)`, returned: ids, violations, relevant: rel.size, found, pass, why };
+  return { id: c.id, say: c.say, route: String(out?.intent ?? "none"), parsed: ctx.discovery?.lastParams ? { role: ctx.discovery.lastParams.roleText, where: ctx.discovery.lastParams.whereText, remote: ctx.discovery.lastParams.remote } : null, via: ask ? via : `${via}(no ask)`, returned: ids, violations, unstatedKept, relevant: rel.size, found, pass, why };
 }
 export async function runAll(cases = CASES) {
   const results: CaseResult[] = [];
@@ -118,13 +126,15 @@ export async function runAll(cases = CASES) {
   const passed = results.filter((r) => r.pass).length;
   const returned = results.reduce((a, r) => a + r.returned.length, 0), bad = results.reduce((a, r) => a + r.violations.length, 0);
   const recall = results.filter((r) => r.relevant).reduce((a, r) => a + Math.min(1, r.found / Math.min(3, r.relevant)), 0) / results.filter((r) => r.relevant).length;
-  return { results, passed, total: results.length, returned, violating: bad, recall };
+  const unstatedKept = results.flatMap((r) => r.unstatedKept.map((u) => `${r.id} ${u}`));
+  return { results, passed, total: results.length, returned, violating: bad, unstatedKept, recall };
 }
 
 if (import.meta.main) {
   const o = await runAll();
   for (const r of o.results) console.log(`${r.pass ? "PASS" : "FAIL"} ${r.id} [${r.route}/${r.via}] "${r.say}"${r.pass ? "" : `\n       ${r.why}`}${Deno.args.includes("--verbose") ? `\n       parsed ${JSON.stringify(r.parsed)} returned ${r.returned.length}` : ""}`);
-  console.log(`\nsearch-params: ${o.passed}/${o.total} cases pass; ${o.violating} of ${o.returned} returned postings violate a stated parameter; mean recall@3 ${(o.recall * 100).toFixed(0)}%`);
+  console.log(`\nsearch-params: ${o.passed}/${o.total} cases pass; ${o.violating} of ${o.returned} returned postings violate a stated parameter; ${o.unstatedKept.length} kept with the level not stated; mean recall@3 ${(o.recall * 100).toFixed(0)}%`);
+  if (o.unstatedKept.length) console.log("unstated-level kept (posting text states no level; not counted as a violation):\n  " + o.unstatedKept.join("\n  "));
   const j = Deno.args.indexOf("--json");
   if (j >= 0) await Deno.writeTextFile(Deno.args[j + 1], JSON.stringify(o, null, 1) + "\n");
 }

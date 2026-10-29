@@ -13,6 +13,7 @@ Deno.test("search params: the eval passes every case with no posting that violat
   const failed = o.results.filter((r) => !r.pass).map((r) => `${r.id} ${r.say}: ${r.why}`);
   eq(failed, []);
   eq(o.violating, 0);
+  assertNode.ok(Array.isArray(o.unstatedKept), "the unstated-level leak is reported, not hidden");
 });
 
 Deno.test("search params: the message's own words give role, place, level, pay, season, employer and sponsorship", () => {

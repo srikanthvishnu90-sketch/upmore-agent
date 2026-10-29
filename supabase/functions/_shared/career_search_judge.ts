@@ -21,7 +21,7 @@
 // Nothing here sends, applies or writes anywhere but the person's own cache and standing instructions.
 import { searchPostings, type SearchHit } from "./career_search.ts";
 import { searchWords, wordStem } from "./career_ingest.ts";
-import { hasLimits, type Limits, limitsLine, outsideLimits, REASON_WORDS, type Reason, searchTextOf, statedPay } from "./posting_constraints.ts";
+import { hasLimits, type Limits, limitsLine, outsideLimits, REASON_WORDS, type Reason, searchTextOf, statedBand, statedPay } from "./posting_constraints.ts";
 import { CareerPool } from "./career_pool.js";
 import { CareerProfile } from "./router_core.career.js";
 import { addStanding, type MemoryStore, type Standing } from "./agent/memory.ts";
@@ -448,8 +448,10 @@ export async function searchJudgeTurn(o: {
   // OWNER LIST #6 (2026-10-28): a fit is said in words, never as a raw score ("fit 12/100" read as a verdict on the person).
   const matchWord = (n: number | null) => n == null ? "match not scored" : n >= 75 ? "strong match" : n >= 55 ? "good match" : "partial match";
   const fitWord = (h: SearchHit) => h.fit ? (h.fit.excluded ? `not eligible on your confirmed facts (${h.fit.reasons[0] ?? "a hard requirement"})` : matchWord(h.fit.score)) : null;
+  // A level was asked for and this posting's own text states none: it stays, and the line says so.
+  const noLevel = (h: SearchHit) => !!ask.limits?.bands && statedBand(h.title, byId.get(h.job_id)?.description ?? "") === "unstated";
   const lineOf = (h: SearchHit, i: number, tail: string | null) =>
-    `${i + 1}. ${h.title} at ${h.company || "an employer the posting does not name"}${where(h) ? ` — ${where(h)}` : ""}${h.url ? ` (${h.url})` : ""}${tail ? `. ${tail}` : ""}${/[.!?]$/.test(tail ?? "") ? "" : "."}`;
+    `${i + 1}. ${h.title} at ${h.company || "an employer the posting does not name"}${where(h) ? ` — ${where(h)}` : ""}${h.url ? ` (${h.url})` : ""}${noLevel(h) ? " [level not stated]" : ""}${tail ? `. ${tail}` : ""}${/[.!?]$/.test(tail ?? "") ? "" : "."}`;
   const top = hits.slice(0, N);
   // 3. The judge, when on and a model is given; else the fit order.
   let rows: { h: SearchHit; tail: string | null }[] = [], account: Accounting | null = null, modelCalled = false, header: string;

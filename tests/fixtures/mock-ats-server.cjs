@@ -76,6 +76,10 @@ function startMockAts({ port = 0 } = {}) {
       loads[job] = (loads[job] || 0) + 1;
       if (job.startsWith("flaky") && loads[job] === 1) return send(503, "temporarily unavailable");
       if (job.startsWith("bot")) return send(200, BOT());
+      if (job.startsWith("login")) return send(200, page("Sign in", `<h1>Sign in to apply</h1><form method="post" action="/${ats}/${job}/login"><input type="text" name="user"><input type="password" name="pw"><button type="submit">Sign in</button></form>`));
+      if (job.startsWith("rate")) { res.writeHead(429, { "retry-after": "60", "content-type": "text/plain" }); return res.end("slow down"); }
+      // A cookie per page load: a context that shared cookies between people would show up as a foreign cookie at submit.
+      res.setHeader("set-cookie", `sid=${job}; Path=/`);
       return send(200, ats === "greenhouse" ? GH(job) : LV(job));
     }
     if (req.method === "POST" && isSubmit) {
@@ -83,7 +87,7 @@ function startMockAts({ port = 0 } = {}) {
       for await (const c of req) chunks.push(c);
       const { fields, files } = parseMultipart(Buffer.concat(chunks), req.headers["content-type"]);
       if (submissions.some((s) => s.job === job && s.ats === ats)) return send(409, page("Duplicate", "<h1>Already applied</h1>"));
-      submissions.push({ ats, job, fields, files, at: Date.now() });
+      submissions.push({ ats, job, fields, files, cookie: req.headers.cookie || "", at: Date.now() });
       return send(200, ats === "greenhouse"
         ? page("Confirmation", `<h1>Thank you for applying.</h1><p id="confirmation">Your application has been submitted. Confirmation code GH-${job.toUpperCase()}.</p>`)
         : page("Application submitted", `<h1>Application submitted!</h1><p id="confirmation">Thanks for applying. We've received your application. Reference LV-${job.toUpperCase()}.</p>`));

@@ -49,7 +49,8 @@ const PRICE: RegExp[] = [
   new RegExp(`^how much (?:is|does|do i pay for|am i paying for) ${WHO}(?: cost)?${MONTH}$`),
   new RegExp(`^(?:how much does|what does) (?:trainee|my plan|my subscription|the plan|the subscription) cost${MONTH}$`),
   /^(?:what'?s|what is|show(?: me)?|check) (?:my (?:billing|subscription)|trainee'?s pricing|the pricing)$/,
-  /^(?:my plan|my subscription|billing|my billing|pricing)$/,
+  /^(?:my plan|my subscription|billing|my billing|pricing|my bill)$/,
+  /^(?:what'?s|what is|how much is|show(?: me)?|check) my (?:bill|monthly bill|trainee bill)$/,
   /^what plan am i on$/,
 ];
 const CANCEL: RegExp[] = [

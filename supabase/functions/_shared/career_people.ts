@@ -299,11 +299,15 @@ export function parsePeopleAsk(message: string): Ask | null {
   if (!t || t.length > 400) return null;
   // forget
   const fg = /^(?:forget|delete|remove|erase|clear|wipe)\s+(?:all\s+(?:of\s+)?)?(?:my\s+)?(.+)$/i.exec(t);
-  if (fg) {
+  // ROUTING SCENARIOS (2026-10-29): "remove LinkedIn from my list" names an employer to take off the apply list (the cancel
+  // turn's), never the LinkedIn export to delete.
+  if (fg && !/\b(?:off|from) (?:my|the) (?:application |apply )?(?:list|queue)\b/i.test(fg[1])) {
     const w = fg[1].toLowerCase();
-    if (/^linked\s?in\b|^(?:linked\s?in\s+)?connections\b/.test(w)) return { kind: "forget", what: "linkedin" };
+    // The site's own data, named whole ("my LinkedIn contacts", "my handshake and indeed jobs"): an employer that carries
+    // the name ("Handshake Capital", "Indeed Partners from my list") is not it.
+    if (/^linked\s?in(?:\s+(?:contacts|connections|export|data|network|people|csv|file|list))?$|^(?:linked\s?in\s+)?connections\b/.test(w)) return { kind: "forget", what: "linkedin" };
     if (/^(?:gmail|email|mail)\s+(?:contacts|people|correspondents)\b/.test(w)) return { kind: "forget", what: "gmail" };
-    if (/^(?:handshake|indeed|job (?:alert )?emails|job alerts)\b/.test(w)) return { kind: "forget", what: "jobs" };
+    if (/^(?:handshake|indeed)(?:\s+(?:and|&)\s+(?:handshake|indeed))?(?:\s+(?:jobs?|job emails|emails|alerts|job alerts|postings|listings|data))?$|^(?:job (?:alert )?emails|job alerts)\b/.test(w)) return { kind: "forget", what: "jobs" };
     if (/^intro(?:duction)?s?(?: requests?)?\b/.test(w)) return { kind: "forget", what: "intros" };
     if (/^(?:contacts|people|network)\b/.test(w)) return { kind: "forget", what: "all" };
   }

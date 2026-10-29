@@ -15,7 +15,7 @@ import { INT4_MAX, type Limits, PACE_RE } from "./career_apply.ts";
 import { type EmployerAnswer, employerQuestion, type Pick, queueWants, screenPicks, type WantStore } from "./career_apply_want.ts";
 import type { AppRow } from "./career_apply_status.ts";
 import { type FetchFeed, type PostingsDb, searchWords } from "./career_ingest.ts";
-import { linkAsk, possessiveAsk, postingForLink, postingsForRole } from "./career_apply_link.ts";
+import { applyText, linkAsk, possessiveAsk, postingForLink, postingsForRole } from "./career_apply_link.ts";
 import { sameCompany, type TrackedApp } from "./career_mail.ts";
 // FEATURE 1 (2026-10-25): positions in the list, the listed postings checked on file, no resume on file, the server
 // prepare asked for the rows queued, and the coverage line (career_apply_from_chat.ts).
@@ -29,8 +29,8 @@ const BATCH = /\b(these|those|them|all of|the ones|each of|every|\d+\s+(roles?|j
 // The ask: a role at a named employer, or a named employer alone. Questions ("how do I apply to X?") and batch shapes
 // are never this ask.
 export function applyAsk(message: string): { company: string; role: string | null } | null {
-  const raw = String(message ?? "").trim();
-  if (!/\bapply\b/i.test(raw) || QUESTION.test(raw) || BATCH.test(raw)) return null;
+  const raw = applyText(message);
+  if (raw === null || !/\bapply\b/i.test(raw) || QUESTION.test(raw) || BATCH.test(raw)) return null;
   let m = raw.match(new RegExp(`\\bapply\\s+(?:me\\s+)?(?:to|for)\\s+(?:the\\s+|that\\s+|this\\s+)?(.+?)\\s+(?:role|position|job|internship|opening)\\s+at\\s+${CO}\\s*[.!]?\\s*$`, "i"));
   if (m) return { role: m[1].trim(), company: m[2].trim() };
   m = raw.match(new RegExp(`\\bapply\\s+(?:me\\s+)?(?:to|at|for)\\s+${CO}\\s*[.!]?\\s*$`, "i"));
@@ -87,8 +87,8 @@ const WORD_N: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five
 const ORD: Record<string, number> = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 };
 const numOf = (w: string) => /^\d+$/.test(w) ? Number(w) : WORD_N[w.toLowerCase()];
 export function applyManyAsk(message: string): ManyAsk | null {
-  const raw = String(message ?? "").trim();
-  if (!/\bapply\b/i.test(raw) || QUESTION.test(raw) || /\bapplied\b/i.test(raw) || /\bat\s+[A-Z]/.test(raw)) return null;
+  const raw = applyText(message);
+  if (raw === null || !/\bapply\b/i.test(raw) || QUESTION.test(raw) || /\bapplied\b/i.test(raw) || /\bat\s+[A-Z]/.test(raw)) return null;
   const t = raw.toLowerCase().replace(/[.!]+$/, "").replace(/\s+/g, " ");
   const after = t.match(/\bapply\b(?:\s+me)?(?:\s+(?:to|for))?\s+(.*)$/)?.[1];
   if (after === undefined) return null;

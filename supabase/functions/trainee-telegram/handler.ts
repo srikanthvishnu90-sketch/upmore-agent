@@ -51,6 +51,9 @@ export function webhookDeps(adapter: ChannelAdapter, d: ProviderWebhookDeps): Co
           await sendJobCards({ userId: a.userId, hits: a.hits as any[], deps: jd(), send: jobSenderFor(adapter, addressOf(a.contact)) }),
       };
     })() : {}),
+    // REPLY SHAPE: a file and a link, each its own message (the link with its preview card).
+    ...(adapter.sendDocument ? { sendFile: async (a: { contact: string; filename: string; mime: string; bytes: Uint8Array }) => await adapter.sendDocument!(addressOf(a.contact), a) } : {}),
+    ...(adapter.sendLink ? { sendLink: async (a: { contact: string; url: string }) => await adapter.sendLink!(addressOf(a.contact), a.url) } : {}),
     ...(adapter.answerCallback ? { answerCallback: (id: string, text: string) => adapter.answerCallback!(id, text) } : {}),
     ...(admin && adapter.sendDocument ? {
       sendArtifacts: async (a: { userId: string; threadId: string | null; contact: string; artifacts: { ref: string }[] }) => {

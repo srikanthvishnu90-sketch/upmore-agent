@@ -6,6 +6,7 @@
 //              person approves on its exact payload (WO-005), and the model is told it is waiting.
 // Messages use the Anthropic block shape (text / tool_use / tool_result); _shared/model_gateway.ts converts to OpenAI.
 import { bracketUntraced, factSources, leakedWords, pieces, plainQuotes, postingsOf, rebuild, stripLeaks, unsourcedMoney, untracedFacts, waiverSolicits } from "./reply_guards.ts";
+import { urlsIn } from "../channel_shape.ts";
 import { STANDING_REFUSED, standingRefusal } from "./memory.ts";
 export type Effect = "read" | "write_own" | "external";
 // `turn` is this turn's own record, filled by runAgentTurn: the person's message (a confirmation must come from it) and
@@ -15,7 +16,7 @@ export type Effect = "read" | "write_own" | "external";
 // (WO-038's contract): the same text as separate messages, so a texting channel delivers each whole and in order.
 // `before` (WO-091b): the previous turn's reply as the person saw it ("" on a first turn), so a tool can check that "the
 // first one" is a posting that reply showed. Undefined only for a caller that runs a tool without the loop's history.
-export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; before?: string; show?: { intent: string; text: string; parts?: string[] } } }
+export interface ToolCtx { userId: string; threadId: string; now: number; state: Record<string, unknown>; turn?: { message: string; added: string[]; before?: string; attachments?: { filename: string; content: string }[]; seen?: string[]; show?: { intent: string; text: string; parts?: string[] } } }
 export interface ToolSpec {
   name: string;
   description: string;
@@ -35,6 +36,10 @@ export interface TurnResult {
   show?: { intent: string; text: string; parts?: string[] };
   // JOB CARDS: the postings the turn's last successful search_jobs returned, for channels that show them as cards.
   postings?: unknown[];
+  // REPLY SHAPE: the documents the turn staged with attach_document (each passed the fact guards), and the URLs the turn may
+  // show (those a tool returned or the person typed).
+  attachments?: { filename: string; content: string }[];
+  linksSeen?: string[];
 }
 
 export const MAX_STEPS_REPLY = "I couldn't finish that in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do first.";
@@ -218,9 +223,17 @@ function missingAnswerBody(reply: string, message: string, receiptOnly = false, 
   const clauses = pieces(plainQuotes(reply).replace(/\b(that|this|it)'s\b/gi, "$1 is").replace(/[*_`~]/g, "")).flatMap((p) => p.text.split(/[;—–]/)).map((s) => s.trim().replace(/^(?:[-•]|\d+[.)])\s+/, "").replace(/[.!?]+$/, "").trim()).filter(Boolean);
   return clauses.length > 0 && clauses.every((s) => CLOSING_ONLY.test(s) || (!SOCIAL_MESSAGE.test(message.trim()) && (ACK_ONLY.test(s) || PROGRESS_ONLY.test(s))) || (receiptOnly && claimsIn(s).length > 0));
 }
+// REPLY SHAPE: what the turn staged and which links it may show ride the result, whichever way the turn ended.
+export async function runAgentTurn(o: Parameters<typeof runAgentTurnInner>[0]): Promise<TurnResult> {
+  const r = await runAgentTurnInner(o);
+  const attachments = o.ctx.turn?.attachments ?? [];
+  const seen = o.ctx.turn?.seen ?? [];
+  const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
+  return { ...r, ...(attachments.length ? { attachments } : {}), linksSeen: urlsIn(`${typed}\n${seen.join("\n")}`) };
+}
 const COMPLETENESS_REPAIR = "The previous draft did not contain an answer body after output validation. Answer the person's original request using only the conversation and successful tool results already available. Give the requested content, or ask a concrete question for missing information. A generic acknowledgement, action receipt, closing confirmation or unresolved fill-in field is not the requested answer. Keep placeholders only in a draft or template the person requested. Do not invent personal facts or claim actions. Tools are disabled for this single repair; do not repeat any action.";
 
-export async function runAgentTurn(o: { system: string; history: any[]; message: string; tools: ToolSpec[]; model: ModelFn; ctx: ToolCtx; maxSteps?: number }): Promise<TurnResult> {
+async function runAgentTurnInner(o: { system: string; history: any[]; message: string; tools: ToolSpec[]; model: ModelFn; ctx: ToolCtx; maxSteps?: number }): Promise<TurnResult> {
   const max = o.maxSteps ?? 6;
   const byName = new Map(o.tools.map((t) => [t.name, t]));
   const toolDefs = o.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
@@ -230,11 +243,11 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const last = [...o.history].reverse().find((m) => m && m.role === "assistant");
   const before = !last ? "" : typeof last.content === "string" ? last.content
     : Array.isArray(last.content) ? last.content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("\n") : "";
-  o.ctx.turn = { message: o.message, added: [], before };
   const saved = () => tool_calls.some((t) => t.ok && t.effect === "write_own");
   // WO-091a: what this turn's tools returned is a source for what the reply may say about the person, and names the
   // postings a raw job id stands for.
   const seen: string[] = [];
+  o.ctx.turn = { message: o.message, added: [], before, attachments: [], seen };
   const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
   const toolNames = o.tools.map((t) => t.name);
   let steps = 0, checked = false, ask = false, repairing = false;
@@ -354,6 +367,16 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       }
       try {
         const out = await t.run(input, o.ctx);
+        // REPLY SHAPE: a staged document passes the same guards as a reply (facts about the person, money, links) or the model is told why not.
+        const att = u.name === "attach_document" && out && typeof out === "object" ? (out as any).attachment : null;
+        if (att) {
+          const knownLinks = new Set(urlsIn(`${typed}\n${seen.join("\n")}`));
+          const sources = factSources({ state: o.ctx.state, message: o.message, history: o.history, results: seen });
+          const bad = [...untracedFacts(att.content, sources).map((f) => f.word), ...unsourcedMoney(att.content, [typed, ...seen, ...sources]).map((m) => m.figure),
+            ...urlsIn(att.content).filter((l) => !knownLinks.has(l))]; // exact match against links the person typed or a tool returned, never a substring (a cut-off or prefix URL is a different link)
+          if (bad.length) { throw new Error(`not attached: the file states things no tool returned this turn and the person did not say: ${[...new Set(bad)].slice(0, 8).join(", ")}. Remove them or mark them "not verified", then attach again.`); }
+          o.ctx.turn!.attachments!.push({ filename: att.filename, content: att.content });
+        }
         tool_calls.push({ name: t.name, ok: true, effect: t.effect });
         results.push({ type: "tool_result", tool_use_id: u.id, content: resultText(out) });
         seen.push(resultText(out));

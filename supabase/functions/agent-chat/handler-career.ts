@@ -98,6 +98,7 @@ import { careerGrant, followupTurn, gmailReadNow, mailNow, supabaseFollowupStore
 import { gmailSender } from "../_shared/career_outreach_gmail.ts";
 import { fileUploadFor } from "../_shared/channel_resume_upload.ts"; // FEATURE 16
 import { outlookAsk, outlookChatTurn } from "../_shared/outlook_connector.ts"; // M4: Outlook
+import { shapeForTurn } from "../_shared/channel_shape.ts"; // REPLY SHAPE
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
@@ -403,6 +404,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
       let agentMeta: Record<string, unknown> | null = null;
+      let turnAttachments: unknown[] = [], turnLinks: string[] | null = null; // REPLY SHAPE: what the agent staged; the URLs it may show
       let turnPostings: unknown[] = []; // JOB CARDS: what the turn's search found, for channels that show cards
       const events = supabaseEventStore(admin);
       // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
@@ -852,6 +854,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           // WO-033: drafts from the person's lists (the model writes, the fact-lock checks), and Hunter when its key is set.
           outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) },
           conversations: repliesStore,
+          // REPLY SHAPE: Telegram with the reply writer on gets the shape rules and the attach_document tool.
+          shape: replyWriterOn(Deno.env) && writerChannel((body as any)?.channel) === "telegram",
           verifier: hunterVerifier({ fetch, apiKey: Deno.env.get("HUNTER_API_KEY"), cache: supabaseCheckCache(admin), now: Date.now }),
           tailor: { posting: (id) => postingsDb.get(id), personas: supabasePersonaStore(admin), resumes: supabaseResumeStore(admin), render: edgeRenderer() },
           // WO-066: "apply me to these" puts the postings in the person's own queue; the extension prepares each, and each
@@ -870,6 +874,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         } else {
           // A batch of outreach drafts is shown by code, and its intent makes the next text an answer to it.
           turnPostings = Array.isArray(turn.postings) ? turn.postings : [];
+          turnAttachments = turn.attachments ?? []; turnLinks = turn.linksSeen ?? [];
           out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent", ...(turn.show?.parts ? { parts: turn.show.parts } : {}) };
           agentMeta = { brain: staged.chosen ? "staged" : "agent", ...(staged.chosen ? { router_intent: staged.decision?.intent ?? null } : {}), tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
         }
@@ -1020,6 +1025,16 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         }
         await ledger.record(wMeter);
       }
+      // REPLY SHAPE (_shared/channel_shape.ts): on Telegram with the writer on, the answer is one short paragraph, detail rides as
+      // files and links as their own messages (the channel sends them in that order). A turn that shows an exact payload is untouched.
+      let shapeField: { attachments: { filename: string; content: string }[]; links: string[] } | null = null;
+      {
+        const sh = shapeForTurn({ on: replyWriterOn(Deno.env), channel: writerChannel((body as any)?.channel), reply: out.reply, attachments: turnAttachments, allowedLinks: turnLinks,
+          writable: writable(out, agentMeta, { structured: !!(careerTask || careerBatch) }) });
+        if (sh.reply !== out.reply) out = { ...out, reply: sh.reply };
+        shapeField = sh.shape;
+        if (sh.notes.length) agentMeta = { ...(agentMeta || {}), reply_shape: sh.notes.slice(0, 8) };
+      }
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       // CHANNEL-DOC-1: documents the turn produced (the tailored
       // resume PDF; the delivery handler's documents) are materialized
@@ -1049,7 +1064,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const visibleReply = [reply, ...reminderLines].join("\n");
       // The same reply as separate messages for a texting channel: the note, each part whole, then the reminders.
       const parts = out.parts ? [...(flowCtx.note ? [flowCtx.note] : []), ...out.parts, ...(artifactNote ? [artifactNote] : []), ...reminderLines] : null;
-      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), ...(artifactsField ? { artifacts: artifactsField } : {}), ...(turnPostings.length ? { postings: turnPostings } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), ...(artifactsField ? { artifacts: artifactsField } : {}), ...(turnPostings.length ? { postings: turnPostings } : {}), ...(shapeField ? { shape: shapeField } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
       const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent, batchIntent });
       // WO-028: "forget everything" also removes the tailored resumes (they carry the person's name and email); best
       // effort, after the erase is recorded, like the rest of the erase's side effects.

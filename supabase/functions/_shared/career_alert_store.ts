@@ -19,6 +19,10 @@ export interface AlertStore {
   // WO-037: alerts per person whose delivery time is at or after `sinceIso` (the weekly cap's count). A store without it
   // sends no alerts (the run fails closed).
   alertsSince?(sinceIso: string): Promise<Map<string, number>>;
+  // PROACTIVE SCENARIOS (2026-10-29): the keys of the alerts due at or after `sinceIso` (an alert is never due before it
+  // was queued), by person, so alerts a run queued before dying (its counters never saved) count against the person's day
+  // (career_proactive_run.ts runAlerts).
+  alertKeysSince?(sinceIso: string): Promise<Map<string, Set<string>>>;
 }
 // first_seen_at (WO-037, alerts only): when Trainee first saw the posting, kept with the alert so the latency from
 // first seen to delivered can be reported (career_alert_latency).
@@ -90,6 +94,12 @@ export function memoryAlertStore(initial?: MemoryAlerts): AlertStore & Outbox & 
       for (const o of st.outbox) if (o.kind === "alert" && o.at >= t) out.set(o.userId, (out.get(o.userId) ?? 0) + 1);
       return out;
     },
+    // Memory rows keep no queue time; an alert's time is never before it was queued, so every alert due since counts.
+    async alertKeysSince(since) {
+      const t = Date.parse(since), out = new Map<string, Set<string>>();
+      for (const o of st.outbox) if (o.kind === "alert" && o.at >= t) { if (!out.has(o.userId)) out.set(o.userId, new Set()); out.get(o.userId)!.add(o.key); }
+      return out;
+    },
     async enqueue(userId, m) {
       if (st.outbox.some((o) => o.userId === userId && o.key === m.key)) return false;
       st.outbox.push({ userId, ...m });
@@ -133,6 +143,14 @@ export function supabaseAlertStore(admin: any): AlertStore & Outbox {
       const out = new Map<string, number>();
       for (const r of must<any[]>(await admin.rpc("career_alerts_sent_since", { p_since: since }), "count this week's alerts") || []) out.set(r.user_id, Number(r.n) || 0);
       return out;
+    },
+    async alertKeysSince(since) {
+      const out = new Map<string, Set<string>>();
+      for (let from = 0; ; from += PAGE) {
+        const got = must<any[]>(await admin.from("career_outbox").select("user_id,key").eq("kind", "alert").gte("deliver_at", since).order("id").range(from, from + PAGE - 1), "read the alerts queued") || [];
+        for (const r of got) { if (!out.has(r.user_id)) out.set(r.user_id, new Set()); out.get(r.user_id)!.add(String(r.key)); }
+        if (got.length < PAGE) return out;
+      }
     },
     async enqueue(userId, m) {
       const r = await admin.from("career_outbox").insert({ user_id: userId, key: m.key, kind: m.kind, text: m.text, deliver_at: new Date(m.at).toISOString(),

@@ -97,9 +97,26 @@ function fits(p: any, w: { keywords: string[]; locations: string[]; remote_ok: b
   return regionDecision(p, w, placeOk).ok;
 }
 
+// PROACTIVE SCENARIOS (2026-10-29): the zone a person's clock is read in. A zone the runtime does not know ("Pacific Time",
+// a typo, an empty string: the table checks only its length) or none at all is read as the default zone, the one the table
+// and the settings tool start from; it never throws. One person's unknown zone used to throw a RangeError out of the whole
+// alerts run (and the digest, cards, questions and asks rails), so nobody got anything that run.
+export const DEFAULT_ZONE = "America/New_York";
+const zoneOk = new Map<string, boolean>();
+export function zoneOr(tz: unknown, fallback = DEFAULT_ZONE): string {
+  if (typeof tz !== "string" || !tz || tz.length > 64) return fallback;
+  let ok = zoneOk.get(tz);
+  if (ok === undefined) {
+    try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); ok = true; } catch { ok = false; }
+    if (zoneOk.size < 1000) zoneOk.set(tz, ok);
+  }
+  return ok ? tz : fallback;
+}
+// The person's local date (YYYY-MM-DD) at an instant, in their zone (zoneOr).
+export const localDay = (at: number, tz: unknown) => local(at, zoneOr(tz)).date;
 // The person's local date, hour and minute at an instant.
 function local(at: number, tz: string): { date: string; hour: number; minute: number } {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(at));
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: zoneOr(tz), year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(at));
   const g = (t: string) => parts.find((x) => x.type === t)?.value ?? "0";
   return { date: `${g("year")}-${g("month")}-${g("day")}`, hour: Number(g("hour")) % 24, minute: Number(g("minute")) };
 }
@@ -107,11 +124,14 @@ const isQuiet = (hour: number, p: AlertPrefs) =>
   p.quiet_start === p.quiet_end ? false : p.quiet_start > p.quiet_end ? hour >= p.quiet_start || hour < p.quiet_end : hour >= p.quiet_start && hour < p.quiet_end;
 // Whether an instant falls in the person's quiet hours, in their zone.
 export const quietAt = (at: number, tz: string, p: Pick<AlertPrefs, "quiet_start" | "quiet_end">) => isQuiet(local(at, tz).hour, p as AlertPrefs);
-// The first instant at or after `from` when the person's clock reads hour:00. Steps of 15 minutes, so zones on a half or
+// The first instant at or after `from` outside the person's quiet hours. Steps of 15 minutes, so zones on a half or
 // quarter hour (India, Nepal) land on their own hour, and a daylight-saving jump is crossed rather than assumed.
-function nextLocal(from: number, tz: string, hour: number): number {
+// PROACTIVE SCENARIOS (2026-10-29): it looked for the instant the clock reads quiet_end:00; on the night the clocks spring
+// forward over that hour (quiet until 2, New York, March 8) there is no 2:00, and an alert found at 23:00 waited until
+// 2:00 the night after, 27 hours late. Now the first quarter hour that is not quiet (3:00 that night).
+export function nextAwake(from: number, tz: string, p: Pick<AlertPrefs, "quiet_start" | "quiet_end">): number {
   const start = Math.ceil(from / 900000) * 900000;
-  for (let t = start; t < from + 2 * DAY; t += 900000) { const l = local(t, tz); if (l.hour === hour && l.minute === 0) return t; }
+  for (let t = start; t < from + 2 * DAY; t += 900000) if (!isQuiet(local(t, tz).hour, p as AlertPrefs)) return t;
   return from;
 }
 function ago(mins: number) { return mins < 1 ? "under a minute ago" : mins < 120 ? `${mins} min ago` : `${Math.round(mins / 60)} hours ago`; }
@@ -132,7 +152,7 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
     const dayRoom = Math.min(MAX_INSTANT_PER_DAY, Math.floor(prefs.max_instant_per_day)) - Math.max(0, u.instant_sent_today | 0);
     const weekRoom = weeklyCap(prefs) - Math.max(0, Number(u.sent_this_week ?? 0));
     let room = Math.max(0, Math.min(dayRoom, Number.isFinite(weekRoom) ? weekRoom : 0));
-    const at = isQuiet(l.hour, prefs) ? nextLocal(o.now, u.tz, prefs.quiet_end) : o.now;
+    const at = isQuiet(l.hour, prefs) ? nextAwake(o.now, u.tz, prefs) : o.now;
     for (const p of fresh) {
       if (room <= 0) { out.push({ userId: u.id, kind: "held", job_id: p.job_id }); continue; }
       room--;
@@ -151,7 +171,10 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
            ...day.slice(0, REPORT_LIMIT).map((p) => `- ${line(p)}\n  ${httpsUrl(p.url)}`),
            ...(day.length > REPORT_LIMIT ? [`…and ${day.length - REPORT_LIMIT} more. Ask me for the rest.`] : [])].join("\n")
         : "Your daily job report: no new matches in the last day. I'm still watching.";
-      out.push({ userId: u.id, kind: "report", key: `report:${l.date}`, at: o.now, text });
+      // PROACTIVE SCENARIOS (2026-10-29): the report waits out quiet hours like an alert. It went at the run's own time, so
+      // a report hour inside quiet hours (report at 23, quiet from 22), or a run that caught up late in the evening, texted
+      // the person in the middle of their quiet hours.
+      out.push({ userId: u.id, kind: "report", key: `report:${l.date}`, at, text });
     }
   }
   return out;

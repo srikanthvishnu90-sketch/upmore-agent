@@ -146,7 +146,10 @@ export function supabaseDigestStore(admin: any): DigestStore {
         admin.from("career_mail_events").select("application_ref,kind,company,role,stage,flagged,evidence,message_hash,mail_at").eq("user_id", u).order("mail_at", { ascending: true }).limit(2000),
         admin.from("career_interviews").select("*").eq("user_id", u).order("seen_at", { ascending: false }).limit(200),
         admin.from("career_mail_drafts").select("draft_key,kind,company,role,state,created_at").eq("user_id", u).eq("state", "drafted").order("created_at", { ascending: false }).limit(200),
-        admin.from("career_outbox").select("created_at").eq("user_id", u).eq("kind", "alert").gte("created_at", sinceIso).limit(1000),
+        // PROACTIVE SCENARIOS (2026-10-29): "Job alerts sent" counts the alerts that went out. It counted every alert row
+        // queued in the week, so alerts held back by a STOP or a pause, or stopped at delivery (skipped_opt_out), and ones
+        // still waiting were told to the person as sent.
+        admin.from("career_outbox").select("created_at").eq("user_id", u).eq("kind", "alert").eq("status", "delivered").gte("created_at", sinceIso).limit(1000),
         admin.from("career_events").select("at,kind,subject,detail").eq("user_id", u).eq("kind", "status_change").gte("at", sinceIso).limit(500),
       ]);
       return {

@@ -480,7 +480,7 @@ if (import.meta.main) {
         const rows = await alerts.active();
         const q = await admin.rpc("career_quiet_users", { p_users: rows.map((r) => r.id) });
         if (q.error) throw new Error(`read who is paused: ${q.error.message}`);
-        const quiet = new Set((q.data ?? []).map((r: any) => String(r.user_id)));
+        const quiet = new Set((q.data ?? []).map((r: any) => String(r?.user_id ?? r))); // bare ids or {user_id}: either shape
         // Many hosts: this one takes only its share of the people (PREPARE_AHEAD_SHARD).
         return rows.filter((r) => !quiet.has(r.id) && (!shard || shard(r.id)));
       } },

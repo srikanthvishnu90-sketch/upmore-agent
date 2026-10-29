@@ -18,11 +18,11 @@
 // Trainee sets no volume limit of its own (owner, 2026-10-27 19:55); the only brake is the search service refusing (429,
 // quota), shared through the database so every instance backs off, and said plainly. One company is discovered once for
 // everyone inside the cache window. Docs: docs/architect/PEOPLE-PROVIDER-2026-10-27.md.
-import { cleanCell, cleanEmail, companyKey, isFormula, readsAsInstruction } from "./career_people_import.ts";
+import { chatAsk, cleanCell, cleanEmail, companyKey, isFormula, readsAsInstruction } from "./career_people_import.ts";
 import { neverOpen } from "./career_people_sites.ts";
 import { type PageRead, readPage, type Resolver } from "./career_people_page.ts";
 import { domainLabelOf, registrable } from "./career_people_gmail.ts";
-import { dohMx, type MxResolver, ROLE_LOCALS } from "./career_contacts.ts";
+import { dohMx, isRoleAddress, isTeamName, type MxResolver } from "./career_contacts.ts";
 import { costMicros, modelConfig, responsesCall } from "./model_gateway.ts";
 import { type BudgetGate } from "./model_budget.ts";
 import { ModelBudgetBlockedError } from "./model_calls.ts";
@@ -81,7 +81,9 @@ export function field(v: unknown, max: number): string {
 }
 export function personName(v: unknown): string {
   const n = field(v, 200);
-  return n && /\p{L}/u.test(n) && !URLISH.test(n) && !/@/.test(n) ? n : "";
+  // NETWORKING SCENARIOS (2026-10-29): a team ("Talent Acquisition", "Careers Team") marked up as a Person is not a person:
+  // it got an address inferred in the person format (talent.acquisition@), a role inbox written to as someone.
+  return n && /\p{L}/u.test(n) && !URLISH.test(n) && !/@/.test(n) && !isTeamName(n) ? n : "";
 }
 const nameKey = (n: string) => n.toLowerCase().replace(/[’']/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
@@ -185,7 +187,7 @@ export function webProvider(o: { search: SearchFn; fetch: typeof fetch; resolve?
           const employer = x.company ? companyKey(x.company) === key : (onDomain || orgIs);
           if (!employer) continue;
           let email = cleanEmail(x.email);
-          if (email && ROLE_LOCALS.has(email.split("@")[0])) {
+          if (email && isRoleAddress(email)) {
             if (x.how === "mailto link") continue; // "Careers Team" <careers@>: an inbox, not a person
             email = null;
           }
@@ -302,24 +304,35 @@ function rolesOf(phrase: string): { titles: string[]; seniority: string[] } {
   const seniority = [...new Set(SENIORITY_WORDS.filter(([rx]) => rx.test(p)).map(([, s]) => s))];
   return { titles, seniority };
 }
+// A company as typed: letters (any script), digits, spaces and . , & ' ’ - (so "L’Oréal", "AT&T", "Stripe, Inc."), and never
+// with " at " or " from " inside it ("find alumni from DePaul at Ramp" searches Ramp, not a company "DePaul at Ramp").
+const CO = String.raw`[\p{L}\p{N}](?:(?!\s(?:at|from)\s)[\p{L}\p{N} .,&'’-]){0,80}`;
 // "people at every company I applied to", "engineering managers at every company I've applied to", "engineering managers
 // at Stripe", "find recruiters at Ramp", "alumni of DePaul at Stripe", "DePaul alumni at Stripe". Anything else: null.
 export function parseTargetAsk(message: string): TargetAsk | null {
-  const t = cleanCell(message, 400).replace(/[?.!]+$/, "").trim();
+  const t = chatAsk(cleanCell(message, 400));
   const lead = String.raw`^(?:(?:please\s+)?(?:find|get|show|list|look\s+up|search\s+for|who\s+are)\s+(?:me\s+)?)?`;
   let m = new RegExp(`${lead}(.*?)\\s*(?:at|from|in)\\s+(?:every|all|each)\\s+(?:of\\s+)?(?:the\\s+)?compan(?:y|ies)\\s+(?:that\\s+)?i(?:'ve|\\s+have)?\\s+applied\\s+(?:to|for|at)$`, "i").exec(t);
   if (m) { const r = rolesOf(m[1]); return { kind: "applied", ...r }; }
   m = new RegExp(`${lead}(?:alumni|grads|graduates)\\s+(?:of|from)\\s+(.+?)\\s+(?:at|working\\s+at|who\\s+work\\s+at)\\s+(.+)$`, "i").exec(t)
     ?? new RegExp(`${lead}(.+?)\\s+(?:alumni|grads|graduates)\\s+(?:at|working\\s+at|who\\s+work\\s+at)\\s+(.+)$`, "i").exec(t);
   if (m) return { kind: "alumni", school: cleanCell(m[1], 120), company: cleanCell(m[2], 120) };
-  m = new RegExp(`${lead}(.+?)\\s+(?:at|from)\\s+([\\p{L}\\p{N}][\\p{L}\\p{N} .,&'-]{0,80})$`, "iu").exec(t);
+  // NETWORKING SCENARIOS (2026-10-29): a department ("people in data at Stripe", "who works in marketing at Ramp", "find
+  // folks working in machine learning at X") is a discovery for that department's titles, never for the words "in data".
+  m = new RegExp(`${lead}(?:who\\s+works?|(?:the\\s+)?(?:people|folks|someone|anyone|everyone)(?:\\s+who\\s+works?|\\s+working)?)\\s+in\\s+(?:the\\s+)?([a-z][a-z &/-]{1,40}?)(?:\\s+(?:team|department|dept|org|group))?\\s+(?:at|from)\\s+(${CO})$`, "iu").exec(t);
+  if (m && m[1].trim().split(/\s+/).length <= 3 && !/\b(?:i|me|my|you|apply|applied|send|email|message|role|job|position)\b/i.test(m[1])) {
+    return { kind: "role_at", titles: [cleanCell(m[1], 80).toLowerCase()], seniority: [], company: cleanCell(m[2], 120) };
+  }
+  m = new RegExp(`${lead}(.+?)\\s+(?:at|from)\\s+(${CO})$`, "iu").exec(t);
   // ROUTING SCENARIOS (2026-10-29): without "find" / "show" / "who are" in front, the words before "at" must name people
   // (a plural, or a role word): "withdraw from Stripe" and "aply to the analyst role at Figma" are not searches for a
   // "withdraw" or an "aply to the analyst role" at the firm. An action or a question word is never a title.
   const led = new RegExp(`${lead}`, "i").exec(t)?.[0] ?? "";
   const peopleWords = (p: string) => /(?:[^s]s|\bstaff|\bpeople|\bfolks|\bteam|\bleadership)$/i.test(p.trim()) ||
     /\b(?:recruiter|engineer|manager|director|founder|partner|analyst|designer|scientist|developer|lead|head of \w+|vp|ceo|cto|cfo|coo|president|intern|associate|alum(?:nus|na)?)$/i.test(p.trim());
-  if (m && !/\b(i|me|my|you|work|working|apply|applying|applied|jobs?|roles?\s+open|send|email|draft|write|message|intro(?:duction)?s?|contacts?|know)\b/i.test(m[1]) && m[1].split(/\s+/).length <= 8 &&
+  // An outreach verb ("reach out to engineers at X", "reach people at X", "get in touch with ...") asks to write to people,
+  // the networking turn's draft or who; it is never a search for a title "reach out to engineer" (2026-10-29).
+  if (m && !/\b(i|me|my|you|work|working|apply|applying|applied|jobs?|roles?\s+open|send|email|e-mail|draft|write|message|msg|dm|ping|reach|contact|connect|touch|network|introduce|intro(?:duction)?s?|contacts?|know)\b/i.test(m[1]) && m[1].split(/\s+/).length <= 8 &&
     !/\b(?:withdraw\w*|cancel\w*|remove|delete|forget|stop|don'?t|do not|status|where|what|how|did|has|have|any|role|position|opening|posting|application)\b/i.test(m[1]) &&
     (led.trim() !== "" || peopleWords(m[1])) && !/^(?:my|your|our)\b/i.test(m[2])) {
     const r = rolesOf(m[1]);

@@ -276,7 +276,8 @@ Deno.test({ name: `replies at scale, end to end on Postgres: ${E2E} sampled scen
             if (r.dnc || r.bad || r.root !== "replied" || r.root_result !== "reply" || r.fu !== "cancelled" || r.other !== "queued" || ["awaiting", "out_of_office", "not_interested", "bounced"].includes(r.status) || r.followup_state !== "off") why = "a real reply: the sequence stops, nobody is opted out";
             break;
         }
-        rep.grade(s, why, JSON.stringify({ ...r, fu_at: fuAt === was ? "unchanged" : r.fu_at }));
+        // The fields that decide first: CI cuts an assertion message short.
+        rep.grade(s, why, JSON.stringify({ sent: r.followups_sent, action: r.action, fu: r.fu, status: r.status, state: r.followup_state, ...r, fu_at: fuAt === was ? "unchanged" : r.fu_at }));
       }
       rep.assertClean();
     });

@@ -99,6 +99,8 @@ import { gmailSender } from "../_shared/career_outreach_gmail.ts";
 import { fileUploadFor } from "../_shared/channel_resume_upload.ts"; // FEATURE 16
 import { outlookAsk, outlookChatTurn } from "../_shared/outlook_connector.ts"; // M4: Outlook
 import { shapeForTurn } from "../_shared/channel_shape.ts"; // REPLY SHAPE
+import { supabaseFileStore } from "../trainee-file/store.ts";
+import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts"; // FILE KINDS
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
@@ -404,7 +406,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
       let agentMeta: Record<string, unknown> | null = null;
-      let turnAttachments: unknown[] = [], turnLinks: string[] | null = null; // REPLY SHAPE: what the agent staged; the URLs it may show
+      let turnAttachments: unknown[] = [], turnLinks: string[] | null = null, turnFileLinks: string[] = []; // REPLY SHAPE: what the agent staged; the URLs it may show
       let turnPostings: unknown[] = []; // JOB CARDS: what the turn's search found, for channels that show cards
       const events = supabaseEventStore(admin);
       // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
@@ -856,6 +858,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           conversations: repliesStore,
           // REPLY SHAPE: Telegram with the reply writer on gets the shape rules and the attach_document tool.
           shape: replyWriterOn(Deno.env) && writerChannel((body as any)?.channel) === "telegram",
+          files: createFileService({ store: supabaseFileKindStore(admin), env: Deno.env, now: Date.now, records: { application: (u, id) => supabaseFileStore(admin).appRow(u, id) } }),
           verifier: hunterVerifier({ fetch, apiKey: Deno.env.get("HUNTER_API_KEY"), cache: supabaseCheckCache(admin), now: Date.now }),
           tailor: { posting: (id) => postingsDb.get(id), personas: supabasePersonaStore(admin), resumes: supabaseResumeStore(admin), render: edgeRenderer() },
           // WO-066: "apply me to these" puts the postings in the person's own queue; the extension prepares each, and each
@@ -874,7 +877,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         } else {
           // A batch of outreach drafts is shown by code, and its intent makes the next text an answer to it.
           turnPostings = Array.isArray(turn.postings) ? turn.postings : [];
-          turnAttachments = turn.attachments ?? []; turnLinks = turn.linksSeen ?? [];
+          turnAttachments = turn.attachments ?? []; turnLinks = turn.linksSeen ?? []; turnFileLinks = turn.fileLinks ?? [];
           out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent", ...(turn.show?.parts ? { parts: turn.show.parts } : {}) };
           agentMeta = { brain: staged.chosen ? "staged" : "agent", ...(staged.chosen ? { router_intent: staged.decision?.intent ?? null } : {}), tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
         }
@@ -1033,6 +1036,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           writable: writable(out, agentMeta, { structured: !!(careerTask || careerBatch) }) });
         if (sh.reply !== out.reply) out = { ...out, reply: sh.reply };
         shapeField = sh.shape;
+        // FILE KINDS: the links to the pages create_file made were minted by code; they are sent after the answer whatever the shape decided.
+        if (turnFileLinks.length) shapeField = { attachments: shapeField?.attachments ?? [], links: [...(shapeField?.links ?? []), ...turnFileLinks.filter((l) => !(shapeField?.links ?? []).includes(l))] };
         if (sh.notes.length) agentMeta = { ...(agentMeta || {}), reply_shape: sh.notes.slice(0, 8) };
       }
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));

@@ -19,6 +19,7 @@
 // either (a cap that cannot be checked is not a cap), and SPEND_UNREAD_NOTE says that instead.
 import { ModelUnavailableError } from "./model_calls.ts";
 import type { TurnMeter } from "./model_gateway.ts";
+import { type BudgetBlock, budgetBlockOfType, budgetReply } from "./model_budget.ts";
 
 type Env = { get(name: string): string | undefined };
 export interface DailySpend { usd_micros: number; calls: number }
@@ -51,8 +52,9 @@ export function supabaseDailySpend(admin: any, userId: string, now: () => number
 type Call = typeof import("./model_gateway.ts").callModel;
 export interface SpendCap {
   call: Call;
-  // Why a call was refused this turn ("limit" or "unread"), or null when none was.
-  refused(): "limit" | "unread" | null;
+  // Why a call was refused this turn ("limit" or "unread" for the person's ceiling; "global" or "global_paused" or
+  // "global_unavailable" for the whole product's daily budget, model_budget.ts), or null when none was.
+  refused(): "limit" | "unread" | "global" | "global_paused" | "global_unavailable" | null;
   // The sentence the reply carries when a call was refused, or null.
   note(): string | null;
 }
@@ -62,7 +64,8 @@ export interface SpendCap {
 export function spendCap(o: { read: () => Promise<DailySpend>; limits: SpendLimits; call: Call }): SpendCap {
   let base: Promise<DailySpend | null> | null = null;
   const meters = new Set<TurnMeter>();
-  let refused: "limit" | "unread" | null = null;
+  let refused: ReturnType<SpendCap["refused"]> = null;
+  let globalBlock: BudgetBlock | null = null;
   const call: Call = async (cfg, payload, opts = {}) => {
     base ??= o.read().catch((e) => { console.error("career spend cap:", (e as Error)?.message ?? e); return null; });
     const b = await base;
@@ -74,11 +77,17 @@ export function spendCap(o: { read: () => Promise<DailySpend>; limits: SpendLimi
       throw new ModelUnavailableError(429, "daily_limit", "the person's daily model limit is reached");
     }
     if (opts.meter) meters.add(opts.meter);
-    return await o.call(cfg, payload, opts);
+    try { return await o.call(cfg, payload, opts); }
+    catch (e) {
+      // The product-wide daily budget said no (or could not be checked): no request was made; the reply says so in plain words.
+      const block = e instanceof ModelUnavailableError ? budgetBlockOfType(e.type) : null;
+      if (block) { globalBlock = globalBlock ?? block; refused = refused ?? (block === "limit" ? "global" : block === "paused" ? "global_paused" : "global_unavailable"); }
+      throw e;
+    }
   };
   return {
     call,
     refused: () => refused,
-    note: () => refused === "limit" ? LIMIT_NOTE : refused === "unread" ? SPEND_UNREAD_NOTE : null,
+    note: () => globalBlock ? budgetReply(globalBlock) : refused === "limit" ? LIMIT_NOTE : refused === "unread" ? SPEND_UNREAD_NOTE : null,
   };
 }

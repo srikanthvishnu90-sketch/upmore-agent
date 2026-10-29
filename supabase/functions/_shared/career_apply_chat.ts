@@ -4,14 +4,14 @@
 // what was queued and that nothing is prepared, filled or sent by it: preparation uses only confirmed facts, the form's
 // open questions are asked of the person in chat, and the exact application goes only on their tap on its card.
 // A posting not on file is said so, never invented; a second ask for the same posting queues nothing twice; the screens
-// the brain's queue_applications applies (their current employer, an application there in the last 30 days) apply here.
+// the brain's queue_applications applies (their current employer, this exact posting already in their applications) apply here.
 // No product ceiling (owner, 2026-10-22: no cap on applications): only a daily pace the person set themselves is read,
 // and only once the turn is an apply ask; the once-per-employer guard, the exact-payload approval on each card and the
 // site limits stand. The batch ask (SERIAL-1410 (1): "apply to these", "apply to the top 2", "apply to 3 roles", "apply
 // to the second one") queues from the postings the thread last listed (the router's discovery.lastShortlist), each one
 // through the same screens on its own; the reply lists what was queued and what was not, with the reason for each. With
 // no list on the thread the batch ask is not this turn's.
-import { COMPANY_COOLDOWN_DAYS, INT4_MAX, type Limits, PACE_RE } from "./career_apply.ts";
+import { INT4_MAX, type Limits, PACE_RE } from "./career_apply.ts";
 import { type EmployerAnswer, employerQuestion, type Pick, queueWants, screenPicks, type WantStore } from "./career_apply_want.ts";
 import type { AppRow } from "./career_apply_status.ts";
 import { type FetchFeed, type PostingsDb, searchWords } from "./career_ingest.ts";
@@ -117,7 +117,7 @@ const lower = (s: unknown) => String(s ?? "").toLowerCase().replace(/[’']/g, "
 // one that failed before anything left, or stopped for the person, does not.
 const COUNTED = new Set(["queued", "driving", "submitted_unconfirmed", "confirmed", "unknown_outcome"]);
 export function trackedFromRows(rows: AppRow[]): TrackedApp[] {
-  return rows.map((r) => ({ ref: r.id, company: r.company, role: r.title ?? undefined, applied_at: r.created_at, stage: COUNTED.has(r.state) ? "Submitted" : "Saved", source: "queue" as const }));
+  return rows.map((r) => ({ ref: r.id, company: r.company, role: r.title ?? undefined, url: r.url ?? undefined, applied_at: r.created_at, stage: COUNTED.has(r.state) ? "Submitted" : "Saved", source: "queue" as const }));
 }
 
 export interface ApplyChatDeps {
@@ -158,7 +158,7 @@ export type ApplyChatResult = {
   coverage?: { queued: number; total: number }; prepare?: PrepareKick;
   posting?: { job_id: string; company: string; title: string };
   // The batch ask: what went into the queue and what did not, each with its reason.
-  queued?: { job_id: string; company: string; title: string }[]; refused?: { job_id: string | null; company: string; title: string; reason: string }[];
+  queued?: { job_id: string; company: string; title: string }[]; refused?: { job_id: string | null; company: string; title: string; reason: string; said?: string }[];
   // SERIAL-1490/1491: the postings waiting on "is X where you work now?"; the handler keeps them on the reply so the next
   // yes or no answers exactly these (employerAnswerTurn).
   ask?: EmployerQuestion[];
@@ -285,8 +285,8 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
       return { reply: askText([first.posting], o.facts ?? []), status: "asking_employer", intent, posting: { job_id: p.job_id, company: p.company, title: p.title },
         ask: [{ job_id: p.job_id ?? null, url: String(p.url ?? ""), company: p.company, title: p.title }] };
     }
-    const why = first?.reason ?? `nothing was queued`;
-    return { reply: `${coverageLine(0, 1)} Not queued: ${why}. (Trainee applies to an employer once in ${COMPANY_COOLDOWN_DAYS} days.)`, status: "refused", intent,
+    const why = first?.said ?? first?.reason ?? `nothing was queued`;
+    return { reply: `${coverageLine(0, 1)} Not queued: ${why}.`, status: "refused", intent,
       posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 } };
   }
   const resumeMissing = await noResume(o);
@@ -309,7 +309,7 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
       coverage: { queued: 1, total: 1 }, ...(kick ? { prepare: kick } : {}) };
   }
   if (r.already) return { reply: `${coverageLine(0, 1, 1)} ${p.title} at ${p.company} is already in your queue, so nothing changed. ${NOTHING_SENT(p.company, prepareRunsNow(o))}`, status: "already", intent, posting, coverage: { queued: 0, total: 1 } };
-  const why = r.refused[0]?.reason ?? "it could not be queued";
+  const why = r.refused[0]?.said ?? r.refused[0]?.reason ?? "it could not be queued";
   return { reply: `${coverageLine(0, 1)} Not queued: ${why}.`, status: "refused", intent, posting, coverage: { queued: 0, total: 1 } };
 }
 
@@ -354,7 +354,7 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
     return { reply: `I haven't listed any postings in this thread yet, so there is nothing for "these" to mean; nothing was queued. Say "find <role> jobs in <place>" first and then "apply to these", or name one: "apply to the <role> role at <Company>".`, status: "no_list", intent, queued: [], refused: [] };
   }
   let slice: ShortlistEntry[], note = "";
-  const missing: { job_id: string | null; company: string; title: string; reason: string }[] = [];
+  const missing: { job_id: string | null; company: string; title: string; reason: string; said?: string }[] = [];
   if (ask.kind === "nth") {
     if (ask.i > list.length) return { reply: `I listed ${list.length}, so there is no ${["first", "second", "third", "fourth", "fifth"][ask.i - 1] ?? `#${ask.i}`} one; nothing was queued. Say which of the ${list.length} you mean.`, status: "none", intent };
     slice = list.slice(ask.i - 1, ask.i);
@@ -385,18 +385,18 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   let apps: TrackedApp[];
   try { apps = trackedFromRows(await o.apps()); }
   catch { return { reply: "I couldn't read your applications just now, so I couldn't rule out one already sent to any of these; nothing was queued. Ask again in a minute.", status: "unreadable", intent }; }
-  // Each posting through the same screens as a single ask, on its own: their current employer, an application there in 30 days.
+  // Each posting through the same screens as a single ask, on its own: their current employer, this exact posting already applied to.
   const screened = screenPicks(picks, { apps, facts: o.facts ?? [], now: o.now, resolved: await answersOf(o) });
   // SERIAL-1491: the possible-match question attaches to its own posting; the rest of the batch goes on.
   const asking = screened.refused.filter((r) => r.ask === "employer");
-  const refused = [...missing, ...screened.refused.filter((r) => r.ask !== "employer").map((r) => ({ job_id: r.posting.job_id, company: r.posting.company, title: r.posting.title, reason: r.reason }))];
+  const refused = [...missing, ...screened.refused.filter((r) => r.ask !== "employer").map((r) => ({ job_id: r.posting.job_id, company: r.posting.company, title: r.posting.title, reason: r.reason, said: r.said }))];
   // FEATURE 1: with no confirmed resume on file nothing can be prepared, so nothing is queued; each posting is named.
   const resumeMissing = screened.ok.length ? await noResume(o) : false;
   if (resumeMissing === "unknown") return { reply: `${coverageLine(0, total)} ${RESUME_UNREAD}`, status: "resume_unreadable", intent, queued: [], refused, coverage: { queued: 0, total } };
   // OWNER RULE (2026-10-26): never queued without a confirmed resume, prepare on or off.
   if (resumeMissing) {
     for (const p of screened.ok) refused.push({ job_id: p.job_id ?? null, company: String(p.company ?? ""), title: String(p.title ?? ""), reason: NO_RESUME_REASON });
-    return { reply: `${coverageLine(0, total)} Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.reason}`), 8)}. ${NO_RESUME_NEXT}`, status: "no_resume", intent, queued: [], refused, coverage: { queued: 0, total } };
+    return { reply: `${coverageLine(0, total)} Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.said ?? r.reason}`), 8)}. ${NO_RESUME_NEXT}`, status: "no_resume", intent, queued: [], refused, coverage: { queued: 0, total } };
   }
   let queued: { job_id: string; company: string; title: string }[] = [], already = 0;
   if (screened.ok.length) {
@@ -406,7 +406,7 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
     const r = await queueWants(o.wants, o.userId, screened.ok, o.now, { limits: pace.limits, tz: o.tz });
     queued = r.items.map((w) => ({ job_id: w.posting_key, company: w.company, title: w.title }));
     already = r.already;
-    for (const x of r.refused) refused.push({ job_id: x.posting.job_id, company: x.posting.company, title: x.posting.title, reason: x.reason });
+    for (const x of r.refused) refused.push({ job_id: x.posting.job_id, company: x.posting.company, title: x.posting.title, reason: x.reason, said: x.said });
   }
   const kick = queued.length && !resumeMissing ? await prepareFor(o, queued.map((q) => q.job_id)) : null;
   const parts: string[] = [coverageLine(queued.length, total, already)];
@@ -415,10 +415,10 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   if (ahead) parts.push(ahead);
   if (resumeMissing && queued.length) parts.push(NO_RESUME_WAIT);
   if (already) parts.push(queued.length ? `${already} already in your queue, unchanged.` : `${already === slice.length ? (slice.length === 1 ? "That one is" : "Those are") : `${already} of them are`} already in your queue, so nothing changed.`);
-  if (refused.length) parts.push(`Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.reason}`), 8)}.`);
+  if (refused.length) parts.push(`Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.said ?? r.reason}`), 8)}.`);
   if (asking.length) parts.push(askText(asking.map((r) => r.posting), o.facts ?? []));
   const status = queued.length ? "queued" : already ? "already" : asking.length ? "asking_employer" : "refused";
-  const tail = queued.length || already ? ` ${NOTHING_SENT_MANY(prepareRunsNow(o))}` : refused.length ? ` (Trainee applies to an employer once in ${COMPANY_COOLDOWN_DAYS} days.)` : "";
+  const tail = queued.length || already ? ` ${NOTHING_SENT_MANY(prepareRunsNow(o))}` : "";
   return { reply: `${note}${parts.join(" ")}${tail}`.trim(), status, intent, queued, refused, coverage: { queued: queued.length, total }, ...(kick ? { prepare: kick } : {}),
     ...(asking.length ? { ask: asking.map((r) => ({ job_id: r.posting.job_id, url: r.posting.url, company: r.posting.company, title: r.posting.title })) } : {}) };
 }
@@ -519,7 +519,7 @@ export async function employerAnswerTurn(o: Omit<ApplyChatDeps, "postings" | "sh
   const resolved = [...await answersOf(o), ...answers];
   const picks: Pick[] = chosen.map((q) => ({ job_id: q.job_id ?? undefined, url: q.url, company: q.company, title: q.title }));
   const screened = screenPicks(picks, { apps, facts: o.facts ?? [], now: o.now, resolved });
-  const refused = screened.refused.map((r) => `${nameOf(r.posting)}: ${r.reason}`);
+  const refused = screened.refused.map((r) => `${nameOf(r.posting)}: ${r.said ?? r.reason}`);
   let queued: string[] = [], already = 0;
   if (screened.ok.length) {
     const pace = await readPace(o.limits);
@@ -527,7 +527,7 @@ export async function employerAnswerTurn(o: Omit<ApplyChatDeps, "postings" | "sh
     if (pace.limits?.unreadable !== undefined) return { reply: PACE_UNREADABLE(pace.limits.unreadable), status: "pace_unreadable", intent: EMPLOYER_ASK_INTENT, pending };
     const r = await queueWants(o.wants, o.userId, screened.ok, o.now, { limits: pace.limits, tz: o.tz });
     queued = r.items.map(nameOf); already = r.already;
-    for (const x of r.refused) refused.push(`${nameOf(x.posting)}: ${x.reason}`);
+    for (const x of r.refused) refused.push(`${nameOf(x.posting)}: ${x.said ?? x.reason}`);
   }
   const parts: string[] = [];
   if (queued.length) parts.push(`Noted, not your employer. Queued: ${queued.join("; ")}.`);

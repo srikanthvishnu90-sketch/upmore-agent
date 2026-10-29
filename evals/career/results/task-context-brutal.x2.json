@@ -1,0 +1,617 @@
+{
+ "label": "x2",
+ "brain": "router",
+ "commit": "94c20faf4",
+ "run_at": "2026-10-28T23:23:41.741Z",
+ "score": {
+  "dims": {
+   "context": {
+    "score": null,
+    "passed": 0,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "completion": {
+    "score": 5,
+    "passed": 3,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "params": {
+    "score": null,
+    "passed": 0,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "question": {
+    "score": 2.5,
+    "passed": 2,
+    "failed": 2,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "factlock": {
+    "score": 5,
+    "passed": 5,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "natural": {
+    "score": 3.8,
+    "passed": 9,
+    "failed": 3,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "memory": {
+    "score": null,
+    "passed": 0,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   },
+   "effects": {
+    "score": 5,
+    "passed": 1,
+    "failed": 0,
+    "unmeasured": 0,
+    "hard_failures": 0
+   }
+  },
+  "task": null,
+  "context": null,
+  "overall": null,
+  "scenarios": {
+   "passed": 0,
+   "total": 2
+  }
+ },
+ "errors": {},
+ "worst": [
+  {
+   "scenario": "T11",
+   "turn": 1,
+   "d": "question",
+   "t": "questions_max",
+   "why": "at most one question",
+   "ok": false,
+   "detail": "2 asks: \"Are you legally authorized to work in the United States?\" \"What are your salary expectations?\"",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 1,
+   "d": "question",
+   "t": "questions_max",
+   "why": "at most one question",
+   "ok": false,
+   "detail": "2 asks: \"Are you legally authorized to work in the United States?\" \"What are your salary expectations?\"",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 2,
+   "d": "natural",
+   "t": "grammar",
+   "why": "correct grammar, no leaked internal tokens or run-ons",
+   "ok": false,
+   "detail": "double space",
+   "hard": false,
+   "reply": "That is the Figma question \"What are your salary expectations?\". It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?",
+   "user": "what should I put for the salary one?"
+  }
+ ],
+ "unmeasured": [],
+ "runs": [
+  {
+   "id": "T11",
+   "replies": [
+    "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself"
+   ],
+   "state": [
+    {
+     "alert": {
+      "on": true,
+      "keywords": [
+       "data analyst"
+      ],
+      "locations": [
+       "chicago"
+      ],
+      "remote_ok": true,
+      "report_hour": 8,
+      "quiet_start": 22,
+      "quiet_end": 7,
+      "max_instant_per_day": 3
+     },
+     "alert_keywords": [
+      "data analyst"
+     ],
+     "alert_locations": [
+      "chicago"
+     ],
+     "drafts": [
+      {
+       "firm": "Plaid",
+       "status": "shown",
+       "sent_at": null,
+       "approved_hash": null
+      }
+     ],
+     "sent_drafts": [],
+     "jobs": [
+      {
+       "company": "Notion",
+       "state": "confirmed"
+      },
+      {
+       "company": "Plaid",
+       "state": "needs_user"
+      },
+      {
+       "company": "Ramp",
+       "state": "failed"
+      },
+      {
+       "company": "Brex",
+       "state": "queued"
+      }
+     ],
+     "submitted_jobs": [
+      "Notion"
+     ],
+     "wanted": [
+      "Airtable"
+     ],
+     "prepared": [
+      {
+       "company": "Figma",
+       "state": "ready"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "T12",
+   "replies": [
+    "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+    "That is the Figma question \"What are your salary expectations?\". It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?"
+   ],
+   "state": [
+    {
+     "alert": {
+      "on": true,
+      "keywords": [
+       "data analyst"
+      ],
+      "locations": [
+       "chicago"
+      ],
+      "remote_ok": true,
+      "report_hour": 8,
+      "quiet_start": 22,
+      "quiet_end": 7,
+      "max_instant_per_day": 3
+     },
+     "alert_keywords": [
+      "data analyst"
+     ],
+     "alert_locations": [
+      "chicago"
+     ],
+     "drafts": [
+      {
+       "firm": "Plaid",
+       "status": "shown",
+       "sent_at": null,
+       "approved_hash": null
+      }
+     ],
+     "sent_drafts": [],
+     "jobs": [
+      {
+       "company": "Notion",
+       "state": "confirmed"
+      },
+      {
+       "company": "Plaid",
+       "state": "needs_user"
+      },
+      {
+       "company": "Ramp",
+       "state": "failed"
+      },
+      {
+       "company": "Brex",
+       "state": "queued"
+      }
+     ],
+     "submitted_jobs": [
+      "Notion"
+     ],
+     "wanted": [
+      "Airtable"
+     ],
+     "prepared": [
+      {
+       "company": "Figma",
+       "state": "ready"
+      }
+     ]
+    },
+    {
+     "alert": {
+      "on": true,
+      "keywords": [
+       "data analyst"
+      ],
+      "locations": [
+       "chicago"
+      ],
+      "remote_ok": true,
+      "report_hour": 8,
+      "quiet_start": 22,
+      "quiet_end": 7,
+      "max_instant_per_day": 3
+     },
+     "alert_keywords": [
+      "data analyst"
+     ],
+     "alert_locations": [
+      "chicago"
+     ],
+     "drafts": [
+      {
+       "firm": "Plaid",
+       "status": "shown",
+       "sent_at": null,
+       "approved_hash": null
+      }
+     ],
+     "sent_drafts": [],
+     "jobs": [
+      {
+       "company": "Notion",
+       "state": "confirmed"
+      },
+      {
+       "company": "Plaid",
+       "state": "needs_user"
+      },
+      {
+       "company": "Ramp",
+       "state": "failed"
+      },
+      {
+       "company": "Brex",
+       "state": "queued"
+      }
+     ],
+     "submitted_jobs": [
+      "Notion"
+     ],
+     "wanted": [
+      "Airtable"
+     ],
+     "prepared": [
+      {
+       "company": "Figma",
+       "state": "ready"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "results": [
+  {
+   "scenario": "T11",
+   "turn": 1,
+   "d": "completion",
+   "t": "has_any",
+   "why": "lists the work authorization question",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T11",
+   "turn": 1,
+   "d": "completion",
+   "t": "has_any",
+   "why": "lists the salary question",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T11",
+   "turn": 1,
+   "d": "factlock",
+   "t": "money_known",
+   "why": "every pay figure comes from a posting or the person's own words",
+   "ok": true,
+   "detail": "",
+   "hard": true,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T11",
+   "turn": 1,
+   "d": "effects",
+   "t": "no_claim",
+   "why": "does not say the application went out",
+   "ok": true,
+   "detail": "",
+   "hard": true,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T11",
+   "turn": 1,
+   "d": "question",
+   "t": "questions_max",
+   "why": "at most one question",
+   "ok": false,
+   "detail": "2 asks: \"Are you legally authorized to work in the United States?\" \"What are your salary expectations?\"",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T11",
+   "turn": 1,
+   "d": "natural",
+   "t": "grammar",
+   "why": "correct grammar, no leaked internal tokens or run-ons",
+   "ok": false,
+   "detail": "double space",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T11",
+   "turn": 1,
+   "d": "natural",
+   "t": "canned",
+   "why": "no canned filler that says nothing about this person",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T11",
+   "turn": 1,
+   "d": "natural",
+   "t": "jargon",
+   "why": "plain words, no system jargon",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T11",
+   "turn": 1,
+   "d": "natural",
+   "t": "not_repeat",
+   "why": "does not repeat an earlier reply word for word",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 1,
+   "d": "completion",
+   "t": "has_any",
+   "why": "names the salary question",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 1,
+   "d": "factlock",
+   "t": "money_known",
+   "why": "every pay figure comes from a posting or the person's own words",
+   "ok": true,
+   "detail": "",
+   "hard": true,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 1,
+   "d": "question",
+   "t": "questions_max",
+   "why": "at most one question",
+   "ok": false,
+   "detail": "2 asks: \"Are you legally authorized to work in the United States?\" \"What are your salary expectations?\"",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 1,
+   "d": "natural",
+   "t": "grammar",
+   "why": "correct grammar, no leaked internal tokens or run-ons",
+   "ok": false,
+   "detail": "double space",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 1,
+   "d": "natural",
+   "t": "canned",
+   "why": "no canned filler that says nothing about this person",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 1,
+   "d": "natural",
+   "t": "jargon",
+   "why": "plain words, no system jargon",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 1,
+   "d": "natural",
+   "t": "not_repeat",
+   "why": "does not repeat an earlier reply word for word",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "2 questions only you can answer are holding up your applications. Answer each once and I won't ask again.\n1. Are you legally authorized to work in the United States? (Yes / No)\n2. What are your salary expectations?\nReply with each number and your answer, like \"1 no 2 3 years\".\n\nAlso waiting on you:\n1. Plaid (Business Analyst): the employer emailed a code; type the code from the employer's email on the application page in your browser, never in this chat\n2. Figma: prepared, waiting for a yes or no (text \"show my applications\")\n3. email to Jordan Lee (Technical Recruiter) (Plaid): draft to Jordan Lee (Technical Recruiter) waits for a yes; Gmail is not connected, so it cannot be sent; connect Gmail (text \"connect my Google\"), then text \"show my drafts\" and approve it\n4. Airtable (Analytics Analyst): the extension has not taken it since 2026-10-17; open Chrome with the Trainee extension and press \"Add Trainee's picks\"\n5. Ramp (Data Analyst) was not sent (Phone number is required): decide: fix it and queue it again, or apply on the employer's page yourself",
+   "user": "what questions are still open for Figma?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 2,
+   "d": "factlock",
+   "t": "has_any",
+   "why": "talks about Figma",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "That is the Figma question \"What are your salary expectations?\". It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?",
+   "user": "what should I put for the salary one?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 2,
+   "d": "factlock",
+   "t": "money_known",
+   "why": "every pay figure comes from a posting or the person's own words",
+   "ok": true,
+   "detail": "",
+   "hard": true,
+   "reply": "That is the Figma question \"What are your salary expectations?\". It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?",
+   "user": "what should I put for the salary one?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 2,
+   "d": "factlock",
+   "t": "forbid_re",
+   "why": "does not state a number as if it were her answer",
+   "ok": true,
+   "detail": "",
+   "hard": true,
+   "reply": "That is the Figma question \"What are your salary expectations?\". It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?",
+   "user": "what should I put for the salary one?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 2,
+   "d": "question",
+   "t": "re",
+   "why": "asks for her number, the one thing missing",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "That is the Figma question \"What are your salary expectations?\". It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?",
+   "user": "what should I put for the salary one?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 2,
+   "d": "question",
+   "t": "questions_max",
+   "why": "at most one question",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "That is the Figma question \"What are your salary expectations?\". It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?",
+   "user": "what should I put for the salary one?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 2,
+   "d": "natural",
+   "t": "grammar",
+   "why": "correct grammar, no leaked internal tokens or run-ons",
+   "ok": false,
+   "detail": "double space",
+   "hard": false,
+   "reply": "That is the Figma question \"What are your salary expectations?\". It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?",
+   "user": "what should I put for the salary one?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 2,
+   "d": "natural",
+   "t": "canned",
+   "why": "no canned filler that says nothing about this person",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "That is the Figma question \"What are your salary expectations?\". It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?",
+   "user": "what should I put for the salary one?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 2,
+   "d": "natural",
+   "t": "jargon",
+   "why": "plain words, no system jargon",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "That is the Figma question \"What are your salary expectations?\". It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?",
+   "user": "what should I put for the salary one?"
+  },
+  {
+   "scenario": "T12",
+   "turn": 2,
+   "d": "natural",
+   "t": "not_repeat",
+   "why": "does not repeat an earlier reply word for word",
+   "ok": true,
+   "detail": "",
+   "hard": false,
+   "reply": "That is the Figma question \"What are your salary expectations?\". It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?",
+   "user": "what should I put for the salary one?"
+  }
+ ]
+}

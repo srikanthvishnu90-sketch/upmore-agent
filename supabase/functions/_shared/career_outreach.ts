@@ -312,7 +312,7 @@ const who = (r: Recipient) => [r.name, r.title, r.firm].filter(Boolean).join(", 
 export function draftText(d: OutreachDraft): string {
   const common = (d.shared ?? []).length ? `In common: ${(d.shared ?? []).map((s) => `${s.value} (your ${s.fact || "fact"}; their ${s.field.replace("_", " ")})`).join("; ")}\n` : "";
   const m = messageOf(d);
-  return `${d.n}. To: ${who(d.recipient)} <${m.to}>\nFrom your list: ${d.recipient.source}\n${common}Subject: ${m.subject}\n\n${m.text}`;
+  return `${d.n}. To: ${who(d.recipient)} <${m.to}>\n${d.recipient.source ? `From your list: ${d.recipient.source}\n` : ""}${common}Subject: ${m.subject}\n\n${m.text}`;
 }
 export const BATCH_FOOT = `Reply "send all", "send 1-7,9" for some, "redo 3" for a new version, "skip 4" to drop one, "edit 3: your words" to change one, or "send none".`;
 // The batch, split on purpose into messages of at most 1,500 characters; a draft is never cut across two.
@@ -336,7 +336,10 @@ export const batchText = (drafts: OutreachDraft[]) => batchMessages(drafts).join
 export type OutreachReply =
   | { kind: "send"; all: boolean; ns: number[]; except: number[]; it?: boolean }
   | { kind: "skip"; ns: number[]; anytime?: boolean } | { kind: "redo"; n: number } | { kind: "edit"; n: number; text: string }
-  | { kind: "none" } | { kind: "show" } | { kind: "lapsed" } | { kind: "bad"; why: string };
+  | { kind: "none" } | { kind: "show" } | { kind: "lapsed" } | { kind: "bad"; why: string }
+  // WO-111: a draft named by who it is for ("send the Plaid email", "show me the message to Dana"). Naming a draft never
+  // approves it unless the person was just shown that batch in this thread (see outreachTurn).
+  | { kind: "one"; who: string[]; send: boolean };
 // FAMILY NETWORKING: "send it" / "looks good, send it" names the one draft shown (only when exactly one is waiting), and
 // "cancel 1" / "don't send 1" / "unapprove 1" takes back a draft, approved or not, at any time before it is sent.
 const SEND_IT = /^(?:(?:yes|yep|yeah|ok|okay|looks good|look good|sounds good|perfect|great|nice|cool|lgtm)[,!. ]+)?(?:please )?(?:send|approve)(?: it| this| that| this one| that one| the email| the draft)(?: now| please| for me)?$/;
@@ -368,6 +371,11 @@ export function parseOutreachReply(text: string): OutreachReply | null {
   if (/^(?:show|see|list|re-?show)(?: me)?(?: (?:my|the))? (?:lapsed|unsent|expired)(?: outreach)?(?: drafts| emails)?(?: again)?$/.test(t) || /^show lapsed$/.test(t)) return { kind: "lapsed" };
   if (/^(?:send none|none|don'?t send(?: any(?: of them)?)?|send nothing|cancel(?: all| them| the batch)?|skip all|no thanks)$/.test(t)) return { kind: "none" };
   if (SEND_IT.test(t)) return { kind: "send", all: false, ns: [], except: [], it: true };
+  const namedDraft = /^(?:(?:ok|okay|yes|please)[,.]?\s+)*(send|show|see)(?: me)?(?: (?:the|my))?(?: (.{2,40}?))? (?:email|e-mail|message|draft|note)(?: to (.{2,40}))?$/.exec(t);
+  if (namedDraft && (namedDraft[2] || namedDraft[3])) {
+    const who = `${namedDraft[2] ?? ""} ${namedDraft[3] ?? ""}`.split(/[^a-z0-9&.']+/).filter((w) => w.length >= 3 && !/^(the|for|and|that|this|one|first|last|outreach)$/.test(w));
+    if (who.length) return { kind: "one", who, send: namedDraft[1] === "send" };
+  }
   const cancel = CANCEL.exec(t);
   if (cancel) {
     const nums = parseNumbers(cancel[1]);
@@ -474,13 +482,17 @@ export async function outreachTurn(o: {
   onApproved?: (userId: string, items: ApprovedItem[]) => Promise<void>;
 }): Promise<{ reply: string; status: string; intent: string; parts?: string[]; approved?: ApprovedItem[] } | null> {
   // A batch yes (D-MN-2) counts only while the batch is the thread's last word: the check just below, as for "send all".
-  const r: OutreachReply | null = parseOutreachReply(o.message) ?? parseBatchYes(o.message);
+  let r: OutreachReply | null = parseOutreachReply(o.message) ?? parseBatchYes(o.message);
   if (!r) return null;
   // D-MN-2: a question ("send them all?", "send 3?") is never an approval; with D-MN-1 an approval now sends.
   if (r.kind === "send" && /\?\s*$/.test(String(o.message ?? "").trim())) return null;
   // A take-back ("cancel 1") counts at any time, but only for a draft of the newest batch still waiting or approved.
   const anytime = r.kind === "skip" && !!r.anytime;
-  if (r.kind !== "show" && r.kind !== "lapsed" && !anytime && (await o.store.lastAssistantIntent(o.threadId)) !== OUTREACH_INTENT) return null;
+  const seenHere = (await o.store.lastAssistantIntent(o.threadId)) === OUTREACH_INTENT;
+  // WO-111: "yes send it" in a thread that has not just shown the draft shows the waiting draft instead of approving it.
+  const unseenIt = r.kind === "send" && !!r.it && !seenHere && (await o.store.latestBatch(o.userId)).filter((d) => d.status === "shown").length === 1;
+  if (unseenIt) r = { kind: "one", who: [], send: false };
+  if (r.kind !== "show" && r.kind !== "lapsed" && r.kind !== "one" && !anytime && !seenHere) return null;
   if (anytime && (await o.store.lastAssistantIntent(o.threadId)) !== OUTREACH_INTENT) {
     const b = await o.store.latestBatch(o.userId);
     if (!r.ns.every((n) => b.some((d) => d.n === n && (d.status === "shown" || d.status === "approved")))) return null;
@@ -504,6 +516,22 @@ export async function outreachTurn(o: {
   if (!batch.length) return r.kind === "show" ? { reply: `${note}There are no outreach drafts yet. Ask me to draft emails to people on your list.`, status: lapsed.length ? "empty_lapsed" : "empty", intent: "career_outreach_answer" } : null;
   const open = (s: string, status: string) => ({ reply: s, status, intent: OUTREACH_INTENT });
   if (r.kind === "show") return { ...open(note + batchText(batch), lapsed.length ? "shown_lapsed" : "shown"), parts: [...(lapsed.length ? [lapsedLine(lapsed.length)] : []), ...batchMessages(batch)] };
+  if (r.kind === "one") {
+    const q = r;
+    const waiting = batch.filter((d) => d.status === "shown" || d.status === "approved");
+    const norm = (x: string) => plain(x);
+    const hits = q.who.length
+      ? waiting.filter((d) => q.who.some((w) => norm(`${d.recipient.name} ${d.recipient.firm ?? ""}`).split(" ").includes(norm(w)) || norm(d.recipient.firm ?? "").includes(norm(w))))
+      : waiting.filter((d) => d.status === "shown");
+    if (q.who.length && !hits.length) return open(`${note}No waiting draft is for ${q.who.join(" ")}. Waiting: ${waiting.length ? listOf(waiting) : "none"}.`, "not_in_batch");
+    if (hits.length !== 1) return open(`${note}Which one? Waiting: ${listOf(hits)}. Name one, for example "show the ${hits[0]?.recipient.firm ?? hits[0]?.recipient.name ?? "first"} email".`, "which");
+    const d = hits[0];
+    if (!(q.send && seenHere && d.status === "shown")) {
+      const foot = d.status === "approved" ? `Draft ${d.n} is already approved exactly as shown.` : `Say send ${d.n} to approve exactly this message to ${d.recipient.name}, edit ${d.n}: followed by your words to change it, or skip ${d.n} to drop it. Nothing is sent until you approve it.`;
+      return open(`${note}${draftText(d)}\n\n${foot}`, "shown_one");
+    }
+    r = { kind: "send", all: false, ns: [d.n], except: [] };
+  }
   const byN = new Map(batch.map((d) => [d.n, d]));
   const numbers = batch.map((d) => d.n);
   const range = numbers.length === 1 ? "only number 1" : `numbers 1 to ${Math.max(...numbers)}`;
@@ -555,7 +583,7 @@ export async function outreachTurn(o: {
     const d = byN.get(n)!;
     if (d.status !== "shown") { not.push(`${n} (${d.status})`); continue; }
     const h = await payloadHash(messageOf(d));
-    if (h !== d.hash) { not.push(`${n} (changed since it was shown)`); continue; }
+    if (h !== d.hash) { not.push(`${n} ${d.recipient.name} (changed since it was shown)`); continue; }
     if (await o.store.update(o.userId, { ...d, status: "approved", approved_hash: h, approved_at: new Date(o.now).toISOString() }, { status: "shown", hash: h })) {
       approved.push(d);
       await recordOutreach(o.events, o.userId, "outreach_approved", d, o.now);

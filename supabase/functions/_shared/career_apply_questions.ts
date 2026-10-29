@@ -70,7 +70,7 @@ const MAX_ANSWER = 2000;
 
 const plain = (s: string) => String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/[.!]+$/, "").replace(/\s+/g, " ").trim();
 const ASK =
-  /^(?:so )?(?:what (?:else )?(?:do|did) you need(?: from me| me to answer)?|what questions do you have(?: for me)?|(?:any|got any) questions(?: for me)?|(?:show|send|list|give)(?: me)? (?:my |the |your )?(?:open )?questions|what'?s (?:missing|left|blocking my applications|stopping my applications)|what do i (?:need to|have to|still need to) answer|(?:let me |i'?ll |i want to )?answer (?:your|the|my) questions)\??$/;
+  /^(?:so )?(?:(?:what|which) (?:application )?questions (?:are|do you have|remain)(?: still)?(?: open| unanswered| outstanding| waiting)?(?: for [a-z0-9 .&']+)?|what (?:else )?(?:do|did) you need(?: from me| me to answer)?|what questions do you have(?: for me)?|(?:any|got any) questions(?: for me)?|(?:show|send|list|give)(?: me)? (?:my |the |your )?(?:open )?questions|what'?s (?:missing|left|blocking my applications|stopping my applications)|what do i (?:need to|have to|still need to) answer|(?:let me |i'?ll |i want to )?answer (?:your|the|my) questions)\??$/;
 export const isAsk = (text: string) => ASK.test(plain(text));
 
 // The few words a person uses for yes and no that the option matcher does not know.
@@ -276,6 +276,17 @@ export async function questionsTurn(
   if (cmd) {
     if ((await o.store.lastAssistantIntent(o.threadId)) !== QUESTIONS_INTENT) return null;
     return await draftTurn(o, shown, cmd);
+  }
+  // "what should I put for the salary one?": the open question the person means, named with its employer. Which answer goes on
+  // the form is theirs to say; nothing is suggested, guessed or saved here.
+  const adv = /^(?:ok |so )?what (?:should|do) i (?:put|say|write|answer|enter|use)(?: for| on| in| as)? (?:the |my )?(.{2,40}?)(?: one| question| field| box)?$/.exec(plain(o.message));
+  if (adv && (await o.store.lastAssistantIntent(o.threadId)) === QUESTIONS_INTENT) {
+    const words = adv[1].split(" ").filter((w) => w.length >= 3 && !/^(the|one|this|that)$/.test(w));
+    const q = (await o.store.get(o.userId, shown.ids)).find((x) => words.some((w) => plain(x.label).includes(w)));
+    if (q) {
+      const opts = q.options?.length ? ` The choices on the form are ${q.options.join(" or ")}.` : "";
+      return { reply: `That is ${q.company ? `the ${q.company} question` : "the question"} "${q.label.replace(/\s+/g, " ").trim()}".${opts} It goes on the application in your name, so I will not pick the answer for you. What do you want it to say?`, status: "advice" };
+    }
   }
   if (shown.ids.length === 1 && TALK.test(o.message.trim())) return null;
   const parts = splitAnswers(o.message, shown.ids.length);

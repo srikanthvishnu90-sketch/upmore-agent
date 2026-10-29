@@ -62,6 +62,7 @@ import { accountMemoryAfterTurn, statedFactsBefore } from "../_shared/career_acc
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
 import { boardFetchFeed, supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts"; // FEATURE E2E: boardFetchFeed
+import { alertControlTurn } from "../_shared/career_alert_control.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
@@ -69,7 +70,7 @@ import { feature1Deps, resumeOnFileReader } from "../_shared/career_apply_from_c
 import { cancelTurn, prepareAfterAnswers, withPending } from "../_shared/career_hosted_prepare.ts"; // FEATURE 17
 import { statusAsk } from "../_shared/career_apply_status.ts"; // FEATURE 17
 import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
-import { codePending, readSituation } from "../_shared/career_situation.ts";
+import { carryFrom, codePending, readSituation } from "../_shared/career_situation.ts";
 import { statusRecordsFrom } from "../_shared/career_capabilities.ts";
 import { edgeRenderer, supabasePersonaStore, supabaseResumeStore } from "../_shared/career_tailor.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
@@ -393,6 +394,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       };
       // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).
       if (situation) ctx.statusRecords = statusRecordsFrom(situation.capabilities);
+      (ctx as { carry?: unknown }).carry = carryFrom(situation); // WO-110: the router reads the person's facts from every thread
       // WO-002 (D-008): the agent brain answers when CAREER_BRAIN=agent; structured task/batch requests stay on the
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
@@ -621,7 +623,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           } }).catch((e) => { console.error("follow-up turn:", e?.message ?? e); return null; })
         : null;
       const stood = !billing && !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !paced && !employerAns && !queued && !receiptAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await standingTurn({ message, userId: user.id, now: Date.now(), read: supabaseStanding(admin) }).catch((e) => { console.error("standing turn:", e?.message ?? e); return null; })
+        ? (await standingTurn({ message, userId: user.id, now: Date.now(), read: supabaseStanding(admin) }).catch((e) => { console.error("standing turn:", e?.message ?? e); return null; }))
+          ?? (await alertControlTurn({ message, userId: user.id, store: supabaseAlertStore(admin) }).catch((e) => { console.error("alert control:", e?.message ?? e); return null; })) // WO-111: stop, pause or resume the saved alert
         : null;
       const status = !billing && !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !paced && !queued && !stood && !receiptAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })

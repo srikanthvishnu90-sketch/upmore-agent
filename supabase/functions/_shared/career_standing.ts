@@ -74,7 +74,10 @@ export function supabaseStanding(admin: any, read: ReadApplications = supabaseAp
 
 // ------------------------------------------------------------------------------------------------ the asks
 const plain = (s: string) => ` ${String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/[?!.]+\s*$/, "").replace(/\s+/g, " ").trim()} `;
-const STAND_ALL = /^ (?:so )?(?:where do i stand|how do i stand|what'?s my standing) $/;
+// All of the person's applications, in the ways people ask: "what's happening with my applications", "how are my applications going",
+// "where do my applications stand", "any update on my applications", "status of my applications".
+const MY_APPS = "(?:my )?(?:job )?applications?(?: so far)?";
+const STAND_ALL = new RegExp(`^ (?:so |ok |okay |hey )?(?:where do i stand|how do i stand|what'?s my standing|(?:what'?s|what is|whats) (?:happening|going on|new) with ${MY_APPS}|how (?:are|is) ${MY_APPS} (?:going|doing|looking)|where (?:do|does|are|is) ${MY_APPS} (?:stand|at)|(?:any|what'?s the|got any|is there any) (?:updates?|news|status)(?: on| about| with| for)? ${MY_APPS}|(?:what'?s|what is|whats) the status of ${MY_APPS}|status (?:of|on|for) ${MY_APPS}|update me on ${MY_APPS}) $`);
 const STAND_ONE = /^ (?:so )?(?:where do i stand|how do i stand|what'?s my standing|how am i doing) (?:with|at|on) (.+?) $/;
 const INBOX_ALL = /^ (?:so )?(?:who (?:has |'?s )?emailed me|who has written to me|who wrote to me|who (?:has )?(?:replied|responded|got back to me)|any news(?: from (?:employers|anyone|companies))?|any (?:replies|responses|emails?|mail)(?: from (?:employers|anyone|companies))?|(?:have i|did i) (?:hear|heard) (?:back|anything)(?: from anyone)?|(?:did|has) anyone (?:get back to me|gotten back to me|reply|replied|respond|responded|email me|emailed me|write back|written back)|what'?s in my inbox|anything in my inbox|any (?:rejections|interviews|offers)(?: yet)?) $/;
 const INBOX_ONE = [

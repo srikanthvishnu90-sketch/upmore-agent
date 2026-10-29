@@ -17,6 +17,8 @@ import { DEFAULT_PREFS } from "../../supabase/functions/_shared/career_alerts.ts
 import { memoryWantStore } from "../../supabase/functions/_shared/career_apply_want.ts";
 import { CARD_INTENT, cardTurn } from "../../supabase/functions/_shared/career_apply_cards.ts";
 import { QUESTIONS_INTENT, questionsTurn } from "../../supabase/functions/_shared/career_apply_questions.ts";
+import { billingTurn } from "../../supabase/functions/_shared/career_billing.ts";
+import { alertControlTurn } from "../../supabase/functions/_shared/career_alert_control.ts";
 import { memoryOutreachStore, outreachTurn } from "../../supabase/functions/_shared/career_outreach.ts";
 import { memoryEventStore } from "../../supabase/functions/_shared/agent/timeline.ts";
 import { appsFromQueue, appsFromTracker } from "../../supabase/functions/_shared/career_mail_store.ts";
@@ -103,7 +105,7 @@ export async function openWorld(file: any, o: { postings?: any[]; fail?: Set<str
     career_outreach_drafts: () => outreach.dump().drafts.filter((d) => d.user_id === USER),
     career_alert_prefs: async () => { const r = await alerts.get(USER); return r ? [{ prefs: r.prefs, tz: r.tz }] : []; },
     career_watch_kv: async () => [{ key: "career:standing", value: { items: await memory.standing(USER) } }],
-    agent_flow_state: () => [...threads.entries()].map(([thread_id, t]) => ({ thread_id, rows: t.snapshot?.stores?.trackStore?.rows ?? null })),
+    agent_flow_state: () => [...threads.entries()].map(([thread_id, t]) => ({ thread_id, updated_at: new Date(now).toISOString(), rows: t.snapshot?.stores?.trackStore?.rows ?? null, facts: t.snapshot?.stores?.profile?.facts ?? null })),
     user_oauth_connections: () => clone(file.connections ?? []),
     career_apply_cloud_optin: () => (file.cloud ? [file.cloud] : []), channel_contacts: () => (file.channel ? [file.channel] : []),
     career_events: () => events.recall(USER, { kinds: ["search"], limit: 1 }),
@@ -127,16 +129,25 @@ export async function worldTurn(w: World, o: { brain: "agent" | "router"; thread
   const situation = S ? await S.readSituation(w.admin, USER, now) : null;
   const input: any = (chatInput as any)(o.message, [], 4000, { codePending: S ? S.codePending(situation) : false });
   const message: string = input.message, note = redactionNote(input.redacted);
-  const ctx: any = w.H.createTurnCtx({ userId: USER, threadId: o.threadId, now, accountPersistence: true, snapshot: t.snapshot, account: w.account, postings: w.kb });
+  const ctx: any = w.H.createTurnCtx({ userId: USER, threadId: o.threadId, now, accountPersistence: true, snapshot: t.snapshot, account: w.account, postings: w.kb, carry: S?.carryFrom ? S.carryFrom(situation) : null });
   if (situation && C) ctx.statusRecords = C.statusRecordsFrom(situation.capabilities);
   const controlled = w.H.isHostControlled(message, ctx);
   let out: { reply: string; intent: string | null; handler: string }, seen: Seen | null = null;
-  const card = !controlled ? await cardTurn({ message, userId: USER, threadId: o.threadId, now, store: w.cardStore as any }) : null;
-  const asked = !card && !controlled ? await questionsTurn({ message, userId: USER, threadId: o.threadId, now, store: w.questionStore as any, situation } as any) : null;
+  // Billing is code-first in the handler (before everything else); the world has no subscription and no Stripe, so a cancel
+  // ask is answered from the empty record and a price ask says so, exactly as the handler does for an account with no row.
+  const lastBill = (w as any)._billMeta ?? ((w as any)._billMeta = {});
+  const billAns = !controlled ? await billingTurn({ message, userId: USER, threadId: o.threadId, now, stripe: null,
+    store: { subscription: async () => null, lastMeta: async (tid: string) => lastBill[tid] ?? null, markCancelling: async () => {} } }).catch(() => null) : null;
+  if (billAns) lastBill[o.threadId] = { intent: billAns.intent, ...(billAns.meta ?? {}) };
+  const alertAns = !controlled && !billAns ? await alertControlTurn({ message, userId: USER, store: w.alerts }).catch(() => null) : null;
+  const card = !controlled && !alertAns && !billAns ? await cardTurn({ message, userId: USER, threadId: o.threadId, now, store: w.cardStore as any }) : null;
+  const asked = !alertAns && !billAns && !card && !controlled ? await questionsTurn({ message, userId: USER, threadId: o.threadId, now, store: w.questionStore as any, situation } as any) : null;
   const gmailOn = situation ? situation.capabilities.some((c: any) => c.id === "gmail_send" && c.status === "on") : false;
-  const outAns = !card && !asked && !controlled
+  const outAns = !alertAns && !billAns && !card && !asked && !controlled
     ? await outreachTurn({ message, userId: USER, threadId: o.threadId, now, store: w.outreach, gmailConnected: async () => gmailOn, connectAsk: missingIntegration("gmail") }).catch(() => null) : null;
-  if (card) out = { reply: card.reply, intent: ["shown", "not_on_card", "change"].includes(card.status) ? CARD_INTENT : "career_apply_card_answer", handler: "code:cards" };
+  if (billAns) out = { reply: billAns.reply, intent: billAns.intent, handler: "code:billing" };
+  else if (alertAns) out = { reply: alertAns.reply, intent: alertAns.intent, handler: "code:alerts" };
+  else if (card) out = { reply: card.reply, intent: ["shown", "not_on_card", "change"].includes(card.status) ? CARD_INTENT : "career_apply_card_answer", handler: "code:cards" };
   else if (asked) out = { reply: asked.reply, intent: ["shown", "partial"].includes(asked.status) ? QUESTIONS_INTENT : "career_apply_questions_answer", handler: "code:questions" };
   else if (outAns) out = { reply: outAns.reply, intent: outAns.intent, handler: "code:outreach" };
   else if (o.brain === "agent" && !controlled) {

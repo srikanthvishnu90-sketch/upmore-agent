@@ -17,8 +17,12 @@ export interface Task {
   evidence: { confirmation_id?: string; reason?: string; url?: string; job_id?: string; stage?: string; when?: string };
   source: string;
 }
+// WO-110: a fact the person confirmed (a resume entry they approved, or something they told Trainee and confirmed), from
+// any of their threads. `source` says where it came from in the person's words; never a guess.
+export interface KnownFact { kind: string; text: string; source: string; at: string | null }
 export interface Situation {
   as_of: string;
+  facts: KnownFact[];
   goal: { roles: string[]; places: string[]; constraints: string[] };
   tasks: Task[];
   today: { used: number; limit: number | null; pace_unreadable?: string };
@@ -32,7 +36,7 @@ type Rows = any[];
 export interface SituationRows {
   jobs: Rows; wanted: Rows; prepared: Rows; card?: { shown_at: string } | null; questions: Rows; outreach: Rows; mail_drafts: Rows; interviews: Rows;
   alerts: { prefs: any; tz?: string } | null; standing: { text: string }[]; daily_limit?: unknown;
-  threads: { thread_id?: string; rows?: Rows | null }[]; connections: Connection[]; cloud: { enabled: boolean } | null;
+  threads: { thread_id?: string; rows?: Rows | null; facts?: Rows | null; updated_at?: string | null }[]; connections: Connection[]; cloud: { enabled: boolean } | null;
   channel: { opted_out: boolean } | null; last_search: { at: string; subject: string; detail: any } | null; unreadable: string[];
 }
 
@@ -46,6 +50,28 @@ const NEEDS: Record<string, [string, string]> = {
 };
 const day = (iso: string | null | undefined) => (iso ? String(iso).slice(0, 10) : "");
 const str = (x: unknown) => (x === null || x === undefined || x === "" ? null : String(x));
+
+// WO-110: confirmed profile facts from every thread, newest thread first, one per kind+text. A draft (needs_confirmation, or
+// status draft) never rides, and neither does a fact the delegation quarantine (D-007) names.
+const DELEGATED = /owner-delegated|answer-all|delegated[- _]answers|mi-038/i;
+export function knownFactsFrom(threads: SituationRows["threads"]): KnownFact[] {
+  const out: KnownFact[] = [], seen = new Set<string>();
+  const ordered = [...threads].sort((a, b) => String(b.updated_at ?? "").localeCompare(String(a.updated_at ?? "")));
+  for (const t of ordered) for (const f of Array.isArray(t.facts) ? t.facts : []) {
+    if (!f || typeof f !== "object" || f.needs_confirmation || f.status === "draft" || f.quarantine || f.quarantined) continue;
+    if (["provenance", "source", "origin"].some((k) => DELEGATED.test(String(f[k] ?? "")))) continue;
+    const text = str(f.text) ?? str(f.value) ?? ([str(f.title), str(f.detail)].filter(Boolean).join(", ") || null);
+    const kind = str(f.kind);
+    if (!text || !kind) continue;
+    const key = `${kind}:${text.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const from = String(f.source ?? f.provenance ?? f.origin ?? "");
+    const source = /resume|cv|upload/i.test(from) ? "from your resume" : /chat|told|stated|said|owner/i.test(from) ? `you told me${f.at ? ` on ${day(f.at)}` : ""}` : "confirmed by you";
+    out.push({ kind, text, source, at: str(f.at) ?? str(f.confirmed_at) ?? null });
+  }
+  return out.slice(0, 60);
+}
 
 export function situationFrom(r: SituationRows, now: number): Situation {
   const tasks: Task[] = [];
@@ -116,6 +142,7 @@ export function situationFrom(r: SituationRows, now: number): Situation {
   const ls = r.last_search;
   return {
     as_of: new Date(now).toISOString(),
+    facts: knownFactsFrom(r.threads),
     goal: { roles: prefs?.keywords ?? [], places: [...(prefs?.locations ?? []), ...(prefs?.remote_ok ? ["remote"] : [])], constraints: r.standing.map((s) => s.text) },
     tasks,
     today: { used: r.jobs.filter((j) => COUNTED.has(j.state) && Date.parse(j.created_at) > now - DAY).length, limit: paceState(r.daily_limit).pace, ...(paceState(r.daily_limit).state === "unreadable" ? { pace_unreadable: paceState(r.daily_limit).raw as string } : {}) },
@@ -164,7 +191,7 @@ export async function readSituation(admin: any, userId: string, now: number): Pr
     interviews: q("career_interviews").select("id,company,role,starts_at,interview_date").eq("user_id", userId).or(`starts_at.gte.${today},interview_date.gte.${today.slice(0, 10)}`).limit(20),
     alerts: q("career_alert_prefs").select("prefs,tz").eq("user_id", userId).maybeSingle(),
     kv: q("career_watch_kv").select("key,value").eq("user_id", userId).in("key", ["career:standing", "career:account"]),
-    threads: q("agent_flow_state").select("thread_id,rows:state->career->stores->trackStore->rows").eq("user_id", userId).limit(200),
+    threads: q("agent_flow_state").select("thread_id,updated_at,rows:state->career->stores->trackStore->rows,facts:state->career->stores->profile->facts").eq("user_id", userId).limit(200),
     connections: q("user_oauth_connections").select("provider,scopes,connected_at").eq("user_id", userId).limit(20),
     cloud: q("career_apply_cloud_optin").select("enabled").eq("user_id", userId).maybeSingle(),
     channel: q("channel_contacts").select("opted_out").eq("user_id", userId).maybeSingle(),
@@ -184,6 +211,15 @@ export async function readSituation(admin: any, userId: string, now: number): Pr
     cloud: one(d.cloud), channel: one(d.channel), last_search: one(d.last_search), unreadable,
   }, now);
 }
+
+// WO-110: what the router path carries into a new thread (ctx.carry): the confirmed facts, the standing instructions and the
+// saved alert's roles and places. The router reads it; it is never written back as a fact.
+export interface Carry { facts: KnownFact[]; standing: string[]; alert: { roles: string[]; places: string[]; remote: boolean } | null; tasks: { company: string; line: string }[] }
+export const carryFrom = (s: Situation | null): Carry | null => !s ? null : {
+  facts: s.facts, standing: s.goal.constraints,
+  tasks: s.tasks.filter((t) => t.company && t.kind !== "question").map((t) => ({ company: t.company as string, line: taskLine(t).slice(2) })),
+  alert: s.goal.roles.length || s.goal.places.length ? { roles: s.goal.roles, places: s.goal.places.filter((p) => p !== "remote"), remote: s.goal.places.includes("remote") } : null,
+};
 
 // Whether an employer's emailed code is waiting: a bare code in the person's next text is that code (identity_redact.ts).
 export const codePending = (s: Situation | null) => !!s?.tasks.some((t) => t.state === "needs_user" && t.evidence.reason === "email_code");
@@ -214,6 +250,7 @@ export function situationBlock(s: Situation, budget = SITUATION_BUDGET): string 
   const ls = s.last_shown, line = (t: Task) => taskLine(t, false);
   const L: [string, boolean][] = [
     [`SITUATION (built by code from their account at ${s.as_of.slice(0, 16).replace("T", " ")} UTC: every task in flight, its state, what blocks it and who acts. It is the truth about their tasks.)`, true],
+    ...(s.facts.length ? [[`Confirmed facts about them, from every conversation (their record; say it as theirs, never invent one beyond these): ${s.facts.map((f) => `${f.text} [${f.kind}; ${f.source}]`).join("; ")}`, true] as [string, boolean]] : []),
     [goalLine(s), true], [s.today.pace_unreadable !== undefined ? `Today: ${s.today.used} applications in the last 24 hours (their saved daily pace could not be read: it says ${JSON.stringify(s.today.pace_unreadable)}; nothing more is queued until they say "set my daily pace to N" or "no daily pace").` : s.today.limit === null ? `Today: ${s.today.used} applications in the last 24 hours (no daily limit; they may set their own pace).` : `Today: ${s.today.used} of ${s.today.limit} applications used (last 24 hours).`, true],
     ["Next steps, in order (how is the exact step):", true], ...(s.next.length ? s.next.map(nextLine) : ["- nothing in flight"]).map((x): [string, boolean] => [x, true]),
     ...(ls ? [[`Last list shown (${day(ls.at)}, "${ls.query}"): ${ls.items.map((x, i) => `${i + 1}. ${x.company}, ${x.title} (${x.job_id})`).join("; ")}`, false] as [string, boolean]] : []),

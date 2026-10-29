@@ -107,7 +107,7 @@ export const sourceOf = (jobId: string, provider?: string | null) => {
 // ATS or job-board host says nothing about the employer, so no domain (and no logo) comes from it. A link's host counts as the
 // employer's only when its name is the employer's name (careers.acme.com for Acme): a list of every applicant-tracking and
 // job-board host can never be complete (tests/architect/scenarios-file-apply.test.ts: acme.bamboohr.com showed BambooHR's logo
-// as Acme's; lnkd.in and indeed.co.uk showed theirs).
+// as Acme's; LinkedIn's short-link host and Indeed's UK host showed theirs).
 const SECOND_LEVEL = /^(co|com|ac|org|net|gov|edu|ne|or)$/;
 const registrableLabel = (h: string) => { const l = h.split("."); return l.length >= 3 && SECOND_LEVEL.test(l[l.length - 2]) && l[l.length - 1].length === 2 ? l[l.length - 3] : l[l.length - 2] ?? ""; };
 const companySlug = (c: string) => String(c ?? "").toLowerCase().replace(/&/g, "and").replace(/\b(inc|llc|ltd|corp|corporation|co|company|gmbh|the)\b\.?/g, "").replace(/[^a-z0-9]/g, "");
@@ -451,7 +451,7 @@ export function postingVerdict(job: JobView, row: PostingRow, facts: any[], fact
   if (!hard.length) return null;
   return hard[0].said ?? "that posting didn't pass the posting screen";
 }
-// LinkedIn, Indeed and Handshake on any suffix or spelling of their host (www.linkedin.com., lnkd.in, indeed.co.uk): never automated.
+// LinkedIn, Indeed and Handshake on any suffix or spelling of their host (a trailing-dot host, the short-link host, a country domain): never automated.
 export const byHandHost = (h: string) => BLOCKED_HOST.test(h) || neverOpen(h);
 export const byHandUrl = (u: string) => { try { return byHandHost(new URL(u).hostname); } catch { return false; } };
 

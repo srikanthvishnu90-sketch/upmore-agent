@@ -64,7 +64,7 @@ export function fullOf(description: string | null | undefined): string | null {
   return plain ? clip(plain, 12000) : null;
 }
 export const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
-// Only an http or https posting link becomes a link on the page (a stored "javascript://www.linkedin.com/..." is never one).
+// Only an http or https posting link becomes a link on the page (a stored "javascript:" link is never one).
 export const webUrl = (u: string) => { try { const x = new URL(u); return x.protocol === "https:" || x.protocol === "http:" ? u : null; } catch { return null; } };
 
 // ---------------------------------------------------------------- html

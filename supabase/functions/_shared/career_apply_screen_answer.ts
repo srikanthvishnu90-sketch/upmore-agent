@@ -15,7 +15,8 @@ export interface HeldPosting { job_id: string | null; company: string; title: st
 // What the reply keeps for the next turn.
 export function screenMeta(screen?: GateResult | null): Record<string, unknown> | null {
   if (!screen?.asks?.length) return null;
-  return { screen_ask: screen.asks.map((a) => ({ fact: a.fact, question: a.question })), screen_held: screen.held.map((h) => ({ job_id: h.job_id, company: h.company, title: h.title, url: h.url })) };
+  return { screen_ask: screen.asks.map((a) => ({ fact: a.fact, question: a.question })), screen_held: screen.held.map((h) => ({ job_id: h.job_id, company: h.company, title: h.title, url: h.url })),
+    ...(screen.asks.length === 1 && isYesNoFact(screen.asks[0].fact) ? { screen_buttons: ["Yes", "No"] } : {}) }; // one yes/no question open: Yes / No buttons (a bare yes/no answers none of several)
 }
 
 // A real yes / no only. "I don't know", "idk", "skip", "maybe" are NOT a no (D-007: never invent an answer): nothing is saved.
@@ -147,13 +148,13 @@ export async function screenAnswerTurn(o: ScreenAnswerDeps): Promise<ScreenAnswe
     // So is a reply that answers ANOTHER question, or leads with yes / no and then contradicts itself ("No, I need sponsorship"): nothing is written.
     // A yes/no question takes exactly yes or no: anything else (a sentence, another question's answer, "Austin") that is not a command or
     // a question of its own is a non-answer. Nothing is written; it is asked again once, with "Reply yes or no" and Yes / No buttons.
-    const yn = facts.some(isYesNoFact);
+    const yn = facts.some(isYesNoFact), ynOne = yn && facts.length === 1;
     const touches = !/\?/.test(msg) && !COMMAND.test(msg.replace(/\bplease\b/gi, "")) && (yn || /\b(?:sponsor\w*|visa|h-?1b|work permit|citizen\w*|green card|relocat\w*|degree|bachelor\w*|master\w*|ph\.?d)\b/i.test(msg) || !!yesNoOf(msg));
     const nonAnswer = UNSURE.test(msg) || touches || (facts.length === 1 && msg.split(/\s+/).length <= 4 && !COMMAND.test(msg.replace(/\bplease\b/gi, "")) && !/\?/.test(msg));
     if (nonAnswer) {
       if (!o.last?.meta?.screen_reasked) {
-        return { reply: `${yn ? "Reply yes or no. " : ""}I need a real answer for that, so I haven't saved anything. ${asked.map((a) => a.question).join(" ")}`, status: "asking", intent, saved: [],
-          meta: { screen_ask: asked, screen_held: held0, screen_reasked: true, ...(yn ? { screen_buttons: ["Yes", "No"] } : {}) } };
+        return { reply: `${ynOne ? "Reply yes or no. " : ""}I need a real answer for that, so I haven't saved anything. ${asked.map((a) => a.question).join(" ")}`, status: "asking", intent, saved: [],
+          meta: { screen_ask: asked, screen_held: held0, screen_reasked: true, ...(ynOne ? { screen_buttons: ["Yes", "No"] } : {}) } };
       }
       return { reply: `No problem, I haven't saved an answer and I'll keep ${held0.length === 1 ? "that posting" : "those postings"} on hold. Tell me ${asked.map((a) => LABEL[a.fact]).join(" and ")} whenever you want them screened.`, status: "held", intent, saved: [] };
     }

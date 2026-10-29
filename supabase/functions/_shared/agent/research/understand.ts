@@ -2,7 +2,8 @@
 // the field, the stage, the place, the kind of question, and whether ONE question is worth asking. Everything the pack does not
 // say becomes a stated assumption in the brief; nothing is inferred by a model.
 import type { ContextPack } from "../knowledge/context_pack.ts";
-import { FIELDS, OVERLAYS, type Field, type Overlay } from "./fields.ts";
+import { FIELDS, genericField, OVERLAYS, type Field, type Overlay } from "./fields.ts";
+import type { Derived } from "./derive.ts";
 
 export type StageGroup = "early_student" | "late_student" | "new_grad" | "grad_student" | "switcher" | "displaced" | "experienced" | "unknown";
 export type QType = "get_hired" | "switch" | "pay" | "credential" | "timeline" | "open";
@@ -53,15 +54,16 @@ function qtypeOf(m: string): QType {
 const strs = (k: { value: string[] | string | null; status: string }, st: string): string[] => k.status === st && k.value ? (Array.isArray(k.value) ? k.value : [k.value]) : [];
 
 const dedupe = (xs: string[]) => [...new Set(xs)].filter((x, i, a) => !a.some((y, j) => j !== i && y.length > x.length && y.toLowerCase().includes(x.toLowerCase())));
-export function understand(o: { pack: ContextPack; message: string }): Understanding {
-  const { pack, message } = o;
+export function understand(o: { pack: ContextPack; message: string; derived?: Derived | null }): Understanding {
+  const { pack, message, derived } = o;
   const all = [pack.education, pack.experience, pack.skills, pack.projects, pack.goals];
-  const field = detectField(message, [...strs(pack.goals, "confirmed"), ...strs(pack.goals, "said"), ...strs(pack.major, "confirmed"), ...strs(pack.major, "said")]);
-  const stage = stageOf(pack, message);
+  const catalog = detectField(message, [...strs(pack.goals, "confirmed"), ...strs(pack.goals, "said"), ...strs(pack.major, "confirmed"), ...strs(pack.major, "said")]);
+  const field = catalog ?? (derived ? genericField(derived.label, derived.local) : null);
+  const stage = stageOf(pack, message) === "unknown" && derived?.stage ? derived.stage : stageOf(pack, message);
   const hay = [message, ...pack.said_in_chat, ...all.flatMap((k) => k.value ?? [])].join(" . ");
   const tag = (t: string) => pack.overlays.some((x) => x.tag === t);
   const overlays = OVERLAYS.filter((v) => v.detect.test(hay) || (v.id === "intl" && tag("ctx:international")) || (v.id === "first_gen" && tag("ctx:first_gen")) || (v.id === "veteran" && tag("stage:military")) || (v.id === "displaced" && stage === "displaced"));
-  const place = strs(pack.places, "confirmed")[0] ?? strs(pack.places, "said")[0] ?? /\b(?:in|near|around|from) ((?:[A-Z][a-z]+)(?: [A-Z][a-z]+)?)\b(?=[ ,.?!]|$)/.exec(message)?.[1] ?? null;
+  const place = strs(pack.places, "confirmed")[0] ?? strs(pack.places, "said")[0] ?? derived?.place ?? /\b(?:in|near|around|from) ((?:[A-Z][a-z]+)(?: [A-Z][a-z]+)?)\b(?=[ ,.?!]|$)/.exec(message)?.[1] ?? null;
   const assumptions: string[] = [];
   const geo = place ?? "the US", geoKey = place ? place.toLowerCase().replace(/[^a-z ]/g, "").trim() : "us";
   if (!place) assumptions.push("Assuming you're in the US; if not, the places and rules below change.");

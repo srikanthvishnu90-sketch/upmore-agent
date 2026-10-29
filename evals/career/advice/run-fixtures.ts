@@ -8,7 +8,7 @@ import { scoreBrief, table } from "./score.ts";
 export const NOW = Date.parse("2026-10-28T12:00:00Z");
 export const profileOf = (p: Persona) => ({ facts: p.facts.map((f) => ({ ...f, status: "confirmed", needs_confirmation: false })) });
 export async function runPersona(p: Persona, cache = memoryGroundCache(), calls = { n: 0 }) {
-  const res = await researchCareerQuestion({ profile: profileOf(p), message: p.message, deps: { search: mockSearch(p, calls), cache, publish: async () => ({ url: LINK }) }, now: NOW });
+  const res = await researchCareerQuestion({ profile: profileOf(p), message: p.message, deps: { search: mockSearch(p, calls), cache, publish: async (_f) => ({ url: LINK }) }, now: NOW });
   if (res.status !== "ok") throw new Error(`${p.id}: ${res.status}`);
   return res;
 }

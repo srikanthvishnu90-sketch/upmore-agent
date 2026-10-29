@@ -100,7 +100,7 @@ export function composeBrief(o: { u: Understanding; g: Grounded; message: string
   else L.push("No sources were retrieved. Everything above marked \"general knowledge\" is standard practice, not data.");
 
   // The final guard: any line with a number or name no source, no fact of the person's and no general term accounts for is dropped.
-  const support = { facts, person: [...u.confirmed, ...u.said, o.today], message: o.message };
+  const support = { facts, person: [...u.confirmed, ...u.said, o.today, f.label], message: o.message };
   const dropped: string[] = [];
   const kept = L.filter((line, i) => {
     if (!line.trim() || /^#|^\d+\. S\d/.test(line) || line.startsWith(">")) return true;

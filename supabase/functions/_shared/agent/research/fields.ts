@@ -46,7 +46,7 @@ export const FIELDS: Field[] = [
     who: ["Alumni of your program who work in consulting or in strategy roles", "Recent hires and second-year students who just went through the process", "Your school's consulting club leaders"],
     asks: ["What separated candidates who got offers from those who did not?", "How did you practise cases, and what would you change?", "Which firm types fit my background, and why?"],
     verify: ["Each firm's current application window and class-year eligibility", "Current compensation at any named firm", "Whether a given office is hiring this cycle"] },
-  { id: "swe", label: "software engineering", detect: /software|\bswe\b|developer|programmer|web dev|full[- ]?stack|front[- ]?end|back[- ]?end|coding/i,
+  { id: "swe", label: "software engineering", detect: /software|\bswe\b|(?:web|app|mobile|front[- ]?end|back[- ]?end|full[- ]?stack) (?:dev|developer|engineer)|programmer|coding bootcamp|computer programming/i,
     queries: [
       { q: "software developer entry-level hiring timeline internships {stage} {geo}", kinds: ["timeline", "program", "eligibility"] },
       { q: "small company and startup software internships how to apply {stage}", kinds: ["employer", "program"] },
@@ -194,3 +194,25 @@ export const OVERLAYS: Overlay[] = [
     read: "A bootcamp gives you a start, not a track record, so what employers see is the work you can show beyond the course.",
     stage: "Replace group-project work in your portfolio with something you built and own end to end." },
 ];
+
+// Any field the catalog does not name. The ten above are seed hints (they add field-specific method); this is the same
+// pipeline for everything else: the label comes from the person's own question (derive.ts), the substance from the search.
+// The general-knowledge lines are method that is true of any occupation, and say so; they carry no field facts.
+export function genericField(label: string, local = false): Field {
+  return {
+    id: "other" as FieldId, label, detect: /(?!)/, local,
+    queries: [
+      { q: "how to become a {field} entry requirements and training {stage} {geo}", kinds: ["eligibility", "credential", "timeline"] },
+      { q: "{field} employers and entry-level training programs hiring {geo}", kinds: ["employer", "program"] },
+      { q: "Bureau of Labor Statistics O*NET {field} pay and job outlook", kinds: ["pay", "outlook"] },
+      { q: "{field} license or certification required how to get it {geo}", kinds: ["credential", "eligibility"] }],
+    now: "What you can realistically do now is set by this occupation's own entry requirements, so the first job is to learn exactly what they are from an official or industry source and to meet the first one.",
+    later: "Once you meet the entry requirement and have a first role or placement, the next rungs are the specializations, credentials and senior roles the occupation's own industry body describes.",
+    slots: { foundation: "Find the official description of the occupation, its entry requirements and its usual training route, and write down which ones you already meet.", experience: "Get close to the real work: shadow someone, volunteer, take an assistant or trainee role, or complete the supervised hours the occupation requires.", credential: "Find out which license, certification or degree employers actually screen on, and who grants it, before you pay for any course.", target: "Apply to the employer categories the sources list, starting with those that train new people." },
+    targets: ["Employers that hire and train new entrants", "Training programs, schools and apprenticeships the field's industry body lists", "Public-sector and nonprofit employers in the field", "Small and local employers that hire through personal introductions"],
+    credentials: ["The entry requirement: ask the field's industry body or licensing board what it is, and read the official page rather than a course seller's summary.", "Hands-on evidence: supervised hours, a placement, a portfolio or work samples, whichever this occupation uses.", "Any license or certification: confirm who grants it, what it costs and how long it takes before committing."],
+    who: ["People currently doing the job, found through your school, a local employer or the industry body", "Instructors and program coordinators in the training route", "Recruiters or managers who hire for the role"],
+    asks: ["How did you get your first role, and what would you do differently?", "What do employers here actually screen on?", "What should I have finished before I apply?"],
+    verify: ["Your state or country's current entry requirements and fees", "Which employers are hiring and their deadlines", "Current pay in your area"],
+  };
+}

@@ -8,7 +8,7 @@ const OPENERS = /^\s*(?:great|good|excellent|interesting|fair|sure|absolutely|ce
 const NOW = /\b(?:now|today|this (?:semester|year|summer|term|season)|right now|at this stage|currently|for now|first)\b/i;
 const LATER = /\b(?:later|next (?:year|summer|semester|season)|after|once|eventually|then|over time|down the line)\b/i;
 
-export function lintChat(p: string, o: { link?: string | null; facts: { text: string; quote: string; label: string }[]; person: string[]; message: string }): string[] {
+export function lintChat(p: string, o: { link?: string | null; noLink?: boolean; facts: { text: string; quote: string; label: string }[]; person: string[]; message: string }): string[] {
   const bad: string[] = [];
   const t = p.trim(), link = o.link ?? null;
   const prose = link ? t.replace(link, "").trim() : t.replace(/https?:\/\/\S+/g, "").trim();
@@ -16,7 +16,9 @@ export function lintChat(p: string, o: { link?: string | null; facts: { text: st
   if (/\n\s*\n|\n\s*(?:[-*•]|\d+[.)]|#)/.test(t) || /^\s*(?:[-*•#]|\d+[.)])/.test(t)) bad.push("not one plain paragraph");
   if (words > CHAT_MAX_WORDS) bad.push(`too long (${words} words, cap ${CHAT_MAX_WORDS})`);
   if (words < CHAT_MIN_WORDS) bad.push(`too short (${words} words)`);
-  if (link ? !t.endsWith(link) : !/https?:\/\/\S+$/.test(t)) bad.push("does not end with the file link");
+  if (o.noLink) {
+    if (/https?:\/\//.test(t) || /\b(?:file|attached|attachment|link|brief|document)\b/i.test(t)) bad.push("claims a file or link that does not exist");
+  } else if (link ? !t.endsWith(link) : !/https?:\/\/\S+$/.test(t)) bad.push("does not end with the file link");
   const sents = prose.split(/(?<=[.!?])\s+/).filter(Boolean);
   if (sents.length > CHAT_MAX_SENTENCES) bad.push(`too many sentences (${sents.length})`);
   const lower = prose.toLowerCase().replace(/[‘’]/g, "'");

@@ -43,6 +43,7 @@ import { CONFLICT_CODES, CONFLICT_REPLY, countSend, newTurnEffects, refusedSaveR
 import { poolNeeded } from "./career_pool_need.ts";
 import { linkChecker } from "../_shared/link_check.ts";
 import { knowledgeOn } from "../_shared/agent/knowledge/index.ts";
+import { modelDerive } from "../_shared/agent/research/derive.ts";
 import { memoryGroundCache, openAiGroundSearch } from "../_shared/agent/research/ground.ts";
 import { DEFAULT_SEARCH_MODEL } from "../_shared/career_people_provider.ts";
 const researchCache = memoryGroundCache();
@@ -818,7 +819,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           knowledge: knowledgeOn(Deno.env),
           // Open career questions: cached, capped OpenAI web search (the worst case is reserved in the day's model budget). The cache is per instance
           // until a table is approved by the owner; the brief is returned as markdown until PR #280 (file kinds) supplies `publish`.
-          research: knowledgeOn(Deno.env) && cfg.provider === "openai" && cfg.apiKey ? { search: openAiGroundSearch({ apiKey: cfg.apiKey, model: DEFAULT_SEARCH_MODEL }), cache: researchCache } : null,
+          research: knowledgeOn(Deno.env) && cfg.provider === "openai" && cfg.apiKey ? { search: openAiGroundSearch({ apiKey: cfg.apiKey, model: DEFAULT_SEARCH_MODEL }), cache: researchCache, derive: modelDerive(async (system, user) => { const r = await callModel(cfg, { system, messages: [{ role: "user", content: [{ type: "text", text: user }] }], max_tokens: 200 }, { meter, role: "chat" }); return (r.content ?? []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join(""); }) } : null,
           known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory });
         await ledger.record(meter);
         if (turn.stopped === "model_error" && !turn.tool_calls.some((t) => t.ok && t.effect === "write_own")) {

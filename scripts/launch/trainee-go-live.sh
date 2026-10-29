@@ -439,7 +439,7 @@ ask() {
 # --non-interactive: the project's secret names, read once (names and digests only; never printed).
 LIVE_SECRETS=""; LIVE_READ=""
 live_has() {
-  if [[ -z "$LIVE_READ" ]]; then
+  if [[ "$LIVE_READ" != 1 ]]; then
     LIVE_SECRETS="$(supabase secrets list --project-ref "$REF" 2>/dev/null)" \
       || fail "could not read the project's secret names (supabase secrets list --project-ref $REF; check SUPABASE_ACCESS_TOKEN): nothing is generated without knowing what is set"
     LIVE_READ=1
@@ -496,7 +496,17 @@ gate_fns() {
   GATED_DONE=1
   for pair in "${GATED[@]}"; do
     fn="${pair%%:*}"; var="${pair##*:}"; on=""
-    if [[ -n "$DRY" ]]; then [[ -z "${!var:-}" ]] || on=1; else live_has "$var" && on=1; fi
+    if [[ -n "$DRY" ]]; then [[ -z "${!var:-}" ]] || on=1
+    elif [[ -z "${REF:-}" || "$REF" == "<ref>" ]]; then
+      echo "  gated: $fn SKIPPED (secrets list unavailable: no project ref)"; continue
+    else
+      # A failed listing skips the gated functions (never deployed ungated, never aborts the run).
+      if [[ -z "$LIVE_READ" ]]; then
+        if LIVE_SECRETS="$(supabase secrets list --project-ref "$REF" 2>/dev/null)"; then LIVE_READ=1; else LIVE_READ=0; fi
+      fi
+      if [[ "$LIVE_READ" != 1 ]]; then echo "  gated: $fn SKIPPED (secrets list unavailable)"; continue; fi
+      grep -qw -- "$var" <<<"$LIVE_SECRETS" && on=1
+    fi
     if [[ -n "$on" ]]; then GATED_ON+=("$fn"); DEPLOY_FNS+=("$fn"); echo "  gated: $fn will be deployed ($var is set)"
     else echo "  gated: $fn SKIPPED ($var is not among the function secrets)"; fi
   done

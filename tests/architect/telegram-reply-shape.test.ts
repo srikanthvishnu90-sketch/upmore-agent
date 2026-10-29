@@ -3,7 +3,7 @@
 import assertNode from "node:assert/strict";
 import { telegramAdapter, parseTelegramUpdate } from "../../supabase/functions/_shared/telegram.ts";
 import { runInbound, type CoreDeps } from "../../supabase/functions/_shared/channel_inbound.ts";
-import { ANSWER_MAX_CHARS, MORE_MAX_CHARS, planSends, byteLength, FILE_MAX_BYTES, MAX_FILES, MAX_LINKS, safeFilename, shapeForTurn, shapeReply } from "../../supabase/functions/_shared/channel_shape.ts";
+import { ANSWER_MAX_CHARS, MORE_MAX_CHARS, PAGE_CHUNK_CHARS, PAGE_MAX_CHUNKS, chunkSentences, splitLongAnswer, planSends, byteLength, FILE_MAX_BYTES, MAX_FILES, MAX_LINKS, safeFilename, shapeForTurn, shapeReply } from "../../supabase/functions/_shared/channel_shape.ts";
 import { runAgentTurn } from "../../supabase/functions/_shared/agent/loop.ts";
 import { attachTool } from "../../supabase/functions/_shared/agent/attach_tool.ts";
 import { SHAPE_RULES } from "../../supabase/functions/_shared/agent/prompt.ts";
@@ -227,4 +227,29 @@ Deno.test("attach_document: off for advice and research turns, on only when the 
   // the brain registers the tool only behind that check (no other path adds it)
   const src = await Deno.readTextFile(new URL("../../supabase/functions/agent-chat/career_brain.ts", import.meta.url));
   assert(/o\.shape && attachAsked\(o\.message\) \? \[attachTool\(\)\]/.test(src) && (src.match(/attachTool\(\)/g) ?? []).length === 1);
+});
+
+Deno.test("long remainder (>1500 chars): the page gets all of it in whole sentences; with no page the second message ends on a sentence and the loss is noted", () => {
+  const sent = (i: number) => `Step ${i} is to do the next concrete thing and then check what it showed you.`;
+  const body = Array.from({ length: 80 }, (_, i) => sent(i)).join(" "); // ~6 KB
+  const reply = `Start with one target role. ${body}`;
+  const sp = splitLongAnswer(reply)!;
+  assert(sp.full.length > 1500 && sp.full.includes(sent(79)), "the full remainder is kept");
+  // page configured: every sentence lands on the page, none cut
+  const page = chunkSentences(sp.full, PAGE_CHUNK_CHARS, PAGE_MAX_CHUNKS);
+  assert(page.chunks.length <= PAGE_MAX_CHUNKS && page.chunks.every((c) => c.length <= 600 && /[.!?]$/.test(c)));
+  eq(page.chunks.join(" "), sp.full, "nothing lost, nothing cut mid-sentence");
+  // more than the page holds: it stops on a sentence boundary
+  const huge = chunkSentences(Array.from({ length: 400 }, (_, i) => sent(i)).join(" "), PAGE_CHUNK_CHARS, PAGE_MAX_CHUNKS);
+  assert(huge.trimmed && huge.chunks.every((c) => /[.!?]$/.test(c)));
+  // no page: one second message, whole sentences, never past the cap
+  const s = shapeReply({ answer: reply });
+  eq(s.more?.length, 1);
+  assert(s.more![0].length <= MORE_MAX_CHARS && /[.!?]$/.test(s.more![0]));
+  const small = shapeReply({ answer: `Start with one target role. ${Array.from({ length: 30 }, (_, i) => sent(i)).join(" ")}` });
+  assert(small.more![0].length > 1500 && small.more![0].includes(sent(29)), "a remainder over 1500 chars is no longer dropped");
+  assert(s.notes.some((n) => /left out/.test(n)), "a cut is said in the notes, never silent");
+  // with a page: head only plus the link
+  const withPage = shapeReply({ answer: reply }, { overflowLink: "https://files.example.com/f?t=v1.abc" });
+  eq(withPage.more, undefined); eq(withPage.links.length, 1);
 });

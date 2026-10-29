@@ -85,7 +85,9 @@ const sentences = (s: string) => s.split(/(?<=[.!?])\s+/).map((x) => x.trim()).f
 // leading COMPLETE sentences up to ANSWER_MAX_CHARS, never cut mid-sentence and never ending on a dangling list ("...these five
 // things: 1) Pick..."): a sentence that opens a list (ends with ":") or is a list item goes to the rest with its list. The rest is
 // whole sentences too, at most MORE_MAX_CHARS; what is beyond that is skipped (a hosted page carries it when one is configured).
-export const MORE_MAX_CHARS = 1500; // the one follow-up message
+export const MORE_MAX_CHARS = 3000; // the one follow-up message (Telegram allows 4096)
+export const PAGE_CHUNK_CHARS = 580; // one finding on the hosted page; the page holds 12
+export const PAGE_MAX_CHUNKS = 12;
 const LIST_ITEM = /^(?:\d{1,2}[.)]|[-*•])\s/;
 const endsClean = (t: string) => /[.!?]["')\]]?$/.test(t);
 // Sentences, with an inline numbered list ("1) Pick one. 2) Do two.") kept as items of their own.
@@ -99,7 +101,20 @@ function pieces(text: string): string[] {
   return out;
 }
 const cleanEnd = (t: string) => { const x = t.trim().replace(/[\s,;:–—-]+$/, ""); return endsClean(x) ? x : `${x}.`; };
-export function splitLongAnswer(answer: string): { head: string; rest: string } | null {
+// Whole sentences packed into pieces of at most `max` chars (a sentence longer than `max` is cut at a clause or word, ending with a full stop).
+export function chunkSentences(text: string, max: number, limit = Infinity): { chunks: string[]; trimmed: boolean } {
+  const chunks: string[] = [];
+  let cur = "";
+  const push = () => { if (cur) { chunks.push(cur); cur = ""; } };
+  for (let s of pieces(text)) {
+    while (s.length > max) { const c = s.slice(0, max), at = Math.max(c.lastIndexOf(", "), c.lastIndexOf("; ")), w = (at > max / 2 ? c.slice(0, at) : c.replace(/\s+\S*$/, "")).trim(); push(); chunks.push(cleanEnd(w)); s = s.slice(w.length).replace(/^[\s,;]+/, ""); }
+    if (cur && cur.length + 1 + s.length > max) push();
+    cur = cur ? `${cur} ${s}` : s;
+  }
+  push();
+  return { chunks: chunks.slice(0, limit), trimmed: chunks.length > limit };
+}
+export function splitLongAnswer(answer: string): { head: string; rest: string; full: string; trimmed: boolean } | null {
   const text = answer.trim();
   if (text.length <= ANSWER_MAX_CHARS) return null;
   const ps = pieces(text);
@@ -126,7 +141,15 @@ export function splitLongAnswer(answer: string): { head: string; rest: string } 
   let used = 0;
   for (const r of rest) { if (used + r.length + 1 > MORE_MAX_CHARS) break; more.push(r); used += r.length + 1; }
   while (more.length && (/:$/.test(more[more.length - 1]) || !endsClean(more[more.length - 1]))) more.pop();
-  return { head, rest: more.join(" ") };
+  return { head, rest: more.join(" "), full: rest.join(" "), trimmed: more.length < rest.length };
+}
+
+// The answer text with every URL taken out (a line that was only a link goes, a link inside a sentence leaves the sentence).
+export function withoutLinks(text: string): string {
+  return String(text ?? "").replace(/<!--[\s\S]*?-->/g, "").split("\n").map((line) => {
+    const rest = withoutUrls(line), bare = rest.replace(/[\s:()\-–—•*]+/g, "");
+    return findUrls(line).length && !bare ? "" : rest.replace(/\s*\(\s*\)/g, "").replace(/[ \t]{2,}/g, " ").replace(/\s+([.,;:!?])/g, "$1").trimEnd();
+  }).join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 // The shape of one reply. `allowedLinks`: the URLs the turn may show (those a tool returned or the person typed); null: the
@@ -146,11 +169,7 @@ export function shapeReply(raw: RawShape, o: { allowedLinks?: Iterable<string> |
     if (links.length >= MAX_LINKS) { notes.push(`link dropped (over ${MAX_LINKS}): ${u.slice(0, 120)}`); continue; }
     links.push(u);
   }
-  // Take every URL out of the answer text: a line that was only a link goes, a link inside a sentence leaves the sentence.
-  answer = answer.split("\n").map((line) => {
-    const rest = withoutUrls(line), bare = rest.replace(/[\s:()\-–—•*]+/g, "");
-    return findUrls(line).length && !bare ? "" : rest.replace(/\s*\(\s*\)/g, "").replace(/[ \t]{2,}/g, " ").replace(/\s+([.,;:!?])/g, "$1").trimEnd();
-  }).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  answer = withoutLinks(answer);
 
   // Attachments: sanitized, sized, at most MAX_FILES.
   const files: ShapedFile[] = [];
@@ -175,7 +194,7 @@ export function shapeReply(raw: RawShape, o: { allowedLinks?: Iterable<string> |
   if (long) {
     answer = long.head;
     if (o.overflowLink && /^https:\/\//.test(o.overflowLink)) { if (!links.includes(o.overflowLink) && links.length < MAX_LINKS) links.push(o.overflowLink); notes.push("long answer: rest on a page"); }
-    else { if (long.rest) more.push(long.rest); notes.push("long answer: rest in a second message"); }
+    else { if (long.rest) more.push(long.rest); notes.push(long.trimmed ? "long answer: rest in a second message, ended on a sentence; the end was left out (over the 2-message budget)" : "long answer: rest in a second message"); }
   }
   return { answer, attachments: files, links, notes, ...(more.length ? { more } : {}) };
 }

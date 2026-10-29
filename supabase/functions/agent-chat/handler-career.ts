@@ -104,7 +104,7 @@ import { careerGrant, followupTurn, gmailReadNow, mailNow, supabaseFollowupStore
 import { gmailSender } from "../_shared/career_outreach_gmail.ts";
 import { fileUploadFor } from "../_shared/channel_resume_upload.ts"; // FEATURE 16
 import { outlookAsk, outlookChatTurn } from "../_shared/outlook_connector.ts"; // M4: Outlook
-import { shapeForTurn, splitLongAnswer } from "../_shared/channel_shape.ts"; // REPLY SHAPE
+import { chunkSentences, PAGE_CHUNK_CHARS, PAGE_MAX_CHUNKS, shapeForTurn, splitLongAnswer, withoutLinks } from "../_shared/channel_shape.ts"; // REPLY SHAPE
 import { applyHereTurn } from "../_shared/apply_here.ts"; // APPLY HERE: a pasted link or "apply to this" -> one line + one Apply button
 import { supabaseFileStore } from "../trainee-file/store.ts";
 import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts"; // FILE KINDS
@@ -1057,11 +1057,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // OVERFLOW (owner, 2026-10-29): never a downloaded file. With the hosted-file service configured (TRAINEE_FILE_BASE_URL) the rest of
         // a long answer is a research_brief page, sent as a link; it needs a source the turn really had. Anything else: a second message.
         let overflowLink: string | null = null;
-        const longRest = replyWriterOn(Deno.env) && writerChannel((body as any)?.channel) === "telegram" ? splitLongAnswer(out.reply) : null;
+        const longRest = replyWriterOn(Deno.env) && writerChannel((body as any)?.channel) === "telegram" ? splitLongAnswer(withoutLinks(out.reply)) : null;
         const src = (turnLinks ?? []).find((u) => /^https:\/\//.test(u));
-        if (longRest?.rest && src && (Deno.env.get("TRAINEE_FILE_BASE_URL") || "").trim()) {
+        if (longRest?.full && src && (Deno.env.get("TRAINEE_FILE_BASE_URL") || "").trim()) {
           const made = await createFileService({ store: supabaseFileKindStore(admin), env: Deno.env, now: Date.now }).create(user.id, "research_brief", {
-            title: "More on your question", subject: "Your question", findings: [{ label: "The rest of the answer", value: longRest.rest.slice(0, 590), source: "Reported, not verified" }], sources: [{ title: new URL(src).hostname, url: src }] }).catch(() => null);
+            title: "More on your question", subject: "Your question", findings: chunkSentences(longRest.full, PAGE_CHUNK_CHARS, PAGE_MAX_CHUNKS).chunks.map((value, i) => ({ label: i ? `The rest of the answer (${i + 1})` : "The rest of the answer", value, source: "Reported, not verified" })), sources: [{ title: new URL(src).hostname, url: src }] }).catch(() => null);
           if (made && made.ok && (made.url ?? made.webApp)) overflowLink = (made.url ?? made.webApp) as string;
         }
         const sh = shapeForTurn({ overflowLink, on: replyWriterOn(Deno.env), channel: writerChannel((body as any)?.channel), reply: out.reply, attachments: turnAttachments, allowedLinks: turnLinks,

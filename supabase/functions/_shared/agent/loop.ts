@@ -370,9 +370,10 @@ async function runAgentTurnInner(o: { system: string; history: any[]; message: s
         // REPLY SHAPE: a staged document passes the same guards as a reply (facts about the person, money, links) or the model is told why not.
         const att = u.name === "attach_document" && out && typeof out === "object" ? (out as any).attachment : null;
         if (att) {
+          const knownLinks = new Set(urlsIn(`${typed}\n${seen.join("\n")}`));
           const sources = factSources({ state: o.ctx.state, message: o.message, history: o.history, results: seen });
           const bad = [...untracedFacts(att.content, sources).map((f) => f.word), ...unsourcedMoney(att.content, [typed, ...seen, ...sources]).map((m) => m.figure),
-            ...urlsIn(att.content).filter((l) => !`${typed}\n${seen.join("\n")}`.includes(l))];
+            ...urlsIn(att.content).filter((l) => !knownLinks.has(l))]; // exact match against links the person typed or a tool returned, never a substring (a cut-off or prefix URL is a different link)
           if (bad.length) { throw new Error(`not attached: the file states things no tool returned this turn and the person did not say: ${[...new Set(bad)].slice(0, 8).join(", ")}. Remove them or mark them "not verified", then attach again.`); }
           o.ctx.turn!.attachments!.push({ filename: att.filename, content: att.content });
         }

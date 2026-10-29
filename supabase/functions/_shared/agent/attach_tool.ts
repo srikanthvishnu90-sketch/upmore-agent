@@ -14,8 +14,9 @@ export function attachTool(): ToolSpec {
     run: async (i, c) => {
       const parts = fileParts(i.filename, i.content);
       if (!parts.length) throw new Error("not attached: the file has no content");
-      const staged = c.turn?.attachments?.length ?? 0;
-      if (staged >= MAX_FILES) throw new Error(`not attached: at most ${MAX_FILES} files in one reply`);
+      // The cap is on the files the person receives: each staged document expands into numbered parts when it is over the size limit.
+      const staged = (c.turn?.attachments ?? []).reduce((n, a) => n + fileParts(a.filename, a.content).length, 0);
+      if (staged + parts.length > MAX_FILES) throw new Error(`not attached: at most ${MAX_FILES} files in one reply (${staged} already staged, this one would send as ${parts.length})`);
       return { attachment: { filename: String(i.filename), content: String(i.content) }, will_send_as: parts.map((p) => ({ filename: p.filename, bytes: p.bytes })) };
     },
   };

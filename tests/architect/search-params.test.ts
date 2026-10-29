@@ -52,6 +52,10 @@ Deno.test("search params: a posting that states no level is kept under a level s
     eq(outsideLimits(p("Software Engineer"), L(q)), null, `no level word kept: ${q}`);
     eq(outsideLimits(p("Data Analyst"), L(q)), null, `no level word kept: ${q}`);
   }
+  eq(outsideLimits(p("Software Engineer", "Requires 3+ years of experience building services."), L("new grad software engineer")), "level", "3+ years states mid");
+  eq(outsideLimits(p("Software Engineer", "We want 2+ years in backend."), L("new grad software engineer")), "level", "2+ years states mid");
+  eq(outsideLimits(p("Software Engineer (Mid-level)"), L("new grad software engineer")), "level", "mid-level states mid");
+  eq(outsideLimits(p("Software Engineer", "Requires 3+ years of experience."), L("senior software engineer")), "level", "3+ years is not senior");
   eq(outsideLimits(p("Staff Software Engineer"), L("new grad software engineer")), "level", "an explicit other level still drops");
   eq(outsideLimits(p("Software Engineer Intern"), L("senior software engineer")), "level");
 });

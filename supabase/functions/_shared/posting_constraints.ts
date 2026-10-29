@@ -123,15 +123,23 @@ export function statedPay(p: { pay?: string | null; description?: string | null 
 }
 const termsIn = (text: string) => [...text.toLowerCase().matchAll(new RegExp(`\\b(${SEASON})\\s*(?:of\\s+)?(20\\d\\d)\\b`, "g"))].map((m) => `${m[1] === "autumn" ? "fall" : m[1]} ${m[2]}`);
 
+// The level a posting STATES. seniorityBand answers "mid" both for a posting with no level signal and for one that says
+// mid-level / 2+ years; here the first is "unstated" (kept under any level search) and only an explicit signal is "mid".
+const MID_SIGNAL = /\bmid[\s-]*(?:level|career)\b|\bintermediate\b|\b(?:[2-9]|1\d)\s*\+\s*(?:years?|yrs?)\b|\b(?:[2-9]|1\d)\s*(?:-|to)\s*\d+\s*(?:years?|yrs?)\b|\b(?:at least|minimum(?: of)?)\s+(?:[2-9]|1\d)\s*(?:years?|yrs?)\b|\b(?:[2-9]|1\d)\s*(?:years?|yrs?)(?: of)?(?:\s+\w+){0,3}\s+experience\b/i;
+export function statedBand(title: string, text: string): BandName | "unstated" {
+  const band = CareerJobs.seniorityBand(title, text) as BandName;
+  if (band !== "mid") return band;
+  return MID_SIGNAL.test(`${title} ${text}`) ? "mid" : "unstated";
+}
+
 export type Reason = "level" | "pay" | "company" | "term" | "sponsor";
 // Why a posting is outside the limits, or null. Only what the posting itself states can rule it out.
 export function outsideLimits(p: { title?: string; company?: string; location?: string; description?: string | null; pay?: string | null }, l: Limits): Reason | null {
   const title = String(p.title ?? ""), text = String(p.description ?? "");
   if (l.company && !lc(p.company).includes(lc(l.company))) return "company";
   if (l.bands) {
-    const band = CareerJobs.seniorityBand(title, text) as BandName;
-    // seniorityBand answers "mid" when the posting carries no level word at all: that is "says nothing", so it stays.
-    if (band !== "mid" && !l.bands.includes(band)) return "level";
+    const band = statedBand(title, text);
+    if (band !== "unstated" && !l.bands.includes(band)) return "level";
   }
   if (l.term) {
     const stated = [...new Set(termsIn(`${title} ${text.slice(0, 800)}`))];

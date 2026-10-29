@@ -65,7 +65,7 @@ export const CASES: Case[] = [
 export function violation(m: Meta, w: Want): string {
   if (w.fam && !w.fam.includes(m.fam)) return `role: ${m.fam}`;
   if (w.title && !w.title.test(m.title)) return `role: ${m.title}`;
-  if (w.band && m.band !== "mid" && !w.band.includes(m.band)) return `level: ${m.band}`;
+  if (w.band && !w.band.includes(m.band)) return `level: ${m.band}`;
   if (w.company && m.company.toLowerCase() !== w.company) return `company: ${m.company}`;
   if (w.remote === "only" && m.remote !== "remote") return `not remote: ${m.remote}`;
   if (w.country && m.country !== w.country) return `country: ${m.country}`;
@@ -106,8 +106,7 @@ export async function runCase(c: Case): Promise<CaseResult> {
   if (via === "router") ids = (out?.shortlist ?? []).map((s: any) => String(s.id));
   ids = ids.filter((id) => metaOf.has(id));
   const violations = ids.map((id) => ({ id, v: violation(metaOf.get(id)!, c.want) })).filter((x) => x.v).map((x) => `${metaOf.get(x.id)!.company} ${FIXTURES.find((f) => f.id === x.id)!.title} (${x.v})`);
-  // Recall is measured on postings that state the level asked for; one that states none may be shown but is not required.
-  const rel = new Set(FIXTURES.filter((f) => !violation(f.meta, c.want) && !(c.want.band && f.meta.band === "mid")).map((f) => f.id));
+  const rel = new Set(FIXTURES.filter((f) => !violation(f.meta, c.want)).map((f) => f.id));
   const found = ids.filter((id) => rel.has(id)).length, need = Math.min(3, rel.size);
   const pass = violations.length === 0 && found >= need;
   const why = violations.length ? `${violations.length} violate: ${violations.slice(0, 2).join("; ")}` : found < need ? `found ${found} of ${need} needed (${rel.size} satisfy everything)` : "";

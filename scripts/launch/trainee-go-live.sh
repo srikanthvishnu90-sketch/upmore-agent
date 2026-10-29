@@ -218,7 +218,7 @@ MIGRATIONS=(
   20261029100000_career_outreach_reply_rules.sql
   20261029160000_career_email_format_guards.sql
   20261029170000_career_resume_on_file_quarantine.sql
-  20261029180000_career_connector_disconnect_rules.sql
+  20261029200000_career_connector_disconnect_rules.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"

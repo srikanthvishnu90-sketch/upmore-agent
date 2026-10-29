@@ -314,7 +314,7 @@ async function inSent(d: WorkerDeps, userId: string, it: Claimed): Promise<{ id:
 
 type Outcome = { id: string; outcome: string } & Record<string, unknown>;
 // One claimed email: what happened to it. Nothing is written here; the caller records outcomes in small batches.
-// CONNECTOR SCENARIOS (2026-10-29): the last check before an email leaves (career_send_go, 20261029180000). A disconnect
+// CONNECTOR SCENARIOS (2026-10-29): the last check before an email leaves (career_send_go, 20261029200000). A disconnect
 // cancels every email of that mailbox, the ones a worker holds included; a worker that has not handed its email to the
 // provider yet asks here and stops. Nothing is sent after the cancel commits; one already handed over is recorded as sent.
 async function mayGo(d: WorkerDeps, it: Claimed, worker: string, stats: WorkerStats, out: (o: string, x?: Record<string, unknown>) => Outcome): Promise<Outcome | null> {

@@ -122,7 +122,7 @@ Deno.test(`connectors at scale, the revoke (revokeAtGoogle): ${REVOKES.length} s
 // ------------------------------------------------------------------------------------------------ 3. the connector turn
 // An in-memory store that answers the supabase-js calls connectors.ts, google_disconnect.ts and outlook_connector.ts make
 // (select/eq/in/limit/order/maybeSingle, update, delete, rpc), with the database's triggers on a connection row's delete
-// (20261012060000 Vault, 20261026200011 Gmail mail, 20261027230000 Outlook mail, 20261028110000 + 20261029180000 approved
+// (20261012060000 Vault, 20261026200011 Gmail mail, 20261027230000 Outlook mail, 20261028110000 + 20261029200000 approved
 // and queued emails) and career_connector_waiting. One step can be made to fail (fail), as a network or database error.
 const MAIL = ["career_mail_events", "career_mail_drafts", "career_mail_cursors"];
 export type Mem = ReturnType<typeof memStore>;

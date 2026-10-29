@@ -647,12 +647,12 @@ echo "== career_email_format_guards (a role inbox teaches no format; webmail lea
   if not public.career_email_is_webmail('gmail.com') then raise exception 'FAIL gmail.com is webmail'; end if;
   raise notice 'ok   role inboxes and webmail are recognized by the format guards';
 end \$\$;" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
-# CONNECTOR SCENARIOS (20261029180000): a disconnect cancels every email of the mailbox (one a worker holds included), the
+# CONNECTOR SCENARIOS (20261029200000): a disconnect cancels every email of the mailbox (one a worker holds included), the
 # worker's last check, the other mailbox, the replies lane, what waits counted, opt-outs outlive the account. After the
 # re-applications of 20261027200000 and 20261028110000 above, which would otherwise overwrite its functions; twice
 # (idempotent), then its test.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029180000_career_connector_disconnect_rules.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029180000_career_connector_disconnect_rules.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029200000_career_connector_disconnect_rules.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029200000_career_connector_disconnect_rules.sql"
 echo "== career_connector_disconnect_rules.test.sql (every email of a disconnected mailbox cancelled, held ones too; nothing re-queued after a reconnect; opt-outs outlive the account)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_connector_disconnect_rules.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left

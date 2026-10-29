@@ -1,4 +1,4 @@
--- CONNECTOR SCENARIOS (20261029180000_career_connector_disconnect_rules.sql), in the database alone: a disconnect cancels
+-- CONNECTOR SCENARIOS (20261029200000_career_connector_disconnect_rules.sql), in the database alone: a disconnect cancels
 -- every email of that mailbox, the one a worker holds included; the worker's last check (career_send_go) stops it; an
 -- email the provider already accepted is recorded as sent; the lapsed lease of a dead worker never puts a cancelled email
 -- back in the queue, even after the person connects again; disconnecting Outlook leaves the emails going from Gmail; the

@@ -181,7 +181,7 @@ export async function statuses(d: Deps, userId: string): Promise<Status[]> {
 // The connector's own disconnect (revoke where the provider allows it, tokens and rows deleted, what was read erased, read
 // back), then the shared part: every email still waiting to go from that mailbox is cancelled by the database on the
 // row's delete (approved outreach emails not queued on the person's other mailbox, the sending rail's queued emails, the
-// replies lane's approved follow-ups; 20261028110000, 20261027200000 and 20261029180000), and that is read back.
+// replies lane's approved follow-ups; 20261028110000, 20261027200000 and 20261029200000), and that is read back.
 // CONNECTOR SCENARIOS (2026-10-29, tests/architect/scenarios-connectors.test.ts): the reply's count is what the read-back
 // shows (what waited before minus what waits after, at any volume), never the count read before the disconnect; an email
 // a worker was already sending is said as such (it may have gone), never counted as cancelled; only the mailbox's own

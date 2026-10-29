@@ -98,12 +98,12 @@ details[open] .desc{display:block;-webkit-line-clamp:unset}
 export interface Og { title: string; description: string; image: string | null }
 const ogTags = (o: Og) => `<meta property="og:type" content="website"><meta property="og:site_name" content="Trainee"><meta property="og:title" content="${esc(o.title)}"><meta property="og:description" content="${esc(o.description)}">${o.image ? `<meta property="og:image" content="${esc(o.image)}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(o.image)}">` : `<meta name="twitter:card" content="summary">`}<meta name="twitter:title" content="${esc(o.title)}"><meta name="twitter:description" content="${esc(o.description)}">`;
 const OG_DEFAULT: Og = { title: "Your jobs on Trainee", description: "Tap Apply on any job.", image: null };
-export function layout(title: string, inner: string, o: { script?: string; bodyAttrs?: string; og?: Og; tg?: boolean } = {}): string {
+export function layout(title: string, inner: string, o: { script?: string; bodyAttrs?: string; og?: Og; tg?: boolean; css?: string } = {}): string {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#4A2F5E" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">${ogTags(o.og ?? OG_DEFAULT)}
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234A2F5E'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='40' font-weight='700' text-anchor='middle' fill='%23fff'%3ET%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Brygada+1918:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<title>${esc(clip(title, 90))}</title><style>${CSS}</style></head>
+<title>${esc(clip(title, 90))}</title><style>${CSS}${o.css ?? ""}</style></head>
 <body${o.bodyAttrs ? " " + o.bodyAttrs : ""}><div class="wrap">${inner}</div>${o.tg ? `<script src="https://telegram.org/js/telegram-web-app.js"></script>` : ""}${o.script ? `<script>${o.script}</script>` : ""}</body></html>`;
 }
 // In-place flip without a reload: every .ajax form posts, the response page replaces the list. Without script the forms post and

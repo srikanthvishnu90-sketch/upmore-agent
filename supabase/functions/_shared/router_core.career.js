@@ -2253,19 +2253,23 @@ const CareerTailor = (() => {
   }
 
   function wordCount(t) { return String(t || "").trim().split(/\s+/).filter(Boolean).length; }
+  const ABOUT_CANDIDATE = /\b(?:i|i'm|i've|i'd|me|my|mine|you|your|you're|you've|yours|candidates?|applicants?|the person|the user)\b/i;
+  const companyFactText = (f) => String((f && typeof f === "object" ? f.text : f) || "");
+  function aboutCompany(facts) { return (facts || []).filter((f) => { const t = companyFactText(f); return !!t.trim() && !ABOUT_CANDIDATE.test(t); }); }
   function generateCoverLetter(profile, jdInput, cir, opts) {
     const o = opts || {};
     const jd = jdInput && jdInput.mustHaveSkills ? jdInput : parseJD((jdInput && jdInput.text) || jdInput || "");
     if (cir && (cir.aiPolicy === "ban" || cir.bansAiWrittenText)) {
       return { ok: false, mode: "outline", reason: "company bans AI-written application text (CIR); outline only — the user writes the letter (Doc 2 S8)", outline: coverOutline(profile, jd, cir), text: null };
     }
-    const companyFacts = (cir && cir.facts) || [];
+    const companyFacts = aboutCompany((cir && cir.facts) || []);
+    if (cir && cir.company && ((cir.facts || []).length) && !companyFacts.length) return { ok: false, reason: "the company research speaks about the candidate, not the company; a letter states only the person's confirmed facts as theirs", text: null };
     if (!cir || !cir.company || !companyFacts.length) return { ok: false, reason: "no real company fact in the CIR input; a cover letter is never written from invented company facts", text: null };
     const selected = selectFacts(profile, jd, { limit: 3 });
     if (!selected.length) return { ok: false, reason: "no confirmed profile facts to prove fit", text: null };
     const proof = selected[0].fact;
     const companyFact = companyFacts[0];
-    const role = o.role || jd.level || "the role";
+    const role = o.role || "the role";
     const name = profile.basics.name || "Candidate";
     const sentences = [
       `Dear ${cir.company} hiring team,`,
@@ -2319,7 +2323,8 @@ const CareerTailor = (() => {
     const jd = jdInput && jdInput.mustHaveSkills ? jdInput : parseJD((jdInput && jdInput.text) || jdInput || "");
     if (!cir || !cir.company || !(cir.facts || []).length) return { ok: false, reason: "answer bank entries need real CIR company facts; none passed in", entries: [] };
     const selected = selectFacts(profile, jd, { limit: 3 });
-    const cf = cir.facts.map((f) => (typeof f === "string" ? f : f.text));
+    const cf = aboutCompany(cir.facts).map(companyFactText);
+    if (!cf.length) return { ok: false, reason: "the company research speaks about the candidate, not the company; no answer is written from it", entries: [] };
     const entries = [
       { theme: "why_us", company: cir.company, text: `${cir.company}: ${cf[0]} That is specific to ${cir.company}, and it connects to my record: ${selected[0] ? selected[0].fact.text : "see profile"}`, factIds: selected[0] ? [selected[0].fact.id] : [], cirFacts: [cf[0]], rewrittenForCompany: true },
       { theme: "hard_problem", company: cir.company, text: selected[1] ? selected[1].fact.text : (selected[0] ? selected[0].fact.text : ""), factIds: (selected[1] || selected[0]) ? [(selected[1] || selected[0]).fact.id] : [], cirFacts: [], rewrittenForCompany: false },

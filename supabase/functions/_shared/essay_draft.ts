@@ -13,6 +13,8 @@
 //      failure says so and leaves the question open. Nothing here throws out of the turn.
 import { CareerProfile, CareerWriting } from "./router_core.career.js";
 import { type AiPolicy, readAiPolicy } from "./ai_policy.ts";
+import { claimProblems } from "./person_claims.ts";
+import { redactIdentity } from "./identity_redact.ts";
 
 export type ModelFn = (payload: any) => Promise<any>;
 export interface DraftDeps {
@@ -195,7 +197,7 @@ function textOf(msg: any): { text: string; cut: boolean } {
 const SYSTEM = [
   "You write one answer to a job application question, for the person applying, in their own plain first-person voice.",
   "Rules that do not bend:",
-  "1. Use ONLY the facts listed. Every employer, school, title, tool, number, date and result you mention must appear in those facts, the question or the company name. If the answer would need something the facts do not say, leave that part out; never fill a gap with something plausible.",
+  "1. Use ONLY the facts listed. Every employer, school, title, degree, tool, number, date and result you say about the person must appear in those facts. The question and the company name are what you answer, never a source of facts about the person: never say the person did, studied, holds or is anything only because the question mentions it. Never state work authorization, citizenship, a visa, sponsorship, salary, or anything about gender, race, ethnicity, veteran status or disability unless a fact says it. If the answer would need something the facts do not say, leave that part out; never fill a gap with something plausible.",
   "2. Stay inside the length limit and finish every sentence.",
   "3. No greeting, sign-off, heading, list or quotation marks. Return only the answer text.",
   "4. Never mention AI, Upmore or that this is a draft. No stock phrases (\"I am excited to apply\", \"passionate\", \"in today's fast-paced world\").",
@@ -247,7 +249,7 @@ export async function draftEssay(o: {
   const facts = factsFor(all, o.q);
   if (facts.length < MIN_FACTS) return { ok: false, why: "thin", policy, detail: [String(facts.length)], tries: 0 };
   const limit = lengthLimit(o.limitText ? `${o.q.label} ${o.limitText}` : o.q.label);
-  const sources = [...facts.map(factText), o.q.company ?? "", o.q.label];
+  const sources = { facts: facts.map(factText), posting: [o.q.company ?? "", o.q.label] };
   let fix: string[] = [], last: Judged | null = null;
   for (let tries = 1; tries <= 2; tries++) {
     let msg: any;
@@ -270,9 +272,26 @@ export async function draftEssay(o: {
 
 // Every check a draft must pass before anyone reads it: each name and number traced to the sources, inside the limit,
 // finished, no stock phrase.
+// TAILORING SCENARIOS (2026-10-29): the posting (the question, the company) may be named in an answer but is never a source
+// of a claim about the person. factLock traces names against facts and posting alike; claimProblems (person_claims.ts)
+// then holds every claim about the person (a degree, a title, a tool, a number, leadership, work authorization, how they
+// identify, a secret, a posting's name as their employer or school) to their confirmed facts alone.
 interface Judged { pass: boolean; lock: Lock; long: string | null; cut: boolean; banned: string[] }
-function judge(text: string, cut: boolean, sources: string[], limit: Limit): Judged {
-  const lock = factLock(text, sources);
+const CLAIM_VOCAB = [...TOOLS, ...TITLES, ...DEGREES, ...SCALE];
+function judge(text: string, cut: boolean, sources: { facts: string[]; posting: string[] }, limit: Limit): Judged {
+  const traced = factLock(text, [...sources.facts, ...sources.posting]);
+  // The company's own name is never a claim, even when it is also a tool's or a word's ("why Stripe", "why Visa").
+  const claims = claimProblems(text, { record: sources.facts, mentionable: sources.posting, vocab: CLAIM_VOCAB, company: sources.posting[0] });
+  // A secret in the text is named as one, never quoted: its digits or words are not repeated in the reply the person
+  // reads, nor in the "write it again" note the model gets.
+  const redacted = redactIdentity(text);
+  const shown = (u: string) => {
+    if (!redacted.removed.length) return true;
+    const v = norm(/"([^"]+)"/.exec(u)?.[1] ?? u);
+    return !v || !norm(text).includes(v) || norm(redacted.text).includes(v);
+  };
+  const untraced = [...traced.untraced, ...claims].filter(shown);
+  const lock: Lock = claims.length || !traced.pass ? { pass: false, untraced } : traced;
   const long = overLimit(text, limit);
   const banned = W.slopGate(text, { factPack: [] }).metrics.banned_phrases.value.hard as string[];
   return { pass: lock.pass && !long && !cut && !banned.length, lock, long, cut, banned };
@@ -296,7 +315,7 @@ export async function checkDraft(o: {
   if (facts.length < MIN_FACTS) return { ok: false, why: "thin", policy, detail: [String(facts.length)], tries: 0 };
   const limit = lengthLimit(o.limitText ? `${o.q.label} ${o.limitText}` : o.q.label);
   const text = String(o.text ?? "").trim();
-  const j = judge(text, !/[.!?]["”')\]]?$/.test(text), [...facts.map(factText), o.q.company ?? "", o.q.label], limit);
+  const j = judge(text, !/[.!?]["”')\]]?$/.test(text), { facts: facts.map(factText), posting: [o.q.company ?? "", o.q.label] }, limit);
   return j.pass ? { ok: true, text, policy, factIds: facts.map(factId).filter(Boolean), limit, tries: 0 } : failed(j, policy, 0);
 }
 

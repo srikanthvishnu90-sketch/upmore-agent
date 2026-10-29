@@ -103,7 +103,16 @@ test('dry run: no secret value is ever printed, only names and ***', () => {
     assert.doesNotMatch(out, /fake-dbpass|QZ81|NNNNNNNN|IIIIIIII/);
   }
   const { out } = dry();
-  assert.match(out, /supabase secrets set --project-ref abcdefghijklmnopqrst --env-file <0600 temp file: CAREER_INGEST_SECRET=\*\*\* CAREER_PROACTIVE_SECRET=\*\*\* TRAINEE_DELIVER_SECRET=\*\*\* TRAINEE_INBOUND_SECRET=\*\*\* INGEST_CONTACT_EMAIL=\*\*\* LOOPMESSAGE_API_KEY=\*\*\* LOOPMESSAGE_DAILY_CONTACTS=\*\*\* TRAINEE_ALLOWED_CONTACTS=\*\*\* OPENAI_API_KEY=\*\*\* MODEL_PROVIDER=openai>/);
+  assert.match(out, /supabase secrets set --project-ref abcdefghijklmnopqrst --env-file <0600 temp file: CAREER_INGEST_SECRET=\*\*\* CAREER_PROACTIVE_SECRET=\*\*\* TRAINEE_DELIVER_SECRET=\*\*\* TRAINEE_INBOUND_SECRET=\*\*\* INGEST_CONTACT_EMAIL=\*\*\* LOOPMESSAGE_API_KEY=\*\*\* LOOPMESSAGE_DAILY_CONTACTS=\*\*\* TRAINEE_ALLOWED_CONTACTS=\*\*\* OPENAI_API_KEY=\*\*\* MODEL_PROVIDER=openai CAREER_OUTREACH_FOLLOWUPS=on>/);
+});
+
+test('networking follow-up reminders are switched on at launch (R2: the chat promises a texted reminder only when they run)', () => {
+  for (const args of [[], ['--brain', 'agent'], ['--brain', 'router'], ['--skip-deploy', '--skip-migrations']]) {
+    const { code, out } = dry(args);
+    assert.equal(code, 0, out);
+    assert.match(out, /--env-file <0600 temp file: [^>]*\bCAREER_OUTREACH_FOLLOWUPS=on\b[^>]*>/, args.join(' '));
+  }
+  assert.doesNotMatch(dry(['--only-smoke']).out, /CAREER_OUTREACH_FOLLOWUPS/, '--only-smoke changes no secret');
 });
 
 test('CAREER_BRAIN=agent is set only with --brain agent; --brain router unsets it; otherwise it is not touched', () => {
@@ -489,4 +498,136 @@ test('the migration rehearsal reads go-live\'s own lists and checks every mark a
   // Each mark names an object its own file creates and no later file redefines away (a full apply read every mark true).
   const src = fs.readFileSync(SCRIPT, 'utf8');
   assert.doesNotMatch(src, /proname = 'career_apply_ledger_refusal' and prosrc like '%own is not null%'/, '20261025160000 redefines it without that text');
+});
+
+// Q3 (2026-10-28): step 5 removes no cron job by default. Only the exact job names the owner passes with --unschedule-cron
+// are unscheduled (coordinator, 2026-10-28: the live jobs are not go-live jobs; removal is an explicit allowlist). The SQL
+// runs against Postgres in tests/db/legacy_finance_unschedule.test.sql.
+test('cron: step 5 removes nothing by default; --unschedule-cron names exact jobs, validated; --only-smoke never touches cron', () => {
+  const { code, out } = dry();
+  assert.equal(code, 0, out);
+  assert.doesNotMatch(out, /unschedule-legacy-finance\.sql/, 'no unschedule command without the flag');
+  assert.match(out, /kept: every other pg_cron job \(none named with --unschedule-cron\)/);
+  const base = 'https://abcdefghijklmnopqrst.supabase.co/functions/v1';
+  const named = dry(['--unschedule-cron', 'plaid-sync-6h,cancel-watcher-daily']);
+  assert.equal(named.code, 0, named.out);
+  inOrder(named.out, ['STEP 5/6 schedules', `-v url=${base}/trainee-deliver -f scripts/launch/schedule-trainee-deliver.sql`,
+    'DRY: psql *** -X -q -v ON_ERROR_STOP=1 -v allow=plaid-sync-6h,cancel-watcher-daily -f scripts/launch/unschedule-legacy-finance.sql (unschedules only: plaid-sync-6h,cancel-watcher-daily)',
+    'STEP 5/6 schedules: OK']);
+  assert.equal(dry(['--unschedule-cron=upmore-proactive']).code, 0);
+  for (const bad of ['a b', 'x;drop', 'a,,b', ',a', 'a,', "x'y"]) {
+    const r = dry(['--unschedule-cron', bad]);
+    assert.equal(r.code, 64, `${bad}: ${r.out}`);
+    assert.match(r.out, /--unschedule-cron takes exact job names/);
+  }
+  assert.doesNotMatch(dry(['--only-smoke', '--unschedule-cron', 'x']).out, /unschedule-legacy-finance\.sql/);
+  const sql = fs.readFileSync(path.join(root, 'scripts/launch/unschedule-legacy-finance.sql'), 'utf8');
+  const code_ = sql.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n');
+  assert.match(code_, /jobname = any \(names\)/, 'matches exact job names only');
+  assert.doesNotMatch(code_, /\bcommand\b/, 'never matches on a job command');
+  for (const verb of [/\bdrop\b/i, /\bdelete\b/i, /\btruncate\b/i, /\bupdate\b/i, /\binsert\b/i, /vault\./i, /cron\.schedule\(/])
+    assert.doesNotMatch(code_, verb, `the file only unschedules (${verb})`);
+  for (const job of ['upmore-proactive', 'plaid-sync-6h', 'cancel-watcher-daily', 'career-ingest', 'trainee-deliver']) assert.ok(!code_.includes(job), `${job} is never hard-coded`);
+});
+
+test('go-live never deploys an Upmore-only function: no deploy line names one, and a DEPLOY_FNS that did would stop the run', () => {
+  const script = fs.readFileSync(SCRIPT, 'utf8');
+  const list = script.match(/UPMORE_ONLY_FNS=\(([^)]*)\)/);
+  assert.ok(list, 'UPMORE_ONLY_FNS is declared');
+  const upmoreOnly = list[1].split(/\s+/).filter(Boolean);
+  for (const fn of ['agent-proactive', 'plaid-sync', 'cancel-watcher', 'agent-payments', 'stripe-webhook', 'broker-oauth-start', 'news-feed'])
+    assert.ok(upmoreOnly.includes(fn), `${fn} is listed as Upmore-only`);
+  for (const fn of upmoreOnly) assert.ok(fs.existsSync(path.join(root, 'supabase/functions', fn)), `${fn} is a real function directory`);
+  const { code, out } = dry();
+  assert.equal(code, 0, out);
+  const deployed = [...out.matchAll(/supabase functions deploy ([a-z0-9-]+)/g)].map((m) => m[1]);
+  assert.ok(deployed.includes('agent-chat') && deployed.includes('trainee-deliver'), deployed.join(','));
+  for (const fn of deployed) assert.ok(!upmoreOnly.includes(fn), `${fn} is deployed and is not Upmore-only`);
+  // The guard itself: a copy of the script whose DEPLOY_FNS names an Upmore-only function refuses to run.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-go-live-guard-'));
+  const bad = path.join(tmp, 'go-live.sh');
+  fs.writeFileSync(bad, script.replace(/^cd "\$\(dirname "\$0"\)\/\.\.\/\.\."$/m, `cd ${JSON.stringify(root)}`)
+    .replace(/^DEPLOY_FNS=\(agent-chat /m, 'DEPLOY_FNS=(agent-chat plaid-sync '));
+  const res = spawnSync('bash', [bad, '--dry-run'], { cwd: root, encoding: 'utf8', env: { PATH: process.env.PATH, HOME: home, ...FAKE } });
+  assert.equal(res.status, 64, res.stdout + res.stderr);
+  assert.match(res.stdout + res.stderr, /plaid-sync is an Upmore finance function; Trainee never deploys it/);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+// FEATURE 17: the cloud runner ships with go-live (preparation and sending without anyone's computer).
+const CLOUD = { ...FAKE, VERCEL_TOKEN: 'fake-vercel-token-0000-VVVVVVVVVVVVVVVV', VERCEL_TEAM_ID: 'team_fake0000TEAM', VERCEL_PROJECT_ID: 'prj_fake0000PROJ',
+  CLOUD_SANDBOX_SNAPSHOT_ID: 'snap_fake0000SNAP', CLOUD_RUNNER_SECRET: 'fake-runner-secret-0000-RRRRRRRRRRRRRRRRRR',
+  CLOUD_DISPATCH_SECRET: 'fake-dispatch-secret-0000-XXXXXXXXXXXXXXXXX', CAREER_PREPARE_AHEAD_TOKEN: 'fake-prepare-token-0000-KKKKKKKKKKKKKKKKKK',
+  CLOUD_MAX_CONCURRENT: '5', CLOUD_MAX_PER_PORTAL: '2', CLOUD_MAX_PER_PERSON_DAY: '3', CLOUD_MAX_PER_SITE_MINUTE: '1',
+  CLOUD_PREPARE_MAX_CONCURRENT: '3', CLOUD_PREPARE_PER_PERSON_DAY: '10', CLOUD_PREPARE_PER_SITE_MINUTE: '4' };
+test('FEATURE 17 dry run: the cloud runner is deployed without JWT, its secrets and numbers set by name, its two ticks scheduled; no value printed', () => {
+  const { code, out } = dry([], CLOUD);
+  assert.equal(code, 0, out);
+  const base = 'https://abcdefghijklmnopqrst.supabase.co/functions/v1';
+  assert.match(out, /deno check [^\n]*supabase\/functions\/career-cloud-runner\/index\.ts/);
+  assert.match(out, /-f supabase\/migrations\/20261026230017_career_cloud_hosted_apply\.sql/);
+  const set = out.match(/supabase secrets set --project-ref abcdefghijklmnopqrst --env-file <0600 temp file: ([^>]*)>/)[1].split(' ');
+  for (const n of ['CLOUD_RUNNER_SECRET=***', 'CLOUD_DISPATCH_SECRET=***', 'CAREER_PREPARE_AHEAD_TOKEN=***', 'VERCEL_TOKEN=***', 'VERCEL_TEAM_ID=team_fake0000TEAM',
+    'VERCEL_PROJECT_ID=prj_fake0000PROJ', 'CLOUD_SANDBOX_SNAPSHOT_ID=snap_fake0000SNAP', 'CLOUD_MAX_CONCURRENT=5', 'CLOUD_MAX_PER_PORTAL=2', 'CLOUD_MAX_PER_PERSON_DAY=3',
+    'CLOUD_MAX_PER_SITE_MINUTE=1', 'CLOUD_PREPARE_MAX_CONCURRENT=3', 'CLOUD_PREPARE_PER_PERSON_DAY=10', 'CLOUD_PREPARE_PER_SITE_MINUTE=4',
+    `CLOUD_BRIDGE_URL=${base}/career-cloud-runner`, `CAREER_PREPARE_AHEAD_URL=${base}/career-cloud-runner/prepare`]) assert.ok(set.includes(n), `${n} in ${set.join(' ')}`);
+  assert.ok(!set.some((n) => /^CLOUD_(RUNNER|PREPARE)_ENABLED=/.test(n)), 'the switches are not touched unless given');
+  inOrder(out, ['supabase functions deploy trainee-whatsapp --project-ref abcdefghijklmnopqrst --no-verify-jwt --use-docker',
+    'supabase functions deploy career-cloud-runner --project-ref abcdefghijklmnopqrst --no-verify-jwt --use-docker',
+    `CLOUD_DISPATCH_SECRET=*** psql *** -X -q -v ON_ERROR_STOP=1 -v url=${base}/career-cloud-runner -f scripts/launch/schedule-career-cloud.sql`, 'STEP 5/6 schedules: OK']);
+  for (const v of [CLOUD.VERCEL_TOKEN, CLOUD.CLOUD_RUNNER_SECRET, CLOUD.CLOUD_DISPATCH_SECRET, CLOUD.CAREER_PREPARE_AHEAD_TOKEN, ...SECRET_VALUES]) assert.ok(!out.includes(v), `${v.slice(0, 14)}… is not printed`);
+  assert.doesNotMatch(out, /build-snapshot\.ts/, 'no snapshot is built (spend) unless asked');
+});
+test('FEATURE 17 dry run: without VERCEL_TOKEN the cloud runner is not wired (deployed, answering 503), nothing of it set or scheduled; bad numbers stop the run', () => {
+  const { code, out } = dry();
+  assert.equal(code, 0, out);
+  assert.match(out, /cloud runner: not wired now \(VERCEL_TOKEN not given\)/);
+  assert.match(out, /supabase functions deploy career-cloud-runner --project-ref abcdefghijklmnopqrst --no-verify-jwt --use-docker/);
+  assert.doesNotMatch(out, /CLOUD_RUNNER_SECRET=|CAREER_PREPARE_AHEAD_URL=|schedule-career-cloud\.sql/);
+  assert.match(out, /cloud runner schedules: not touched/);
+  // NO LIMITS (owner, 2026-10-27): a per-person number someone sets is taken at any size; a non-number still stops the run.
+  const big = dry([], { ...CLOUD, CLOUD_MAX_PER_PERSON_DAY: '500' });
+  assert.equal(big.code, 0, big.out); assert.ok(big.out.includes('CLOUD_MAX_PER_PERSON_DAY=500'), 'a per-person number is set as given, any size');
+  const bad = dry([], { ...CLOUD, CLOUD_MAX_PER_PERSON_DAY: 'lots' });
+  assert.notEqual(bad.code, 0); assert.match(bad.out, /CLOUD_MAX_PER_PERSON_DAY must be a whole number from 1/);
+  const sw = dry([], { ...CLOUD, CLOUD_RUNNER_ENABLED: 'yes' });
+  assert.notEqual(sw.code, 0); assert.match(sw.out, /CLOUD_RUNNER_ENABLED takes on or off/);
+  const snap = dry(['--build-snapshot'], { ...CLOUD, CLOUD_SANDBOX_SNAPSHOT_ID: '' });
+  assert.equal(snap.code, 0, snap.out);
+  assert.match(snap.out, /DRY: VERCEL_TOKEN=\*\*\* [^\n]*deno run -A scripts\/cloud-runner\/build-snapshot\.ts/, 'the snapshot step only with --build-snapshot');
+  assert.ok(!snap.out.includes(CLOUD.VERCEL_TOKEN));
+});
+test('FEATURE 17: sizing not given is set to the runner\'s default; a per-person or per-site number not given is never set (NO LIMITS)', () => {
+  const { code, out } = dry([], { ...CLOUD, CLOUD_MAX_CONCURRENT: '', CLOUD_MAX_PER_PORTAL: '', CLOUD_MAX_PER_PERSON_DAY: '', CLOUD_MAX_PER_SITE_MINUTE: '',
+    CLOUD_PREPARE_MAX_CONCURRENT: '', CLOUD_PREPARE_PER_PERSON_DAY: '', CLOUD_PREPARE_PER_SITE_MINUTE: '' });
+  assert.equal(code, 0, out);
+  const set = out.match(/supabase secrets set --project-ref abcdefghijklmnopqrst --env-file <0600 temp file: ([^>]*)>/)[1].split(' ');
+  const wave1 = { CLOUD_MAX_CONCURRENT: 2, CLOUD_MAX_PER_PORTAL: 1, CLOUD_MAX_STARTS_PER_TICK: 2, CLOUD_PREPARE_MAX_CONCURRENT: 2, CLOUD_PREPARE_STARTS_PER_TICK: 2 };
+  for (const [k, v] of Object.entries(wave1)) assert.ok(set.includes(`${k}=${v}`), `${k}=${v} in ${set.join(' ')}`);
+  for (const k of ['CLOUD_MAX_PER_PERSON_DAY', 'CLOUD_MAX_PER_SITE_MINUTE', 'CLOUD_PREPARE_PER_PERSON_DAY', 'CLOUD_PREPARE_PER_SITE_MINUTE']) {
+    assert.ok(!set.some((x) => x.startsWith(`${k}=`)), `${k} is not set when not given: ${set.join(' ')}`);
+  }
+  const http = fs.readFileSync(path.join(root, 'supabase/functions/_shared/cloud_runner_http.ts'), 'utf8');
+  for (const [k, v] of Object.entries(wave1)) assert.match(http, new RegExp(`\\b${k}: ${v},`), `the runner's default for ${k} is ${v}`);
+  const given = dry([], CLOUD);
+  assert.ok(given.out.includes('CLOUD_MAX_CONCURRENT=5') && !given.out.includes('CLOUD_MAX_CONCURRENT=2'), 'a number given is set as given');
+});
+test('FEATURE 17: the cloud schedule reads CLOUD_DISPATCH_SECRET into Vault and sends the header the runner checks, on both routes; the workflow passes every name', () => {
+  const sql = fs.readFileSync(path.join(root, 'scripts/launch/schedule-career-cloud.sql'), 'utf8');
+  assert.match(sql, /printf '%s' "\$CLOUD_DISPATCH_SECRET"/);
+  assert.match(sql, /cron\.schedule\('career-cloud-dispatch'[\s\S]*'x-cloud-dispatch-secret'[\s\S]*'\/dispatch'/);
+  assert.match(sql, /cron\.schedule\('career-cloud-prepare-dispatch'[\s\S]*'x-cloud-dispatch-secret'[\s\S]*'\/prepare-dispatch'/);
+  const http = fs.readFileSync(path.join(root, 'supabase/functions/_shared/cloud_runner_http.ts'), 'utf8');
+  assert.ok(http.includes('req.headers.get("x-cloud-dispatch-secret")') && http.includes('env("CLOUD_DISPATCH_SECRET")'), 'the runner checks that header against that secret');
+  assert.ok(http.includes('`Bearer ${token}`') && http.includes('env("CAREER_PREPARE_AHEAD_TOKEN")'), 'and the chat kick against its token');
+  const kick = fs.readFileSync(path.join(root, 'supabase/functions/_shared/career_apply_from_chat.ts'), 'utf8');
+  assert.ok(kick.includes('authorization: `Bearer ${token}`') && kick.includes('"CAREER_PREPARE_AHEAD_TOKEN"'), 'the chat sends that token');
+  const wf = fs.readFileSync(path.join(root, '.github/workflows/deploy-production.yml'), 'utf8');
+  for (const v of ['VERCEL_TOKEN', 'VERCEL_TEAM_ID', 'VERCEL_PROJECT_ID', 'CLOUD_SANDBOX_SNAPSHOT_ID', 'CLOUD_RUNNER_SECRET', 'CLOUD_DISPATCH_SECRET', 'CAREER_PREPARE_AHEAD_TOKEN',
+    'CLOUD_MAX_CONCURRENT', 'CLOUD_MAX_PER_PORTAL', 'CLOUD_MAX_STARTS_PER_TICK', 'CLOUD_MAX_PER_PERSON_DAY', 'CLOUD_MAX_PER_SITE_MINUTE', 'CLOUD_PREPARE_MAX_CONCURRENT',
+    'CLOUD_PREPARE_STARTS_PER_TICK', 'CLOUD_PREPARE_PER_PERSON_DAY', 'CLOUD_PREPARE_PER_SITE_MINUTE', 'CLOUD_RUNNER_ENABLED', 'CLOUD_PREPARE_ENABLED']) {
+    assert.match(wf, new RegExp(`^ {10}${v}: \\$\\{\\{ secrets\\.${v} \\}\\}$`, 'm'), `${v} from the secret of the same name`);
+  }
+  const snap = fs.readFileSync(path.join(root, 'scripts/cloud-runner/build-snapshot.ts'), 'utf8');
+  assert.match(snap, /deno cache [^"]*workers\/career-cloud\/prepare-runner\.ts/, 'the snapshot caches the preparation runner too');
 });

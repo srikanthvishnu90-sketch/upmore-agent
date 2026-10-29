@@ -38,6 +38,18 @@ import {
 } from "./career_mock.ts";
 import { signToken, type TokenKind, verifyToken, voiceWired } from "./career_voice_link.ts";
 
+import { type BudgetGate, budgetPausedByEnv, budgetReply, type ReserveResult, resolveBudgetGate } from "./model_budget.ts";
+// Worst case a minute of a realtime call can cost, in micro-USD, by model. OpenAI publishes tokens, not minutes, so this is an
+// ASSUMPTION, not a verified price. Audio token rates for the minute are not published on the pages read on 2026-10-28; this
+// assumes 50 audio tokens a second each way (3,000 a minute, five times the 10 a second commonly quoted) and the audio prices read on
+// a third-party table for gpt-realtime-mini ($10 in, $20 out per 1M): 3,000 x $10 + 3,000 x $20 = $0.09 a minute, rounded up to $0.10 to cover
+// the conversation text being re-read each turn. gpt-realtime was not read at all today: three times the mini figure. Unknown model:
+// the dearer figure. The reservation is kept as spent once a key goes out. The owner can change these numbers here.
+export const VOICE_WORST_CASE_MICROS_PER_MINUTE_BY_MODEL: Record<string, number> = { "gpt-realtime-mini": 100_000, "gpt-realtime": 300_000 };
+export const VOICE_WORST_CASE_MICROS_PER_MINUTE = 300_000; // unknown model
+export const VOICE_SESSION_MAX_MINUTES = 30;
+export const voiceWorstCaseMicros = (model: string, plannedMinutes: number) =>
+  Math.min(VOICE_SESSION_MAX_MINUTES, plannedMinutes + CALL_GRACE_MIN) * (VOICE_WORST_CASE_MICROS_PER_MINUTE_BY_MODEL[model] ?? VOICE_WORST_CASE_MICROS_PER_MINUTE);
 export const REALTIME_CLIENT_SECRETS_URL = "https://api.openai.com/v1/realtime/client_secrets";
 export const REALTIME_CALLS_URL = "https://api.openai.com/v1/realtime/calls";
 // The model and voice are the owner's to change (CAREER_VOICE_MODEL). gpt-realtime-mini is in the spec's model list and
@@ -202,6 +214,9 @@ export interface VoiceDeps {
   cors: Record<string, string>;
   sessions: VoiceSessions;
   mint: (apiKey: string) => Mint;
+  // The global daily budget (model_budget.ts). A voice call is paid by the minute in the person's browser, so the whole
+  // call's worst case is reserved before the key is minted and is never refunded once a key has gone out.
+  budget?: BudgetGate;
   deliver?: (userId: string, key: string) => Promise<void>; // send the debrief now instead of at the next delivery run
   log?: (line: string) => void;
 }
@@ -247,16 +262,26 @@ export async function handleVoice(req: Request, d: VoiceDeps): Promise<Response>
     const row = await d.sessions.read(userId, id);
     if (!row) return json({ status: "REFUSED", reason: "bad_link", message: REFUSAL.bad_link }, 401);
     const minutes = Math.max(5, Math.min(30, Number(row.state.minutes) || 20));
+    // Reserve first: over the day's budget the key is never minted and the link is not used up.
+    const gate = budgetPausedByEnv(d.env) ? null : resolveBudgetGate(d.budget);
+    const worst = voiceWorstCaseMicros(d.env("CAREER_VOICE_MODEL") || DEFAULT_MODEL, minutes);
+    const got: ReserveResult = budgetPausedByEnv(d.env) ? { ok: false, reason: "paused" } : gate ? await gate.reserve(worst, { model: d.env("CAREER_VOICE_MODEL") || DEFAULT_MODEL, role: "voice" }) : { ok: false, reason: "unavailable" };
+    if (!got.ok) {
+      d.log?.(`career-voice: budget ${got.reason}; no key minted`);
+      return json({ status: "REFUSED", reason: "budget", message: budgetReply(got.reason), text_mock: true }, 429);
+    }
     const st = await d.sessions.start(userId, id, now, minutes + CALL_GRACE_MIN);
-    if (!st) return json({ status: "REFUSED", reason: "used", message: REFUSAL.used }, 410);
+    if (!st) { await gate!.release(got.id); return json({ status: "REFUSED", reason: "used", message: REFUSAL.used }, 410); }
     const callExp = now + (minutes + CALL_GRACE_MIN) * 60_000;
     const call_token = await signToken({ s: id, u: userId, k: "call", exp: callExp }, secret);
     const model = d.env("CAREER_VOICE_MODEL") || DEFAULT_MODEL;
     const minted = await d.mint(key)(realtimeSecretRequest(st, { model }));
     if (!minted.ok) {
+      await gate!.release(got.id); // no key reached the browser: proven no call
       d.log?.(`career-voice: client secret not minted (HTTP ${minted.status})`);
       return json({ status: "UPSTREAM_ERROR", message: "The voice service did not answer. You can switch to the text mock.", call_token, text_mock: true }, 502);
     }
+    await gate!.settle(got.id, null); // a key went out: the browser's call cannot be metered here, so the worst case is spent
     return json({
       status: "OK", client_secret: minted.value, expires_at: minted.expires_at, model, calls_url: REALTIME_CALLS_URL,
       call_token, minutes, questions: st.questions.length, what: `${st.role || "general"} mock${st.company ? ` for ${st.company}` : ""}`,

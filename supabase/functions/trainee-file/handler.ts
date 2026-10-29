@@ -11,7 +11,9 @@
 import { FILE_TTL_MS, mintFileToken, SESSION_TTL_MS, verifyFileToken, type FileClaims } from "../_shared/file_link.ts";
 import { verifyInitData } from "../_shared/telegram_webapp.ts";
 import { BOOT_SCRIPT, FEED_SCRIPT, fullOf, hostOf, renderBootstrap, renderFeed, renderLinkState, renderPreview, renderText, snippetOf, statusOf, type AppRow, type Feed, type Row } from "../_shared/file_page.ts";
-import { dayOf } from "../_shared/file_page.ts";
+import { dayOf, BRAND, esc, layout } from "../_shared/file_page.ts";
+import { actOn, bodyHtml, COPY_SCRIPT, KIND_CSS, KIND_LABEL, textOf, type Effects, type FileRecord } from "../_shared/file_kinds.ts";
+import type { FileService } from "../_shared/file_service.ts";
 import { BLOCKED_HOST, hashTag, logoDomain, logoUrl, screenedOut, tapJob, type JobDeps, type JobSender, type JobStore, type JobView, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
 
 export type { AppRow } from "../_shared/file_page.ts";
@@ -23,12 +25,17 @@ export interface FileStore extends JobStore {
 export interface FileDeps extends Omit<JobDeps, "store"> {
   store: FileStore;
   userOfTelegram?: (telegramId: string) => Promise<string | null>; // channel_contacts: 'tg:<id>' -> the linked account
+  files?: FileService; // the other file kinds (introduction, proof, plan, comparison, draft, brief); an id not found there is a jobs list
+  fileEffects?: Effects; // what Introduce really does (send); absent, an approved introduction says it was not sent
 }
 export const MAX_ROWS = 30;
 
 const sha = async (s: string) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, "0")).join("");
 const b64 = (h: string) => btoa(h.match(/../g)!.map((x) => String.fromCharCode(parseInt(x, 16))).join(""));
+// The file kinds' page script: the same in-place form flip as the jobs list, plus the draft's Copy button.
+const KIND_SCRIPT = FEED_SCRIPT + COPY_SCRIPT;
 const scriptHashes = (async () => `'sha256-${b64(await sha(FEED_SCRIPT))}' 'sha256-${b64(await sha(BOOT_SCRIPT))}'`)();
+const kindScriptHash = (async () => `'sha256-${b64(await sha(KIND_SCRIPT))}'`)();
 // frame-ancestors: Telegram's own web clients only (the Mini App is a frame inside web.telegram.org); nothing else may frame the page.
 // img-src: the logo provider's origin only (computed from config), never every https host.
 const FRAMES = "https://web.telegram.org https://*.telegram.org";
@@ -185,6 +192,9 @@ export async function handleFile(req: Request, d: FileDeps): Promise<Response> {
     if (!c.ok) return bad(c.why);
     if (c.claims.k !== "l") return bad("malformed");
     if (CRAWLER.test(req.headers.get("user-agent") ?? "")) {
+      // A file of another kind: the preview names the kind and nothing of what is in it.
+      const g = d.files ? await d.files.get(c.claims.u, c.claims.r).catch(() => null) : null;
+      if (g && g.state !== "missing") return html(layout("Trainee", `<header>${BRAND}<h1>A file from Trainee</h1></header><main id="main"><p>Open this link in your browser, or from Telegram.</p></main>`, { og: { title: `${KIND_LABEL[g.rec.kind]} from Trainee`, description: "Open in Trainee.", image: ogImage(d.env) } }));
       // A link preview fetch must not use up the link: it gets the preview tags and nothing about any job.
       const n = ((await d.store.recallList(c.claims.u, c.claims.r).catch(() => null)) ?? []).length;
       return html(renderPreview({ title: `${n} match${n === 1 ? "" : "es"} for you`, description: "Tap Apply on any job. Opens in Trainee.", image: ogImage(d.env) }));
@@ -208,6 +218,10 @@ export async function handleFile(req: Request, d: FileDeps): Promise<Response> {
   const claims = check.claims;
   const { u } = claims;
   const action = req.method === "POST" ? (fields.get("action") ?? "") : "";
+  if (d.files) {
+    const g = await d.files.get(u, claims.r).catch(() => null);
+    if (g && g.state !== "missing") return handleKind({ g, d, claims, token, action, fields, req, html, text, state });
+  }
   const notes: Record<string, string> = {};
   let top: string | undefined;
 
@@ -257,5 +271,33 @@ export async function handleFile(req: Request, d: FileDeps): Promise<Response> {
   if (!feed) return state("This list is gone", ["It is no longer available. " + NEW_LINK], 404);
   if (req.method === "GET" && fields.get("format") === "text") return text(renderText(feed));
   return html(renderFeed(feed));
+}
+
+// ---------------------------------------------------------------- the other kinds: one shell, the kind's body, the kind's actions
+async function handleKind(o: { g: Exclude<Awaited<ReturnType<FileService["get"]>>, { state: "missing" }>; d: FileDeps; claims: FileClaims; token: string; action: string; fields: URLSearchParams; req: Request;
+  html: (b: string, s?: number, e?: Record<string, string>) => Promise<Response>; text: (b: string, s?: number) => Promise<Response>; state: (t: string, p: string[], s: number) => Promise<Response> }): Promise<Response> {
+  const { d, claims, token, action, fields, req } = o, files = d.files!, u = claims.u;
+  if (o.g.state === "expired") return o.state("This file has expired", [`Files last ${files.ttlHours()} hours so a forwarded link stops working. Ask Trainee in Telegram to make it again.`], 410);
+  if (o.g.state === "revoked") return o.state("This file was removed", ["It is no longer available. Ask Trainee in Telegram if you need it again."], 410);
+  let rec: FileRecord = o.g.rec, note = "";
+  if (action === "remove") {
+    await files.revoke(u, rec.id);
+    return o.state("File removed", ["This file is removed. The link no longer opens it."], 200);
+  }
+  if (action) {
+    const r = await actOn(rec, action, fields, d.now(), d.fileEffects);
+    if (r.status === 400) return o.state("Not done", [r.note], 400);
+    if (r.patch) await files.patchState(u, rec.id, r.patch);
+    note = r.note;
+    const again = await files.get(u, rec.id);
+    if (again.state !== "ok") return o.state("This file is gone", ["It is no longer available."], 410);
+    rec = again.rec;
+  }
+  if (req.method === "GET" && fields.get("format") === "text") return o.text(textOf(rec, { now: d.now() }));
+  const title = esc(String(rec.data?.title ?? KIND_LABEL[rec.kind]));
+  const inner = `<div id="root"><header>${BRAND}<p class="eyebrow">${esc(KIND_LABEL[rec.kind])}</p><h1>${title}</h1></header><main id="main">${note ? `<p class="note-top" role="status">${esc(note)}</p>` : ""}${bodyHtml(rec, token)}</main>`
+    + `<footer class="foot"><p>Expires ${esc(new Date(rec.expires_at).toISOString().slice(0, 16).replace("T", " "))} UTC. <a href="?format=text">Plain text version</a></p><form method="post"><input type="hidden" name="t" value="${esc(token)}"><input type="hidden" name="action" value="remove"><button type="submit" class="lnk">Remove this file</button></form></footer></div>`;
+  const csp = (await headers("text/html", d.env))["content-security-policy"].replace("script-src ", `script-src ${await kindScriptHash} `);
+  return o.html(layout(`${String(rec.data?.title ?? KIND_LABEL[rec.kind])} - Trainee`, inner, { script: KIND_SCRIPT, tg: true, css: KIND_CSS, og: { title: `${KIND_LABEL[rec.kind]} from Trainee`, description: "Open in Trainee.", image: ogImage(d.env) } }), 200, { "content-security-policy": csp });
 }
 export { FILE_TTL_MS, hostOf };

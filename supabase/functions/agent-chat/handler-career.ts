@@ -936,7 +936,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           seen.upload = await fileUploadFor(admin, user.id, seen.upload);
           // END FEATURE 16
           const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.account as any)?.memory?.profile ?? (loaded.snapshot as any)?.stores?.profile ?? null,
-            after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, events });
+            after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, said: seen.said, events });
           if (ev.unshown || ev.untraced || ev.refused) console.error(`career evidence: held as drafts: ${ev.unshown} not shown, ${ev.untraced} not in the upload, ${ev.refused} event not recorded`);
           // A confirmation the host could not evidence is not claimed: those facts are drafts again, and the reply says so.
           const held = heldReply(ev);
@@ -1040,6 +1040,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (turnFileLinks.length) shapeField = { attachments: shapeField?.attachments ?? [], links: [...(shapeField?.links ?? []), ...turnFileLinks.filter((l) => !(shapeField?.links ?? []).includes(l))] };
         if (sh.notes.length) agentMeta = { ...(agentMeta || {}), reply_shape: sh.notes.slice(0, 8) };
       }
+      // ONBOARDING SCENARIOS (2026-10-29): a turn answered here, before or beside the host (a card, an apply, a connector, the
+      // brain), still ends a pending resume ask's turn: a later bare yes is that turn's, not the resume's (career_host.js).
+      (host as any).noteTurn?.(ctx, out.intent);
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       // CHANNEL-DOC-1: documents the turn produced (the tailored
       // resume PDF; the delivery handler's documents) are materialized

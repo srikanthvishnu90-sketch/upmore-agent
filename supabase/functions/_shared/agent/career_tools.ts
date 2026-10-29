@@ -82,7 +82,9 @@ function confirmationRefusal(c: ToolCtx, id: string): string | null {
   const t = c.turn;
   if (!t) return "no confirmation from the person in this turn";
   if (t.added.includes(id)) return `fact ${id} was added in this turn; show it to the person and wait for their reply before confirming`;
-  if (!AFFIRM.test(t.message) || DENY.test(t.message)) return "the person's message is not a plain yes; ask them to confirm the fact as written";
+  // ONBOARDING SCENARIOS (2026-10-29): a yes word anywhere was taken ("is that right?", "yeah maybe", "yes I think so?"):
+  // only a plain yes confirms (122's confirmationReply, the router's own reader).
+  if (!AFFIRM.test(t.message) || DENY.test(t.message) || CareerProfile.confirmationReply(t.message).kind !== "yes") return "the person's message is not a plain yes; ask them to confirm the fact as written";
   return null;
 }
 // D-007: a fact about the person is saved only from what they said in this turn's message: never a guess. Most of the

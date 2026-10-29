@@ -161,7 +161,7 @@ export function emailCardText(p: EmailPayload, changed = false): string {
 const REFUSED: Record<string, string> = {
   daily_cap: "today's daily application limit is already used",
   company_cooldown: "you applied to them in the last 30 days",
-  duplicate_job: "you already applied to this posting",
+  duplicate_job: "this posting is already in your applications (sent, or approved and waiting to go), and each posting goes at most once",
   changed_since_yes: "the email changed after you saw it, so your yes was not for this version",
   no_resume: "I have no confirmed resume on file for you, so nothing goes without one",
 };

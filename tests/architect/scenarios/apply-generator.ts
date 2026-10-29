@@ -16,6 +16,8 @@
 //              check, a sign-in wall, 500, a timeout, a refusal mid-batch)
 //   crashes    a batch and the point a worker dies at (before its journal start, after it before the engine, during the
 //              engine, after the engine before the record, after the record before the journal is cleared)
+//   back off   hosts that refuse for load 1-12 times (429 seconds, a date, garbage, none; 503) then clear, beside hosts that
+//              answer, check, wall or time out, drained by 1-3 workers; workers killed around a requeue
 import { rng, type R } from "../scenarios-fixture.ts";
 export { rng };
 
@@ -312,6 +314,44 @@ export function crashCases(r: R, n: number): CrashCase[] {
   return Array.from({ length: n }, (_, id) => {
     const jobs = r.int(1, 10);
     return { id, jobs, hosts: r.int(1, 3), slots: r.int(1, 4), at: r.int(0, jobs - 1), point: r.pick(CRASH_POINTS), budgetLeft: r.next() < 0.8 };
+  });
+}
+
+// ------------------------------------------------------------------------------------------------ back off, then resume
+// Hosts that refuse for load (429 with Retry-After seconds, an HTTP date, garbage or none; a 503 with seconds) the first
+// `refuseTimes` attempts and then clear, beside hosts that answer, check (captcha), wall (sign-in) or time out; drained by
+// 1-3 workers at once. Owner rule (2026-10-27): back off only when an outside system refuses, then RESUME; each approved
+// application is submitted at most once. `refuseTimes` up to 12 with a 0-2 s Retry-After: no cap of Trainee's own.
+export type BackoffBehavior = "rl_seconds" | "rl_date" | "rl_garbage" | "rl_none" | "busy_503" | "ok" | "captcha" | "login_wall" | "timeout";
+export const BACKOFF_REFUSING = new Set<BackoffBehavior>(["rl_seconds", "rl_date", "rl_garbage", "rl_none", "busy_503"]);
+export interface BackoffHost { host: string; behavior: BackoffBehavior; header: string | null; refuseTimes: number }
+export interface BackoffCase { id: number; hosts: BackoffHost[]; jobs: { url: string }[]; slots: number; workers: number }
+const BACKOFF_BEHAVIORS: BackoffBehavior[] = ["rl_seconds", "rl_seconds", "rl_date", "rl_garbage", "rl_none", "busy_503", "ok", "ok", "captcha", "login_wall", "timeout"];
+export function backoffCases(r: R, n: number): BackoffCase[] {
+  const out: BackoffCase[] = [];
+  for (let id = 0; id < n; id++) {
+    const many = id % 10 === 9; // no cap of ours: a host that refuses 8-12 times in a row (short Retry-After), then clears
+    const hosts: BackoffHost[] = Array.from({ length: many ? 1 : r.int(1, 4) }, (_, i) => {
+      const behavior: BackoffBehavior = many ? "rl_seconds" : r.pick(BACKOFF_BEHAVIORS), host = `b${id}-${i}.example.test`;
+      const header = behavior === "rl_seconds" || behavior === "busy_503" ? String(many ? r.int(0, 2) : r.int(0, 90))
+        : behavior === "rl_date" ? httpDate(NOW + r.int(0, 90) * 1000, r.pick(["imf", "rfc850", "asctime"] as const))
+        : behavior === "rl_garbage" ? r.pick(GARBAGE) : null;
+      return { host, behavior, header, refuseTimes: BACKOFF_REFUSING.has(behavior) ? (many ? r.int(8, 12) : r.int(1, 4)) : 0 };
+    });
+    const jobs = Array.from({ length: many ? r.int(1, 2) : r.int(2, 10) }, (_, j) => ({ url: `https://${r.pick(hosts).host}/job/${j}` }));
+    out.push({ id, hosts, jobs, slots: r.int(1, 4), workers: r.int(1, 3) });
+  }
+  return out;
+}
+// A worker killed around a requeue: after the engine's 429 and before the requeue is written; right after it is written
+// (before the journal line is cleared); during the engine of the job's second attempt.
+export type RequeueCrashPoint = "after_refusal_before_requeue" | "after_requeue_before_clear" | "during_second_engine";
+export const REQUEUE_CRASH_POINTS: RequeueCrashPoint[] = ["after_refusal_before_requeue", "after_requeue_before_clear", "during_second_engine"];
+export interface RequeueCrashCase { id: number; jobs: number; slots: number; at: number; point: RequeueCrashPoint }
+export function requeueCrashCases(r: R, n: number): RequeueCrashCase[] {
+  return Array.from({ length: n }, (_, id) => {
+    const jobs = r.int(1, 6);
+    return { id, jobs, slots: r.int(1, 3), at: r.int(0, jobs - 1), point: REQUEUE_CRASH_POINTS[id % REQUEUE_CRASH_POINTS.length] };
   });
 }
 

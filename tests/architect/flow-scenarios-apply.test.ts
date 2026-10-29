@@ -19,6 +19,10 @@
 //                 stays recorded. Four computers of one person drain one queue: each application once.
 //   F  approvals  approvals that do not carry the exact payload hash, and a payload changed after its approval: nothing
 //                 queued, and the claim closes the changed one unsent.
+//   G  resume     hosts that refuse before anything is sent (429 seconds, an HTTP date, 503) and then clear, three cloud
+//                 workers on the pool claim and the person's computer on its own (career_apply_requeue_refused_for/_own,
+//                 20261029180000): the same row queued again with its hash, never claimed before its time or twice at
+//                 once, submitted once; a check and an unknown never retried; what the person is told while it waits.
 // No model, no network, no Chromium: engines are stand-ins at the scheduler's boundary.
 import assertNode from "node:assert/strict";
 import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
@@ -27,6 +31,8 @@ import { formUrlFor, postingKey } from "../../supabase/functions/_shared/posting
 import { queueWants, supabaseWantStore } from "../../supabase/functions/_shared/career_apply_want.ts";
 import { type Job, ownQueue, runLoop } from "../../workers/career-browser/approve-first.ts";
 import { dbHostGate, hostOf, type Journal, type JournalEntry, localHostGate, type MassJob, massRun, pacingFrom, retryAfterSeconds } from "../../workers/career-browser/mass-run.ts";
+import { statusLine } from "../../supabase/functions/_shared/career_apply_status.ts";
+import { answerText } from "../../supabase/functions/_shared/career_apply_cards.ts";
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
@@ -430,6 +436,134 @@ Deno.test({
         const closed = JSON.parse(await pg.sql(`select jsonb_object_agg(job_id, state || ': ' || coalesce(reason, '')) from public.career_apply_jobs where user_id = '${U}' and job_id in ('f:10', 'f:11')`));
         for (const k of ["f:10", "f:11"]) if (!/^not_submitted: not sent: the application changed after it was approved/.test(closed[k] ?? "")) fail(`F ${k}: ${closed[k]}`);
         for (const j of claimed) await pg.asService().rpc("career_apply_finish", { p_id: j.id, p_lease: j.lease_token, p_state: "not_submitted", p_evidence: { reason: "TEST look only" } });
+      });
+
+      // ------------------------------------------------------------------------------------------------ G back off, then resume
+      await t.step("G resume: hosts that refuse before anything is sent (429 seconds, an HTTP date, 503) and then clear, three cloud workers and the person's computer: the same job is queued again, never claimed before its time or twice at once, and submitted once; checks and unknowns never retried", async () => {
+        await pg.sql(`update public.career_apply_jobs set state = 'not_submitted', reason = 'TEST closed before G' where state = 'queued'`);
+        const plan = [
+          { host: "g-rl1.example.test", b: "rl_seconds", refuse: 2, n: 4 }, { host: "g-rl2.example.test", b: "rl_date", refuse: 1, n: 3 },
+          { host: "g-503.example.test", b: "busy_503", refuse: 2, n: 3 }, { host: "g-ok.example.test", b: "ok", refuse: 0, n: 4 },
+          { host: "g-check.example.test", b: "captcha", refuse: 0, n: 1 }, { host: "g-slow.example.test", b: "timeout", refuse: 0, n: 1 },
+        ];
+        const people = [P(70), P(71), P(72)];
+        for (const u of people) await person(pg, u, "confirmed");
+        let k = 0;
+        for (const h of plan) for (let i = 0; i < h.n; i++, k++) {
+          const r = await enqueue(pg, payload(people[k % people.length], `g:${h.host}:${i}`, `G Co ${k}`, `https://${h.host}/jobs/${i}`));
+          if (r !== "queued") fail(`G: setup enqueue ${h.host} ${i}: ${r}`);
+        }
+        const total = k;
+        counts.G = total;
+        const approved = JSON.parse(await pg.sql(`select jsonb_object_agg(id, payload_hash || '/' || approval_hash) from public.career_apply_jobs where job_id like 'g:%'`));
+        const svc = pg.asService();
+        const engine = new Map<string, number>(), attempts = new Map<string, number>(), inFlight = new Set<string>(), notBefore = new Map<string, number>();
+        const early: string[] = [];
+        let overlap = 0, stop = false;
+        const watch = setInterval(async () => { try { if (Number(await pg.sql(`select count(*) from public.career_apply_jobs where job_id like 'g:%' and state in ('queued', 'driving')`)) === 0) stop = true; } catch { /* next tick */ } }, 250);
+        const deadline = Date.now() + 60_000;
+        const worker = (w: number) => massRun<MassJob & { user_id: string }>({
+          claim: async (n) => {
+            const c = await svc.rpc("career_apply_claim_fair", { p_now: new Date().toISOString(), p_limit: n, p_per_person: 2 });
+            if (c.error) { fail(`G: the claim: ${c.error.message}`); throw Error(c.error.message); }
+            return (c.data ?? []).filter((j: any) => String(j.job_id).startsWith("g:")).map((j: any) => ({ id: j.id, lease_token: j.lease_token, url: j.url, user_id: j.user_id, claimed_at: j.claimed_at }));
+          },
+          run: async (job, onStart) => {
+            await onStart();
+            const h = plan.find((x) => x.host === hostOf(job.url))!;
+            if (inFlight.has(job.id)) overlap++;
+            inFlight.add(job.id);
+            if (Date.now() + 5 < (notBefore.get(job.id) ?? 0)) early.push(`${job.id} started ${notBefore.get(job.id)! - Date.now()} ms before its time`);
+            engine.set(job.id, (engine.get(job.id) ?? 0) + 1);
+            const tried = (attempts.get(h.host) ?? 0) + 1;
+            attempts.set(h.host, tried);
+            await new Promise((r) => setTimeout(r, 5));
+            inFlight.delete(job.id);
+            if (tried <= h.refuse) {
+              const retry = h.b === "rl_date" ? retryAfterSeconds(httpDate(Date.now() + 2000, "imf"), Date.now()) : retryAfterSeconds("1", Date.now());
+              return { state: "refused", reason: "HOST_RATE_LIMITED", requeue: true, status: h.b === "busy_503" ? 503 : 429, retry_after_s: retry, recorded: false };
+            }
+            const res = h.b === "captcha" ? { state: "needs_user", reason: "bot_check" } : h.b === "timeout" ? { state: "unknown_outcome", reason: "the engine gave no result after it started; not retried" }
+              : { state: "submitted_unconfirmed", reason: "acknowledged" };
+            const f = await svc.rpc("career_apply_finish", { p_id: job.id, p_lease: job.lease_token, p_state: res.state, p_evidence: { reason: res.reason } });
+            if (f.error) fail(`G: finish ${job.id}: ${f.error.message}`);
+            return { ...res, recorded: !f.error, ...(h.b === "captcha" ? { reason: "CAPTCHA_AT_SUBMIT" } : {}) };
+          },
+          requeue: async (job, q) => {
+            const r = await svc.rpc("career_apply_requeue_refused_for", { p_id: job.id, p_lease: job.lease_token, p_reason: q.reason, p_retry_after_s: q.retryAfterS, p_until: new Date(q.until).toISOString() });
+            if (r.error) { fail(`G: requeue ${job.id}: ${r.error.message}`); return { state: "unrecorded", recorded: false }; }
+            const nb = Date.parse(r.data.not_before);
+            notBefore.set(job.id, nb);
+            return { state: "queued", recorded: true, not_before: nb };
+          },
+          unstarted: async (job, why) => { const f = await svc.rpc("career_apply_finish", { p_id: job.id, p_lease: job.lease_token, p_state: "not_submitted", p_evidence: { reason: why } }); return { state: "not_submitted", reason: why, recorded: !f.error }; },
+          orphaned: async () => ({ state: "unknown_outcome", recorded: true }),
+          pacing: pacingFrom(() => undefined, { concurrency: 2 + w }), stop: () => stop || Date.now() > deadline,
+          gate: dbHostGate(svc, { log: () => {}, cacheMs: 0 }), drain: false, idleMs: 100, log: () => {},
+        });
+        await Promise.all([worker(0), worker(1), worker(2)]);
+        clearInterval(watch);
+        if (Date.now() > deadline) fail("G: the workers did not finish the queue in time");
+        if (overlap) fail(`G: ${overlap} job(s) driven twice at once`);
+        for (const e of early) fail(`G: ${e}`);
+        const rows = JSON.parse(await pg.sql(`select coalesce(jsonb_agg(jsonb_build_object('id', id, 'job_id', job_id, 'url', url, 'state', state, 'refusals', host_refusals, 'hash', payload_hash || '/' || approval_hash)), '[]') from public.career_apply_jobs where job_id like 'g:%'`));
+        if (rows.length !== total) fail(`G: ${rows.length} rows of ${total} (one row per posting)`);
+        const perHost = new Map<string, number>();
+        for (const r of rows) {
+          const h = plan.find((x) => x.host === hostOf(r.url))!, n = engine.get(r.id) ?? 0;
+          perHost.set(h.host, (perHost.get(h.host) ?? 0) + r.refusals);
+          if (r.hash !== approved[r.id]) fail(`G ${h.host}: ${r.job_id} its approval or hash changed`);
+          if (h.refuse) {
+            if (r.state !== "submitted_unconfirmed" || n !== r.refusals + 1) fail(`G ${h.host}: ${r.job_id} ${r.state}, engine x${n}, refused ${r.refusals}: not run again and submitted once`);
+          } else {
+            const want = ({ ok: "submitted_unconfirmed", captcha: "needs_user", timeout: "unknown_outcome" } as Record<string, string>)[h.b];
+            if (r.state !== want || n !== 1 || r.refusals !== 0) fail(`G ${h.host}: ${r.job_id} ${r.state} engine x${n} refused ${r.refusals}, expected ${want} once`);
+          }
+        }
+        for (const h of plan.filter((x) => x.refuse)) if (perHost.get(h.host) !== h.refuse) fail(`G ${h.host}: ${perHost.get(h.host)} refusals recorded, ${h.refuse} given`);
+        // The person's own computer (approve-first.ts runLoop over career_apply_claim_own and career_apply_requeue_refused_own).
+        const U = P(73);
+        await person(pg, U, "confirmed");
+        for (let i = 0; i < 3; i++) if (await enqueue(pg, payload(U, `g:own:${i}`, `G Own ${i}`, `https://g-own.example.test/jobs/${i}`)) !== "queued") fail(`G own: setup ${i}`);
+        const ownEngine = new Map<string, number>();
+        await runLoop({
+          log: () => {}, sleep: async () => {}, idleMs: 50, writeFacts: async () => "/tmp/TEST-facts.json", resume: { path: "/tmp/TEST-resume.pdf", sha256: RESUME_SHA },
+          queue: ownQueue(pg.asPerson(U)), stop: () => Date.now() > deadline + 30_000, drain: true, pacing: pacingFrom(() => undefined, { concurrency: 2 }),
+          runEngine: async (args) => {
+            const id = args[args.indexOf("--application-id") + 1], n = (ownEngine.get(id) ?? 0) + 1;
+            ownEngine.set(id, n);
+            return n === 1 ? { result: { state: "not_submitted", reason: "HOST_RATE_LIMITED", status: 429, retry_after_s: 1 } as any, evidence: null }
+              : { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: null };
+          },
+        });
+        const own = JSON.parse(await pg.sql(`select jsonb_agg(jsonb_build_object('id', id, 'state', state, 'refusals', host_refusals)) from public.career_apply_jobs where user_id = '${U}'`));
+        for (const r of own) if (r.state !== "submitted_unconfirmed" || r.refusals !== 1 || ownEngine.get(r.id) !== 2) fail(`G own: ${r.id} ${r.state} refused ${r.refusals} engine x${ownEngine.get(r.id) ?? 0}`);
+        counts.G += own.length;
+        // What the person is told while one waits, from the record: approved and waiting, nothing sent; approving the same
+        // posting again adds nothing and is never called a duplicate or "already applied".
+        const W = P(74);
+        await person(pg, W, "confirmed");
+        const wurl = "https://jobs.lever.co/gwaitco/5f1c2d3e-0000-4000-8000-00000000a001";
+        const wp = payload(W, postingKey(wurl)!, "Waiting Co", wurl);
+        if (await enqueue(pg, wp) !== "queued") fail("G wait: setup");
+        const c = await svc.rpc("career_apply_claim_fair", { p_now: new Date().toISOString(), p_limit: 50, p_per_person: 50 });
+        const mine = (c.data ?? []).find((j: any) => j.user_id === W);
+        if (!mine) { fail("G wait: not claimed"); return; }
+        const rq = await svc.rpc("career_apply_requeue_refused_for", { p_id: mine.id, p_lease: mine.lease_token, p_reason: "rate_limited", p_retry_after_s: 600, p_until: null });
+        if (rq.error) fail(`G wait: requeue: ${rq.error.message}`);
+        const row = JSON.parse(await pg.sql(`select to_jsonb(x) from (select id, company, state, reason, confirmation_id, email_confirmed_at, created_at, updated_at from public.career_apply_jobs where id = '${mine.id}') x`));
+        const line = statusLine(row);
+        if (!/^Waiting Co: approved, not sent yet; waiting: the employer's site asked us to slow down \(too many requests\); nothing was sent, and it goes again by itself after \d{4}-\d\d-\d\d \d\d:\d\d UTC\.$/.test(line)) fail(`G wait: the status line: ${line}`);
+        const again = await enqueue(pg, wp);
+        if (!/duplicate_job/.test(again)) fail(`G wait: approving it again: ${again}`);
+        const card = answerText([{ n: 1, company: "Waiting Co", result: "duplicate" } as any]);
+        if (/duplicate|already applied/i.test(card)) fail(`G wait: the card says ${card}`);
+        const q = await queueWants(supabaseWantStore(adminShim(pg)), W, [{ url: wp.url, job_id: wp.job_id, company: wp.company, title: "TEST" }], Date.now());
+        const said = q.refused.map((x) => x.said).join(" | ");
+        if (q.queued !== 0 || !/already in your applications/.test(said) || /duplicate|already applied/i.test(said)) fail(`G wait: the chat's queue: queued ${q.queued}: ${said}`);
+        if (Number(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${W}'`)) !== 1) fail("G wait: more than one row for the posting");
+        counts.G += 1;
+        console.log(`[apply e2e] G: ${total} cloud + ${own.length} own applications, ${[...engine.values()].reduce((a, b) => a + b, 0)} engine starts, every refused job submitted once`);
       });
     } finally {
       await pg.stop();

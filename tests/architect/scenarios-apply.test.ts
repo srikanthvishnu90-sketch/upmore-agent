@@ -20,16 +20,24 @@
 //              driven again; an unstarted one runs once under its lease (or is ended unsent); a recorded one stays recorded
 //   cloud      cloudLoop (career-cloud/worker.ts): a host's Retry-After reaches the shared gate
 //   workers    several runLoops on one queue: each job once
+//   resume     back off, then RESUME (20261029180000): a host that refused before anything was sent (429 seconds, a date,
+//              garbage, none; 503) 1-12 times then clears: the same job goes back to the queue, is never claimed before
+//              its not-before time or twice at once, runs again and is submitted once; each refusal backs off again (the
+//              host's Retry-After, else doubling), no cap of ours; a check, a wall and an unknown are never retried;
+//              workers killed around a requeue: once the engine may have sent, never driven again; what the person is told
+//              (a waiting job is approved and waiting; the same posting again is never "duplicate" or "already applied")
 // The end-to-end sample on real Postgres is flow-scenarios-apply.test.ts. No network, no model, no Chromium.
 import assertNode from "node:assert/strict";
 import {
-  AGES, BLOCKING, type CrashCase, crashCases, employerCases, historyCases, type Link, NOW, OUTSIDE_REFUSAL, postingCases, resumeCases,
-  RESUME_SHA, retryCases, rng, type SchedCase, schedCases,
+  AGES, BACKOFF_REFUSING, backoffCases, BLOCKING, type CrashCase, crashCases, employerCases, historyCases, type Link, NOW, OUTSIDE_REFUSAL, postingCases, resumeCases,
+  requeueCrashCases, RESUME_SHA, retryCases, rng, type SchedCase, schedCases,
 } from "./scenarios/apply-generator.ts";
 import { memoryWantStore, queueWants, samePosting, screenPicks, wantsFrom } from "../../supabase/functions/_shared/career_apply_want.ts";
 import { formUrlFor, postingKey } from "../../supabase/functions/_shared/posting_key.ts";
 import { admitApplication, postingKey as sqlKey } from "../../supabase/functions/_shared/career_apply.ts";
 import { trackedFromRows } from "../../supabase/functions/_shared/career_apply_chat.ts";
+import { statusLine } from "../../supabase/functions/_shared/career_apply_status.ts";
+import { answerText } from "../../supabase/functions/_shared/career_apply_cards.ts";
 import { factsFromPayload, type Job, ownQueue, runApproved, runLoop } from "../../workers/career-browser/approve-first.ts";
 import { cloudLoop, type CloudQueue } from "../../workers/career-cloud/worker.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
@@ -174,7 +182,8 @@ Deno.test(`retry: ${RETRIES.length} Retry-After values: seconds and HTTP dates h
 // ------------------------------------------------------------------------------------------------ the worker, faked around
 // A queue with the database's transitions (career_apply_claim_own / career_apply_finish_own): a claim takes queued rows
 // to driving under a fresh lease; a finish needs driving and the lease, else "invalid apply transition".
-interface Row { id: string; url: string; state: string; lease_token: string | null; claimed_at: string | null; reason: string | null; finishes: number }
+interface Row { id: string; url: string; state: string; lease_token: string | null; claimed_at: string | null; reason: string | null; finishes: number;
+  not_before?: number; requeues?: number; claims?: number[]; early?: number }
 type Life = { dead: boolean; die: () => void };
 const never = <T>() => new Promise<T>(() => {});
 function life(): Life & { died: Promise<void> } {
@@ -183,8 +192,10 @@ function life(): Life & { died: Promise<void> } {
   const l = { dead: false, died, die: () => { if (!l.dead) { l.dead = true; res(); } } };
   return l;
 }
-function fakeDb(urls: string[]) {
-  const rows = new Map<string, Row>(urls.map((url, i) => [`j${String(i).padStart(3, "0")}`, { id: `j${String(i).padStart(3, "0")}`, url, state: "queued", lease_token: null, claimed_at: null, reason: null, finishes: 0 }]));
+// requeue: the database has 20261029180000 (career_apply_requeue_refused_own, and no claim before a job's not_before);
+// without it, a refusal is recorded not sent, as before.
+function fakeDb(urls: string[], o: { requeue?: boolean } = {}) {
+  const rows = new Map<string, Row>(urls.map((url, i) => [`j${String(i).padStart(3, "0")}`, { id: `j${String(i).padStart(3, "0")}`, url, state: "queued", lease_token: null, claimed_at: null, reason: null, finishes: 0, requeues: 0, claims: [], early: 0 }]));
   const payload = (r: Row) => ({ version: 1, user_id: U, job_id: r.id, url: r.url, fields: [], engine_approval: "e".repeat(64), resume_sha256: RESUME_SHA });
   let seq = 0;
   const rpc = async (name: string, a: any, l?: Life, hook?: (name: string, a: any) => void) => {
@@ -192,8 +203,9 @@ function fakeDb(urls: string[]) {
     hook?.(name, a);
     if (l?.dead) return await never<any>();
     if (name === "career_apply_claim_own") {
-      const out = [...rows.values()].filter((r) => r.state === "queued").slice(0, Math.max(0, a.p_limit));
-      for (const r of out) { r.state = "driving"; r.lease_token = `L${++seq}`; r.claimed_at = new Date().toISOString(); }
+      const t = Date.now();
+      const out = [...rows.values()].filter((r) => r.state === "queued" && (!o.requeue || (r.not_before ?? 0) <= t)).slice(0, Math.max(0, a.p_limit));
+      for (const r of out) { r.state = "driving"; r.lease_token = `L${++seq}`; r.claimed_at = new Date(t).toISOString(); r.claims!.push(t); if (t < (r.not_before ?? 0)) r.early!++; }
       return { data: out.map((r) => ({ id: r.id, lease_token: r.lease_token, url: r.url, user_id: U, claimed_at: r.claimed_at, payload: payload(r) })), error: null };
     }
     if (name === "career_apply_finish_own") {
@@ -201,6 +213,15 @@ function fakeDb(urls: string[]) {
       if (!r || r.state !== "driving" || r.lease_token !== a.p_lease) return { data: null, error: { message: "invalid apply transition" } };
       r.state = a.p_state; r.reason = String(a.p_evidence?.reason ?? ""); r.finishes++;
       return { data: { id: r.id, state: r.state }, error: null };
+    }
+    if (name === "career_apply_requeue_refused_own" && o.requeue) {
+      const r = rows.get(a.p_id);
+      if (!r || r.state !== "driving" || r.lease_token !== a.p_lease) return { data: null, error: { message: "invalid apply claim" } };
+      if (!["rate_limited", "server_busy", "quota"].includes(a.p_reason)) return { data: null, error: { message: "invalid portal refusal" } };
+      // The gate's hold (the SQL takes the later of it and the host's Retry-After; the test's gate already counts it, scaled).
+      const nb = Math.max(Date.parse(a.p_until), Date.now());
+      r.state = "queued"; r.lease_token = null; r.claimed_at = null; r.not_before = nb; r.requeues!++; r.reason = "waiting: the employer's site asked us to slow down";
+      return { data: { id: r.id, state: "queued", not_before: new Date(nb).toISOString() }, error: null };
     }
     return { data: null, error: { message: `no function ${name}` } };
   };
@@ -244,6 +265,8 @@ const appId = (args: string[]) => args[args.indexOf("--application-id") + 1];
 const quiet = { log: () => {}, sleep: async () => {}, idleMs: 1, writeFacts: async () => "/tmp/facts.json", resume: { path: "/tmp/resume.pdf", sha256: RESUME_SHA } };
 
 // ------------------------------------------------------------------------------------------------ hosts
+// On a queue without the requeue (a database before 20261029180000): a refused job is recorded not sent, as before, and
+// the scheduler still never drives anything twice. With the requeue, the resume part below.
 const SCHED = schedCases(rng(SEED + 5), 1500);
 Deno.test(`hosts: ${SCHED.length} batches over hosts that answer, rate-limit (seconds, dates, garbage, none), are busy, check, wall, fail or time out: every job once, the gate told exactly the refusals, held hosts wait, then resume; no number of ours`, async () => {
   const rep = report("hosts");
@@ -462,4 +485,258 @@ Deno.test("workers: 300 rounds of 2-6 workers draining one queue at once: every 
     for (const row of db.rows.values()) check(rep, engine.get(row.id) === 1 && row.finishes === 1 && row.state === "submitted_unconfirmed", "a job not run and recorded exactly once", () => `round ${k} (${workers} workers, ${n} jobs): ${row.id} engine x${engine.get(row.id) ?? 0}, ${row.state} x${row.finishes}`);
   }
   done(rep);
+});
+
+// ------------------------------------------------------------------------------------------------ back off, then resume
+// Owner rule (binding, 2026-10-27): "Back off only when an outside system refuses (429, quota, bot wall), then RESUME".
+// A job whose host refused before anything was sent goes back to the queue (career_apply_requeue_refused_own,
+// 20261029180000) and runs again once the host's hold ends: submitted once, with no new approval. The fake queue below has
+// the requeue; the hosts part above is the same scheduler on a database without it (recorded not sent, as before).
+// The gate is the worker's own rule (backoffMs: Retry-After, else 30 s doubling) on a scaled clock: one logical second
+// is 1/SCALE s here, so the waits are real but short; what was asked for is kept for the assertions.
+const SCALE = 5000;
+function scaledGate() {
+  const level = new Map<string, number>(), held = new Map<string, number>();
+  const calls: { host: string; why: string; retryAfterS: number | null; level: number; logical: number; at: number; until: number }[] = [];
+  const gate: HostGate = {
+    shared: true,
+    async until(hosts) { return new Map(hosts.map((h) => [h, held.get(h) ?? 0])); },
+    async refused(host, why, retryAfterS, at) {
+      const lv = level.get(host) ?? 0, logical = backoffMs(lv, retryAfterS);
+      level.set(host, lv + 1);
+      const until = Math.max(held.get(host) ?? 0, at + Math.ceil(logical / SCALE));
+      held.set(host, until);
+      calls.push({ host, why, retryAfterS, level: lv, logical, at, until });
+      return until;
+    },
+    async ok(host) { level.set(host, 0); },
+  };
+  return { gate, calls };
+}
+const BACKOFF = backoffCases(rng(SEED + 9), 240);
+Deno.test(`resume: ${BACKOFF.length} batches whose hosts refuse (429 with seconds, a date, garbage, none; 503) 1-12 times then clear, beside hosts that answer, check, wall or time out, 1-3 workers at once: every refused job runs again and is submitted once; each refusal backs off again; checks and unknowns never retried`, async () => {
+  const rep = report("resume");
+  for (const c of BACKOFF) {
+    rep.total++;
+    const db = fakeDb(c.jobs.map((j) => j.url), { requeue: true });
+    const plan = new Map(c.hosts.map((h) => [h.host, h]));
+    const engine = new Map<string, number>(), attempts = new Map<string, number>(), refusedOf = new Map<string, number>();
+    const starts: { id: string; host: string; at: number }[] = [], inFlight = new Set<string>();
+    let overlap = 0;
+    const { gate, calls } = scaledGate();
+    const name = () => `case ${c.id} slots ${c.slots} workers ${c.workers}: ${c.hosts.map((h) => `${h.host}=${h.behavior}x${h.refuseTimes}${h.header !== null ? `(${JSON.stringify(h.header)})` : ""}`).join(", ")}; ${c.jobs.length} jobs`;
+    let stopAll = false;
+    const deadline = setTimeout(() => { stopAll = true; }, 30_000);
+    await Promise.all(Array.from({ length: c.workers }, () => runLoop({
+      ...quiet, queue: ownQueue({ rpc: (n, a) => db.rpc(n, a) }), stop: () => stopAll, drain: true, gate,
+      pacing: pacingFrom(() => undefined, { concurrency: c.slots }),
+      runEngine: async (args) => {
+        const id = appId(args), url = args[args.indexOf("--url") + 1], h = plan.get(hostOf(url))!;
+        if (inFlight.has(id)) overlap++;
+        inFlight.add(id);
+        starts.push({ id, host: h.host, at: Date.now() });
+        engine.set(id, (engine.get(id) ?? 0) + 1);
+        const n = (attempts.get(h.host) ?? 0) + 1;
+        attempts.set(h.host, n);
+        await new Promise((r) => setTimeout(r, 1));
+        inFlight.delete(id);
+        if (BACKOFF_REFUSING.has(h.behavior) && n <= h.refuseTimes) {
+          refusedOf.set(id, (refusedOf.get(id) ?? 0) + 1);
+          // The engine's own parse of the header, at the fixed instant the dates were written for.
+          const s = retryAfterSeconds(h.header, NOW);
+          return { result: { state: "not_submitted", reason: "HOST_RATE_LIMITED", status: h.behavior === "busy_503" ? 503 : 429, retry_after_s: s } as any, evidence: null };
+        }
+        switch (h.behavior) {
+          case "captcha": return { result: { state: "needs_user", reason: "captcha" }, evidence: null };
+          case "login_wall": return { result: { state: "not_submitted", reason: "ACCOUNT_LOGIN_REQUIRED" }, evidence: null };
+          case "timeout": return null;
+          default: return { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: null };
+        }
+      },
+    })));
+    clearTimeout(deadline);
+    check(rep, !stopAll, "the workers did not drain the queue in time", name);
+    check(rep, overlap === 0, "a job driven twice at once", () => `${name()}: ${overlap}`);
+    const hostOfId = new Map([...db.rows.values()].map((r) => [r.id, hostOf(r.url)]));
+    for (const r of db.rows.values()) {
+      const h = plan.get(hostOf(r.url))!, n = engine.get(r.id) ?? 0, refused = refusedOf.get(r.id) ?? 0;
+      check(rep, r.finishes === 1 && !["queued", "driving"].includes(r.state), "a job not recorded exactly once", () => `${name()}: ${r.id} ${r.state} x${r.finishes}`);
+      check(rep, r.early === 0, "a job claimed before its not-before time", () => `${name()}: ${r.id} early x${r.early}`);
+      if (BACKOFF_REFUSING.has(h.behavior)) {
+        // Refused, put back, run again: submitted once, its engine started once per refusal and once more.
+        check(rep, r.state === "submitted_unconfirmed", "a refused job did not run again and get submitted", () => `${name()}: ${r.id} ${r.state} (${r.reason}) after ${refused} refusals`);
+        check(rep, r.requeues === refused && n === refused + 1, "requeues and engine starts do not match the refusals", () => `${name()}: ${r.id} refused ${refused}, requeued ${r.requeues}, engine x${n}`);
+      } else {
+        const want = ({ ok: "submitted_unconfirmed", captcha: "needs_user", login_wall: "needs_user", timeout: "unknown_outcome" } as Record<string, string>)[h.behavior];
+        check(rep, r.state === want && n === 1 && r.requeues === 0, `${h.behavior}: ${want}, driven once, never put back`, () => `${name()}: ${r.id} ${r.state} engine x${n} requeued ${r.requeues}`);
+      }
+    }
+    // Every refusal held its host again (the gate was told each one), as long as the host asked, or 30 s doubling.
+    for (const h of c.hosts) {
+      const mine = calls.filter((k) => k.host === h.host);
+      const refusals = [...refusedOf.entries()].filter(([id]) => hostOfId.get(id) === h.host).reduce((a, [, x]) => a + x, 0);
+      if (BACKOFF_REFUSING.has(h.behavior)) {
+        const jobsHere = [...db.rows.values()].filter((r) => hostOf(r.url) === h.host).length;
+        check(rep, mine.length === refusals && (jobsHere === 0 || refusals === h.refuseTimes), "the gate was not told each refusal", () => `${name()}: ${h.host} told ${mine.length}, refused ${refusals} of ${h.refuseTimes}`);
+        const asked = retryAfterSeconds(h.header, NOW);
+        for (const k of mine) {
+          check(rep, k.logical === (asked !== null ? Math.min(asked * 1000, 86_400_000) : Math.min(3_600_000, 30_000 * 2 ** k.level)), "the wait is not the host's Retry-After or the doubling",
+            () => `${name()}: ${h.host} ${JSON.stringify(h.header)} level ${k.level} -> ${k.logical} ms`);
+        }
+        // Refusals in a row with no Retry-After back off longer each time (nothing answered in between on this host).
+        if (asked === null && c.slots === 1 && c.workers === 1) {
+          const levels = mine.map((k) => k.level);
+          check(rep, levels.every((lv, i) => lv === i), "a refusal in a row did not back off longer", () => `${name()}: ${h.host} levels ${levels}`);
+        }
+      } else if (h.behavior === "captcha") {
+        check(rep, mine.every((k) => k.why === "bot_check"), "a check told as a load refusal", () => `${name()}: ${h.host}`);
+      } else {
+        check(rep, mine.length === 0, "held off a host that did not refuse", () => `${name()}: ${h.host} ${h.behavior}`);
+      }
+      // Held hosts wait: no engine start on a host after a refusal and inside its hold.
+      for (const k of mine) {
+        const early = starts.filter((s) => s.host === h.host && s.at > k.at && s.at < k.until);
+        check(rep, early.length === 0, "a start inside a host's hold", () => `${name()}: ${h.host} held ${k.at}..${k.until}, started ${early.map((s) => s.at)}`);
+      }
+    }
+  }
+  console.log(`[apply] resume: ${BACKOFF.filter((c) => c.hosts.some((h) => h.refuseTimes >= 8)).length} batches with a host refusing 8-12 times in a row`);
+  done(rep);
+});
+
+// The cloud worker (cloudLoop, career_apply_requeue_refused_for): the same, over a queue that puts a job back and hands it
+// out only after its time; a refused run never asked for its effect (nothing was sent).
+Deno.test("resume, the cloud worker: 120 batches whose host refuses 1-4 times with a Retry-After then clears: each job put back, run again, submitted once; never claimed before its time", async () => {
+  const rep = report("resume (cloud)");
+  const r = rng(SEED + 11);
+  const RESUME = new TextEncoder().encode("%PDF-1.4 TEST apply scenarios");
+  const sha = [...new Uint8Array(await crypto.subtle.digest("SHA-256", RESUME))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const tmp = await Deno.makeTempDir({ prefix: "trainee-apply-resume-" });
+  try {
+    for (let k = 0; k < 120; k++) {
+      rep.total++;
+      const n = r.int(1, 6), refuse = r.int(1, 4), asked = r.pick([0, 1, 5, 30, 90, null]);
+      const jobs = await Promise.all(Array.from({ length: n }, async (_, i) => {
+        const payload: any = { version: 1, user_id: "A", job_id: `lever:r${k}:${i}`, company: `TEST Co ${i}`, url: `https://r${k}-${i % 2}.lever.test/t/${i}`, fields: [{ name: "first_name", label: "First name", value: "TEST A", factId: `TEST-A-${i}` }],
+          destination: `https://r${k}-${i % 2}.lever.test/t/${i}/apply`, resume_sha256: sha, privacy_epoch: 1, account_version: 1, expires_at: "2099-01-01T00:00:00Z" };
+        payload.engine_approval = await hashApplyPayload(factsFromPayload(payload).saved);
+        return await cardBound({ id: `job-${k}-${i}`, lease_token: `lease-${k}-${i}-0`, user_id: "A", company: payload.company, url: payload.url, payload });
+      }));
+      const queued = new Map(jobs.map((j) => [j.id, { job: j, notBefore: 0, driving: false, requeues: 0 }]));
+      const finished: string[] = [], engine = new Map<string, number>(), effects = new Map<string, number>();
+      let early = 0, refusedSoFar = 0, seq = 0;
+      const q: CloudQueue = {
+        claim: async (limit) => {
+          const t = Date.now(), out = [];
+          for (const x of queued.values()) {
+            if (out.length >= limit || x.driving) continue;
+            if (x.notBefore > t) continue;
+            x.driving = true;
+            out.push({ ...x.job, lease_token: `lease-${x.job.id}-${++seq}` });
+          }
+          return out;
+        },
+        requeue: async (job, reason, _retry, until) => {
+          const x = queued.get(job.id)!;
+          if (!x.driving || !["rate_limited", "server_busy"].includes(reason)) throw Error("invalid apply transition");
+          x.driving = false; x.notBefore = until; x.requeues++;
+          return until;
+        },
+        resume: async () => ({ filename: "r.pdf", sha256: sha, b64: btoa(String.fromCharCode(...RESUME)) }),
+        finish: async (j, state) => { finished.push(`${j.id}:${state}`); queued.delete(j.id); }, ask: async () => 0, gatePresent: async () => true, authorize: authorizer().authorize,
+      };
+      const { gate, calls } = scaledGate();
+      await cloudLoop({ queue: q, tmpRoot: tmp, idleMs: 1, drain: true, stop: () => false, log: () => {}, gate, pacing: pacingFrom(() => undefined, { concurrency: r.int(1, 4) }),
+        runEngine: effectAware(async (args: string[]) => {
+          const url = args[args.indexOf("--url") + 1], id = jobs.find((j) => j.url === url)!.id;
+          engine.set(id, (engine.get(id) ?? 0) + 1);
+          const x = queued.get(id);
+          if (x && Date.now() < x.notBefore) early++;
+          if (url.includes(`r${k}-0.`) && refusedSoFar < refuse) {
+            refusedSoFar++;
+            return { result: { state: "not_submitted", reason: "HOST_RATE_LIMITED", status: 429, retry_after_s: asked }, evidence: null };
+          }
+          effects.set(id, (effects.get(id) ?? 0) + 1);
+          return { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: { post: { status: 200, mutations: 1 } } };
+        }) });
+      const onHost = jobs.filter((j) => j.url.includes(`r${k}-0.`)).length, refusals = onHost ? refuse : 0;
+      check(rep, finished.length === n && finished.every((f) => f.endsWith(":submitted_unconfirmed")) && queued.size === 0, "each job submitted once", () => `batch ${k}: ${JSON.stringify(finished)}, left ${queued.size}`);
+      check(rep, [...engine.values()].reduce((a, b) => a + b, 0) === n + refusals && [...effects.values()].every((x) => x === 1) && effects.size === n, "a refused run asked for an effect, or a job ran a wrong number of times",
+        () => `batch ${k}: engine ${JSON.stringify([...engine])}, effects ${JSON.stringify([...effects])}, refusals ${refusals}`);
+      check(rep, early === 0, "a job run before its time", () => `batch ${k}: ${early}`);
+      check(rep, calls.length === refusals && calls.every((c) => c.why === "rate_limited" && c.retryAfterS === asked), "the gate was not told each refusal with the seconds asked for",
+        () => `batch ${k}: asked ${asked}, gate got ${JSON.stringify(calls.map((c) => c.retryAfterS))} for ${refusals} refusals`);
+    }
+  } finally {
+    await Deno.remove(tmp, { recursive: true }).catch(() => {});
+  }
+  done(rep);
+});
+
+// A worker killed around a requeue, started again on its journal: what may have been sent is unknown and never driven
+// again; what was put back runs once more and is submitted once.
+const REQUEUE_CRASHES = requeueCrashCases(rng(SEED + 10), 300);
+Deno.test(`resume, crashes: ${REQUEUE_CRASHES.length} workers killed around a requeue and started again: a job is never driven again once its engine may have sent; a job put back runs once more`, async () => {
+  const rep = report("resume crashes");
+  for (const c of REQUEUE_CRASHES) {
+    rep.total++;
+    const urls = Array.from({ length: c.jobs }, (_, i) => `https://rc${c.id}-${i % 2}.example.test/job/${i}`);
+    const db = fakeDb(urls, { requeue: true }), j = memJournal(), engine = new Map<string, number>();
+    const target = `j${String(c.at).padStart(3, "0")}`, one = life(), two = life();
+    const behave = async (args: string[], l: Life, who: number) => {
+      if (l.dead) return await never<any>();
+      const id = appId(args), n = (engine.get(id) ?? 0) + 1;
+      engine.set(id, n);
+      if (who === 1 && id === target && n === 2 && c.point === "during_second_engine") { l.die(); return await never<any>(); }
+      await new Promise((r) => setTimeout(r, 0));
+      if (l.dead) return await never<any>();
+      // The target's host refuses its first attempt (Retry-After 0: back at once), then answers.
+      if (id === target && n === 1) return { result: { state: "not_submitted", reason: "HOST_RATE_LIMITED", status: 429, retry_after_s: 0 } as any, evidence: null };
+      return { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: null };
+    };
+    const rpc1 = async (n: string, a: any) => {
+      if (n === "career_apply_requeue_refused_own" && a.p_id === target && c.point === "after_refusal_before_requeue") { one.die(); return await never<any>(); }
+      const r = await db.rpc(n, a, one);
+      if (n === "career_apply_requeue_refused_own" && a.p_id === target && c.point === "after_requeue_before_clear") { one.die(); return await never<any>(); }
+      return r;
+    };
+    const w1 = runLoop({ ...quiet, stop: () => false, drain: true, gate: scaledGate().gate, pacing: pacingFrom(() => undefined, { concurrency: c.slots }),
+      queue: ownQueue({ rpc: rpc1 }), journal: j.view(one), runEngine: (args) => behave(args, one, 1) });
+    await Promise.race([one.died, w1]);
+    for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
+    const name = () => `case ${c.id}: ${c.jobs} jobs, slots ${c.slots}, killed ${c.point} of ${target}`;
+    check(rep, one.dead, "the worker never reached its crash point", name);
+    await runLoop({ ...quiet, stop: () => false, drain: true, gate: scaledGate().gate, pacing: pacingFrom(() => undefined, { concurrency: c.slots }),
+      queue: ownQueue({ rpc: (n, a) => db.rpc(n, a, two) }), journal: j.view(two), runEngine: (args) => behave(args, two, 2) });
+    db.sweep();
+    for (const r of db.rows.values()) {
+      const n = engine.get(r.id) ?? 0;
+      check(rep, !["queued", "driving"].includes(r.state), "left unfinished", () => `${name()}: ${r.id} ${r.state}`);
+      if (r.id !== target) check(rep, n <= 1 && (r.state !== "submitted_unconfirmed" || n === 1), "another job driven twice", () => `${name()}: ${r.id} engine x${n} ${r.state}`);
+    }
+    const t = db.rows.get(target)!, n = engine.get(target) ?? 0;
+    if (c.point === "after_refusal_before_requeue") {
+      // The refusal was never written: the journal says the engine started, so it is unknown and never driven again.
+      check(rep, t.state === "unknown_outcome" && n === 1 && t.requeues === 0, "a run whose requeue was lost was driven again", () => `${name()}: ${t.state} engine x${n} requeued ${t.requeues}`);
+    } else if (c.point === "after_requeue_before_clear") {
+      // Put back before the worker died: the restart finds the row no longer its drive (nothing to record), and runs it once more.
+      check(rep, t.state === "submitted_unconfirmed" && n === 2 && t.requeues === 1 && t.finishes === 1, "a requeued job did not run once more", () => `${name()}: ${t.state} engine x${n} requeued ${t.requeues} finishes ${t.finishes}`);
+    } else {
+      // Its second engine may have sent: unknown, never a third.
+      check(rep, t.state === "unknown_outcome" && n === 2 && t.requeues === 1, "a job whose second engine may have sent was driven again", () => `${name()}: ${t.state} engine x${n}`);
+    }
+  }
+  done(rep);
+});
+
+// The person is told, from the record, in plain words: a job waiting on a host is approved and waiting (never "not sent",
+// never "duplicate"); approving the same posting again says it is already in their applications, never "you already
+// applied" (it may never have been sent).
+Deno.test("resume, what the person is told: a waiting job reads as approved and waiting; the same posting approved again is never called a duplicate or applied", () => {
+  const reason = "waiting: the employer's site asked us to slow down (too many requests); nothing was sent, and it goes again by itself after 2026-10-29 16:02 UTC";
+  const line = statusLine({ id: "j1", company: "Acme", state: "queued", reason, created_at: new Date(NOW).toISOString(), updated_at: new Date(NOW).toISOString() });
+  eq(/^Acme: approved, not sent yet; waiting: the employer's site asked us to slow down .*nothing was sent, and it goes again by itself after 2026-10-29 16:02 UTC\.$/.test(line), true, line);
+  eq(/duplicate|not sent \(/i.test(line), false, line);
+  const card = answerText([{ n: 1, company: "Acme", result: "duplicate" } as any]);
+  eq(/already in your applications \(sent, or approved and waiting to go\)/.test(card) && !/duplicate|already applied/i.test(card), true, card);
 });

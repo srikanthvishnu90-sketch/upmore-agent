@@ -81,7 +81,9 @@ export function statusLine(a: AppRow): string {
     case "not_submitted":
       return `${name}: not sent (${a.reason ?? "no reason recorded"}).`;
     case "queued":
-      return `${name}: approved, not sent yet.`;
+      // A site that asked us to slow down before anything was sent: the same application waits and goes by itself
+      // (20261029180000 writes the reason, with when).
+      return /^waiting: /.test(String(a.reason ?? "")) ? `${name}: approved, not sent yet; ${String(a.reason).slice(0, 240)}.` : `${name}: approved, not sent yet.`;
     case "driving":
       return `${name}: being sent now; not submitted yet.`;
     default:

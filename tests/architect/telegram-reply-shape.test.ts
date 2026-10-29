@@ -3,7 +3,7 @@
 import assertNode from "node:assert/strict";
 import { telegramAdapter, parseTelegramUpdate } from "../../supabase/functions/_shared/telegram.ts";
 import { runInbound, type CoreDeps } from "../../supabase/functions/_shared/channel_inbound.ts";
-import { ANSWER_MAX_CHARS, byteLength, FILE_MAX_BYTES, MAX_FILES, MAX_LINKS, safeFilename, shapeForTurn, shapeReply } from "../../supabase/functions/_shared/channel_shape.ts";
+import { ANSWER_MAX_CHARS, MORE_MAX_CHARS, planSends, byteLength, FILE_MAX_BYTES, MAX_FILES, MAX_LINKS, safeFilename, shapeForTurn, shapeReply } from "../../supabase/functions/_shared/channel_shape.ts";
 import { runAgentTurn } from "../../supabase/functions/_shared/agent/loop.ts";
 import { attachTool } from "../../supabase/functions/_shared/agent/attach_tool.ts";
 import { SHAPE_RULES } from "../../supabase/functions/_shared/agent/prompt.ts";
@@ -29,14 +29,46 @@ function fakeTelegram(o: { failDocument?: boolean } = {}) {
 }
 const para = (n: number) => Array.from({ length: n }, (_, i) => `Line ${i} says something specific about the role.`).join("\n\n");
 
-Deno.test("shape: a long text becomes a file and the reply is its short head; nothing is lost", () => {
+Deno.test("shape: a long answer is NEVER a file (owner 2026-10-29): clean complete-sentence head, rest as one second message", () => {
   const long = `The posting lists SQL and dashboards, and the company has not said what the role pays. ${"More detail follows here. ".repeat(60)}`;
   const s = shapeReply({ answer: long });
-  assert(s.answer.length <= ANSWER_MAX_CHARS);
-  eq(s.attachments.map((f) => f.filename), ["full-answer.md"]);
-  assert(s.attachments[0].content.includes("More detail follows here."));
-  assert(s.attachments[0].bytes <= FILE_MAX_BYTES);
-  assert(shapeReply({ answer: "Short and direct." }).attachments.length === 0, "a short answer stays a message");
+  assert(s.answer.length <= ANSWER_MAX_CHARS && /[.!?]$/.test(s.answer));
+  eq(s.attachments, [], "no document of any name");
+  eq(s.more?.length, 1, "at most one follow-up message: two messages in all");
+  assert(s.more![0].includes("More detail follows here.") && s.more![0].length <= MORE_MAX_CHARS && /[.!?]$/.test(s.more![0]));
+  assert(shapeReply({ answer: "Short and direct." }).attachments.length === 0 && !shapeReply({ answer: "Short and direct." }).more, "a short answer stays a message");
+});
+
+Deno.test("shape: the live teacher answer ends cleanly, never mid-list, and no full-answer.md exists", () => {
+  const live = `You are 34 and teach high school, which is a real head start for UX: you already explain things to people who do not want to be explained to, and you test your own work on a live audience every day. ${"A move into UX usually takes six to twelve months of part-time work, and most hiring managers care more about two solid case studies than about any certificate. ".repeat(2)}Do these five things this quarter: 1) Pick and confirm one UX target, such as product design at an education company. 2) Take one structured course and finish it. 3) Build a first case study from a real problem at your school. 4) Talk to three people who made the same switch. 5) Put the case study and a short story of why you are switching on one page.`;
+  const s = shapeReply({ answer: live });
+  assert(!/:\s*$|\b\d\)\s*\S{0,40}$/.test(s.answer), `head must not dangle: ${s.answer.slice(-60)}`);
+  assert(/[.!?]$/.test(s.answer) && s.answer.length <= ANSWER_MAX_CHARS);
+  assert(!s.answer.includes("Do these five things") || s.answer.includes("5)"), "a sentence that opens a list never ends the head");
+  eq(s.attachments.length, 0);
+  assert(s.more?.[0].startsWith("Do these five things") && s.more[0].includes("5) Put the case study"), "the list travels whole in the second message");
+  assert(/[.!?]$/.test(s.more![0]));
+  assert(!JSON.stringify(s).includes("full-answer"));
+});
+
+Deno.test("shape: one sentence longer than the limit ends at a clause with a full stop, no ellipsis", () => {
+  const one = "You could move toward UX by doing a long list of things like " + "reading, practising, building, testing, ".repeat(40) + "and finally applying.";
+  const s = shapeReply({ answer: one });
+  assert(s.answer.length <= ANSWER_MAX_CHARS && s.answer.endsWith(".") && !s.answer.includes("…") && !s.answer.endsWith(",."), s.answer.slice(-40));
+  eq(s.attachments.length, 0);
+});
+
+Deno.test("shape: with the hosted page configured the rest is a link (one message plus the link), else a second message; never a file", () => {
+  const long = `Start with one target role. ${"Then do the next concrete thing and check it. ".repeat(40)}`;
+  const page = "https://files.example.com/f?t=v1.abc";
+  const withPage = shapeReply({ answer: long }, { overflowLink: page });
+  eq(withPage.links, [page]); eq(withPage.more, undefined); eq(withPage.attachments, []);
+  assert(withPage.answer.length <= ANSWER_MAX_CHARS);
+  const insecure = shapeReply({ answer: long }, { overflowLink: "http://files.example.com/x" });
+  eq(insecure.links, []); eq(insecure.more?.length, 1);
+  eq(shapeReply({ answer: "Short." }, { overflowLink: page }).links, [], "a short answer never gets a page link");
+  const sent = planSends(shapeReply({ answer: long }));
+  eq(sent.map((x) => x.kind), ["answer", "answer"], "at most 2 messages, no document step");
 });
 
 Deno.test("shape: file names are readable .md/.txt, sizes capped (split into parts, never cut), count capped", () => {
@@ -69,7 +101,7 @@ Deno.test("shape: links are web addresses a tool returned, one each, capped; the
 Deno.test("turn: shaped only on Telegram, flag on, and a turn that is not an exact payload; otherwise untouched", () => {
   const long = "Sentence one is the answer. " + "Padding sentence here. ".repeat(60);
   const base = { reply: long, writable: true, channel: "telegram", on: true };
-  assert(shapeForTurn(base).shape !== null && shapeForTurn(base).reply.length <= ANSWER_MAX_CHARS);
+  assert(shapeForTurn(base).shape !== null && shapeForTurn(base).shape!.attachments.length === 0 && shapeForTurn(base).reply.length <= ANSWER_MAX_CHARS);
   for (const off of [{ on: false }, { channel: "web" }, { channel: "whatsapp" }, { writable: false }]) {
     const r = shapeForTurn({ ...base, ...off });
     eq([r.reply, r.shape], [long, null], JSON.stringify(off));
@@ -172,4 +204,18 @@ Deno.test("runtime: chatThroughAgent tells agent-chat the channel only when the 
     eq([bodies[0].channel, "channel" in bodies[1]], ["telegram", false]);
     eq([(tg as any).shape.attachments[0].filename, (tg as any).shape.links], ["big-notes.md", ["https://acme.com/a"]]);
   } finally { globalThis.fetch = real; }
+});
+
+Deno.test("transport: a long answer reaches Telegram as two text messages and no sendDocument", async () => {
+  const t = fakeTelegram();
+  const long = `Start with one target role. ${"Then do the next concrete thing and check it. ".repeat(40)}`;
+  const sh = shapeForTurn({ on: true, channel: "telegram", writable: true, reply: long });
+  const store: any = { async claimMessage() { return true; }, async person() { return { userId: U, threadId: "th", contact: "tg:42" }; }, async sawInbound() {}, async setOptOut() {}, async setThread() {}, async enqueueReply() { return true; } };
+  const d: CoreDeps = { env: { get: () => undefined }, now: () => NOW, store, render: (x) => [x], deliver: async () => {},
+    reply: async (_c, bubbles) => t.adapter.send("42", bubbles),
+    chat: async () => ({ status: 200, reply: sh.reply, threadId: "th", shape: sh.shape! }),
+    sendFile: async (x) => await t.adapter.sendDocument!(x.contact.slice(3), x), sendLink: async (x) => await t.adapter.sendLink!(x.contact.slice(3), x.url) };
+  await runInbound(parseTelegramUpdate({ update_id: 9, message: { message_id: 1, chat: { id: 42, type: "private" }, from: { id: 42 }, text: "what now" } }).message!, d);
+  assert(!t.calls.some((c) => c.method === "sendDocument"), "nothing to download");
+  assert(t.calls.filter((c) => c.method === "sendMessage").length <= 2);
 });

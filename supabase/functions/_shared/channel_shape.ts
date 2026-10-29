@@ -19,10 +19,9 @@ export const ANSWER_MAX_CHARS = 700; // one short paragraph
 export const FILE_MAX_BYTES = 6144; // "4 KB-ish": one document carries at most this; more is split into parts
 export const MAX_FILES = 5; // per reply
 export const MAX_LINKS = 5; // per reply, each its own message
-export const OVERFLOW_FILE = "full-answer.md"; // the name of a long answer's full text
 
 export interface ShapedFile { filename: string; content: string; mime: string; bytes: number }
-export interface ShapedReply { answer: string; attachments: ShapedFile[]; links: string[]; notes: string[] }
+export interface ShapedReply { answer: string; attachments: ShapedFile[]; links: string[]; notes: string[]; more?: string[] } // more: the one follow-up message
 export interface RawShape { answer?: unknown; attachments?: unknown; links?: unknown }
 
 const enc = new TextEncoder();
@@ -82,26 +81,57 @@ export function fileParts(filename: unknown, content: unknown): ShapedFile[] {
 
 const sentences = (s: string) => s.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
 
-// A long answer: the head (its first paragraph, else its first sentences, up to ANSWER_MAX_CHARS) stays the reply; the whole
-// text goes in a file. Never a wall of text; never a loss.
-export function splitLongAnswer(answer: string): { head: string; file: string } | null {
+// A long answer (owner, 2026-10-29: nobody downloads anything; no .md/.txt for advice overflow, on any channel). The reply is its
+// leading COMPLETE sentences up to ANSWER_MAX_CHARS, never cut mid-sentence and never ending on a dangling list ("...these five
+// things: 1) Pick..."): a sentence that opens a list (ends with ":") or is a list item goes to the rest with its list. The rest is
+// whole sentences too, at most MORE_MAX_CHARS; what is beyond that is skipped (a hosted page carries it when one is configured).
+export const MORE_MAX_CHARS = 1500; // the one follow-up message
+const LIST_ITEM = /^(?:\d{1,2}[.)]|[-*•])\s/;
+const endsClean = (t: string) => /[.!?]["')\]]?$/.test(t);
+// Sentences, with an inline numbered list ("1) Pick one. 2) Do two.") kept as items of their own.
+function pieces(text: string): string[] {
+  const out: string[] = [];
+  for (const line of text.replace(/\r\n/g, "\n").split("\n")) {
+    const t = line.trim();
+    if (!t) continue;
+    out.push(...t.replace(/\s+(?=\d{1,2}[.)]\s+[A-Z])/g, "\n").split("\n").flatMap((x) => sentences(x)));
+  }
+  return out;
+}
+const cleanEnd = (t: string) => { const x = t.trim().replace(/[\s,;:–—-]+$/, ""); return endsClean(x) ? x : `${x}.`; };
+export function splitLongAnswer(answer: string): { head: string; rest: string } | null {
   const text = answer.trim();
   if (text.length <= ANSWER_MAX_CHARS) return null;
-  const first = text.split(/\n\s*\n/)[0].trim();
-  let head = first.length <= ANSWER_MAX_CHARS ? first : "";
-  if (!head) {
-    for (const s of sentences(first)) { if ((head ? head.length + 1 : 0) + s.length > ANSWER_MAX_CHARS) break; head = head ? `${head} ${s}` : s; }
+  const ps = pieces(text);
+  let n = 0, len = 0;
+  while (n < ps.length) {
+    const add = (n ? 1 : 0) + ps[n].length;
+    if (len + add > ANSWER_MAX_CHARS) break;
+    len += add; n++;
   }
-  if (!head) { // the first sentence alone is too long: cut at a word, the file has all of it
-    const w = first.slice(0, ANSWER_MAX_CHARS).replace(/\s+\S*$/, "").trim();
-    head = `${w}…`;
+  // never end on the sentence that opens a list or on a list item: that goes on to the rest
+  while (n > 1 && (/:$/.test(ps[n - 1]) || LIST_ITEM.test(ps[n - 1]) || !endsClean(ps[n - 1]))) n--;
+  let head = ps.slice(0, n).join(" ");
+  let rest = ps.slice(n);
+  if (n === 1 && (/:$/.test(ps[0]) || LIST_ITEM.test(ps[0]))) { head = ""; rest = ps; }
+  if (!head) { // the first sentence alone is too long: end at a clause, else at a word, with a full stop
+    const first = ps[0] ?? text;
+    const cut = first.slice(0, ANSWER_MAX_CHARS);
+    const clause = Math.max(cut.lastIndexOf(", "), cut.lastIndexOf("; "));
+    const w = (clause > ANSWER_MAX_CHARS / 2 ? cut.slice(0, clause) : cut.replace(/\s+\S*$/, "")).trim();
+    head = cleanEnd(w);
+    rest = [first.slice(w.length).replace(/^[\s,;]+/, "").trim(), ...ps.slice(1)].filter(Boolean);
   }
-  return { head, file: text };
+  const more: string[] = [];
+  let used = 0;
+  for (const r of rest) { if (used + r.length + 1 > MORE_MAX_CHARS) break; more.push(r); used += r.length + 1; }
+  while (more.length && (/:$/.test(more[more.length - 1]) || !endsClean(more[more.length - 1]))) more.pop();
+  return { head, rest: more.join(" ") };
 }
 
 // The shape of one reply. `allowedLinks`: the URLs the turn may show (those a tool returned or the person typed); null: the
 // caller vouches for every link (the code-written replies). A link that is not allowed is dropped from links and answer.
-export function shapeReply(raw: RawShape, o: { allowedLinks?: Iterable<string> | null } = {}): ShapedReply {
+export function shapeReply(raw: RawShape, o: { allowedLinks?: Iterable<string> | null; overflowLink?: string | null } = {}): ShapedReply {
   const notes: string[] = [];
   const allowed = o.allowedLinks ? new Set([...o.allowedLinks].map(trimUrl)) : null;
   let answer = String(raw.answer ?? "").replace(/<!--[\s\S]*?-->/g, "").trim();
@@ -138,10 +168,16 @@ export function shapeReply(raw: RawShape, o: { allowedLinks?: Iterable<string> |
     if (!parts.length) { notes.push("file dropped (empty)"); continue; }
     add(parts);
   }
-  // A long answer becomes a file, with its short head as the reply.
+  // A long answer is never a file: its head is the reply; the rest is the hosted page's link (code-minted, only when configured),
+  // else one short second message. At most 2 messages.
   const long = splitLongAnswer(answer);
-  if (long) { answer = long.head; add(fileParts(OVERFLOW_FILE, long.file)); notes.push("long answer moved to a file"); }
-  return { answer, attachments: files, links, notes };
+  const more: string[] = [];
+  if (long) {
+    answer = long.head;
+    if (o.overflowLink && /^https:\/\//.test(o.overflowLink)) { if (!links.includes(o.overflowLink) && links.length < MAX_LINKS) links.push(o.overflowLink); notes.push("long answer: rest on a page"); }
+    else { if (long.rest) more.push(long.rest); notes.push("long answer: rest in a second message"); }
+  }
+  return { answer, attachments: files, links, notes, ...(more.length ? { more } : {}) };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -151,6 +187,7 @@ export type SendStep = { kind: "answer"; text: string } | { kind: "document"; fi
 export function planSends(s: ShapedReply, o: { includeAnswer?: boolean } = {}): SendStep[] {
   return [
     ...(o.includeAnswer !== false && s.answer ? [{ kind: "answer" as const, text: s.answer }] : []),
+    ...(s.more ?? []).map((text) => ({ kind: "answer" as const, text })),
     ...s.attachments.map((file) => ({ kind: "document" as const, file })),
     ...s.links.map((url) => ({ kind: "link" as const, url })),
   ];
@@ -174,10 +211,10 @@ export async function deliverShaped(s: ShapedReply, io: ShapeIO, o: { includeAns
 
 // The turn's decision (agent-chat): shape only a Telegram turn, only with CAREER_REPLY_WRITER on, only a turn whose words are
 // not an exact payload the person approves. Anything else is returned untouched and carries no shape.
-export function shapeForTurn(o: { on: boolean; channel: string; writable: boolean; reply: string; attachments?: unknown; allowedLinks?: Iterable<string> | null }):
-  { reply: string; shape: { attachments: { filename: string; content: string }[]; links: string[] } | null; notes: string[] } {
+export function shapeForTurn(o: { on: boolean; channel: string; writable: boolean; reply: string; attachments?: unknown; allowedLinks?: Iterable<string> | null; overflowLink?: string | null }):
+  { reply: string; shape: { attachments: { filename: string; content: string }[]; links: string[]; more?: string[] } | null; notes: string[] } {
   if (!o.on || o.channel !== "telegram" || !o.writable) return { reply: o.reply, shape: null, notes: [] };
-  const s = shapeReply({ answer: o.reply, attachments: o.attachments }, { allowedLinks: o.allowedLinks });
+  const s = shapeReply({ answer: o.reply, attachments: o.attachments }, { allowedLinks: o.allowedLinks, overflowLink: o.overflowLink });
   if (!s.answer && !s.attachments.length) return { reply: o.reply, shape: null, notes: s.notes }; // nothing left to say: today's reply stands
-  return { reply: s.answer || o.reply, shape: s.attachments.length || s.links.length ? { attachments: s.attachments.map((f) => ({ filename: f.filename, content: f.content })), links: s.links } : null, notes: s.notes };
+  return { reply: s.answer || o.reply, shape: s.attachments.length || s.links.length || s.more?.length ? { attachments: s.attachments.map((f) => ({ filename: f.filename, content: f.content })), links: s.links, ...(s.more?.length ? { more: s.more } : {}) } : null, notes: s.notes };
 }

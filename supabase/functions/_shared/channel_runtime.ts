@@ -58,7 +58,8 @@ export function chatThroughAgent(url: string, key: string, o: { retryDelayMs?: n
     // REPLY SHAPE: the files and links that follow the reply, clamped again here (names, sizes, counts) before they are sent.
     const sh = body.shape && typeof body.shape === "object" ? body.shape as Record<string, unknown> : null;
     const shaped = sh ? shapeReply({ attachments: sh.attachments, links: sh.links }) : null;
-    const shape = shaped && (shaped.attachments.length || shaped.links.length) ? { attachments: shaped.attachments, links: shaped.links } : null;
+    const more = sh && Array.isArray(sh.more) ? sh.more.map((m) => String(m ?? "").trim()).filter(Boolean).slice(0, 1) : [];
+    const shape = shaped && (shaped.attachments.length || shaped.links.length || more.length) ? { attachments: shaped.attachments, links: shaped.links, ...(more.length ? { more } : {}) } : null;
     return { status: res.status, reply: String(body.reply ?? ""), ...(shape ? { shape } : {}), threadId: typeof body.thread_id === "string" ? body.thread_id : null, ...(parts ? { parts } : {}), ...(cardId ? { cardId } : {}), ...(resultStatus ? { resultStatus } : {}), ...(artifacts.length ? { artifacts } : {}), ...(postings.length ? { postings } : {}), ...(screenButtons ? { screenButtons, screenQid } : {}) };
   };
 }

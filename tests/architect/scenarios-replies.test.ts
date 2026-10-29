@@ -53,7 +53,9 @@ class Report {
       for (const x of xs.slice(0, 3)) lines.push(`    #${x.s.id} from ${JSON.stringify(x.s.from).slice(0, 60)} subject ${JSON.stringify(x.s.subject).slice(0, 60)} text ${JSON.stringify(x.s.text).slice(0, 110)} -> ${x.got} (${x.why})`);
     }
     console.log(lines.join("\n"));
-    eq(failed, 0, `${this.path}: ${failed} scenarios were read wrong (see the report above)`);
+    // The first few by category ride in the message itself: CI shows an assertion's message, not the console report.
+    const first = [...this.failures.entries()].slice(0, 4).map(([k, xs]) => `${k} x${xs.length}: ${xs[0].why ?? ""} | got ${String(xs[0].got).slice(0, 160)} | ${JSON.stringify(xs[0].s).slice(0, 220)}`).join(" || ");
+    eq(failed, 0, `${this.path}: ${failed} scenarios were read wrong: ${first}`);
   }
 }
 

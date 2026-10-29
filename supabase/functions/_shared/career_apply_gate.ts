@@ -178,7 +178,7 @@ export function gateSummary(g: GateResult, name: (p: { title?: string; company?:
     parts.push(`Screened out ${g.dropped.length} (${kinds.join(", ")}): ${shown.join("; ")}${g.dropped.length > max ? `; and ${g.dropped.length - max} more` : ""}.`);
   }
   if (g.held.length) {
-    parts.push(`${g.held.length} held until you confirm a fact, not guessed: ${g.asks.map((a) => a.question).join(" ")}`);
+    parts.push(`${g.held.length} held until you confirm a fact, not guessed. One question at a time: ${g.asks[0].question}`);
   }
   return parts.join(" ");
 }

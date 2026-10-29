@@ -479,9 +479,22 @@ export function employerAnswerAsk(message: string): { kind: "yes" | "no"; compan
   const raw = String(message ?? "").trim();
   const m = /^([A-Za-z][\w&.'’ -]{0,80}?)\s*[:,-]\s*(.+)$/.exec(raw);
   const company = m && !/^(yes|no|nope|yeah|yep)\b/i.test(m[1]) ? m[1].trim() : null;
-  const t = (company ? m![2] : raw).toLowerCase().replace(/[’`]/g, "'").replace(/[!.]+$/, "").trim();
-  if (YES_ANS.test(t) && !/\bnot\b/.test(t.split(/[,;]/)[0])) return { kind: "yes", company };
-  if (NO_ANS.test(t)) return { kind: "no", company };
+  const t = (company ? m![2] : raw).toLowerCase().replace(/[’`]/g, "'").replace(/[!.]+$/, "").replace(/\s+/g, " ").trim();
+  const kind = answerKind(t);
+  return kind ? { kind, company } : null;
+}
+// Owner rules (2026-10-29): a yes or no followed by more words ("yes, send them", "yes, but", "no, don't send them", "yeah
+// right") answers only when those words are that answer's own ("no, I don't work there", "yes, that's right"); anything
+// else (a hedge, a condition, sarcasm, an unrelated instruction) is not an answer: nothing is queued and no fact recorded.
+function answerKind(t: string): "yes" | "no" | null {
+  if (/^(?:yeah|yea|ya|yes),? right\b/.test(t)) return null;
+  const more = /^(?:yes|yep|yeah|yup|no|nope|nah)\s*[,.!;:]+\s*(.+)$/.exec(t);
+  if (more) {
+    const own = answerKind(more[1]);
+    return own && own === (/^(?:yes|yep|yeah|yup)\b/.test(t) ? "yes" : "no") && !/^(?:yes|yep|yeah|yup|no|nope|nah)\b/.test(more[1]) ? own : null;
+  }
+  if (YES_ANS.test(t) && !/\bnot\b/.test(t.split(/[,;]/)[0])) return "yes";
+  if (NO_ANS.test(t)) return "no";
   return null;
 }
 export type EmployerAnswerResult = { reply: string; status: "queued" | "already" | "refused" | "is_employer" | "which" | "stands" | "pace_unknown" | "pace_unreadable" | "unreadable"; intent: string; pending?: EmployerQuestion[]; answers?: EmployerAnswer[] };

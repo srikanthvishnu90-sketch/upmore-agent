@@ -21,6 +21,7 @@
 // that cannot be written never changes the answer.
 import { type EventStore, recordEvents } from "./agent/timeline.ts";
 import { sameCompany } from "./career_mail.ts";
+import { approvalWords } from "./approval_words.ts";
 
 export interface Prepared {
   id: string;
@@ -156,7 +157,8 @@ export function parseSelection(raw: string): { nums: number[]; names: string[] }
 }
 
 export function parseCardReply(text: string): CardReply | null {
-  const raw = String(text ?? "").toLowerCase().replace(/[’‘`]/g, "'").replace(/\s+/g, " ").trim();
+  // A thumbs-up alone, or "yess"/"yse" alone, is "yes" (approval_words.ts).
+  const raw = approvalWords(String(text ?? "")).toLowerCase().replace(/[’‘`]/g, "'").replace(/\s+/g, " ").trim();
   const asked = /\?\s*$/.test(raw);
   const t = raw.replace(/[.!?]+$/, "").trim();
   if (!t) return null;

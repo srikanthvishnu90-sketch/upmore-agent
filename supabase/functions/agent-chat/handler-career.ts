@@ -777,12 +777,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: outreachStatus.reply, intent: outreachStatus.intent, resultStatus: outreachStatus.status, contained: false, handler: "outreach_status" };
       } else if (!careerTask && !careerBatch && plannerOn(Deno.env, user.id) && !host.isHostControlled(message, ctx) && (planned = await (async () => {
         // A turn the planner does not claim (or a model outage) falls through to the chain below unchanged.
-        const pMeter = newMeter(), pCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+        const pMeter = ledger.track(newMeter()), pCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         try {
           return await plannerHandlerTurn({ admin, userId: user.id, threadId: tid, channel: isBridgeCall ? String(body.channel ?? "text") : "web", message, attachments: Array.isArray(body.attachments) ? (body.attachments as any[]).filter((a) => a && typeof a === "object").map((a) => ({ name: String(a.name ?? "") })) : [],
             ctx: ctx as unknown as Record<string, unknown>, model: (payload) => callModel(pCfg, payload, { meter: pMeter, role: "chat" }), outreach: outreachStore, situation });
         } catch (e) { console.error("planner:", (e as any)?.message ?? e); return null; }
-        finally { if (pMeter.calls) await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: pMeter.provider, models: pMeter.models, calls: pMeter.calls, failed: pMeter.failed, input_tokens: pMeter.input_tokens, output_tokens: pMeter.output_tokens, cached_tokens: pMeter.cached_tokens, usd_micros: pMeter.usd_micros, unpriced: pMeter.unpriced }); }
+        finally { await ledger.record(pMeter); } // trunk: the ledger is the only cost sink
       })())) {
         out = { reply: planned.reply, intent: planned.intent, resultStatus: planned.resultStatus, contained: false, handler: "planner", ...(planned.parts ? { parts: planned.parts } : {}) };
         agentMeta = planned.meta;

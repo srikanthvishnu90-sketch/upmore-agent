@@ -17,7 +17,7 @@ import { QUARANTINE_VERSION, quarantinedFact, trustedManifest } from "../../exte
 import { applicationApprovalHash } from "../../scripts/apply.ts";
 import { factDependencies } from "../../supabase/functions/_shared/fact_quarantine.ts";
 import { rowQuestionLabel, rowQuestionType } from "../../supabase/functions/_shared/row_answer.ts";
-import { fileJournal, handBack, type Journal, massRun, PacedLimiter, type Pacing, pacingFrom } from "./mass-run.ts";
+import { fileJournal, handBack, type HostGate, type Journal, massRun, PacedLimiter, type Pacing, pacingFrom } from "./mass-run.ts";
 
 export interface EngineResult {
   result: {
@@ -341,7 +341,7 @@ export async function runApproved(d: {
   // engine never starts and the application is recorded not_submitted: nothing was sent.
   beforeEngine?: (job: Job) => Promise<void>;
 }) {
-  const done: { id: string; state: string; reason?: string }[] = [];
+  const done: { id: string; state: string; reason?: string; retry_after_s?: number | null }[] = [];
   for (const job of await d.claim()) {
     let state = "not_submitted", evidence: Record<string, unknown> = {};
     let started = false;
@@ -394,6 +394,9 @@ export async function runApproved(d: {
           reason: run.result.reason ?? null,
           confirmation_id: run.result.confirmation_id ?? null,
           evidence_path: run.result.evidence_path ?? null,
+          // The employer's site refused for load (HOST_RATE_LIMITED): the seconds it asked for, so the host is held off as
+          // long as it asked (mass-run.ts refusal), not the default doubling.
+          ...(typeof run.result.retry_after_s === "number" ? { retry_after_s: run.result.retry_after_s } : {}),
           ...(bound ? { proof } : proof ? { proof_refused: "PROOF_NOT_THIS_APPLICATION" } : {}),
         };
         // FEATURE 14: the pictures and the page's text go to the receipt store, never into the row's evidence (hashes only).
@@ -405,7 +408,8 @@ export async function runApproved(d: {
       evidence = { reason: String(e?.message || e) };
     }
     await d.finish(job.id, job.lease_token, state, evidence);
-    done.push({ id: job.id, state, reason: evidence.reason as string | undefined });
+    done.push({ id: job.id, state, reason: evidence.reason as string | undefined,
+      ...(typeof evidence.retry_after_s === "number" ? { retry_after_s: evidence.retry_after_s } : {}) });
   }
   return done;
 }
@@ -518,6 +522,8 @@ export async function runLoop(o: {
   pacing?: Pacing;
   journal?: Journal<Job>;
   drain?: boolean;
+  // The hosts' refusals (mass-run.ts): absent, this process's own (localHostGate).
+  gate?: HostGate;
 }) {
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const log = o.log ?? ((l: string) => console.log(l));
@@ -568,7 +574,7 @@ export async function runLoop(o: {
           : {}),
       });
       say(d, recorded);
-      return { state: d.state, reason: d.reason ?? null, recorded };
+      return { state: d.state, reason: d.reason ?? null, recorded, retry_after_s: d.retry_after_s ?? null };
     },
     // Claimed and never started: nothing was sent.
     unstarted: async (job, why) => {
@@ -588,6 +594,7 @@ export async function runLoop(o: {
     pacing: o.pacing ?? pacingFrom(() => undefined, { concurrency: 1, claimBatch: 1, hostMax: 1, hostSpacingMs: 0 }),
     stop: o.stop,
     journal: o.journal,
+    gate: o.gate,
     drain: o.drain,
     idleMs: o.idleMs ?? 30_000,
     sleep,

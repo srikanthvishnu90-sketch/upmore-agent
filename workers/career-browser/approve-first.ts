@@ -17,7 +17,7 @@ import { QUARANTINE_VERSION, quarantinedFact, trustedManifest } from "../../exte
 import { applicationApprovalHash } from "../../scripts/apply.ts";
 import { factDependencies } from "../../supabase/functions/_shared/fact_quarantine.ts";
 import { rowQuestionLabel, rowQuestionType } from "../../supabase/functions/_shared/row_answer.ts";
-import { fileJournal, handBack, type HostGate, type Journal, massRun, PacedLimiter, type Pacing, pacingFrom, requeueMissing, sentNothingRefusal } from "./mass-run.ts";
+import { fileJournal, handBack, type HostGate, type Journal, massRun, PacedLimiter, type Pacing, pacingFrom, requeueMissing, sentNothingRefusal, unstartedWhy } from "./mass-run.ts";
 
 export interface EngineResult {
   result: {
@@ -511,6 +511,22 @@ export function ownQueue(client: RpcClient) {
       const nb = Date.parse(must(r)?.not_before);
       return Number.isFinite(nb) ? nb : until;
     },
+    // Owner rule (back off then RESUME): a claim whose engine never started (the worker stopping, no start inside its lease
+    // budget, its host held) goes back to the queue, the same job, not handed out before `until`
+    // (20261029190000_career_apply_unstarted_requeue.sql). Returns when it may be handed out again (epoch ms), or null when
+    // it cannot be put back (a database without the requeue, or one that refuses it): then it is recorded not sent.
+    async putBack(id: string, lease: string, why: string, until: number): Promise<number | null> {
+      const r = await client.rpc("career_apply_requeue_unstarted_own",
+        { p_id: id, p_lease: lease, p_why: unstartedWhy(why), p_until: new Date(until).toISOString() });
+      if (r.error) {
+        const text = `${r.error.code ?? ""} ${r.error.message ?? ""}`;
+        if (requeueMissing(text) || /career_apply_requeue_unstarted|invalid unstarted reason/i.test(text)) return null;
+        // A refusal other than "no longer your claim" (an approval expired since): not put back; recorded not sent.
+        if (r.error.code === "P0001" && !/invalid apply (claim|transition)/i.test(text)) return null;
+      }
+      const nb = Date.parse(must(r)?.not_before);
+      return Number.isFinite(nb) ? nb : until;
+    },
     // FEATURE 14: one picture of the proof, under the drive's lease (20261026140000_career_apply_receipt_store.sql).
     async attach(id: string, lease: string, kind: string, sha256: string, b64: string) {
       return must(
@@ -529,7 +545,8 @@ export function ownQueue(client: RpcClient) {
 // read as unknown over a network blip; if it still cannot be recorded, the drive is left to the database, which marks it
 // unknown after 15 minutes and never re-drives it, and the local evidence path is reported. The engine never runs twice
 // for one claim: with a journal (MASS_SUBMIT_JOURNAL_DIR), a run that died leaves each started application recorded
-// unknown on the next start and each claimed-but-unstarted one run under its lease or ended as not sent.
+// unknown on the next start and each claimed-but-unstarted one run under its lease or put back in the queue (20261029190000;
+// a database without it: ended as not sent).
 export async function runLoop(o: {
   queue: ReturnType<typeof ownQueue>;
   resume: { path: string; sha256: string };
@@ -622,6 +639,24 @@ export async function runLoop(o: {
       }
       say({ id: job.id, state: "unrecorded", reason: "HOST_RATE_LIMITED" }, false);
       return { state: "unrecorded", reason: "HOST_RATE_LIMITED", recorded: false };
+    },
+    // Claimed and never started (the scheduler cleared its journal line first): the same job back to the queue, to run
+    // later once (owner: back off, then RESUME). A database that cannot put it back records it not sent, as before.
+    putBack: typeof (o.queue as any).putBack !== "function" ? undefined : async (job, why, until) => {
+      for (let i = 0; i < 4; i++) {
+        try {
+          const nb = await (o.queue as any).putBack(job.id, job.lease_token, why, until);
+          if (nb === null) break;
+          say({ id: job.id, state: "queued", reason: `not started (${why.split(":")[0]}); nothing was sent; it goes back to the queue and runs later` }, true);
+          return { state: "queued", reason: why, recorded: true, not_before: nb };
+        } catch (e: any) {
+          if (e?.message === "APPLY_CLAIM_CLOSED") return { state: "closed", reason: why, recorded: true };
+          if (i < 3) await sleep(2_000 * 2 ** i);
+        }
+      }
+      const recorded = await record(job.id, job.lease_token, "not_submitted", { reason: why });
+      say({ id: job.id, state: "not_submitted", reason: why }, recorded);
+      return { state: "not_submitted", reason: why, recorded };
     },
     // Claimed and never started: nothing was sent.
     unstarted: async (job, why) => {

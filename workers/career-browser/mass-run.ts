@@ -8,17 +8,19 @@
 // 503 with Retry-After at its page, or a verification check. Then that host is held off (as long as it asked, else 30 s
 // doubling to at most an hour, reset by the next success) for EVERY instance, through the database (dbHostGate), and
 // resumed when it allows. The owner may still set a number (MASS_SUBMIT_*), never needed.
-// A job the host refused before anything was sent (a 429, or a 503 with a time, at the page's open: sentNothingRefusal)
-// is not ended: the same job goes back to the queue (o.requeue, 20261029180000), its approval unchanged, not handed out
+// A job the host refused before anything was sent (a 429 or a 503 at the page's open: sentNothingRefusal) is not ended: the same job goes back to the queue (o.requeue, 20261029180000), its approval unchanged, not handed out
 // before the host's hold ends, and runs again then; every refusal backs off again, with no cap of ours. A verification
 // check or a sign-in wall is the person's (needs_user, never retried); anything else after the engine started is recorded
-// as it ended, and an unknown is never driven again.
+// as it ended, and an unknown is never driven again. A job claimed and never started (the worker stopping, no start
+// inside its lease budget, its host held, its journal line unwritable) is not ended either: the same job goes back to the
+// queue (o.putBack, 20261029190000), its journal line cleared first, and runs later, once.
 //
 // Exactly once: a claimed application is started at most once. Before its engine starts, the start is written to a
 // durable journal (fsync) when one is given. A worker that dies mid-batch leaves in the journal:
 //   started, not finished   -> recorded unknown_outcome on the next start, never driven again (it may have been sent);
 //   claimed, never started  -> driven on the next start under the same lease, if the lease still has time to run it;
-//                              otherwise recorded not_submitted: nothing was sent.
+//                              otherwise put back in the queue (o.putBack; without it recorded not_submitted): nothing
+//                              was sent.
 // Without the journal (a lost machine), the database's own sweep closes a drive older than 15 minutes as unknown and never
 // re-drives it (attempts = 1): exactly once never rests on this machine. A claimed application that cannot start inside
 // its lease budget (`startBudgetMs` after its claim) is never started late.
@@ -226,8 +228,16 @@ export function refusal(r: { state?: string; reason?: string | null; retry_after
   if (isBotCheck(r)) return { why: "bot_check", retryAfterS: null };
   return null;
 }
-// The host refused BEFORE anything was filled or sent, for load: the engine's HOST_RATE_LIMITED (a 429, with or without
-// Retry-After, or a 503 that said when to come back), which scripts/apply.ts reports only at the page's open, before any
+// The employer's page itself, at its open, refusing for load (scripts/apply.ts, before anything is filled): a 429 (Too Many
+// Requests) or a 503 (Service Unavailable), with or without Retry-After. Owner rule (2026-10-27): back off only when an
+// outside system refuses, then RESUME; a 503 is the site saying it cannot take us now, the same as a 429. The seconds it
+// asked for (retryAfterSeconds), or null: the default doubling. Anything else is not a refusal for load.
+export function pageRefusal(status: number, retryAfter: string | null | undefined, now: number): { status: number; retry_after_s: number | null } | null {
+  if (status !== 429 && status !== 503) return null;
+  return { status, retry_after_s: retryAfterSeconds(retryAfter, now) };
+}
+// The host refused BEFORE anything was filled or sent, for load: the engine's HOST_RATE_LIMITED (a 429 or a 503, with or
+// without Retry-After: pageRefusal), which scripts/apply.ts reports only at the page's open, before any
 // field is filled and before any write leaves the browser. Owner rule (2026-10-27): "back off only when an outside
 // system refuses, then RESUME". Such an application is not ended: the same job goes back to the queue, its approval and
 // hash binding unchanged, not to be claimed before the host's hold ends (career_apply_requeue_refused_*, 20261029180000),
@@ -238,6 +248,10 @@ export function sentNothingRefusal(r: { state?: string; reason?: string | null; 
   if (!r || r.state !== "not_submitted" || String(r.reason ?? "").split(":")[0] !== "HOST_RATE_LIMITED") return null;
   if (r.proof || r.confirmation_id) return null;
   return r.status === 503 ? "server_busy" : "rate_limited";
+}
+// Why a claim was let go without its engine starting, as the database's put-back names it (20261029190000).
+export function unstartedWhy(why: string): string {
+  return String(why ?? "").split(":")[0].trim().toLowerCase();
 }
 // A database that does not have the requeue yet (before 20261029180000): the application is recorded as before.
 export const requeueMissing = (text: string) => /career_apply_requeue_refused|PGRST202|could not find the function|no function/i.test(text);
@@ -342,7 +356,7 @@ export async function massRun<J extends MassJob>(o: {
   // its recorded outcome.
   run: (job: J, onStart: () => Promise<void>) => Promise<MassResult>;
   // Ends a claimed application that will not be started (its lease budget ran out, or the worker is stopping). Nothing
-  // was sent. Recorded not_submitted (the queue has no release today; see docs/launch/CLOUD-RUNNER.md).
+  // was sent. Recorded not_submitted. Used only where putBack (below) is absent, or for a run that may not be put back.
   unstarted: (job: J, why: string) => Promise<MassResult>;
   // A started application a crashed run left unfinished: recorded unknown_outcome, never driven again.
   orphaned: (job: J) => Promise<MassResult>;
@@ -350,6 +364,12 @@ export async function massRun<J extends MassJob>(o: {
   // be handed out before `until` (the host's hold); returns state "queued" and the database's not_before. Absent, or for
   // anything but a load refusal, it is recorded not sent (unstarted).
   requeue?: (job: J, q: Requeue) => Promise<MassResult>;
+  // A claimed application whose engine never started and will not start in this run (the worker stopping, its lease
+  // budget spent, its host held, its journal line unwritable): the same job back to the queue, not to be handed out
+  // before `until` (now, or the host's hold), to run later, once (20261029190000). Called only for a claim that never
+  // started, after its journal line is cleared. Returns state "queued" and the database's not_before; a queue that
+  // cannot put it back records it not sent instead (as unstarted does). Absent: unstarted.
+  putBack?: (job: J, why: string, until: number) => Promise<MassResult>;
   // A queue whose claim only leases (many instances: career_apply_claim_fair): the leased applications this round will
   // start become drives, in one call, after their journal lines and before any engine starts. Returns the ids begun; one
   // whose lease lapsed (another instance has it now) is not started here and nothing is recorded for it.
@@ -470,7 +490,23 @@ export async function massRun<J extends MassJob>(o: {
     });
     inFlight.add(pr);
   };
-  const giveUp = async (item: Item, why: string) => {
+  // A claim that never started and will not start here. Put back (owner: back off, then RESUME; 20261029190000) when the
+  // queue can: its journal line is cleared FIRST, so a crash after the put-back can never start it from this lease (a
+  // crash before it leaves the drive to the database's sweep: unknown, never driven twice). Else recorded not sent.
+  const giveUp = async (item: Item, why: string, until = now(), journaled = true) => {
+    if (o.putBack) {
+      let cleared = true;
+      if (o.journal && journaled) await o.journal.done(item.job.id).catch(() => { cleared = false; });
+      if (cleared) {
+        const r = await guarded(() => o.putBack!(item.job, why, until));
+        if (r.state === "queued") {
+          resumeAt = Math.max(resumeAt, until, Number(r.not_before ?? 0));
+          log(`${item.job.id}: not started (${why}); nothing was sent; it goes back to the queue and runs later.`);
+        }
+        settle(item, false, r);
+        return;
+      }
+    }
     const r = await guarded(() => o.unstarted(item.job, why));
     settle(item, false, r);
     await forget(item.job.id, r);
@@ -504,7 +540,8 @@ export async function massRun<J extends MassJob>(o: {
           if (o.journal) {
             try { await o.journal.put(job, item.claimedAt); } catch (e) {
               // Without its journal line a crash could not tell whether it ran: it is not started.
-              await giveUp(item, `JOURNAL_UNWRITABLE: ${String((e as Error)?.message ?? e).slice(0, 120)}`);
+              // Put back a little later (this machine's disk), so another instance or a later round takes it.
+              await giveUp(item, `JOURNAL_UNWRITABLE: ${String((e as Error)?.message ?? e).slice(0, 120)}`, now() + BACKOFF_BASE_MS, false);
               continue;
             }
           }
@@ -528,7 +565,7 @@ export async function massRun<J extends MassJob>(o: {
       for (let i = 0; i < pending.length;) {
         if (pacer.heldUntil(pending[i].host) > t) {
           const [item] = pending.splice(i, 1);
-          await giveUp(item, "HOST_HELD");
+          await giveUp(item, "HOST_HELD", pacer.heldUntil(item.host));
           continue;
         }
         i++;

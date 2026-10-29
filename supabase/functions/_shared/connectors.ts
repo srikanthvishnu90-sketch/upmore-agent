@@ -203,7 +203,7 @@ const GMAIL_CONNECT_RE = /^\s*(?:please\s+|can you\s+|i want to\s+|i'?d like to\
 const CHECK_RE = /^\s*(?:(?:please|can you|could you|pls)\s+)?(?:check|read|scan|look through|go through|sync)\s+(?:my\s+|the\s+)?(gmail|outlook|hotmail|e-?mails?|inbox|mail|mailbox)(?:\s+inbox)?(?:\s+(?:now|again|right now|for me|for (?:updates|news|replies|responses)))*(?:\s+please)?\s*[?.!]*$/i;
 export type ConnectorAsk = { kind: "whats_connected" } | { kind: "connect"; id: ConnectorId } | { kind: "disconnect"; id: ConnectorId } | { kind: "check"; need: Need };
 export function connectorAsk(message: string): ConnectorAsk | null {
-  const t = String(message ?? "").trim();
+  const t = String(message ?? "").replace(/\s+/g, " ").trim();
   if (isWhatsConnected(t)) return { kind: "whats_connected" };
   if (isGoogleDisconnect(t)) return { kind: "disconnect", id: "gmail" };
   if (OUTLOOK_DISCONNECT_RE.test(t)) return { kind: "disconnect", id: "outlook" };

@@ -15,7 +15,7 @@ import { INT4_MAX, type Limits, PACE_RE } from "./career_apply.ts";
 import { type EmployerAnswer, employerQuestion, type Pick, queueWants, screenPicks, type WantStore } from "./career_apply_want.ts";
 import type { AppRow } from "./career_apply_status.ts";
 import { type FetchFeed, type PostingsDb, searchWords } from "./career_ingest.ts";
-import { linkAsk, possessiveAsk, postingForLink, postingsForRole } from "./career_apply_link.ts";
+import { applyText, linkAsk, possessiveAsk, postingForLink, postingsForRole } from "./career_apply_link.ts";
 import { sameCompany, type TrackedApp } from "./career_mail.ts";
 // FEATURE 1 (2026-10-25): positions in the list, the listed postings checked on file, no resume on file, the server
 // prepare asked for the rows queued, and the coverage line (career_apply_from_chat.ts).
@@ -29,8 +29,8 @@ const BATCH = /\b(these|those|them|all of|the ones|each of|every|\d+\s+(roles?|j
 // The ask: a role at a named employer, or a named employer alone. Questions ("how do I apply to X?") and batch shapes
 // are never this ask.
 export function applyAsk(message: string): { company: string; role: string | null } | null {
-  const raw = String(message ?? "").trim();
-  if (!/\bapply\b/i.test(raw) || QUESTION.test(raw) || BATCH.test(raw)) return null;
+  const raw = applyText(message);
+  if (raw === null || !/\bapply\b/i.test(raw) || QUESTION.test(raw) || BATCH.test(raw)) return null;
   let m = raw.match(new RegExp(`\\bapply\\s+(?:me\\s+)?(?:to|for)\\s+(?:the\\s+|that\\s+|this\\s+)?(.+?)\\s+(?:role|position|job|internship|opening)\\s+at\\s+${CO}\\s*[.!]?\\s*$`, "i"));
   if (m) return { role: m[1].trim(), company: m[2].trim() };
   m = raw.match(new RegExp(`\\bapply\\s+(?:me\\s+)?(?:to|at|for)\\s+${CO}\\s*[.!]?\\s*$`, "i"));
@@ -87,8 +87,8 @@ const WORD_N: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five
 const ORD: Record<string, number> = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 };
 const numOf = (w: string) => /^\d+$/.test(w) ? Number(w) : WORD_N[w.toLowerCase()];
 export function applyManyAsk(message: string): ManyAsk | null {
-  const raw = String(message ?? "").trim();
-  if (!/\bapply\b/i.test(raw) || QUESTION.test(raw) || /\bapplied\b/i.test(raw) || /\bat\s+[A-Z]/.test(raw)) return null;
+  const raw = applyText(message);
+  if (raw === null || !/\bapply\b/i.test(raw) || QUESTION.test(raw) || /\bapplied\b/i.test(raw) || /\bat\s+[A-Z]/.test(raw)) return null;
   const t = raw.toLowerCase().replace(/[.!]+$/, "").replace(/\s+/g, " ");
   const after = t.match(/\bapply\b(?:\s+me)?(?:\s+(?:to|for))?\s+(.*)$/)?.[1];
   if (after === undefined) return null;
@@ -479,9 +479,22 @@ export function employerAnswerAsk(message: string): { kind: "yes" | "no"; compan
   const raw = String(message ?? "").trim();
   const m = /^([A-Za-z][\w&.'’ -]{0,80}?)\s*[:,-]\s*(.+)$/.exec(raw);
   const company = m && !/^(yes|no|nope|yeah|yep)\b/i.test(m[1]) ? m[1].trim() : null;
-  const t = (company ? m![2] : raw).toLowerCase().replace(/[’`]/g, "'").replace(/[!.]+$/, "").trim();
-  if (YES_ANS.test(t) && !/\bnot\b/.test(t.split(/[,;]/)[0])) return { kind: "yes", company };
-  if (NO_ANS.test(t)) return { kind: "no", company };
+  const t = (company ? m![2] : raw).toLowerCase().replace(/[’`]/g, "'").replace(/[!.]+$/, "").replace(/\s+/g, " ").trim();
+  const kind = answerKind(t);
+  return kind ? { kind, company } : null;
+}
+// Owner rules (2026-10-29): a yes or no followed by more words ("yes, send them", "yes, but", "no, don't send them", "yeah
+// right") answers only when those words are that answer's own ("no, I don't work there", "yes, that's right"); anything
+// else (a hedge, a condition, sarcasm, an unrelated instruction) is not an answer: nothing is queued and no fact recorded.
+function answerKind(t: string): "yes" | "no" | null {
+  if (/^(?:yeah|yea|ya|yes),? right\b/.test(t)) return null;
+  const more = /^(?:yes|yep|yeah|yup|no|nope|nah)\s*[,.!;:]+\s*(.+)$/.exec(t);
+  if (more) {
+    const own = answerKind(more[1]);
+    return own && own === (/^(?:yes|yep|yeah|yup)\b/.test(t) ? "yes" : "no") && !/^(?:yes|yep|yeah|yup|no|nope|nah)\b/.test(more[1]) ? own : null;
+  }
+  if (YES_ANS.test(t) && !/\bnot\b/.test(t.split(/[,;]/)[0])) return "yes";
+  if (NO_ANS.test(t)) return "no";
   return null;
 }
 export type EmployerAnswerResult = { reply: string; status: "queued" | "already" | "refused" | "is_employer" | "which" | "stands" | "pace_unknown" | "pace_unreadable" | "unreadable"; intent: string; pending?: EmployerQuestion[]; answers?: EmployerAnswer[] };

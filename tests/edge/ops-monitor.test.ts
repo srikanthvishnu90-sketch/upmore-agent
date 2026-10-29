@@ -147,7 +147,7 @@ Deno.test("dispatch: Telegram not configured still records the alert once; a fai
   let ok = false; const request = (async () => new Response("{}", { status: ok ? 200 : 502 })) as any;
   assert((await dispatch(db2, env, [alert], NOW, request))[0].telegram === "failed:502");
   ok = true;
-  assert((await dispatch(db2, env, [alert], NOW + 60000, request))[0].telegram === "sent", "retried because the owner was never told");
+  assert((await dispatch(db2, env, [alert], NOW + H + 60000, request))[0].telegram === "sent", "retried (after the one-hour backoff) because the owner was never told");
 });
 
 Deno.test("handler: token required; check reports what is not measured; digest sends funnel and spend once a day", async () => {
@@ -158,15 +158,16 @@ Deno.test("handler: token required; check reports what is not measured; digest s
   const env = envOf({ OPS_MONITOR_TOKEN: TOKEN, TELEGRAM_BOT_TOKEN: "T", OWNER_TELEGRAM_CHAT_ID: "1" });
   const src: FunnelSource = { searches: async () => ({ rows: [{ user_id: "abcdef0123", at: "2026-10-28T10:00:00Z" }] }) };
   const d = { env, admin: db, source: src, now: () => NOW, request };
-  const call = (q: string) => handleOps(new Request(`https://x.supabase.co/functions/v1/ops-monitor${q}`), d);
-  assert((await call("?mode=check")).status === 401 && (await call("?mode=check&token=nope")).status === 401);
-  const c = await (await call(`?mode=check&token=${TOKEN}`)).json();
+  // The token is a header (x-ops-token or Authorization: Bearer); a ?token= in the URL is refused (tests below).
+  const call = (q: string, headers: Record<string, string> = { "x-ops-token": TOKEN }) => handleOps(new Request(`https://x.supabase.co/functions/v1/ops-monitor${q}`, { headers }), d);
+  assert((await call("?mode=check", {})).status === 401 && (await call("?mode=check", { "x-ops-token": "nope" })).status === 401);
+  const c = await (await call("?mode=check")).json();
   assert(c.sent.map((s: any) => s.kind).sort().join() === "ingest_stalled,spend_threshold", JSON.stringify(c));
   assert(c.not_measured.includes("delivery") && c.not_measured.includes("http_5xx"));
   sent.length = 0;
-  const dg = await (await call(`?mode=digest&token=${TOKEN}`)).json();
+  const dg = await (await call("?mode=digest")).json();
   assert(dg.telegram === "sent" && sent.length === 1 && sent[0].includes("searches 1") && sent[0].includes("postings shown not measured") && sent[0].includes("$11.00 of $20.00 cap (55%)") && sent[0].includes("Spend yesterday: not measured"), sent[0]);
-  assert((await (await call(`?mode=digest&token=${TOKEN}`)).json()).skipped, "second digest the same day is skipped");
-  const rep = await (await call(`?mode=report&days=3&token=${TOKEN}`)).text();
+  assert((await (await call("?mode=digest")).json()).skipped, "second digest the same day is skipped");
+  const rep = await (await call("?mode=report&days=3")).text();
   assert(rep.includes("abcdef01") && !rep.includes("abcdef0123"), "users are shown by 8-character prefix");
 });

@@ -2,7 +2,9 @@
 -- Run by the OWNER only, after the function deploy and secrets (supabase secrets set OPS_MONITOR_TOKEN=... TELEGRAM_BOT_TOKEN=...
 -- OWNER_TELEGRAM_CHAT_ID=...; optional OPS_DAILY_CAP_USD, SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF for 5xx counts):
 --   OPS_MONITOR_TOKEN=... psql "$SUPABASE_DB_URL" -v url=https://<ref>.supabase.co/functions/v1/ops-monitor -f scripts/launch/schedule-ops-monitor.sql
--- The token lives in Vault and is read at call time. Re-running replaces both jobs.
+-- The token lives in Vault and is read at call time and sent in the x-ops-token HEADER only (a ?token= in the URL is refused:
+-- Supabase logs record query strings). Re-running replaces both jobs. If an earlier version of this job put the token in the URL,
+-- rotate it: set a new OPS_MONITOR_TOKEN secret and run this script again.
 \set ON_ERROR_STOP on
 \set secret `printf '%s' "$OPS_MONITOR_TOKEN"`
 create extension if not exists pg_cron;

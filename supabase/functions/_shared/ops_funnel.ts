@@ -5,7 +5,8 @@
 //   postings_shown    NOT MEASURED: no table records how many postings a reply showed
 //   queued            career_apply_jobs created (an enqueue needs the person's approval hash)
 //   prepared          career_apply_prepared created (the engine's dry run for the person's card)
-//   approved          career_apply_prepared set to approved + career_apply_batch_approvals approved
+//   approved          career_apply_prepared set to approved + career_apply_batch_approvals approved; one approval is one
+//                     (person, posting) however many of those rows record it, counted once at the earliest time either does
 //   submitted         career_apply_jobs the queue recorded as sent, or possibly sent (confirmed, submitted_unconfirmed,
 //                     unknown_outcome), on claimed_at (else created_at)
 //   confirmed         career_apply_jobs.email_confirmed_at: the employer's own email, on that time
@@ -116,9 +117,36 @@ export function supabaseFunnelSource(admin: Admin): FunnelSource {
     queued: (from, to) => pageRows(admin.from("career_apply_jobs").select("user_id,created_at").gte("created_at", from).lt("created_at", to), "user_id", "created_at"),
     prepared: (from, to) => pageRows(admin.from("career_apply_prepared").select("user_id,created_at").gte("created_at", from).lt("created_at", to), "user_id", "created_at"),
     async approved(from, to) {
-      const a = await pageRows(admin.from("career_apply_prepared").select("user_id,updated_at").eq("state", "approved").gte("updated_at", from).lt("updated_at", to), "user_id", "updated_at");
-      const b = await pageRows(admin.from("career_apply_batch_approvals").select("user_id,approved_at").gte("approved_at", from).lt("approved_at", to), "user_id", "approved_at");
-      return { rows: [...a.rows, ...b.rows], truncated: a.truncated || b.truncated };
+      const sel = async (table: string, cols: string, atKey: string, state: boolean, jobs?: string[]) => {
+        let q = admin.from(table).select(cols);
+        if (state) q = q.eq("state", "approved");
+        q = jobs ? q.in("job_id", jobs).lt(atKey, to) : q.gte(atKey, from).lt(atKey, to);
+        const { data, error } = await q.limit(LIMIT);
+        if (error) throw new Error(error.message);
+        return { rows: (data ?? []) as any[], truncated: (data ?? []).length >= LIMIT };
+      };
+      const A = ["career_apply_prepared", "user_id,job_id,updated_at", "updated_at", true] as const;
+      const B = ["career_apply_batch_approvals", "user_id,job_id,approved_at", "approved_at", false] as const;
+      const a = await sel(...A), b = await sel(...B);
+      // One approval is one (person, posting), but the card's approval writes a prepared row and a batch-approval row for it,
+      // possibly on different days. Look both tables up for every posting seen in the window and count each pair once, at the
+      // earliest time either records it, and only if that time is inside the window.
+      const wanted = new Set([...a.rows, ...b.rows].filter((r) => r.user_id && r.job_id).map((r) => `${r.user_id}|${r.job_id}`));
+      const jobs = [...new Set([...a.rows, ...b.rows].map((r) => String(r.job_id ?? "")).filter(Boolean))];
+      const first = new Map<string, string>();
+      let truncated = a.truncated || b.truncated;
+      for (let i = 0; i < jobs.length; i += 200) {
+        for (const [table, cols, atKey, state] of [A, B]) {
+          const r = await sel(table, cols, atKey, state, jobs.slice(i, i + 200));
+          truncated = truncated || r.truncated;
+          for (const x of r.rows) {
+            const k = `${x.user_id}|${x.job_id}`, at = String(x[atKey] ?? "");
+            if (wanted.has(k) && at && (!first.has(k) || Date.parse(at) < Date.parse(first.get(k)!))) first.set(k, at);
+          }
+        }
+      }
+      const rows = [...first.entries()].filter(([, at]) => at >= from && at < to).map(([k, at]) => ({ user_id: k.split("|")[0], at }));
+      return { rows, truncated };
     },
     async submitted(from, to) {
       const { data, error } = await admin.from("career_apply_jobs").select("user_id,created_at,claimed_at").in("state", WENT_STATES)

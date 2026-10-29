@@ -23,6 +23,19 @@ export interface Alert { kind: string; key: string; cooldownMs: number; text: st
 
 const ago = (now: number, iso: string | null) => (iso ? now - Date.parse(iso) : Infinity);
 const mins = (ms: number) => `${Math.round(ms / MIN)} minutes`;
+// Free text from a table (a delivery run's error) is untrusted: it can carry a URL with a token, an address, a phone number or a
+// key. It is reduced to a short, plain, redacted phrase before it goes into an alert (which is stored and sent to Telegram).
+export function sanitizeError(raw: unknown, max = 100): string {
+  return String(raw ?? "")
+    .replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ")
+    .replace(/\bhttps?:\/\/\S+/gi, "[url]")
+    .replace(/\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b/g, "[email]")
+    .replace(/\b(bearer|basic)(\s+)\S+/gi, "$1$2[redacted]")
+    .replace(/\b(token|api[_-]?key|apikey|key|secret|password|passwd|authorization|auth|signature|sig)\b(\s*[:=]\s*)\S+/gi, "$1$2[redacted]")
+    .replace(/\+?\d[\d\s().-]{6,}\d/g, "[number]")
+    .replace(/[A-Za-z0-9_\-+/=]{20,}/g, "[redacted]")
+    .replace(/\s+/g, " ").trim().slice(0, max);
+}
 export const usd = (micros: number) => `$${(micros / 1e6).toFixed(2)}`;
 
 export function evaluate(s: Snapshot, t: Thresholds = DEFAULTS): Alert[] {
@@ -36,7 +49,7 @@ export function evaluate(s: Snapshot, t: Thresholds = DEFAULTS): Alert[] {
     const runs = s.delivery.runs.filter((r) => ago(s.now, r.run_at) <= t.deliveryWindowMs);
     const failed = runs.reduce((n, r) => n + r.failed, 0), delivered = runs.reduce((n, r) => n + r.delivered, 0), errored = runs.filter((r) => r.error).length;
     if ((failed >= t.deliveryMinFailed && failed > delivered) || errored >= 2) out.push({ kind: "delivery_failing", key: "delivery_failing", cooldownMs: 2 * H,
-      text: `Message deliveries are failing: in the last ${mins(t.deliveryWindowMs)}, ${failed} failed, ${delivered} delivered, ${errored} runs errored${runs.find((r) => r.error) ? ` (${String(runs.find((r) => r.error)!.error).slice(0, 120)})` : ""}.` });
+      text: `Message deliveries are failing: in the last ${mins(t.deliveryWindowMs)}, ${failed} failed, ${delivered} delivered, ${errored} runs errored${runs.find((r) => r.error) ? ` (${sanitizeError(runs.find((r) => r.error)!.error)})` : ""}.` });
     const newest = Math.min(...s.delivery.runs.map((r) => ago(s.now, r.run_at)), Infinity);
     if (newest > t.deliverySilentMs) out.push({ kind: "delivery_silent", key: "delivery_silent", cooldownMs: 2 * H,
       text: newest === Infinity ? "The delivery runner has no recorded run." : `The delivery runner has not recorded a run for ${mins(newest)}. Texts are not going out.` });
@@ -146,15 +159,19 @@ export async function sendOwner(env: { get(k: string): string | undefined }, tex
 }
 
 // ---- Dispatch with dedupe. The ops_<kind> founder_alerts row is both the owner-visible record and the dedupe key.
+// A failed Telegram send is not retried on every 5-minute run for the whole outage: one attempt per alert per hour.
+export const RETRY_AFTER_MS = H;
 export async function dispatch(admin: Admin, env: { get(k: string): string | undefined }, alerts: Alert[], now: number, request: typeof fetch = fetch) {
   const results: { kind: string; key: string; telegram: string }[] = [];
   const configured = !!(env.get("TELEGRAM_BOT_TOKEN") && env.get("OWNER_TELEGRAM_CHAT_ID"));
   for (const a of alerts) {
     const since = new Date(now - a.cooldownMs).toISOString();
-    const r = await admin.from("founder_alerts").select("detail").eq("kind", `ops_${a.kind}`).gte("created_at", since).limit(200);
+    const r = await admin.from("founder_alerts").select("detail,created_at").eq("kind", `ops_${a.kind}`).gte("created_at", since).limit(200);
     const prior = (r.data ?? []).filter((x: any) => x.detail?.key === a.key);
-    // A prior row blocks a repeat only if it reached the owner, or Telegram is not configured now (nothing new could do better).
-    if (prior.some((x: any) => x.detail?.telegram === "sent" || !configured)) continue;
+    // A prior row blocks a repeat if it reached the owner, if Telegram is not configured now (nothing new could do better), or
+    // if the last attempt was under an hour ago (back off, do not retry a down Telegram every run).
+    const recent = (x: any) => !(Date.parse(x.created_at) <= now - RETRY_AFTER_MS);
+    if (prior.some((x: any) => x.detail?.telegram === "sent" || !configured || recent(x))) continue;
     const telegram = await sendOwner(env, `[Trainee alert] ${a.text}`, request);
     await admin.from("founder_alerts").insert({ kind: `ops_${a.kind}`, user_id: null, detail: { key: a.key, text: a.text, telegram } });
     results.push({ kind: a.kind, key: a.key, telegram });

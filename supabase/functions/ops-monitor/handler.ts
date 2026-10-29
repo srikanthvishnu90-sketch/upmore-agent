@@ -1,4 +1,6 @@
-// ops-monitor: GET/POST /functions/v1/ops-monitor?mode=check|digest|report&token=<OPS_MONITOR_TOKEN> (or x-ops-token).
+// ops-monitor: GET/POST /functions/v1/ops-monitor?mode=check|digest|report, authenticated by a HEADER only:
+//   Authorization: Bearer <OPS_MONITOR_TOKEN>  or  x-ops-token: <OPS_MONITOR_TOKEN>.
+// A token in the URL (?token=) is refused, valid or not: Supabase logs record query strings, so it would leak into the logs.
 //   check   (every 5 minutes) evaluates the monitors, writes ops_* founder_alerts rows, messages the owner once per alert.
 //   digest  (once a day) sends the funnel of the last full UTC day and spend to the owner chat; at most once a day unless force=1.
 //   report  returns the funnel as text for the last `days` (default 7) without sending anything.
@@ -12,7 +14,9 @@ const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { sta
 
 export async function handleOps(req: Request, d: OpsDeps): Promise<Response> {
   const url = new URL(req.url), now = (d.now ?? Date.now)();
-  if (!same(req.headers.get("x-ops-token") || url.searchParams.get("token"), d.env.get("OPS_MONITOR_TOKEN"))) return json({ error: "unauthorized" }, 401);
+  if (url.searchParams.has("token")) return json({ error: "unauthorized: send the token in the Authorization: Bearer or x-ops-token header, never in the URL (URLs are logged); rotate any token that was sent in a URL" }, 401);
+  const bearer = /^Bearer\s+(.+)$/i.exec(req.headers.get("authorization") ?? "")?.[1]?.trim() ?? null;
+  if (!same(req.headers.get("x-ops-token") || bearer, d.env.get("OPS_MONITOR_TOKEN"))) return json({ error: "unauthorized" }, 401);
   const mode = url.searchParams.get("mode") ?? "check";
   if (mode === "check") {
     const snap = await readSnapshot(d.admin, d.env, now, edge5xxFetcher(d.env, now, d.request));

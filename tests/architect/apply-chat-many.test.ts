@@ -94,7 +94,7 @@ Deno.test("SERIAL-1410/1 their own pace binds across the batch; an unreadable pa
   const paced = world({ shortlist: LIST, limits: async () => ({ daily: 1 }) });
   const r = await paced.turn("apply to these");
   eq([r?.status, (await paced.keys()).length], ["queued", 1]);
-  assert(/over the daily pace they set themselves \(1 a day\)/.test(r!.reply), r!.reply);
+  assert(/over the daily pace you set \(1 a day\)/.test(r!.reply) && !/\btheir\b|\bthey (?:said|set|did|work|named|already)\b|themselves|the person/i.test(r!.reply), r!.reply);
   let calls = 0;
   const unknown = world({ shortlist: LIST, limits: async () => { calls++; throw new Error("rpc down"); } });
   const u = await unknown.turn("apply to these");

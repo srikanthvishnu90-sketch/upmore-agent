@@ -37,6 +37,34 @@ const KEYWORD: Record<ScreenFactKey, RegExp> = {
   years_experience: /\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|twelve|fifteen|twenty)\+?\s*(?:years?|yrs?)\b/i,
   education_level: /\b(bachelor\w*|master\w*|ph\.?d|doctorate|mba|degree|associate|high school|ged|b\.?s|m\.?s|b\.?a|b\.?tech)\b/i,
 };
+// Words that make a "place" something else: another question's answer, or yes / no wording. A location is a place only.
+const OTHER_TOPIC = /\b(?:sponsor\w*|visa|h-?1b|opt|work permit|authori[sz]ed|need|needs|needed|require\w*|citizen\w*|green card|permanent resident|relocat\w*|move|moving|degree|bachelor\w*|master\w*|ph\.?d|doctorate|mba|years?|yrs?|experience|yes|yeah|yep|no|nope|nah|not|don'?t|do not|won'?t|cannot|can'?t)\b/i;
+// Sponsorship, strictly: a leading yes / no must AGREE with what follows it. "No, I need sponsorship" contradicts itself, so it
+// is ambiguous and saves nothing (D-007); only a leading yes / no with nothing else (or only a courtesy) stands alone.
+const NEED_NO = /\b(?:(?:do|does|did|will|would|am|are|is|have)\s+not|don'?t|doesn'?t|didn'?t|won'?t|wouldn'?t|haven'?t|never|no longer|not)\s+(?:\w+\s+){0,2}?(?:need|require)\w*|\bno\s+(?:(?:visa|work)\s+)?sponsorship(?:\s+(?:is\s+)?(?:needed|required|necessary))?|\bwithout\s+(?:\w+\s+)?sponsor\w*|\bnot\s+(?:needed|required)|\bno\s+need\b|\bneed\s+no\b/i;
+const NEED_NO_ALL = new RegExp(NEED_NO.source, "gi");
+const NEED_YES = /\b(?:need|needs|require|requires|needing)\b/i;
+const SPONSOR_WORD = /\b(?:sponsor\w*|visa|h-?1b|opt|work permit|authori[sz]ed)\b/i;
+const LEAD_YES = /^(?:yes|yeah|yep|yup|y|sure)\b[,.!:;\s-]*/i;
+const LEAD_NO = /^(?:no|nope|nah|n)\b[,.!:;\s-]*/i;
+const FILLER_YES = /^(?:please|thanks?|thank you|i do|i will|i would|definitely|absolutely|correct|that'?s right)?\W*$/i;
+const FILLER_NO = /^(?:please|thanks?|thank you|not really|i do not|i don'?t|i'?m (?:good|fine)|that'?s all|that'?s right|correct)?\W*$/i;
+function sponsorshipVerdict(m: string, alone: boolean): "yes" | "no" | null {
+  const noNeed = NEED_NO.test(m);
+  const rest = m.replace(NEED_NO_ALL, " ");
+  const yesNeed = NEED_YES.test(rest);
+  if (noNeed && yesNeed) return null; // says both
+  const content: "yes" | "no" | null = noNeed ? "no" : yesNeed ? "yes" : null;
+  const lead: "yes" | "no" | null = LEAD_NO.test(m) ? "no" : LEAD_YES.test(m) ? "yes" : null;
+  if (lead && content && lead !== content) return null; // "No, I need sponsorship": ambiguous, nothing is written
+  if (lead) {
+    if (content) return content;
+    const tail = m.replace(lead === "no" ? LEAD_NO : LEAD_YES, "").trim();
+    return alone && (lead === "no" ? FILLER_NO : FILLER_YES).test(tail) ? lead : null;
+  }
+  if (!content) return null;
+  return SPONSOR_WORD.test(m) || (alone && /\b(?:it|that|one|any)\b|\bno need\b/i.test(m)) ? content : null;
+}
 export interface Parsed { value: string | number; text: string }
 
 // One question, one message (or one clause of it). `alone` is true when this question is the only one open, so a bare
@@ -52,6 +80,7 @@ export function parseScreenAnswer(fact: ScreenFactKey, raw: string, alone: boole
     case "location": {
       if (/\?/.test(m) || (COMMAND.test(m) && !/\b(live|based|located|reside)\b/i.test(m))) return null;
       if (/\b(want|prefer|looking|seeking|relocat\w*|remote|interested|work in)\b/i.test(m)) return null;
+      if (OTHER_TOPIC.test(m)) return null; // an answer to another question (sponsorship, visa, citizenship, a degree, years) is not a place
       const stripped = placeOf(m).replace(/^(?:i'?m|i am)\s+(?:in|from)\s+/i, "").replace(/\s+and\s+(?:no|yes|i)\b.*$/i, "").trim();
       if (!/^[A-Za-z][A-Za-z.' -]*(?:,\s*[A-Za-z][A-Za-z.' -]*)*$/.test(stripped) || stripped.length > 60 || stripped.split(/\s+/).length > 6) return null;
       if (/\b(yes|no|nope|yeah|ok|okay|sure|thanks|thank you|hi|hello|hey|maybe)\b/i.test(stripped) || BAD_PLACE.test(stripped) || stripped.length < 2) return null;
@@ -64,9 +93,8 @@ export function parseScreenAnswer(fact: ScreenFactKey, raw: string, alone: boole
       return null;
     }
     case "sponsorship": {
-      if (/\b(do not|don'?t|won'?t|will not|never|no longer|not)\b[^.]*\b(?:need|require)\w*|\bno\b[^.]*\b(?:sponsor|need)|\bwithout sponsor|\bnot needed\b|\bno need\b/i.test(m) || (alone && lead(NO))) return { value: "no", text: "Does not need visa sponsorship" };
-      if (/\b(need|needs|require|requires|will need|would need)\b/i.test(m) || (alone && lead(YES))) return { value: "yes", text: "Needs visa sponsorship" };
-      return null;
+      const v = sponsorshipVerdict(m, alone);
+      return v === "no" ? { value: "no", text: "Does not need visa sponsorship" } : v === "yes" ? { value: "yes", text: "Needs visa sponsorship" } : null;
     }
     case "citizenship": {
       const neg = NEG.test(m.replace(/\bno\b(?=\s+(?:longer))/i, "")) && !/^(?:yes|yeah|yep|y)\b/i.test(m);
@@ -148,7 +176,9 @@ export async function screenAnswerTurn(o: ScreenAnswerDeps): Promise<ScreenAnswe
     }
     // A reply that is not an answer (I don't know, skip, a place that is none, a short non-answer) saves NOTHING (D-007). Ask once more;
     // when it was already asked twice, leave the postings held and drop the question: they wait until the person says.
-    const nonAnswer = UNSURE.test(msg) || (facts.length === 1 && msg.split(/\s+/).length <= 4 && !COMMAND.test(msg) && !/\?/.test(msg));
+    // So is a reply that answers ANOTHER question, or leads with yes / no and then contradicts itself ("No, I need sponsorship"): nothing is written.
+    const touches = !/\?/.test(msg) && !COMMAND.test(msg) && (YES.test(msg) || NO.test(msg) || LEAD_YES.test(msg) || LEAD_NO.test(msg) || /\b(?:sponsor\w*|visa|h-?1b|work permit|citizen\w*|green card|relocat\w*|degree|bachelor\w*|master\w*|ph\.?d)\b/i.test(msg));
+    const nonAnswer = UNSURE.test(msg) || touches || (facts.length === 1 && msg.split(/\s+/).length <= 4 && !COMMAND.test(msg) && !/\?/.test(msg));
     if (nonAnswer) {
       if (!o.last?.meta?.screen_reasked) {
         return { reply: `I need a real answer for that, so I haven't saved anything. ${asked.map((a) => a.question).join(" ")}`, status: "asking", intent, saved: [], meta: { screen_ask: asked, screen_held: held0, screen_reasked: true } };

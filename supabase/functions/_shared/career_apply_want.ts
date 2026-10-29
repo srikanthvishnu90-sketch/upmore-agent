@@ -293,8 +293,8 @@ export function screenPicks(picks: Pick[], o: { message?: string; before?: strin
   // knock-out mismatches against CONFIRMED facts before it can be queued or shown for approval. Not optional, not a switch.
   const gate = gatePicks(passed, { facts: o.facts, now: o.now });
   const gated = new Set<Pick>(gate.ok);
-  for (const d of gate.dropped) refused.push(refusal({ ...d.posting }, `screened out (${d.kind === "knockout" ? "knock-out" : d.kind}): ${d.why}`));
-  for (const h of gate.held) refused.push({ ...refusal({ ...h }, `held, not guessed: it needs a fact you haven't confirmed (${h.facts.join(", ").replace(/_/g, " ")})`), ask: "fact" });
+  for (const d of gate.dropped) refused.push(refusal({ ...d.posting, job_id: d.posting.job_id ?? undefined }, `screened out (${d.kind === "knockout" ? "knock-out" : d.kind}): ${d.why}`));
+  for (const h of gate.held) refused.push({ ...refusal({ ...h, job_id: h.job_id ?? undefined }, `held, not guessed: it needs a fact you haven't confirmed (${h.facts.join(", ").replace(/_/g, " ")})`), ask: "fact" });
   const ok = passed.filter((p) => gated.has(p));
   return { ok, refused, gate };
 }

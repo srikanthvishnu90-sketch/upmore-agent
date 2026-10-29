@@ -15,6 +15,7 @@ import {
   pkceChallenge, pkceVerifier, PROVIDER, type Purpose, readInboxDelta, sendOutlook, type SendStatus, type TokenDeps,
   type TokenResult, vaultNameOf, verifyState, type Window,
 } from "./outlook_graph.ts";
+import { disconnectOf, outlookConnectOf, outlookStatusOf } from "./connector_words.ts";
 
 type Admin = any;
 type Env = { get(k: string): string | undefined };
@@ -155,7 +156,8 @@ export async function runOutlookBatch(o: { admin: Admin; env: Env; fetch: typeof
 }
 
 // ------------------------------------------------------------------------------------------------ disconnect
-export interface DisconnectResult { ok: boolean; had: boolean; failures: string[] }
+// erased: Outlook mail saved from an earlier connection was deleted although nothing was connected.
+export interface DisconnectResult { ok: boolean; had: boolean; failures: string[]; erased?: boolean }
 // Microsoft has no endpoint that revokes one app's refresh token (revokeSignInSessions would sign the person out of every
 // app and needs an admin-grade permission), so Trainee deletes what it holds and tells the person where to remove the app.
 export async function disconnectOutlook(admin: Admin, userId: string): Promise<DisconnectResult> {
@@ -163,12 +165,18 @@ export async function disconnectOutlook(admin: Admin, userId: string): Promise<D
   const rows = await admin.from("user_oauth_connections").select("provider").eq("user_id", userId).eq("provider", PROVIDER);
   if (rows.error) return { ok: false, had: false, failures: ["read whether Outlook is connected"] };
   const had = (rows.data ?? []).length > 0;
+  // CONNECTOR SCENARIOS (2026-10-29): mail read from Outlook can outlive its connection (a sync that was running when the
+  // row went, a disconnect made before 20261027230000's trigger). It is deleted here too, as Gmail's disconnect does, and
+  // the person is told; before, the reply said it couldn't delete it, without ever trying.
+  const mailBefore = await admin.from("career_outlook_messages").select("message_hash").eq("user_id", userId).limit(1);
   const del = await admin.rpc("oauth_vault_delete", { p_name: vaultNameOf(userId) });
   if (del.error) failures.push("delete the stored Outlook access");
   if (had) {
     const d = await admin.from("user_oauth_connections").delete().eq("user_id", userId).eq("provider", PROVIDER);
     if (d.error) failures.push("delete the Outlook connection");
   }
+  const wipe = await admin.from("career_outlook_messages").delete().eq("user_id", userId);
+  if (wipe.error) failures.push("delete the mail I had read from your Outlook");
   const left = await admin.from("user_oauth_connections").select("provider").eq("user_id", userId).eq("provider", PROVIDER);
   const mail = await admin.from("career_outlook_messages").select("message_hash").eq("user_id", userId).limit(1);
   const vault = await admin.rpc("oauth_vault_read", { p_name: vaultNameOf(userId) });
@@ -178,26 +186,29 @@ export async function disconnectOutlook(admin: Admin, userId: string): Promise<D
     if ((mail.data ?? []).length) failures.push("delete the mail I had read from your Outlook");
     if (vault.data) failures.push("delete the stored Outlook access");
   }
-  return { ok: failures.length === 0, had, failures: [...new Set(failures)] };
+  const erased = !mailBefore.error && (mailBefore.data ?? []).length > 0 && !mail.error && !(mail.data ?? []).length;
+  return { ok: failures.length === 0, had, failures: [...new Set(failures)], erased };
 }
 export function disconnectWords(r: DisconnectResult): string {
+  if (!r.had && r.ok && r.erased) return "Outlook isn't connected to Trainee, but I deleted the mail still saved from an earlier connection.";
   if (!r.had && r.ok) return "Outlook isn't connected to Trainee, so there was nothing to disconnect.";
   if (!r.ok) return `I couldn't finish disconnecting Outlook: I wasn't able to ${r.failures.join(", or ")}. Say "disconnect outlook" again to retry.`;
-  return "Outlook is disconnected. I deleted the stored access and the mail I had read from it, and any email still waiting to go from your Outlook won't be sent. " +
-    "Microsoft doesn't let an app revoke its own access, so to be sure remove Trainee at account.live.com/consent/Manage (personal account) or myapps.microsoft.com (work or school account). " +
+  return `Outlook is disconnected. I deleted the stored access and the mail I had read from it, and any email still waiting to go from your Outlook won't be sent. ${MICROSOFT_NOTE} ` +
     'Say "connect my outlook" any time to connect it again.';
 }
+export const MICROSOFT_NOTE = "Microsoft doesn't let an app revoke its own access, so to be sure remove Trainee at account.live.com/consent/Manage (personal account) or myapps.microsoft.com (work or school account).";
 
 // ------------------------------------------------------------------------------------------------ the chat
 export const OUTLOOK_CONNECT_RE = /^\s*(?:please\s+|can you\s+|i want to\s+|i'?d like to\s+|let'?s\s+)?(?:connect|link|add|hook up|set up|use)\s+(?:my\s+|an?\s+)?(?:outlook|hotmail|live|msn|office\s*365|o365|microsoft\s*365|microsoft|exchange|work|school|university|college)(?:\s+(?:email|e-mail|mail|account|inbox|calendar|address))*(?:\s+(?:account|instead|too|as well|to send))?[\s.!?]*$/i;
 export const OUTLOOK_DISCONNECT_RE = /^\s*(?:please\s+)?(?:disconnect|unlink|revoke|remove)\s+(?:access\s+to\s+|trainee\s+from\s+)?(?:my\s+)?(?:outlook|hotmail|microsoft|office\s*365|work\s+email)(?:\s+(?:account|email|mail))?[\s.!]*$/i;
 export const OUTLOOK_STATUS_RE = /^\s*(?:is|are)\s+(?:my\s+)?(?:outlook|hotmail|microsoft|work\s+email)(?:\s+(?:account|email|mail))?\s+(?:still\s+)?connected\s*[?.!]*\s*$/i;
 export type OutlookAsk = "connect" | "disconnect" | "status";
+// CONNECTOR SCENARIOS (2026-10-29): read by connector_words.ts, the same words connectorAsk reads (lead-ins, typos, and
+// "remove Microsoft" / "add Microsoft" as an employer, never the mailbox). The regexes above stay for reference.
 export function outlookAsk(message: string): OutlookAsk | null {
-  const t = String(message ?? "").replace(/\s+/g, " ").trim();
-  if (OUTLOOK_DISCONNECT_RE.test(t)) return "disconnect";
-  if (OUTLOOK_STATUS_RE.test(t)) return "status";
-  if (OUTLOOK_CONNECT_RE.test(t)) return "connect";
+  if (disconnectOf(message) === "outlook") return "disconnect";
+  if (outlookStatusOf(message)) return "status";
+  if (outlookConnectOf(message)) return "connect";
   return null;
 }
 export async function channelOf(admin: Admin, userId: string, threadId: string, bridge: boolean): Promise<string> {

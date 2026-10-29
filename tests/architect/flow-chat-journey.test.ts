@@ -280,7 +280,9 @@ Deno.test({
         const w = (await wanted()).length, a = await approvedCount();
         const alpha = await say("apply to the Data Analyst role at Alpha Works");
         eq([alpha.intent, alpha.resultStatus], ["career_apply_queue", "refused"], alpha.reply);
-        assert(/^0\/1 queued/.test(alpha.reply) && /already applied to Alpha Works/.test(alpha.reply) && /30 days/.test(alpha.reply), `the once-per-employer rule, named: ${alpha.reply}`);
+        // Blocked with its reason named: this exact posting is already in the applications (the more specific reason, which wins
+        // once the application is on record) or the once-per-employer rule (30 days). Either is honest; nothing is queued.
+        assert(/^0\/1 queued/.test(alpha.reply) && (/Alpha Works[^\n]*already in (?:their|your) applications as the same posting/.test(alpha.reply) || (/already applied to Alpha Works/.test(alpha.reply) && /30 days/.test(alpha.reply))), `blocked, the reason named: ${alpha.reply}`);
         const echo = await say("apply to the Data Analyst role at Echo Systems");
         assert(/^0\/1 queued/.test(echo.reply), `Echo is already in the queue: ${echo.reply}`);
         eq(echo.resultStatus === "queued", false, echo.reply);

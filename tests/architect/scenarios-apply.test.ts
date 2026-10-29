@@ -1,0 +1,465 @@
+// The apply flow and mass submission at scale (owner rules, binding): one yes approves exactly the batch shown, each item
+// by its hash; no volume cap of Trainee's own; back off only when an outside system refuses (a 429 with or without
+// Retry-After, a 503 with one, a verification check), then resume; block only the exact same posting; never submit
+// without a confirmed resume; a job running when a worker crashes is recorded unknown and never driven again; each
+// approved application is submitted at most once. ~12,000 generated scenarios (tests/architect/scenarios/
+// apply-generator.ts, seeded) on the real pure code:
+//   postings   wantsFrom, screenPicks, queueWants (career_apply_want.ts), postingKey (posting_key.ts), admitApplication and
+//              the SQL's own key rule (career_apply.ts): the same posting in any form is one posting; two postings are two
+//   history    an earlier application in each queue state, around the 30-day mark, in several time zones: the same
+//              posting is blocked while its earlier application counts (any age); another posting at the same company
+//              never is (no employer cooldown, D-MS-3)
+//   employers  screenPicks against current-employer facts: exact refuses, one name the leading words of the other asks,
+//              unrelated / past / wished / unconfirmed pass; "apply anyway" passes
+//   resumes    runApproved (approve-first.ts): the engine never starts without the approved resume file, byte-hash equal
+//   retry      retryAfterSeconds and the host gate's wait: seconds and HTTP dates honored, garbage is the default doubling
+//   hosts      runLoop (approve-first.ts) over massRun with a fake queue and engine: every job started once and recorded
+//              once; the gate is told exactly the outside refusals (with the seconds the host asked); nothing starts on a
+//              held host before its time; every host resumes; no number of ours
+//   crashes    runLoop killed at five points and started again on the same journal: a started job is unknown, never
+//              driven again; an unstarted one runs once under its lease (or is ended unsent); a recorded one stays recorded
+//   cloud      cloudLoop (career-cloud/worker.ts): a host's Retry-After reaches the shared gate
+//   workers    several runLoops on one queue: each job once
+// The end-to-end sample on real Postgres is flow-scenarios-apply.test.ts. No network, no model, no Chromium.
+import assertNode from "node:assert/strict";
+import {
+  AGES, BLOCKING, type CrashCase, crashCases, employerCases, historyCases, type Link, NOW, OUTSIDE_REFUSAL, postingCases, resumeCases,
+  RESUME_SHA, retryCases, rng, type SchedCase, schedCases,
+} from "./scenarios/apply-generator.ts";
+import { memoryWantStore, queueWants, samePosting, screenPicks, wantsFrom } from "../../supabase/functions/_shared/career_apply_want.ts";
+import { formUrlFor, postingKey } from "../../supabase/functions/_shared/posting_key.ts";
+import { admitApplication, postingKey as sqlKey } from "../../supabase/functions/_shared/career_apply.ts";
+import { trackedFromRows } from "../../supabase/functions/_shared/career_apply_chat.ts";
+import { factsFromPayload, type Job, ownQueue, runApproved, runLoop } from "../../workers/career-browser/approve-first.ts";
+import { cloudLoop, type CloudQueue } from "../../workers/career-cloud/worker.ts";
+import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
+import { authorizer, cardBound, effectAware } from "../helpers/cloud_card_auth.ts";
+import { backoffMs, type HostGate, hostOf, type Journal, type JournalEntry, localHostGate, pacingFrom, retryAfterSeconds } from "../../workers/career-browser/mass-run.ts";
+
+const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
+const SEED = 20261029;
+const U = "00000000-0000-4000-8000-0000000a9901";
+
+// One report per part: every failure named by its input, the first few printed.
+type Report = { name: string; total: number; fails: Map<string, string[]> };
+const report = (name: string): Report => ({ name, total: 0, fails: new Map() });
+function check(rep: Report, ok: boolean, kind: string, detail: () => string) {
+  if (ok) return;
+  if (!rep.fails.has(kind)) rep.fails.set(kind, []);
+  rep.fails.get(kind)!.push(detail());
+}
+function done(rep: Report) {
+  const n = [...rep.fails.values()].reduce((a, b) => a + b.length, 0);
+  const lines = [`[apply] ${rep.name}: ${rep.total} scenarios, ${n} failures`];
+  for (const [k, xs] of rep.fails) { lines.push(`  FAIL ${k}: ${xs.length}`); for (const x of xs.slice(0, 3)) lines.push(`    ${x.slice(0, 400)}`); }
+  console.log(lines.join("\n"));
+  eq(n, 0, lines.join("\n"));
+}
+// The link a pick is queued at (wantsFrom's own rule: a posting known by its id goes to its board's form).
+const eff = (l: Link) => formUrlFor(String(l.job_id ?? "")) ?? l.url;
+const pick = (l: Link) => ({ url: l.url, job_id: l.job_id, company: l.company, title: l.title });
+
+// ------------------------------------------------------------------------------------------------ postings
+const POSTINGS = postingCases(rng(SEED), 4000);
+Deno.test(`postings: ${POSTINGS.length} generated pairs (the same posting in many forms, and different postings): exact-only dedupe on every path`, async () => {
+  const rep = report("postings");
+  for (const c of POSTINGS) {
+    rep.total++;
+    const name = () => `${c.family}/${c.form} same=${c.same}: ${JSON.stringify(c.a)} vs ${JSON.stringify(c.b)}`;
+    const ka = postingKey(eff(c.a)), kb = postingKey(eff(c.b));
+    check(rep, !!ka && !!kb, "a posting link is not read as a posting", () => `${name()} -> ${ka} / ${kb}`);
+    // One posting is one key, compared as the queue compares them (samePosting: without case).
+    check(rep, (samePosting(ka) === samePosting(kb)) === c.same, c.same ? "the same posting keyed twice" : "two postings keyed as one", () => `${name()} -> ${ka} / ${kb}`);
+    // One batch with both: the same posting is queued once; two postings both.
+    const w = wantsFrom([pick(c.a), pick(c.b)], NOW);
+    check(rep, w.refused.length === 0 && w.ok.length === (c.same ? 1 : 2), "wantsFrom", () => `${name()} -> ok ${w.ok.length}, refused ${JSON.stringify(w.refused.map((x) => x.reason))}`);
+    // Already applied to a: b is refused as the same posting exactly when it is one.
+    const apps = trackedFromRows([{ id: "r1", company: c.company, state: "submitted_unconfirmed", created_at: new Date(NOW - 86_400_000).toISOString(), updated_at: new Date(NOW).toISOString(), url: eff(c.a) }]);
+    const s = screenPicks([pick(c.b)], { apps, facts: [], now: NOW });
+    const dup = s.refused.some((x) => /same posting/.test(x.reason));
+    check(rep, dup === c.same, c.same ? "screenPicks missed the same posting" : "screenPicks blocked another posting", () => `${name()} -> ${JSON.stringify(s.refused.map((x) => x.reason))}`);
+    check(rep, !s.refused.some((x) => /days|once per company|cooldown/i.test(x.reason)), "an employer rule", () => `${name()} -> ${JSON.stringify(s.refused.map((x) => x.reason))}`);
+    // The database's own rule, mirrored (career_apply.ts admitApplication: the job id, or the canonical link).
+    const adm = admitApplication([{ user_id: U, job_id: ka ?? c.a.url, company: c.company, at: NOW - 86_400_000, state: "submitted_unconfirmed", url: eff(c.a) }],
+      { user_id: U, job_id: kb ?? c.b.url, company: c.company, url: eff(c.b) }, NOW);
+    check(rep, (adm.reason === "duplicate_job") === c.same && (adm.ok || adm.reason === "duplicate_job"), "admitApplication", () => `${name()} -> ${JSON.stringify(adm)} (sql keys ${sqlKey(eff(c.a))} / ${sqlKey(eff(c.b))})`);
+    // The queue, one turn after the other.
+    const store = memoryWantStore();
+    await queueWants(store, U, [pick(c.a)], NOW);
+    const q = await queueWants(store, U, [pick(c.b)], NOW + 60_000);
+    check(rep, c.same ? q.queued === 0 && q.already === 1 : q.queued === 1, "queueWants", () => `${name()} -> ${JSON.stringify({ queued: q.queued, already: q.already, refused: q.refused.map((x) => x.reason) })}`);
+  }
+  console.log(`[apply] postings by form: ${JSON.stringify(Object.fromEntries([...new Set(POSTINGS.map((c) => `${c.same ? "same" : "diff"}:${c.form}`))].sort().map((k) => [k, POSTINGS.filter((c) => `${c.same ? "same" : "diff"}:${c.form}` === k).length])))}`);
+  done(rep);
+});
+
+// ------------------------------------------------------------------------------------------------ history
+const HISTORY = historyCases(rng(SEED + 1), 2000);
+Deno.test(`history: ${HISTORY.length} earlier applications around the 30-day mark in several time zones: the same posting blocked while its application counts; another posting at the company never`, () => {
+  const rep = report("history");
+  for (const h of HISTORY) {
+    rep.total++;
+    const name = () => `${h.candidate} state=${h.state} age=${h.age} at ${h.applied_at}: ${eff(h.prior.a)} then ${eff(h.b)}`;
+    const apps = trackedFromRows([{ id: "r1", company: h.prior.company, state: h.state, created_at: h.applied_at, updated_at: h.applied_at, url: eff(h.prior.a) }]);
+    const s = screenPicks([pick(h.b)], { apps, facts: [], now: NOW });
+    const blocked = s.refused.some((x) => /same posting/.test(x.reason));
+    check(rep, blocked === h.blocked, h.blocked ? "the same posting was not blocked" : "a posting was blocked that is not a counted duplicate", () => `${name()} -> ${JSON.stringify(s.refused.map((x) => x.said))}`);
+    check(rep, !s.refused.some((x) => /days|once per company|cooldown/i.test(`${x.reason} ${x.said}`)), "an employer cooldown", () => `${name()} -> ${JSON.stringify(s.refused.map((x) => x.said))}`);
+    const adm = admitApplication([{ user_id: U, job_id: postingKey(eff(h.prior.a)) ?? "x", company: h.prior.company, at: Date.parse(h.applied_at), state: h.state, url: eff(h.prior.a) }],
+      { user_id: U, job_id: postingKey(eff(h.b)) ?? "y", company: h.prior.company, url: eff(h.b) }, NOW);
+    check(rep, (adm.reason === "duplicate_job") === h.blocked && (adm.ok || adm.reason === "duplicate_job"), "admitApplication", () => `${name()} -> ${JSON.stringify(adm)}`);
+  }
+  // The instants themselves: every zone's spelling is the same instant, and the boundary ages are what they say.
+  for (const h of HISTORY) eq(Date.parse(h.applied_at), NOW - AGES[h.age], h.applied_at);
+  console.log(`[apply] history: ${HISTORY.filter((h) => h.blocked).length} blocked (same posting, counted state), ${HISTORY.filter((h) => !h.blocked).length} not; states ${[...BLOCKING].join("/")} count`);
+  done(rep);
+});
+
+// ------------------------------------------------------------------------------------------------ employers
+const EMPLOYERS = employerCases(rng(SEED + 2), 2000);
+Deno.test(`employers: ${EMPLOYERS.length} current-employer facts against a posting's employer: exact refused, partial asked, unrelated passes`, () => {
+  const rep = report("employers");
+  for (const e of EMPLOYERS) {
+    rep.total++;
+    const p = { url: "https://jobs.lever.co/acme/0f6e0c2a-1b2c-4d3e-8f90-123456789abc", company: e.company, title: "Data Analyst" };
+    const s = screenPicks([p], { apps: [], facts: [e.fact], now: NOW, ...(e.goAhead ? { message: `apply to the Data Analyst role at ${e.company} anyway` } : {}) });
+    const got = s.refused.some((x) => x.ask === "employer") ? "ask" : s.refused.some((x) => /current employer/.test(x.reason)) ? "refused" : "pass";
+    check(rep, got === e.expect, `${e.kind}${e.goAhead ? "+anyway" : ""}: expected ${e.expect}`, () => `fact ${JSON.stringify(e.fact.value ?? e.fact.text)} (${e.fact.kind}, ${e.fact.status}, needs_confirmation ${e.fact.needs_confirmation}) vs posting at ${JSON.stringify(e.company)} -> ${got}: ${JSON.stringify(s.refused.map((x) => x.reason))}`);
+    if (got !== "pass") check(rep, s.ok.length === 0, "a refused or asked posting was passed", () => e.company);
+  }
+  done(rep);
+});
+
+// ------------------------------------------------------------------------------------------------ resumes
+const RESUMES = resumeCases(rng(SEED + 3), 600);
+Deno.test(`resumes: ${RESUMES.length} approved payloads with every resume binding: the engine starts only with the approved file`, async () => {
+  const rep = report("resumes");
+  for (const c of RESUMES) {
+    rep.total++;
+    let engine = 0;
+    const job: Job = { id: "j1", lease_token: "L1", url: "https://jobs.lever.co/acme/0f6e0c2a-1b2c-4d3e-8f90-123456789abc", user_id: U,
+      payload: { version: 1, user_id: U, job_id: "lever:acme:0f6e0c2a", url: "https://jobs.lever.co/acme/0f6e0c2a-1b2c-4d3e-8f90-123456789abc", fields: [], engine_approval: "e".repeat(64),
+        ...(c.payloadSha === undefined ? {} : { resume_sha256: c.payloadSha }) } };
+    const fin: string[] = [];
+    await runApproved({
+      claim: async () => [job], finish: async (_id, _l, state) => { fin.push(state); },
+      resumeFor: async () => c.file as any, writeFacts: async () => "/tmp/facts.json",
+      runEngine: async () => { engine++; return { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: null }; },
+    });
+    check(rep, (engine === 1) === c.starts, c.starts ? "the approved file did not start" : "the engine started without the approved resume", () => `${c.kind}: payload ${JSON.stringify(c.payloadSha)} file ${JSON.stringify(c.file)}`);
+    check(rep, eq2(fin, [c.starts ? "submitted_unconfirmed" : "not_submitted"]), "recorded", () => `${c.kind} -> ${fin}`);
+  }
+  done(rep);
+});
+const eq2 = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+// ------------------------------------------------------------------------------------------------ Retry-After
+const RETRIES = retryCases(rng(SEED + 4), 1500);
+Deno.test(`retry: ${RETRIES.length} Retry-After values: seconds and HTTP dates honored (at most a day), garbage is no answer; the gate waits that long or the default doubling`, async () => {
+  const rep = report("retry");
+  for (const c of RETRIES) {
+    rep.total++;
+    const got = retryAfterSeconds(c.header, NOW);
+    check(rep, got === c.expect, `${c.form}`, () => `${JSON.stringify(c.header)} -> ${got}, expected ${c.expect}`);
+    const until = await localHostGate().refused("h.example.test", "rate_limited", got, NOW);
+    const want = c.expect === null ? 30_000 : c.expect * 1000;
+    check(rep, until - NOW === want, `${c.form}: the gate's wait`, () => `${JSON.stringify(c.header)} -> held ${until - NOW} ms, expected ${want}`);
+    // A refusal always holds the host for some time unless the host itself said "now" (0 seconds, or a date already past).
+    check(rep, until - NOW > 0 || c.expect === 0, "a refusal not held", () => JSON.stringify(c.header));
+  }
+  eq([backoffMs(0, null), backoffMs(1, null), backoffMs(7, null), backoffMs(20, null)], [30_000, 60_000, 3_600_000, 3_600_000]);
+  done(rep);
+});
+
+// ------------------------------------------------------------------------------------------------ the worker, faked around
+// A queue with the database's transitions (career_apply_claim_own / career_apply_finish_own): a claim takes queued rows
+// to driving under a fresh lease; a finish needs driving and the lease, else "invalid apply transition".
+interface Row { id: string; url: string; state: string; lease_token: string | null; claimed_at: string | null; reason: string | null; finishes: number }
+type Life = { dead: boolean; die: () => void };
+const never = <T>() => new Promise<T>(() => {});
+function life(): Life & { died: Promise<void> } {
+  let res: () => void = () => {};
+  const died = new Promise<void>((r) => { res = r; });
+  const l = { dead: false, died, die: () => { if (!l.dead) { l.dead = true; res(); } } };
+  return l;
+}
+function fakeDb(urls: string[]) {
+  const rows = new Map<string, Row>(urls.map((url, i) => [`j${String(i).padStart(3, "0")}`, { id: `j${String(i).padStart(3, "0")}`, url, state: "queued", lease_token: null, claimed_at: null, reason: null, finishes: 0 }]));
+  const payload = (r: Row) => ({ version: 1, user_id: U, job_id: r.id, url: r.url, fields: [], engine_approval: "e".repeat(64), resume_sha256: RESUME_SHA });
+  let seq = 0;
+  const rpc = async (name: string, a: any, l?: Life, hook?: (name: string, a: any) => void) => {
+    if (l?.dead) return await never<any>();
+    hook?.(name, a);
+    if (l?.dead) return await never<any>();
+    if (name === "career_apply_claim_own") {
+      const out = [...rows.values()].filter((r) => r.state === "queued").slice(0, Math.max(0, a.p_limit));
+      for (const r of out) { r.state = "driving"; r.lease_token = `L${++seq}`; r.claimed_at = new Date().toISOString(); }
+      return { data: out.map((r) => ({ id: r.id, lease_token: r.lease_token, url: r.url, user_id: U, claimed_at: r.claimed_at, payload: payload(r) })), error: null };
+    }
+    if (name === "career_apply_finish_own") {
+      const r = rows.get(a.p_id);
+      if (!r || r.state !== "driving" || r.lease_token !== a.p_lease) return { data: null, error: { message: "invalid apply transition" } };
+      r.state = a.p_state; r.reason = String(a.p_evidence?.reason ?? ""); r.finishes++;
+      return { data: { id: r.id, state: r.state }, error: null };
+    }
+    return { data: null, error: { message: `no function ${name}` } };
+  };
+  // The database's own sweep (a drive past its lease is unknown, never driven again).
+  const sweep = () => { for (const r of rows.values()) if (r.state === "driving") { r.state = "unknown_outcome"; r.reason = "swept"; } };
+  return { rows, rpc, sweep };
+}
+// A journal kept in memory (the durable file, as another process would find it), seen through one worker's life.
+function memJournal() {
+  const entries = new Map<string, JournalEntry<Job>>();
+  const view = (l: Life, hooks: { start?: (id: string, phase: "before" | "after") => void; done?: (id: string) => void } = {}, downtimeMs = 0): Journal<Job> => ({
+    async put(job, claimedAt) { if (l.dead) return await never(); entries.set(job.id, { job: structuredClone(job), claimedAt, started: false }); },
+    async start(id) {
+      hooks.start?.(id, "before");
+      if (l.dead) return await never();
+      const e = entries.get(id)!;
+      entries.set(id, { ...e, started: true });
+      hooks.start?.(id, "after");
+      if (l.dead) return await never();
+    },
+    async done(id) { hooks.done?.(id); if (l.dead) return await never(); entries.delete(id); },
+    async list() {
+      return [...entries.values()].map((e) => ({ job: { ...structuredClone(e.job), claimed_at: e.job.claimed_at ? new Date(Date.parse(e.job.claimed_at as any) - downtimeMs).toISOString() : null } as any, claimedAt: e.claimedAt - downtimeMs, started: e.started }))
+        .sort((a, b) => a.claimedAt - b.claimedAt);
+    },
+  });
+  return { entries, view };
+}
+// A gate that records what it is told and holds a host a few milliseconds (the real waits are the retry part's).
+function recGate() {
+  const calls: { host: string; why: string; retryAfterS: number | null; at: number; until: number }[] = [], holds = new Map<string, number>();
+  const gate: HostGate = {
+    shared: true,
+    async until(hosts) { return new Map(hosts.map((h) => [h, holds.get(h) ?? 0])); },
+    async refused(host, why, retryAfterS, at) { const until = at + 4; calls.push({ host, why, retryAfterS, at, until }); holds.set(host, Math.max(holds.get(host) ?? 0, until)); return until; },
+    async ok() {},
+  };
+  return { gate, calls };
+}
+const appId = (args: string[]) => args[args.indexOf("--application-id") + 1];
+const quiet = { log: () => {}, sleep: async () => {}, idleMs: 1, writeFacts: async () => "/tmp/facts.json", resume: { path: "/tmp/resume.pdf", sha256: RESUME_SHA } };
+
+// ------------------------------------------------------------------------------------------------ hosts
+const SCHED = schedCases(rng(SEED + 5), 1500);
+Deno.test(`hosts: ${SCHED.length} batches over hosts that answer, rate-limit (seconds, dates, garbage, none), are busy, check, wall, fail or time out: every job once, the gate told exactly the refusals, held hosts wait, then resume; no number of ours`, async () => {
+  const rep = report("hosts");
+  for (const c of SCHED) {
+    rep.total++;
+    const db = fakeDb(c.jobs.map((j) => j.url));
+    const plan = new Map(c.hosts.map((h) => [h.host, h]));
+    const seen = new Map<string, number>(), engine = new Map<string, number>(), starts: { id: string; host: string; at: number }[] = [];
+    const told = new Map<string, number | null>(); // job -> the seconds the engine reported, for each refusal
+    let inFlight = 0, peak = 0;
+    const { gate, calls } = recGate();
+    const name = () => `case ${c.id} slots ${c.slots}: ${c.hosts.map((h) => `${h.host}=${h.behavior}${h.header !== null ? `(${JSON.stringify(h.header)})` : ""}`).join(", ")}; ${c.jobs.length} jobs`;
+    await runLoop({
+      ...quiet, queue: ownQueue({ rpc: (n, a) => db.rpc(n, a) }), stop: () => false, drain: true, gate,
+      pacing: pacingFrom(() => undefined, { concurrency: c.slots }),
+      runEngine: async (args) => {
+        const id = appId(args), url = args[args.indexOf("--url") + 1], h = plan.get(hostOf(url))!;
+        starts.push({ id, host: h.host, at: Date.now() });
+        engine.set(id, (engine.get(id) ?? 0) + 1);
+        const n = (seen.get(h.host) ?? 0) + 1;
+        seen.set(h.host, n);
+        inFlight++; peak = Math.max(peak, inFlight);
+        await new Promise((r) => setTimeout(r, 1));
+        inFlight--;
+        const limited = (status: number) => { const s = retryAfterSeconds(h.header, Date.now()); told.set(id, s); return { result: { state: "not_submitted", reason: "HOST_RATE_LIMITED", status, retry_after_s: s }, evidence: null }; };
+        switch (h.behavior) {
+          case "ok": return { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: null };
+          case "rate_limited_seconds": case "rate_limited_date": case "rate_limited_garbage": case "rate_limited_none": return limited(429);
+          case "busy_503": return limited(503);
+          case "refuses_mid_batch": return n > h.refuseFrom! ? limited(429) : { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: null };
+          case "captcha": return { result: { state: "needs_user", reason: "captcha" }, evidence: null };
+          case "login_wall": return { result: { state: "not_submitted", reason: "ACCOUNT_LOGIN_REQUIRED" }, evidence: null };
+          case "server_error": return { result: { state: "failed", reason: "SUBMIT_HTTP_500" }, evidence: null };
+          case "timeout": return null;
+        }
+      },
+    });
+    // Every job started once and recorded once: nothing dropped behind a refusal (each host resumed), nothing twice.
+    for (const j of c.jobs) {
+      const id = [...db.rows.values()].find((r) => r.url === j.url)!.id;
+      check(rep, engine.get(id) === 1, "a job's engine did not start exactly once", () => `${name()}: ${j.url} started ${engine.get(id) ?? 0}`);
+    }
+    for (const r of db.rows.values()) {
+      check(rep, r.finishes === 1 && !["queued", "driving"].includes(r.state), "a job not recorded exactly once", () => `${name()}: ${r.id} ${r.state} x${r.finishes}`);
+      const h = plan.get(hostOf(r.url))!;
+      const want = { ok: "submitted_unconfirmed", captcha: "needs_user", login_wall: "needs_user", server_error: "failed", timeout: "unknown_outcome" }[h.behavior as string] ?? null;
+      if (want) check(rep, r.state === want, `${h.behavior} recorded as ${want}`, () => `${name()}: ${r.id} ${r.state} (${r.reason})`);
+    }
+    // The gate was told exactly the outside refusals, each with the seconds the host asked for (or none).
+    const refusedIds = new Set(starts.filter((s) => {
+      const h = plan.get(s.host)!;
+      return OUTSIDE_REFUSAL.has(h.behavior) || (h.behavior === "refuses_mid_batch" && told.has(s.id));
+    }).map((s) => s.id));
+    check(rep, calls.length === refusedIds.size, "the gate was not told exactly the refusals", () => `${name()}: told ${calls.length} (${calls.map((x) => `${x.host}:${x.why}`).join(",")}), refusals ${refusedIds.size}`);
+    for (const k of calls) {
+      const h = plan.get(k.host)!;
+      check(rep, OUTSIDE_REFUSAL.has(h.behavior) || h.behavior === "refuses_mid_batch", "held off a host that did not refuse", () => `${name()}: ${k.host} ${h.behavior}`);
+      check(rep, k.why === (h.behavior === "captcha" ? "bot_check" : "rate_limited"), "the refusal's kind", () => `${name()}: ${k.host} ${h.behavior} -> ${k.why}`);
+      if (h.behavior !== "captcha") {
+        const asked = [...told.values()];
+        check(rep, asked.some((s) => s === k.retryAfterS), "the gate was not given the seconds the host asked for", () => `${name()}: ${k.host} ${h.behavior} header ${JSON.stringify(h.header)} -> gate got ${k.retryAfterS}, engine said ${JSON.stringify(asked)}`);
+      }
+    }
+    // Held hosts wait: no start on a host after its refusal and before its time.
+    for (const k of calls) {
+      const early = starts.filter((s) => s.host === k.host && s.at > k.at && s.at < k.until);
+      check(rep, early.length === 0, "a start inside a host's hold", () => `${name()}: ${k.host} held ${k.at}..${k.until}, started ${early.map((s) => s.at)}`);
+    }
+    // No number of ours: with every host answering, as many run at once as the machine's slots (or the jobs) allow.
+    if (c.hosts.every((h) => h.behavior === "ok")) check(rep, peak >= Math.min(c.slots, c.jobs.length), "fewer at once than the slots", () => `${name()}: peak ${peak}`);
+  }
+  const d = pacingFrom(() => undefined, {}, () => 9);
+  eq([d.concurrency, d.claimBatch, d.hostMax, d.hostSpacingMs], [9, 9, Infinity, 0], "the only default is the machine's capacity");
+  done(rep);
+});
+
+// ------------------------------------------------------------------------------------------------ crashes
+const CRASHES = crashCases(rng(SEED + 6), 1000);
+async function crashRun(c: CrashCase) {
+  const urls = Array.from({ length: c.jobs }, (_, i) => `https://c${c.id}-${i % c.hosts}.example.test/job/${i}`);
+  const db = fakeDb(urls), j = memJournal(), engine = new Map<string, number>(), by1 = new Set<string>();
+  const target = `j${String(c.at).padStart(3, "0")}`;
+  const one = life(), two = life();
+  const behave = async (args: string[], l: Life, who: number) => {
+    if (l.dead) return await never<any>();
+    const id = appId(args);
+    engine.set(id, (engine.get(id) ?? 0) + 1);
+    if (who === 1) by1.add(id);
+    if (who === 1 && id === target && c.point === "during_engine") { l.die(); return await never<any>(); }
+    await new Promise((r) => setTimeout(r, 0));
+    if (l.dead) return await never<any>();
+    return { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: null };
+  };
+  const hook1 = (name: string, a: any) => {
+    if (name === "career_apply_finish_own" && a.p_id === target && c.point === "after_engine_before_record") one.die();
+  };
+  const w1 = runLoop({
+    ...quiet, stop: () => false, drain: true, gate: localHostGate(), pacing: pacingFrom(() => undefined, { concurrency: c.slots }),
+    queue: ownQueue({ rpc: (n, a) => db.rpc(n, a, one, hook1) }),
+    journal: j.view(one, {
+      start: (id, phase) => {
+        if (id !== target) return;
+        if (phase === "before" && c.point === "before_journal_start") one.die();
+        if (phase === "after" && c.point === "after_start_before_engine") one.die();
+      },
+      done: (id) => { if (id === target && c.point === "after_record_before_clear") one.die(); },
+    }),
+    runEngine: (args) => behave(args, one, 1),
+  });
+  // The first worker dies at its point (or, if it never reaches it, finishes).
+  await Promise.race([one.died, w1]);
+  for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
+  const before = new Map([...db.rows.values()].map((r) => [r.id, r.state]));
+  const startedBy1 = new Set([...j.entries.values()].filter((e) => e.started).map((e) => e.job.id));
+  // Started again on the same journal (an hour later when the claims' time has run out).
+  await runLoop({
+    ...quiet, stop: () => false, drain: true, gate: localHostGate(), pacing: pacingFrom(() => undefined, { concurrency: c.slots }),
+    queue: ownQueue({ rpc: (n, a) => db.rpc(n, a, two) }), journal: j.view(two, {}, c.budgetLeft ? 0 : 3_600_000),
+    runEngine: (args) => behave(args, two, 2),
+  });
+  db.sweep();
+  return { db, engine, by1, target, before, startedBy1, died: one.dead };
+}
+Deno.test(`crashes: ${CRASHES.length} workers killed at five points and started again on the same journal: started is unknown and never driven again, unstarted runs once or ends unsent, recorded stays`, async () => {
+  const rep = report("crashes");
+  for (const c of CRASHES) {
+    rep.total++;
+    const r = await crashRun(c);
+    const name = () => `case ${c.id}: ${c.jobs} jobs on ${c.hosts} hosts, slots ${c.slots}, killed ${c.point} of ${r.target}${c.budgetLeft ? "" : ", restarted after the lease"}`;
+    check(rep, r.died, "the worker never reached its crash point", name);
+    for (const row of r.db.rows.values()) {
+      const n = r.engine.get(row.id) ?? 0;
+      check(rep, n <= 1, "an engine started twice", () => `${name()}: ${row.id} x${n}`);
+      check(rep, !["queued", "driving"].includes(row.state), "left unfinished", () => `${name()}: ${row.id} ${row.state}`);
+      // Started by the dead worker and not recorded by it: unknown, and the restart never drove it.
+      if (r.startedBy1.has(row.id) && ["driving"].includes(r.before.get(row.id)!)) {
+        check(rep, row.state === "unknown_outcome", "a started job not recorded unknown", () => `${name()}: ${row.id} ${row.state}`);
+        check(rep, n === (r.by1.has(row.id) ? 1 : 0), "a started job driven again", () => `${name()}: ${row.id} engine x${n}`);
+      }
+      // What the dead worker recorded stays (a sent application never turns unknown or is sent again).
+      const was = r.before.get(row.id)!;
+      if (!["queued", "driving"].includes(was)) check(rep, row.state === was && row.finishes === 1, "a recorded outcome changed", () => `${name()}: ${row.id} ${was} -> ${row.state} x${row.finishes}`);
+      if (row.state === "submitted_unconfirmed") check(rep, n === 1, "recorded sent without one engine start", () => `${name()}: ${row.id}`);
+      if (row.state === "not_submitted") check(rep, n === 0, "recorded unsent after an engine start", () => `${name()}: ${row.id}`);
+    }
+    const t = r.db.rows.get(r.target)!, n = r.engine.get(r.target) ?? 0;
+    if (c.point === "before_journal_start") {
+      check(rep, c.budgetLeft ? t.state === "submitted_unconfirmed" && n === 1 : t.state === "not_submitted" && n === 0, "the unstarted job", () => `${name()}: ${t.state} engine x${n}`);
+    } else if (c.point === "after_record_before_clear") {
+      check(rep, t.state === "submitted_unconfirmed" && n === 1, "the recorded job", () => `${name()}: ${t.state} engine x${n}`);
+    } else {
+      check(rep, t.state === "unknown_outcome" && n === (c.point === "after_start_before_engine" ? 0 : 1), "the started job", () => `${name()}: ${t.state} engine x${n}`);
+    }
+  }
+  console.log(`[apply] crashes by point: ${JSON.stringify(Object.fromEntries(["before_journal_start", "after_start_before_engine", "during_engine", "after_engine_before_record", "after_record_before_clear"].map((p) => [p, CRASHES.filter((c) => c.point === p).length])))}`);
+  done(rep);
+});
+
+// ------------------------------------------------------------------------------------------------ the cloud worker
+Deno.test("hosts, the cloud worker: 120 batches whose hosts rate-limit with a Retry-After: the shared gate is given the seconds asked for; each job once", async () => {
+  const rep = report("hosts (cloud)");
+  const r = rng(SEED + 8);
+  const RESUME = new TextEncoder().encode("%PDF-1.4 TEST apply scenarios");
+  const sha = [...new Uint8Array(await crypto.subtle.digest("SHA-256", RESUME))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const tmp = await Deno.makeTempDir({ prefix: "trainee-apply-scen-" });
+  try {
+    for (let k = 0; k < 120; k++) {
+      rep.total++;
+      const n = r.int(2, 8), asked = r.pick([0, 1, 30, 120, 3600, null]);
+      const jobs = await Promise.all(Array.from({ length: n }, async (_, i) => {
+        const payload: any = { version: 1, user_id: "A", job_id: `lever:t${k}:${i}`, company: `TEST Co ${i}`, url: `https://c${k}-${i % 2}.lever.test/t/${i}`, fields: [{ name: "first_name", label: "First name", value: "TEST A", factId: `TEST-A-${i}` }],
+          destination: `https://c${k}-${i % 2}.lever.test/t/${i}/apply`, resume_sha256: sha, privacy_epoch: 1, account_version: 1, expires_at: "2099-01-01T00:00:00Z" };
+        payload.engine_approval = await hashApplyPayload(factsFromPayload(payload).saved);
+        return await cardBound({ id: `job-${k}-${i}`, lease_token: `lease-${k}-${i}`, user_id: "A", company: payload.company, url: payload.url, payload });
+      }));
+      let pending = [...jobs];
+      const finished: string[] = [], engine = new Map<string, number>();
+      const q: CloudQueue = {
+        claim: async (limit) => { const out = pending.slice(0, limit); pending = pending.slice(limit); return out; },
+        resume: async () => ({ filename: "r.pdf", sha256: sha, b64: btoa(String.fromCharCode(...RESUME)) }),
+        finish: async (j, state) => { finished.push(`${j.id}:${state}`); }, ask: async () => 0, gatePresent: async () => true, authorize: authorizer().authorize,
+      };
+      const { gate, calls } = recGate();
+      await cloudLoop({ queue: q, tmpRoot: tmp, idleMs: 1, drain: true, stop: () => false, log: () => {}, gate, pacing: pacingFrom(() => undefined, { concurrency: r.int(1, 4) }),
+        runEngine: effectAware(async (args: string[]) => {
+          const url = args[args.indexOf("--url") + 1];
+          engine.set(url, (engine.get(url) ?? 0) + 1);
+          return url.includes(`c${k}-0.`) ? { result: { state: "not_submitted", reason: "HOST_RATE_LIMITED", status: 429, retry_after_s: asked }, evidence: null }
+            : { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: { post: { status: 200, mutations: 1 } } };
+        }) });
+      const limited = jobs.filter((j) => j.url.includes(`c${k}-0.`)).length;
+      check(rep, finished.length === n && [...engine.values()].every((x) => x === 1) && engine.size === n, "each job once", () => `batch ${k}: ${finished.length} finished, engine ${JSON.stringify([...engine])}`);
+      check(rep, calls.length === limited && calls.every((c) => c.why === "rate_limited" && c.retryAfterS === asked), "the gate was not given the seconds asked for",
+        () => `batch ${k}: asked ${asked}, gate got ${JSON.stringify(calls.map((c) => c.retryAfterS))} for ${limited} refusals`);
+    }
+  } finally {
+    await Deno.remove(tmp, { recursive: true }).catch(() => {});
+  }
+  done(rep);
+});
+
+// ------------------------------------------------------------------------------------------------ workers
+Deno.test("workers: 300 rounds of 2-6 workers draining one queue at once: every job started once and recorded once", async () => {
+  const rep = report("workers");
+  const r = rng(SEED + 7);
+  for (let k = 0; k < 300; k++) {
+    rep.total++;
+    const n = r.int(5, 40), workers = r.int(2, 6), hosts = r.int(1, 6);
+    const db = fakeDb(Array.from({ length: n }, (_, i) => `https://w${k}-${i % hosts}.example.test/job/${i}`));
+    const engine = new Map<string, number>();
+    await Promise.all(Array.from({ length: workers }, () => runLoop({
+      ...quiet, stop: () => false, drain: true, gate: localHostGate(), pacing: pacingFrom(() => undefined, { concurrency: r.int(1, 5) }),
+      queue: ownQueue({ rpc: (nm, a) => db.rpc(nm, a) }),
+      runEngine: async (args) => { const id = appId(args); engine.set(id, (engine.get(id) ?? 0) + 1); await new Promise((x) => setTimeout(x, 0)); return { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: null }; },
+    })));
+    for (const row of db.rows.values()) check(rep, engine.get(row.id) === 1 && row.finishes === 1 && row.state === "submitted_unconfirmed", "a job not run and recorded exactly once", () => `round ${k} (${workers} workers, ${n} jobs): ${row.id} engine x${engine.get(row.id) ?? 0}, ${row.state} x${row.finishes}`);
+  }
+  done(rep);
+});

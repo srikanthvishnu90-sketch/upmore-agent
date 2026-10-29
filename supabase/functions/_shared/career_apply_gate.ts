@@ -15,23 +15,105 @@ export const contentOf = (rec: any): PostingContent | undefined => rec && typeof
   ? { description: rec.description ?? null, posted_at: rec.posted_at ?? null, first_seen_at: rec.first_seen_at ?? null, closed_at: rec.closed_at ?? null, remote: rec.remote ?? null, apply_url: rec.apply_url ?? null }
   : undefined;
 
-// The chat's confirmed-fact list (profile facts + facts stated in chat) as the screen's keyed facts. A fact counts only
-// when it names its schema key (`key`, `fact_key`, or a `kind` that is one) and was not left unconfirmed or in draft.
+// The chat's confirmed-fact list (profile facts + facts stated in chat) as the screen's keyed facts. Only a fact that is
+// confirmed counts (not needs_confirmation, not draft, not D-007 quarantined). Three real shapes are read:
+//   * a fact the screen's own question saved (career_apply_screen_answer.ts): `screen_key` + `value`;
+//   * the profile builder's facts (packages/domain/122-career-profile.js): `kind` + `text`, with no `value`:
+//       location (where they live, never a place they want to work), eligibility / preference / profile / other (sponsorship,
+//       citizenship, relocation and "N years of experience" in the person's own words), education (the highest finished degree);
+//   * the router's stated facts (handler: { kind, value, text, stated }): geography, sponsorship, citizenship.
+// A legacy keyed fact ({ key | fact_key, value }) still reads. Nothing is guessed: text that does not say it maps to nothing,
+// and the screen then asks the question once. Years are never added up from job dates (an undercount would wrongly drop a posting).
 const KEYS = new Set(["location", "country", "relocation", "sponsorship", "work_authorization", "citizenship", "years_experience", "education_level", "skills"]);
+const WANTS_LOCATION = /\b(want|wants|prefer|prefers|looking|seeking|target|targets|interested|would like|hope|hoping|open to|relocat|move to|work in|roles? in|jobs? in|remote)\b/i;
+const NOT_ABOUT_SELF = /\b(spouse|wife|husband|partner|parents?|mother|father|friend|brother|sister|boss|manager)\b/i;
+const EDU_RANK: Record<string, number> = { high_school: 1, associate: 2, bachelor: 3, master: 4, doctorate: 5 };
+export const placeOf = (text: string): string => {
+  const t = String(text ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "");
+  const m = /^(?:i\s*(?:'m|am|\s)\s*)?(?:currently\s+|now\s+)?(?:live|lives|living|reside|resides|residing|based|located|moved|relocated|home is)\s*(?:in|at|to|is)?\s+(.+?)(?:\s+(?:now|currently|right now|for (?:the )?(?:past|last)?\s*\w+\s+(?:years?|months?)))?$/i.exec(t);
+  const v = (m ? m[1] : t).replace(/^(?:in|at)\s+/i, "").trim();
+  return v;
+};
+const looksLikePlace = (v: string) => v.length >= 2 && v.length <= 60 && /^[A-Za-z][A-Za-z.'’ -]*(?:,\s*[A-Za-z][A-Za-z.'’ -]*)*$/.test(v) && !/\b(and|but|because|want|need|would|the|my|is|are|was)\b/i.test(v);
+export function educationLevelOf(text: string): string | null {
+  const t = String(text ?? "");
+  if (/\b(pursuing|enrolled|in progress|working (?:on|towards?)|candidate|expected|currently (?:studying|a student)|dropped out|incomplete|did not (?:finish|complete)|didn'?t (?:finish|complete))\b/i.test(t)) return null;
+  if (/\b(ph\.?\s?d|doctorate|doctoral|d\.?phil)\b/i.test(t)) return "doctorate";
+  if (/\b(?:master'?s?|m\.?sc?\.?|m\.?eng|m\.?tech|mba|m\.?a\.?|m\.?s)\b/i.test(t)) return "master";
+  if (/\b(bachelor'?s?|b\.?sc?\.?|b\.?a\.?|b\.?tech|b\.?eng|undergraduate degree|b\.?s)\b/i.test(t)) return "bachelor";
+  if (/\bassociate'?s?\b/i.test(t)) return "associate";
+  if (/\b(high school|ged)\b/i.test(t)) return "high_school";
+  return null;
+}
+function eligibilityFromText(text: string): Partial<Record<"sponsorship" | "citizenship" | "relocation" | "years_experience", string>> {
+  const t = String(text ?? "").replace(/[’`]/g, "'").replace(/\s+/g, " ").trim();
+  const out: Partial<Record<"sponsorship" | "citizenship" | "relocation" | "years_experience", string>> = {};
+  if (!t || NOT_ABOUT_SELF.test(t)) return out;
+  if (/\b(?:do not|don'?t|won'?t|will not|never|no longer|not)\s+(?:\w+\s+){0,2}?(?:need|require)\b[^.]{0,40}\b(?:sponsor|h-?1b|visa)/i.test(t) || /\bwithout\b[^.]{0,30}\bsponsorship\b|\bno\s+(?:visa\s+)?sponsorship\s+(?:needed|required|necessary)\b|\bsponsorship\s+(?:is\s+)?not\s+(?:needed|required)\b/i.test(t)) out.sponsorship = "no";
+  else if (/\b(?:need|needs|require|requires|will need|would need)\b[^.]{0,40}\b(?:sponsor|h-?1b|visa)/i.test(t)) out.sponsorship = "yes";
+  if (/\b(?:non|not)[- ]?(?:an? )?(?:u\.?s\.?|american)\s+citizen/i.test(t) || /\b(?:green card|permanent resident|visa holder)\b/i.test(t) && !/\bcitizen\b/i.test(t)) out.citizenship = "no";
+  else if (/\b(?:u\.?s\.?|american|united states)\s+citizen\b/i.test(t) && !/\b(?:non|not|isn'?t|aren'?t)\b/i.test(t)) out.citizenship = "yes";
+  const cz = /\bcitizen(?:ship)?\s+of\s+([A-Z][A-Za-z ]{1,30})/.exec(t);
+  if (!out.citizenship && cz) out.citizenship = cz[1].trim();
+  if (/\b(?:not|n'?t|unwilling|no)\b[^.]{0,25}\b(?:relocat\w*|mov\w+)\b|\bno relocation\b/i.test(t)) out.relocation = "no";
+  else if (/\b(?:open|willing|happy|able|ready)\s+to\s+(?:relocat\w*|move)\b|\bwill(?:ing)? (?:to )?relocate\b|\bcan relocate\b/i.test(t)) out.relocation = t;
+  const y = /\b(\d{1,2})\s*\+?\s*(?:years?|yrs?)\s+(?:of\s+)?(?:professional\s+|work\s+|industry\s+|relevant\s+|full[- ]time\s+)?experience\b/i.exec(t);
+  if (y && !/\b(?:with|requires?|requiring|minimum|at least|seeking|looking)\b/i.test(t.slice(0, y.index))) out.years_experience = y[1];
+  return out;
+}
 export function screenFactsFrom(facts: any[]): ScreenFacts {
   const out: ScreenFacts = {};
   const skills: string[] = [];
+  let eduRank = 0;
+  const put = (k: string, value: unknown, f: any) => { out[k] = { value, confirmed: true, id: f?.id }; };
   for (const f of facts ?? []) {
-    if (!f || f.needs_confirmation || f.status === "draft") continue;
-    const k = String(f.key ?? f.fact_key ?? f.kind ?? "");
-    if (f.kind === "skill" && (f.name || f.value)) { skills.push(String(f.name ?? f.value)); continue; }
-    if (!KEYS.has(k) || f.value === undefined || f.value === null || String(f.value).trim() === "") continue;
-    out[k] = { value: f.value, confirmed: true, id: f.id };
+    if (!f || f.needs_confirmation || f.status === "draft" || f.quarantine || f.quarantined) continue;
+    const kind = String(f.kind ?? "");
+    if (kind === "skill") {
+      // The profile builder leaves `name` empty for a skill saved by text, and the resume reader keeps the bullet ("- SQL").
+      const n = String(f.name || f.value || f.title || String(f.text ?? "").replace(/^skill:\s*/i, "")).replace(/^[\s\-•*]+/, "").trim();
+      if (n && n.length <= 40) skills.push(n);
+      continue;
+    }
+    // 1. a fact the screen's own question saved.
+    if (f.screen_key && KEYS.has(String(f.screen_key)) && f.value !== undefined && f.value !== null && String(f.value).trim() !== "") { put(String(f.screen_key), f.value, f); continue; }
+    // 2. a keyed fact.
+    const hasValue = f.value !== undefined && f.value !== null && String(f.value).trim() !== "";
+    const k = String(f.key ?? f.fact_key ?? (hasValue && KEYS.has(kind) ? kind : ""));
+    if (KEYS.has(k)) { if (hasValue) put(k, f.value, f); continue; }
+    // 3. the router's stated facts: a value of its own.
+    if (f.stated) {
+      const v = String(f.value ?? "").trim();
+      if (!v) continue;
+      if (kind === "geography") put("location", v, f);
+      else if (kind === "sponsorship" || kind === "citizenship") put(kind, v, f);
+      continue;
+    }
+    // 4. the profile builder's facts: kind + the person's words in `text`.
+    const text = String(f.text ?? f.title ?? "").trim();
+    if (!text) continue;
+    if (kind === "location") {
+      if (WANTS_LOCATION.test(text) || NOT_ABOUT_SELF.test(text)) continue;
+      const place = placeOf(text);
+      if (looksLikePlace(place)) put("location", place, f);
+    } else if (kind === "education") {
+      const lvl = educationLevelOf(text);
+      if (lvl && EDU_RANK[lvl] > eduRank) { eduRank = EDU_RANK[lvl]; put("education_level", lvl, f); }
+    } else if (["eligibility", "preference", "profile", "other", "goal"].includes(kind)) {
+      const e = eligibilityFromText(text);
+      for (const [key, value] of Object.entries(e)) put(key, value, f);
+    }
   }
   if (skills.length) out.skills = { value: skills, confirmed: true };
-  // Work authorization answers the citizenship / sponsorship knock-outs only when it says so in a yes/no of its own.
   return out;
 }
+
+// The facts the chat's screen reads this turn: the profile's confirmed facts and what the person stated in chat, in the
+// shapes the profile builder and the router really produce (the handler passes CareerProfile.confirmedFacts(profile)).
+export const chatScreenFacts = (confirmed: any[], stated: any[] = []): any[] => [
+  ...(confirmed ?? []),
+  ...(stated ?? []).map((f) => ({ kind: f.kind, value: f.value, text: f.evidence ?? f.value, stated: true })),
+];
 
 export type DropKind = "stale" | "closed" | "scam" | "knockout" | "duplicate";
 const KIND: Record<ExcludeReason, DropKind> = {

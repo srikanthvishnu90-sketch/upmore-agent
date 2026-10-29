@@ -180,7 +180,9 @@ Deno.test({ name: `replies at scale, end to end on Postgres: ${E2E} sampled scen
     const store = supabaseRepliesStore(admin);
     const readers = { gmail: gmailMailbox({ fetch: box.fetch as typeof fetch, token: async (u, scope) => (scope === READ ? `tok-read-${u}` : null) }) };
     let clock = Date.now();
-    const sync = () => runReplySync({ store, readers, model: null, now: (clock += 1000), worker: "r1", tz: async () => "America/Chicago", mailboxes: 1000 });
+    // One clock for the whole run: the lane's "now" moves at least a second a pass and never falls behind the real time the
+    // mailbox stamps messages with (a slow runner took minutes, and a message "from the future" was skipped as not yet arrived).
+    const sync = () => runReplySync({ store, readers, model: null, now: (clock = Math.max(clock + 1000, Date.now())), worker: "r1", tz: async () => "America/Chicago", mailboxes: 1000 });
     const picked = sample(SCENARIOS, E2E, 2026);
     const P = new Map(picked.map((s, i) => [s.id, uid(i + 1, "7a")]));
     const Q = uid(1, "7b"), R = uid(2, "7b"); // two other people who also have email queued to (or try) the same addresses
@@ -212,7 +214,7 @@ Deno.test({ name: `replies at scale, end to end on Postgres: ${E2E} sampled scen
       await db.sql.query(`insert into public.career_outreach_actions (user_id, thread_id, kind, step, batch_id, n, payload, hash, status, approved_hash, approved_at) values ${vals.join(",")}`);
       const rail = sendRailReplyRail(rpc);
       let handed = 0;
-      for (let i = 0; i < 10; i++) { const st = await runOutreachActions({ store, rail, calendars: {}, now: (clock += 1000), worker: "a1", limit: 500, perUser: 5 }); handed += st.sent; if (!st.claimed) break; }
+      for (let i = 0; i < 10; i++) { const st = await runOutreachActions({ store, rail, calendars: {}, now: (clock = Math.max(clock + 1000, Date.now())), worker: "a1", limit: 500, perUser: 5 }); handed += st.sent; if (!st.claimed) break; }
       eq(handed, E2E);
       const fus = await rows(db, `select f.state, f.follow_up_of = o.id as of_root from public.career_send_queue f join public.career_send_queue o on o.user_id = f.user_id and o.kind = 'outreach' where f.kind = 'general'`);
       eq([fus.length, fus.every((f) => f.state === "queued" && f.of_root)], [E2E, true], "every follow-up waits on the rail as a step of its sequence");

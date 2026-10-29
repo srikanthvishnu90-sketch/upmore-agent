@@ -12,7 +12,15 @@ import { PLAYBOOKS } from "../knowledge/playbooks.generated.ts";
 import { FIELDS, GK_PHRASES, GK_TERMS, OVERLAYS } from "./fields.ts";
 import type { Fact } from "./ground.ts";
 
-const norm = (s: string) => s.toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+// Folding comes first, everywhere: full-width and other compatibility forms become plain ASCII (NFKC), invisible characters go, and
+// look-alike Cyrillic and Greek letters become the Latin letters they imitate, so "Gооgle" is read as Google and "８４,２００" as 84,200.
+const LOOK: Record<string, string> = Object.fromEntries(
+  ("а:a е:e о:o р:p с:c х:x у:y і:i ј:j ѕ:s һ:h ԁ:d ӏ:l к:k м:m т:t н:h в:b ѵ:v ԛ:q ԝ:w ɡ:g ı:i " +
+   "А:A В:B С:C Е:E Н:H І:I Ј:J К:K М:M О:O Р:P Ѕ:S Т:T Х:X У:Y Ү:Y " +
+   "Α:A Β:B Ε:E Ζ:Z Η:H Ι:I Κ:K Μ:M Ν:N Ο:O Ρ:P Τ:T Υ:Y Χ:X α:a ε:e ι:i κ:k ν:v ο:o ρ:p τ:t υ:u χ:x").split(" ").map((x) => [x[0], x[2]]));
+const INVISIBLE = /[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g;
+export const fold = (s: string) => String(s ?? "").normalize("NFKC").replace(INVISIBLE, "").replace(/[\u0370-\u03FF\u0400-\u04FF\u0131\u0261]/g, (c) => LOOK[c] ?? c);
+const norm = (s: string) => fold(s).toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 export const stripNonClaims = (s: string) => s.replace(/\[[^\]]*\]/g, " ").replace(/https?:\/\/\S+/g, " ").replace(/`[^`]*`/g, " ");
 
 // ---------------------------------------------------------------------------------------------- numbers
@@ -90,8 +98,12 @@ const numEq = (s: Num, n: Num) => s.v === n.v || Math.abs(s.v - n.v) <= 1e-9 * M
 
 // ---------------------------------------------------------------------------------------------- words
 const STOP = new Set(("the a an and or but of in on at to for from with by as is are was were be been being it its this that these those there their they them you your we our i me my he she his her not no do does did can could will would should may might must have has had over under about into than then also only just more most less very much many some any each every per via out up down off such so if when while which who whom what how why where all both other another same own after before between during through against among within without across around toward until since because is's").split(" "));
-const stem = (w: string) => w.replace(/(?:ing|ed|es|s|ly)$/, "");
+const stem = (w: string) => w.replace(/ies$/, "y").replace(/(?:ss|x|ch|sh)es$/, (m) => m.slice(0, -2)).replace(/(?:ing|ed|ly)$/, "").replace(/s$/, "");
 export const contentWords = (s: string) => new Set((norm(s).match(/[a-z][a-z'-]{2,}/g) ?? []).filter((w) => !STOP.has(w) && !isNumWord(w) && !(w in FRAC) && !VAGUE.has(w) && !(w in ORD) && !/^(?:percent|dollars?|usd)$/.test(w)).map(stem));
+// Subject words: the occupation, group or thing a number is ABOUT. Measure words ("median", "wage", "earned", "grow"), verbs and
+// generic time words say what kind of number it is, not whose it is, so they never count as the subject.
+const MEASURE = new Set(("median mean average typical annual yearly monthly weekly hourly daily wage wages pay paid salary salaries income incomes compensation earn earns earned earning earnings make makes made rate rates percent percentage growth grow grows grew grown growing increase increases increased decrease decreased decline declined rise rose fall fell project projected projects employment expected expect expects reach reached range ranges ranged around about roughly nearly approximately over under least most recent latest year years decade survey report reports reported according data source number numbers total amount figure figures value level levels cost costs last lasts hire hires hired work works worked get gets got receive receives received see sees saw need needs must may require requires required typically usually often will would should can could pass passes finish finishes stay stays remain remains offer offers").split(" ").map(stem));
+const subjectsOf = (s: string) => new Set([...contentWords(s)].filter((w) => !MEASURE.has(w) && !/(?:ed|ing)$/.test(w)));
 const sentences = (s: string) => s.split(/(?<=[.!?;])\s+|\n+/).map((x) => x.trim()).filter(Boolean);
 const overlap = (a: Set<string>, b: Set<string>) => { let n = 0; for (const w of a) if (b.has(w)) n++; return n; };
 
@@ -110,6 +122,17 @@ function vocab(): Set<string> {
 }
 const CUE = /\b(?:at|with|from|joining|join|joined|by|for|inside|within)\s+([a-z][a-z0-9&'-]{2,})/g;
 
+// Is the number n in this passage within a short stretch of words (12) that also holds one of the claim's subject words?
+function nearSubject(passage: string, n: Num, subj: Set<string>): boolean {
+  if (!subj.size) return true;
+  const w = fold(passage).split(/\s+/).filter(Boolean);
+  for (let i = 0; i < Math.max(1, w.length - 11); i++) {
+    const win = w.slice(i, i + 12).join(" ");
+    if (numbersIn(win).some((x) => numEq(x, n)) && overlap(subj, subjectsOf(win)) > 0) return true;
+  }
+  return false;
+}
+
 export interface Specifics { numbers: string[]; names: string[] }
 const COMMON = new Set(["i", "i'm", "i'll", "i've", "i'd", ...STOP, "ask", "use", "get", "take", "keep", "build", "apply", "start", "look", "add", "write", "finish", "check", "learn", "join", "move", "plan", "pick", "practice", "replace", "translate", "update", "target", "choose", "confirm", "complete", "pass", "become", "have", "now", "later", "first", "second", "once", "assuming", "treat", "usually", "rarely", "often", "hi", "thanks", "source", "sources", "general", "knowledge", "retrieved", "none", "nothing", "right", "realistic", "written", "what", "which", "who", "how", "why"]);
 function capitalizedNames(t: string): string[] {
@@ -126,7 +149,7 @@ function capitalizedNames(t: string): string[] {
   }
   return [...names];
 }
-const clean = (text: string) => stripNonClaims(text).replace(/\bF-1\b/g, "F").replace(/^\s*(?:[-*]|\d+[.)])\s+/gm, "").replace(/\*\*/g, "");
+const clean = (text: string) => stripNonClaims(fold(text)).replace(/\bF-1\b/g, "F").replace(/^\s*(?:[-*]|\d+[.)])\s+/gm, "").replace(/\*\*/g, "");
 export function specifics(text: string): Specifics {
   const t = clean(text);
   return { numbers: [...new Set(numbersIn(t).map((n) => n.raw))], names: [...new Set([...capitalizedNames(t), ...(t.match(GAZ_RX) ?? []).map((x) => x.toLowerCase())])] };
@@ -136,14 +159,14 @@ export function specifics(text: string): Specifics {
 export function unsupported(text: string, support: string | string[], allowGK = true): string[] {
   const passages = (Array.isArray(support) ? support : [support]).flatMap((p) => sentences(String(p))).filter(Boolean);
   const supFlat = norm(passages.join(" \n ")), out: string[] = [];
-  const pNums = passages.map((p) => ({ nums: numbersIn(p), words: contentWords(p) }));
+  const pNums = passages.map((p) => ({ text: p, nums: numbersIn(p), words: contentWords(p) }));
   const t = clean(text);
   for (const s of sentences(t)) {
     const nums = numbersIn(s);
     if (!nums.length) continue;
-    const words = contentWords(s), need = Math.min(2, words.size);
+    const words = contentWords(s), need = Math.min(2, words.size), subj = subjectsOf(s);
     for (const n of nums) {
-      const ok = n.word ? supFlat.includes(n.word) : pNums.some((p) => p.nums.some((x) => numEq(x, n)) && (n.date || overlap(words, p.words) >= need));
+      const ok = n.word ? supFlat.includes(n.word) : pNums.some((p) => p.nums.some((x) => numEq(x, n)) && (n.date || (overlap(words, p.words) >= need && nearSubject(p.text, n, subj))));
       if (!ok) out.push(n.raw);
     }
   }

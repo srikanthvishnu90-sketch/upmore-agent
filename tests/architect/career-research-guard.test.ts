@@ -66,3 +66,43 @@ Deno.test("chat probes: the reviewer's example paragraph and friends fail the li
   ok(lintChat(para("Right now a summer analyst seat at the largest banks is unlikely, so build a base this year with coursework and a finance club. Later, boutique and middle-market banks are the realistic first rungs, and a first internship there opens larger doors."), o).length === 0);
   ok(unsupported("Pay is eighty thousand dollars.", ["Pay is $80,000."]).length === 0);
 });
+
+// ------------------------------------------------------------------------------------------------ round 2 (review of 94dd9308e)
+const FACTS2: [string, string, boolean][] = [
+  // (1) the claim's SUBJECT must be in the passage near the number; generic words like "earned" and "median" do not count
+  ["Electricians earned a median wage of $130,000.", "Software developers earned a median wage of $130,000 in the most recent year.", false],
+  ["Electricians earned a median wage of $130,000.", "Electricians earned a median wage of $130,000 in the most recent year.", true],
+  ["Nurses earn a median of $86,070.", "The median annual wage for registered nurses was $86,070 in the most recent year.", true],
+  ["Plumbers earned a median wage of $61,550.", "Electricians train for years on site and many of them stay with one contractor, while in a separate survey software developers earned a median wage of $61,550.", false],
+  ["Teachers will see employment grow 5 percent.", "Employment of nurses is projected to grow 5 percent over the decade.", false],
+  ["Dental hygienists must pass two exams.", "Dental hygienists must pass two exams, one written and one clinical.", true],
+  ["Pilots earned a median wage of $148,900.", "Flight attendants earned a median wage of $148,900 in the most recent year.", false],
+  // (2) full-width digits and symbols are numbers
+  ["Median pay was ８４,２００ dollars.", "Median pay for nurses was $84,200 in the most recent year.", true],
+  ["Median pay was ８４,２００ dollars.", "Nurses work long shifts and many enjoy the work.", false],
+  ["Ｎｉｎｅｔｙ percent are hired.", "Nine out of ten were not hired.", false],
+  ["９０％ of graduates are hired.", "Placement data: 90% of graduates are hired within a year.", true],
+  // (3) look-alike letters from other alphabets are folded before names are read
+  ["Gооgle hires many new graduates.", "Large employers hire new graduates every year.", false],
+  ["Gооgle hires many new graduates.", "Google hires many new graduates every year, the report says.", true],
+  ["Αmazon hires many new graduates.", "Large employers hire new graduates every year.", false],
+  ["Goo​gle hires many new graduates.", "Large employers hire new graduates every year.", false],
+];
+for (const [i, [text, quote, want]] of FACTS2.entries()) Deno.test(`round 2 fact probe ${i + 1}: ${want ? "accepts" : "rejects"} "${text.slice(0, 44)}"`, () => { ok(accepts(text, quote) === want); });
+
+const LINES2: [string, string[], string[], string, boolean][] = [
+  ["Interns earn $８４,２００ a year.", [], [], "", true],
+  ["Offers go to ９０％ of finalists.", [], [], "", true],
+  ["You could join gооgle after a year.", [], [], "", true],
+  ["Interns at Gооgle earn more than interns elsewhere.", [], [], "", true],
+  ["Electricians earned a median wage of $130,000.", ["Software developers earned a median wage of $130,000 in the most recent year."], [], "", true],
+  ["Interns at Google earn more.", [], ["Intern at Gооgle last summer"], "", false],
+  ["The median annual wage for nurses was $84,200.", ["The median annual wage for nurses was $８４,２００ in the most recent year."], [], "", false],
+];
+for (const [i, [line, support, person, message, want]] of LINES2.entries()) Deno.test(`round 2 line probe ${i + 1}: ${want ? "flags" : "passes"} "${line.slice(0, 44)}"`, () => { ok((flagged(line, support, person, message).length > 0) === want, JSON.stringify(flagged(line, support, person, message))); });
+
+Deno.test("round 2 chat probe: a look-alike name and a full-width figure fail the lint", () => {
+  const o = { link: "https://f.example/x", facts: [], person: [], message: "how do I get hired" };
+  for (const b of ["Right now Gооgle will not take a freshman, so build a base this year. Later, boutique firms are realistic.", "Right now plan on ９０％ rejection, so build a base this year. Later, boutique firms are realistic."])
+    ok(lintChat(`${b} https://f.example/x`, o).some((x) => /no source/.test(x)), b);
+});

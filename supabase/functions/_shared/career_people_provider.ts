@@ -313,7 +313,15 @@ export function parseTargetAsk(message: string): TargetAsk | null {
     ?? new RegExp(`${lead}(.+?)\\s+(?:alumni|grads|graduates)\\s+(?:at|working\\s+at|who\\s+work\\s+at)\\s+(.+)$`, "i").exec(t);
   if (m) return { kind: "alumni", school: cleanCell(m[1], 120), company: cleanCell(m[2], 120) };
   m = new RegExp(`${lead}(.+?)\\s+(?:at|from)\\s+([\\p{L}\\p{N}][\\p{L}\\p{N} .,&'-]{0,80})$`, "iu").exec(t);
-  if (m && !/\b(i|me|my|you|work|working|apply|applying|applied|jobs?|roles?\s+open|send|email|draft|write|message|intro(?:duction)?s?|contacts?|know)\b/i.test(m[1]) && m[1].split(/\s+/).length <= 8) {
+  // ROUTING SCENARIOS (2026-10-29): without "find" / "show" / "who are" in front, the words before "at" must name people
+  // (a plural, or a role word): "withdraw from Stripe" and "aply to the analyst role at Figma" are not searches for a
+  // "withdraw" or an "aply to the analyst role" at the firm. An action or a question word is never a title.
+  const led = new RegExp(`${lead}`, "i").exec(t)?.[0] ?? "";
+  const peopleWords = (p: string) => /(?:[^s]s|\bstaff|\bpeople|\bfolks|\bteam|\bleadership)$/i.test(p.trim()) ||
+    /\b(?:recruiter|engineer|manager|director|founder|partner|analyst|designer|scientist|developer|lead|head of \w+|vp|ceo|cto|cfo|coo|president|intern|associate|alum(?:nus|na)?)$/i.test(p.trim());
+  if (m && !/\b(i|me|my|you|work|working|apply|applying|applied|jobs?|roles?\s+open|send|email|draft|write|message|intro(?:duction)?s?|contacts?|know)\b/i.test(m[1]) && m[1].split(/\s+/).length <= 8 &&
+    !/\b(?:withdraw\w*|cancel\w*|remove|delete|forget|stop|don'?t|do not|status|where|what|how|did|has|have|any|role|position|opening|posting|application)\b/i.test(m[1]) &&
+    (led.trim() !== "" || peopleWords(m[1])) && !/^(?:my|your|our)\b/i.test(m[2])) {
     const r = rolesOf(m[1]);
     if (r.titles.length) return { kind: "role_at", ...r, company: cleanCell(m[2], 120) };
   }

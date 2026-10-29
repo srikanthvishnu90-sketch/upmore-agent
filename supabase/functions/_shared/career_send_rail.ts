@@ -194,7 +194,9 @@ const EMAIL_STATUS = [
   new RegExp(String.raw`^(?:my )?(?:e-?mail|outreach e-?mail|sending) status$`),
 ];
 export function emailStatusAsk(message: string): boolean {
-  const t = String(message ?? "").toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, " ").replace(/[?.!]+$/, "").trim();
+  // ROUTING SCENARIOS (2026-10-29): a greeting before the ask ("hey", "please") or "please" / "thanks" after it.
+  const t = String(message ?? "").toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, " ").replace(/[?.!]+$/, "").trim()
+    .replace(/^[^\p{L}\p{N}"'(]+/u, "").replace(/^(?:(?:hey|hi|hello|ok|okay|pls|please)\b[,!:]?\s+)+/, "").replace(/,? (?:please|pls|thanks|thank you)$/, "").replace(/[?.!]+$/, "");
   return t.length <= 120 && EMAIL_STATUS.some((re) => re.test(t));
 }
 // The chat's answer to that ask, from the rail's own counts (career_send_status) and, when the caller can read them, the

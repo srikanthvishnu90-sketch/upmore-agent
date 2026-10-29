@@ -9,15 +9,15 @@
 //      still fails it is not shown.
 //   2. The approval binds the exact message (a SHA-256 of recipient, subject and full text). "redo 3" or "edit 3: ..."
 //      makes a new message, which needs a new approval; the send recomputes the hash and refuses on any difference.
-//   3. Caps, in code here and again in the database (career_outreach_claim): 20 a day by default, the person may set
-//      up to 30, never more; at most 10 a day for the first week when Trainee has no send history for the account; at
-//      least 90 seconds between sends, which the scheduled run spreads (one send per person per run, never a burst).
+//   3. NO LIMITS (owner, 2026-10-27): Trainee sets no volume limit of its own: no daily number, no warm-up, no spacing,
+//      here or in the database (career_outreach_claim). Only Gmail's own refusal (429/quota) slows sending, and the
+//      person is told plainly. What stays: the exact-payload approval, its 7-day life, pause, do-not-contact forever.
 //   4. No blast mode: one recipient per message, no Cc or Bcc, the person's own signature, nothing hidden.
 //   5. A recipient who answers "stop" or "unsubscribe" is on the person's do-not-contact list forever (kept as a hash of
 //      the address, so an erase of the career profile never re-opens them).
 // Declining a batch is "send none", never "stop": over SMS, STOP is the carrier's opt-out keyword (WO-013a).
 import { type EventStore, dayIn, localMidnight, recordEvent } from "./agent/timeline.ts";
-import { normalizeFirm, sameFirm } from "./career_contacts.ts";
+import { MAX_CONTACTS, normalizeFirm, sameFirm, type ContactRow } from "./career_contacts.ts";
 import { factLock } from "./essay_draft.ts";
 import { CareerProfile } from "./router_core.career.js";
 
@@ -32,13 +32,10 @@ export interface OutreachDraft {
   shared?: Shared[];
 }
 // WO-091c: "expired" (approved more than APPROVAL_TTL_MS ago) and "paused" (the account is paused, opted out or erased).
-export type Admit = "ok" | "not_approved" | "changed" | "expired" | "paused" | "do_not_contact" | "daily_cap" | "spacing" | "recipient_cap";
-// One recipient, every Trainee user: at scale thousands of people target the same few hundred thousand professionals, so a
-// per-person cap alone would still flood them (and their spam reports land on every sender). A recipient gets at most
-// RECIPIENT_CAP Trainee-drafted emails in any RECIPIENT_WINDOW_DAYS, from anyone; and a "stop" to any Trainee user stops
-// every Trainee user's drafts to that address (do-not-contact is checked across people, never only the sender's own).
-export const RECIPIENT_CAP = 3;
-export const RECIPIENT_WINDOW_DAYS = 30;
+export type Admit = "ok" | "not_approved" | "changed" | "expired" | "paused" | "do_not_contact";
+// A "stop" to any Trainee user stops every Trainee user's drafts to that address (do-not-contact is checked across
+// people, never only the sender's own). There is no count of emails per recipient (owner: the cross-person 3-in-30-days
+// rule is removed); the person's own duplicate guard is the already-contacted set and the send rail's already_emailed.
 export interface Prefs { daily_cap: number | null; signature: string | null; list_costs?: Record<string, unknown> }
 export interface OutreachStore {
   saveBatch(userId: string, threadId: string | null, drafts: Omit<OutreachDraft, "id" | "batch_id" | "thread_id">[], at: number): Promise<OutreachDraft[]>;
@@ -56,13 +53,51 @@ export interface OutreachStore {
   // SERIAL-1510: approved drafts the run dropped as expired (approved more than APPROVAL_TTL_MS ago, the pace never reached
   // them) and not yet shown again: status skipped, result "expired". Re-showing marks them "expired_reshown".
   lapsed(userId: string): Promise<OutreachDraft[]>;
+  // FAMILY NETWORKING (2026-10-26): every draft of the person's, newest first (who they reached out to and where each
+  // stands), and their follow-up reminders (career_watch_kv 'career:outreach:followups', erased with the account).
+  history?(userId: string, limit?: number): Promise<OutreachDraft[]>;
+  approvedDrafts?(userId: string): Promise<OutreachDraft[]>; // every approved draft, read in pages (the send rail's check)
+  // Exactly these drafts of the person's, by id (the primary key): the bounded read the reminder run and the sending rail use.
+  drafts?(userId: string, ids: string[]): Promise<OutreachDraft[]>;
+  followups?(userId: string): Promise<Followup[]>;
+  saveFollowups?(userId: string, items: Followup[]): Promise<void>;
+  allFollowups?(limit: number): Promise<{ user_id: string; items: Followup[] }[]>;
+  // Scale (20261027160000): up to `batch` people with a reminder due at `now`, oldest due first, each leased for leaseMs so
+  // concurrent runs claim disjoint people; saveFollowups releases the lease. `batch` sizes one call, never caps the work.
+  claimDueFollowups?(now: number, batch: number, leaseMs: number): Promise<{ user_id: string; items: Followup[] }[]>;
+  // The person's contacts, ONE list per account (architect ruling R1; career_account_contacts, 20261027160100), read only
+  // through indexed, paged queries, never the whole list on a turn. Keys are computed by the caller (career_networking.ts
+  // keyedContact). Writes carry the account's privacy epoch read at turn start and are refused (null) once it moved.
+  contactsSummary?(userId: string): Promise<{ total: number; fileCount: number; files: string[] }>;
+  contactsAtFirm?(userId: string, firmKey: string): Promise<ContactRow[]>;
+  contactsNamed?(userId: string, nameKey: string): Promise<ContactRow[]>; // name_key = nameKey, or starts with `${nameKey} `
+  contactsByEmail?(userId: string, email: string): Promise<ContactRow[]>;
+  contactsInFile?(userId: string, file: string): Promise<ContactRow[]>;
+  putContacts?(userId: string, epoch: number, rows: KeyedContact[], o?: { replaceFile?: string; unlessForgotten?: boolean }): Promise<number | null>;
+  forgetContacts?(userId: string, epoch: number, sel: { all?: boolean; linkedin?: boolean; rowKeys?: string[] }): Promise<number | null>;
+  accountEpoch?(userId: string): Promise<number>;
+}
+export interface KeyedContact { row_key: string; person_key: string; file: string; name_key: string; email: string | null; firm_key: string; firm_raw_key: string; data: ContactRow }
+// One follow-up reminder: on the draft the person sent (from Trainee or themselves), due on a day, fired at most once.
+export interface Followup {
+  draft_id: string; name: string; firm: string; email: string; subject: string;
+  sent_at: string; due_at: string; set_at: string; fired_at: string | null; asked: boolean;
+}
+export const FOLLOWUP_DAYS = 7, FOLLOWUP_KEY = "career:outreach:followups";
+// The stored value: every reminder still waiting is kept (no volume cap); fired ones are history, the newest 200 kept.
+// next_due_at: the earliest waiting due time, what the leased claim reads.
+export function followupValue(items: Followup[]): { items: Followup[]; next_due_at: string | null } {
+  const waiting = items.filter((f) => !f.fired_at), fired = items.filter((f) => f.fired_at).slice(-200);
+  const next = waiting.map((f) => new Date(Date.parse(f.due_at)).toISOString()).sort()[0] ?? null;
+  return { items: [...fired, ...waiting], next_due_at: next };
 }
 
 export const OUTREACH_INTENT = "career_outreach_batch";
 export const LAPSE_NOTE = "Any not sent within 7 days of your approval lapse unsent; when you next ask I'll say how many, and you can approve them again.";
 export const lapsedLine = (n: number) =>
-  `${n} approved draft${n === 1 ? "" : "s"} lapsed unsent: approved more than 7 days ago, your pace did not reach ${n === 1 ? "it" : "them"}, and that approval is no longer valid. Say "show lapsed" to see exactly ${n === 1 ? "that draft" : "those drafts"} again for a fresh approval.`;
-export const BATCH_MAX = 10, DEFAULT_DAILY = 20, MAX_DAILY = 30, WARMUP_DAILY = 10, WARMUP_DAYS = 7, GAP_MS = 90_000;
+  `${n} approved draft${n === 1 ? "" : "s"} lapsed unsent: approved more than 7 days ago, not sent by then, and that approval is no longer valid. Say "show lapsed" to see exactly ${n === 1 ? "that draft" : "those drafts"} again for a fresh approval.`;
+// BATCH_MAX is a display page (how many drafts one message shows), never a cap on how many are drafted, approved or sent.
+export const BATCH_MAX = 10;
 export const BATCH_TTL_MS = 72 * 3600_000, MAX_WORDS = 120, MESSAGE_MAX = 1500;
 // WO-091c: an approval is for a send soon after it, not whenever Gmail sending starts to work: after 7 days it is dropped.
 export const APPROVAL_TTL_MS = 7 * 86400_000;
@@ -299,9 +334,13 @@ export const batchText = (drafts: OutreachDraft[]) => batchMessages(drafts).join
 
 // ------------------------------------------------------------------------------------------------ the reply
 export type OutreachReply =
-  | { kind: "send"; all: boolean; ns: number[]; except: number[] }
-  | { kind: "skip"; ns: number[] } | { kind: "redo"; n: number } | { kind: "edit"; n: number; text: string }
+  | { kind: "send"; all: boolean; ns: number[]; except: number[]; it?: boolean }
+  | { kind: "skip"; ns: number[]; anytime?: boolean } | { kind: "redo"; n: number } | { kind: "edit"; n: number; text: string }
   | { kind: "none" } | { kind: "show" } | { kind: "lapsed" } | { kind: "bad"; why: string };
+// FAMILY NETWORKING: "send it" / "looks good, send it" names the one draft shown (only when exactly one is waiting), and
+// "cancel 1" / "don't send 1" / "unapprove 1" takes back a draft, approved or not, at any time before it is sent.
+const SEND_IT = /^(?:(?:yes|yep|yeah|ok|okay|looks good|look good|sounds good|perfect|great|nice|cool|lgtm)[,!. ]+)?(?:please )?(?:send|approve)(?: it| this| that| this one| that one| the email| the draft)(?: now| please| for me)?$/;
+const CANCEL = /^(?:wait,? |actually,? |hold on,? )?(?:cancel|unapprove|don'?t send|do not send|dont send|hold|take back)(?: (?:draft|email|number))? #?(\d{1,2}(?:\s*(?:,|and|-)\s*\d{1,2})*)(?: (?:yet|for now|please))?$/;
 const MAX_N = 99;
 // "1-7,9", "1-7, 9", "1 2 3", "2 and 5": numbers and ranges only, nothing else. null when it is not such a list.
 export function parseNumbers(s: string): { ok: true; ns: number[] } | { ok: false; why: string } | null {
@@ -328,6 +367,12 @@ export function parseOutreachReply(text: string): OutreachReply | null {
   // SERIAL-1510: the drafts whose approval lapsed, shown again for a fresh approval.
   if (/^(?:show|see|list|re-?show)(?: me)?(?: (?:my|the))? (?:lapsed|unsent|expired)(?: outreach)?(?: drafts| emails)?(?: again)?$/.test(t) || /^show lapsed$/.test(t)) return { kind: "lapsed" };
   if (/^(?:send none|none|don'?t send(?: any(?: of them)?)?|send nothing|cancel(?: all| them| the batch)?|skip all|no thanks)$/.test(t)) return { kind: "none" };
+  if (SEND_IT.test(t)) return { kind: "send", all: false, ns: [], except: [], it: true };
+  const cancel = CANCEL.exec(t);
+  if (cancel) {
+    const nums = parseNumbers(cancel[1]);
+    if (nums?.ok) return { kind: "skip", ns: nums.ns, anytime: true };
+  }
   const all = /^(?:send|approve)(?: them)? all(?: of them| \d+)?(?: (?:except|but|minus|without|not)\b(.*))?$/.exec(t) ?? /^send (?:them|everything)(?: (?:except|but|minus|without|not)\b(.*))?$/.exec(t);
   if (all) {
     if (all[1] === undefined) return { kind: "send", all: true, ns: [], except: [] };
@@ -355,15 +400,37 @@ export function parseOutreachReply(text: string): OutreachReply | null {
   return null;
 }
 
-// ------------------------------------------------------------------------------------------------ caps
-export function capFor(p: { own: number | null | undefined; firstSentAt: string | null; now: number }): { cap: number; warmup: boolean } {
-  const own = Number.isInteger(p.own) && (p.own as number) >= 1 ? Math.min(p.own as number, MAX_DAILY) : DEFAULT_DAILY;
-  const first = p.firstSentAt ? Date.parse(p.firstSentAt) : NaN;
-  const warmup = !Number.isFinite(first) || p.now - first < WARMUP_DAYS * 86400_000;
-  return { cap: warmup ? Math.min(own, WARMUP_DAILY) : own, warmup };
+// D-MN-2 (owner, 2026-10-27 19:48 CDT): a yes to the batch shown approves exactly that batch, each draft bound to its own
+// hash; "yes except 3" / "only 1-10" approve what is stated; a hedged answer ("maybe", "yes but not Acme", "yes?") approves
+// nothing. Read only while the batch is the thread's last word (outreachTurn), never by parseOutreachReply, so a bare
+// "yes" anywhere else stays someone else's (WO-033/P1).
+export function parseBatchYes(text: string): Extract<OutreachReply, { kind: "send" | "bad" }> | null {
+  const raw = String(text ?? "").trim();
+  if (raw.length > 80) return null;
+  // A question ("yes?", "send them all?") never matches below: only . and ! are stripped from the end.
+  const t = raw.toLowerCase().replace(/[’]/g, "'").replace(/[.!]+$/, "").replace(/\s+/g, " ").trim();
+  const yes = /^(?:yes|yep|yeah|yup|ok|okay|sure|approve(?:d)?|go ahead|do it|lgtm|looks good|sounds good|send them(?: all)?|send all of them)(?:[,!.]? (?:send (?:them|all(?: of them)?|them all)|go ahead|please|all of them|all|do it|approve(?: them| all)?))*(?:[,;]? (?:except|but not|minus|without|not) (.+))?$/.exec(t);
+  if (yes) {
+    if (yes[1] === undefined) return { kind: "send", all: true, ns: [], except: [] };
+    const nums = parseNumbers(yes[1].replace(/\b(?:numbers?|drafts?)\b|#/g, " ").trim());
+    if (!nums) return { kind: "bad", why: `say which to leave out by number, e.g. "yes except 3"` };
+    if (!nums.ok) return { kind: "bad", why: nums.why };
+    return { kind: "send", all: true, ns: [], except: nums.ns };
+  }
+  const only = /^(?:(?:yes|ok|okay)[,!.]? )?(?:only|just)(?: send| approve)?(?: numbers?| drafts?)? (.+)$/.exec(t);
+  if (only) {
+    const nums = parseNumbers(only[1]);
+    if (!nums) return { kind: "bad", why: `say which by number, e.g. "only 1-10"` };
+    if (!nums.ok) return { kind: "bad", why: nums.why };
+    return { kind: "send", all: false, ns: nums.ns, except: [] };
+  }
+  return null;
 }
-// The one admission rule (the database's career_outreach_claim enforces the same numbers).
-export function admitSend(o: { draft: OutreachDraft; hash: string; now: number; dayStart: number; sends: number[]; firstSentAt: string | null; own: number | null; dnc: boolean; recipientSends?: number; quiet?: boolean }): Admit {
+
+// ------------------------------------------------------------------------------------------------ admission
+// The one admission rule (the database's career_outreach_claim checks the same): the exact approval, its 7-day life, pause
+// and do-not-contact. No volume number of Trainee's own (NO LIMITS).
+export function admitSend(o: { draft: OutreachDraft; hash: string; now: number; dnc: boolean; quiet?: boolean }): Admit {
   if (o.draft.status !== "approved" || !o.draft.approved_hash) return "not_approved";
   if (o.draft.approved_hash !== o.hash || o.draft.hash !== o.hash) return "changed";
   // The database's anchor (career_outreach_claim): the later of the approval and the draft.
@@ -371,10 +438,6 @@ export function admitSend(o: { draft: OutreachDraft; hash: string; now: number; 
   if (Number.isFinite(anchor) && anchor < o.now - APPROVAL_TTL_MS) return "expired";
   if (o.quiet) return "paused";
   if (o.dnc) return "do_not_contact";
-  if ((o.recipientSends ?? 0) >= RECIPIENT_CAP) return "recipient_cap";
-  const { cap } = capFor({ own: o.own, firstSentAt: o.firstSentAt, now: o.now });
-  if (o.sends.filter((t) => t >= o.dayStart && t <= o.now).length >= cap) return "daily_cap";
-  if (o.sends.some((t) => t > o.now - GAP_MS && t <= o.now)) return "spacing";
   return "ok";
 }
 export const dayStartOf = (now: number, tz?: string) => { const [y, m, d] = dayIn(now, tz).split("-").map(Number); return localMidnight(y, m, d, tz || "America/New_York"); };
@@ -404,10 +467,24 @@ const listOf = (ds: OutreachDraft[]) => ds.map((d) => `${d.n} ${d.recipient.name
 export async function outreachTurn(o: {
   message: string; userId: string; threadId: string; now: number; store: OutreachStore; events?: EventStore | null;
   redraft?: (d: OutreachDraft) => Promise<Drafted>; gmailConnected?: () => Promise<boolean>; connectAsk?: string; tz?: string;
-}): Promise<{ reply: string; status: string; intent: string; parts?: string[] } | null> {
-  const r = parseOutreachReply(o.message);
+  // D-MN-1/2: called once per answer with exactly the drafts this answer approved, each with the hash it was approved
+  // against (career_outreach_drafts.approved_hash). The Gmail sending rail (queueApprovedOutreach, built separately)
+  // plugs in here. A failure is logged and changes nothing that was approved: the scheduled send run re-checks every
+  // draft's hash at claim (admitSend "changed").
+  onApproved?: (userId: string, items: ApprovedItem[]) => Promise<void>;
+}): Promise<{ reply: string; status: string; intent: string; parts?: string[]; approved?: ApprovedItem[] } | null> {
+  // A batch yes (D-MN-2) counts only while the batch is the thread's last word: the check just below, as for "send all".
+  const r: OutreachReply | null = parseOutreachReply(o.message) ?? parseBatchYes(o.message);
   if (!r) return null;
-  if (r.kind !== "show" && r.kind !== "lapsed" && (await o.store.lastAssistantIntent(o.threadId)) !== OUTREACH_INTENT) return null;
+  // D-MN-2: a question ("send them all?", "send 3?") is never an approval; with D-MN-1 an approval now sends.
+  if (r.kind === "send" && /\?\s*$/.test(String(o.message ?? "").trim())) return null;
+  // A take-back ("cancel 1") counts at any time, but only for a draft of the newest batch still waiting or approved.
+  const anytime = r.kind === "skip" && !!r.anytime;
+  if (r.kind !== "show" && r.kind !== "lapsed" && !anytime && (await o.store.lastAssistantIntent(o.threadId)) !== OUTREACH_INTENT) return null;
+  if (anytime && (await o.store.lastAssistantIntent(o.threadId)) !== OUTREACH_INTENT) {
+    const b = await o.store.latestBatch(o.userId);
+    if (!r.ns.every((n) => b.some((d) => d.n === n && (d.status === "shown" || d.status === "approved")))) return null;
+  }
   // SERIAL-1510 (b): approvals the run dropped as expired are said when the person next asks, never proactively; the old
   // approval is dead, and only a fresh "send" on the re-shown drafts approves them again.
   const lapsed = r.kind === "show" || r.kind === "lapsed" ? await o.store.lapsed(o.userId) : [];
@@ -430,6 +507,12 @@ export async function outreachTurn(o: {
   const byN = new Map(batch.map((d) => [d.n, d]));
   const numbers = batch.map((d) => d.n);
   const range = numbers.length === 1 ? "only number 1" : `numbers 1 to ${Math.max(...numbers)}`;
+  if (r.kind === "send" && r.it) {
+    // "send it": exactly one draft is waiting, so "it" can mean only that one; otherwise ask for the number, once.
+    const waiting = batch.filter((d) => d.status === "shown");
+    if (waiting.length !== 1) return open(`Nothing was approved: ${waiting.length ? `${waiting.length} drafts are waiting, so say which by number, e.g. "send ${waiting[0].n}", or "send all"` : "no draft in this batch is waiting for approval"}.`, "bad");
+    r.ns = [waiting[0].n];
+  }
   if (r.kind === "bad") return open(`Nothing was approved: ${r.why}. This batch has ${range}.`, "bad");
   if (Date.parse(batch[0].created_at) < o.now - BATCH_TTL_MS) return { reply: `Those drafts are more than 3 days old, so nothing was approved. Ask me to draft them again.`, status: "expired", intent: "career_outreach_answer" };
   const named = r.kind === "send" ? [...r.ns, ...r.except] : r.kind === "skip" ? r.ns : r.kind === "none" ? [] : [r.n];
@@ -441,9 +524,11 @@ export async function outreachTurn(o: {
   }
   if (r.kind === "skip") {
     const done: OutreachDraft[] = [];
-    for (const n of r.ns) { const d = byN.get(n)!; if (["shown", "approved"].includes(d.status) && await o.store.update(o.userId, { ...d, status: "skipped", approved_hash: null, approved_at: null }, { status: d.status })) done.push(d); }
+    for (const n of r.ns) { const d = byN.get(n)!; if (["shown", "approved"].includes(d.status) && await o.store.update(o.userId, { ...d, status: "skipped", approved_hash: null, approved_at: null, ...(r.anytime ? { result: "cancelled" } : {}) }, { status: d.status })) done.push(d); }
+    for (const d of done) if (r.anytime) await recordOutreach(o.events, o.userId, "status_change", d, o.now, { outreach: "cancelled" });
     const left = (await o.store.latestBatch(o.userId)).filter((d) => d.status === "shown").map((d) => d.n);
-    return open(`Dropped ${done.length ? listOf(done) : "nothing (already sent or dropped)"}. ${left.length ? `Still waiting: ${left.join(", ")}.` : "Nothing else is waiting."}`, "skipped");
+    const what = r.anytime ? (done.length ? `Cancelled ${listOf(done)}: nothing will be sent${done.length === 1 ? " to them" : ""} from ${done.length === 1 ? "that draft" : "those drafts"}.` : "Nothing was cancelled (already sent or dropped).") : `Dropped ${done.length ? listOf(done) : "nothing (already sent or dropped)"}.`;
+    return open(`${what} ${left.length ? `Still waiting: ${left.join(", ")}.` : "Nothing else is waiting."}`, "skipped");
   }
   if (r.kind === "redo" || r.kind === "edit") {
     const d = byN.get(r.n)!;
@@ -476,18 +561,58 @@ export async function outreachTurn(o: {
       await recordOutreach(o.events, o.userId, "outreach_approved", d, o.now);
     } else not.push(`${n} (changed since it was shown)`);
   }
+  const items: ApprovedItem[] = approved.map((d) => ({ draftId: d.id, approvalHash: d.hash, n: d.n, batchId: d.batch_id, to: d.recipient.email }));
+  if (items.length && o.onApproved) await o.onApproved(o.userId, items).catch((e) => console.error("outreach: hand-off of approved drafts:", e instanceof Error ? e.message : e));
   const left = numbers.filter((n) => !want.includes(n) && byN.get(n)!.status === "shown");
   const prefs = await o.store.prefs(o.userId).catch(() => ({ daily_cap: null, signature: null }));
   const lines = [approved.length ? `Approved ${approved.length}, exactly as shown: ${listOf(approved)}.` : "Nothing new was approved."];
   if (not.length) lines.push(`Not approved: ${not.join(", ")}.`);
   if (left.length) lines.push(`Not sent: ${left.join(", ")}.`);
   if (approved.length) {
-    const own = prefs.daily_cap ?? DEFAULT_DAILY;
-    lines.push(`They go from your Gmail one at a time, at least 90 seconds apart, at most ${own} a day${own > WARMUP_DAILY ? ` (${WARMUP_DAILY} a day in your first week of sending)` : ""}. ${LAPSE_NOTE}`);
     const connected = o.gmailConnected ? await o.gmailConnected().catch(() => false) : false;
-    if (!connected) lines.push(`Nothing can go out until your Gmail is connected for sending.${o.connectAsk ? `\n\n${o.connectAsk}` : ""}`);
+    // NO LIMITS: no pacing or daily number of Trainee's own is promised; only Gmail's own refusal slows sending.
+    if (connected) lines.push(`They go from your Gmail. If Gmail asks to slow down, the rest wait and go on when it allows, and I'll tell you. ${LAPSE_NOTE}`);
+    // FAMILY NETWORKING: no promise of a send that can't happen. Sending from the person's own address is not available
+    // (gmail.send is deferred), so the reply says nothing went, and gives the ways to send it themselves, exactly as approved.
+    else lines.push(`Nothing has gone out. Nothing can go out until your Gmail is connected for sending, and sending from your own address isn't available in Trainee yet.\n\n${sendYourselfText(approved)}${o.connectAsk ? `\n\n${o.connectAsk}` : ""}`);
   }
-  return { reply: lines.join(" ").replace(/ \n\n/, "\n\n"), status: approved.length ? "approved" : "none_approved", intent: left.length ? OUTREACH_INTENT : "career_outreach_answer" };
+  return { reply: lines.join(" ").replace(/ \n\n/, "\n\n"), status: approved.length ? "approved" : "none_approved", intent: left.length ? OUTREACH_INTENT : "career_outreach_answer", ...(items.length ? { approved: items } : {}) };
+}
+// One draft an answer approved: what the sending rail needs to queue it (D-MN-2: each bound to its own hash).
+export interface ApprovedItem { draftId: string; approvalHash: string; n: number; batchId: string; to: string }
+// The person's drafts approved and not yet sent, each with the hash it was approved against: the read the sending rail
+// uses to check that a queued {draftId, approvalHash} is still exactly what was approved (status approved, hash unchanged).
+export async function approvedOutreach(store: OutreachStore, userId: string): Promise<(ApprovedItem & { approvedAt: string | null })[]> {
+  // NO LIMITS: every approved draft, however many (no newest-500 window).
+  const rows = store.approvedDrafts ? await store.approvedDrafts(userId) : store.history ? await store.history(userId, Number.MAX_SAFE_INTEGER) : await store.latestBatch(userId);
+  return rows.filter((d) => d.status === "approved" && !!d.approved_hash && d.approved_hash === d.hash)
+    .map((d) => ({ draftId: d.id, approvalHash: d.approved_hash!, n: d.n, batchId: d.batch_id, to: d.recipient.email, approvedAt: d.approved_at }));
+}
+
+// ------------------------------------------------------------------------------------------------ sending it yourself
+// The ladder when Trainee can't send from the person's address: copy the exact text, or open it prefilled in their own
+// mail app (a mailto link carrying exactly the approved recipient, subject and text), then say "sent N" so it is tracked,
+// gets its follow-up reminder, and can never be sent a second time by Trainee.
+export const MAILTO_MAX = 1800;
+export function mailtoOf(m: Message): { url: string; full: boolean } {
+  const enc = (s: string) => encodeURIComponent(s.replace(/\r?\n/g, "\r\n"));
+  const to = /^[^\s@,;<>?&#%]+@[^\s@,;<>?&#%]+$/.test(m.to) ? m.to : encodeURIComponent(m.to);
+  const full = `mailto:${to}?subject=${enc(m.subject)}&body=${enc(m.text)}`;
+  return full.length <= MAILTO_MAX ? { url: full, full: true } : { url: `mailto:${to}?subject=${enc(m.subject)}`, full: false };
+}
+const numbersText = (ns: number[]) => ns.length === 1 ? String(ns[0]) : ns.join(",");
+export function sendYourselfText(ds: Pick<OutreachDraft, "n" | "recipient" | "subject" | "body" | "footer">[]): string {
+  const one = ds.length === 1;
+  const links = ds.map((d) => {
+    const m = messageOf(d), l = mailtoOf(m);
+    return `${one ? "" : `${d.n} (${d.recipient.name}): `}${l.url}${l.full ? "" : `\n(The text is too long for a link, so this opens with the address and subject; paste the text of ${d.n} in.)`}`;
+  });
+  return [
+    `To send ${one ? "it" : "them"} yourself now, from your own email:`,
+    `1. Copy ${one ? `draft ${ds[0].n}` : `drafts ${numbersText(ds.map((d) => d.n))}`} exactly as shown above into a new email${one ? ` to ${messageOf(ds[0]).to}` : ""}.`,
+    `2. Or open ${one ? "it" : "each one"} ready to send in your mail app${one ? ":" : ""}\n${links.join("\n")}`,
+    `3. Once you've sent ${one ? "it" : "them"}, say "sent ${numbersText(ds.map((d) => d.n))}" and I'll mark ${one ? "it" : "them"} sent and set a follow-up for ${FOLLOWUP_DAYS} days later if there's no reply. Until then ${one ? "it stays" : "they stay"} approved for 7 days, so tell me once you've sent ${one ? "it" : "them"} and Trainee will never send ${one ? "it" : "them"} a second time.`,
+  ].join("\n");
 }
 
 // ------------------------------------------------------------------------------------------------ the scheduled run
@@ -497,40 +622,48 @@ export interface ReplyMail { from: string; subject: string; snippet: string; at:
 export type ReplyRead = { status: "ok"; messages: ReplyMail[] } | { status: "NOT_WIRED" } | { status: "ERROR"; detail: string };
 export type ReplyReader = (userId: string, threadId: string) => Promise<ReplyRead>;
 
-// At most one send per person per run (the run is every few minutes, so sends are spread, never a burst), and only
-// through the claim, which checks the approval's hash and age, the person's pause or STOP, the do-not-contact list, the
-// daily cap, warm-up and the gap. An expired approval is dropped and does not use the person's turn this run. One person's
-// failure (a store or claim error) is counted and never stops the next person's send (WO-091c).
-type SendStats = { sent: number; refused: Record<string, number>; not_wired: number; failed: number; errors: number; error: string | null };
-type SendRun = { store: OutreachStore; sender: Sender; now: number; tz?: (userId: string) => Promise<string | undefined>; events?: EventStore | null; maxUsers?: number };
+// Every approved draft that is due goes, in approval order, each only through the claim (the approval's hash and age, the
+// person's pause or STOP, the do-not-contact list). NO LIMITS: no number per person, per day or per run of Trainee's own,
+// no spacing. The only thing that slows a person is Gmail refusing (RATE_LIMITED): their remaining drafts wait for a
+// later run, kept approved; everyone else carries on. Drafts are read in pages; a page that sends nothing ends the run
+// (what is left is waiting on Gmail or refused). One person's failure is counted and never stops the next (WO-091c).
+type SendStats = { sent: number; refused: Record<string, number>; not_wired: number; failed: number; rate_limited: number; errors: number; error: string | null };
+type SendRun = { store: OutreachStore; sender: Sender; now: number; tz?: (userId: string) => Promise<string | undefined>; events?: EventStore | null; page?: number };
 export async function runOutreachSends(o: SendRun) {
-  const stats: SendStats = { sent: 0, refused: {}, not_wired: 0, failed: 0, errors: 0, error: null };
-  const due = await o.store.approvedDue(500);
-  const seen = new Set<string>();
-  for (const { user_id, draft } of due) {
-    if (seen.has(user_id) || seen.size >= (o.maxUsers ?? 200)) continue;
-    seen.add(user_id);
-    try {
-      if (!(await sendOne(o, stats, user_id, draft))) seen.delete(user_id);
-    } catch (e) {
-      stats.errors++;
-      stats.error ??= (e instanceof Error ? e.message : String(e)).slice(0, 300);
+  const stats: SendStats = { sent: 0, refused: {}, not_wired: 0, failed: 0, rate_limited: 0, errors: 0, error: null };
+  const waiting = new Set<string>(); // Gmail said "not now" (or is not wired) for this person this run
+  const tried = new Set<string>();
+  for (;;) {
+    const due = (await o.store.approvedDue(o.page ?? 500)).filter((x) => !tried.has(x.draft.id));
+    if (!due.length) break;
+    const before = stats.sent;
+    for (const { user_id, draft } of due) {
+      tried.add(draft.id);
+      if (waiting.has(user_id)) continue;
+      try {
+        const r = await sendOne(o, stats, user_id, draft);
+        if (r === "wait") waiting.add(user_id);
+      } catch (e) {
+        stats.errors++;
+        stats.error ??= (e instanceof Error ? e.message : String(e)).slice(0, 300);
+      }
     }
+    if (stats.sent === before) break;
   }
   return stats;
 }
-// One approved draft through the claim and the sender. False: it was dropped as expired without using the person's turn.
-async function sendOne(o: SendRun, stats: SendStats, user_id: string, draft: OutreachDraft): Promise<boolean> {
+// One approved draft through the claim and the sender. "wait": Gmail is not taking this person's mail right now.
+async function sendOne(o: SendRun, stats: SendStats, user_id: string, draft: OutreachDraft): Promise<"done" | "wait"> {
   const m = messageOf(draft);
-  if (!/^[^\s@,;<>]+@[^\s@,;<>]+$/.test(m.to)) { stats.refused.bad_address = (stats.refused.bad_address ?? 0) + 1; return true; }
+  if (!/^[^\s@,;<>]+@[^\s@,;<>]+$/.test(m.to)) { stats.refused.bad_address = (stats.refused.bad_address ?? 0) + 1; return "done"; }
   const hash = await payloadHash(m);
   const tz = o.tz ? await o.tz(user_id).catch(() => undefined) : undefined;
   const admit = await o.store.claim(user_id, draft, hash, o.now, dayStartOf(o.now, tz));
   if (admit !== "ok") {
     stats.refused[admit] = (stats.refused[admit] ?? 0) + 1;
-    if (admit === "changed" || admit === "do_not_contact" || admit === "recipient_cap" || admit === "expired") await o.store.update(user_id, { ...draft, status: admit === "changed" ? "shown" : "skipped", approved_hash: null, approved_at: null, result: admit }, { status: "approved" });
+    if (admit === "changed" || admit === "do_not_contact" || admit === "expired") await o.store.update(user_id, { ...draft, status: admit === "changed" ? "shown" : "skipped", approved_hash: null, approved_at: null, result: admit }, { status: "approved" });
     // A paused account keeps its approval: a resume inside the 7 days lets it go, and nothing older ever does.
-    return admit !== "expired";
+    return admit === "paused" ? "wait" : "done";
   }
   const sending: OutreachDraft = { ...draft, status: "sending", sent_at: new Date(o.now).toISOString() };
   const r = await o.sender.send(user_id, m).catch((e) => ({ status: "ERROR", detail: String(e) }) as SendResult);
@@ -540,11 +673,13 @@ async function sendOne(o: SendRun, stats: SendStats, user_id: string, draft: Out
     await recordOutreach(o.events, user_id, "outreach_sent", done, o.now);
     stats.sent++;
   } else {
-    // Not sent: back to approved (the claim's time is cleared), so it goes on a later run once the rail is there.
+    // Not sent: back to approved (the claim's time is cleared), so it goes on a later run: once the rail is there, or
+    // once Gmail takes mail again (its own limit is the only thing that slows sending).
     await o.store.update(user_id, { ...draft, status: r.status === "ERROR" ? "failed" : "approved", sent_at: null, result: r.status === "NOT_WIRED" ? "not_wired" : r.status === "RATE_LIMITED" ? "rate_limited" : `error: ${r.detail}`.slice(0, 200) }, { status: "sending" });
-    if (r.status === "NOT_WIRED") stats.not_wired++; else stats.failed++;
+    if (r.status === "NOT_WIRED") stats.not_wired++; else if (r.status === "RATE_LIMITED") stats.rate_limited++; else stats.failed++;
+    if (r.status === "NOT_WIRED" || r.status === "RATE_LIMITED") return "wait";
   }
-  return true;
+  return "done";
 }
 
 const BOUNCE_FROM = /\b(mailer-daemon|postmaster|mail delivery (subsystem|system))\b/i;
@@ -591,8 +726,29 @@ export async function runOutreachReplies(o: { store: OutreachStore; read: ReplyR
 }
 
 // ------------------------------------------------------------------------------------------------ stores
-export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void; setQuiet(userId: string, on: boolean): void } {
+const CONTACTS_TABLE = "career_account_contacts", CONTACTS_PAGE = 1000;
+async function pagedContacts(q: (after: string) => PromiseLike<{ data: any; error: { message: string } | null }>): Promise<{ row_key: string; data: ContactRow }[]> {
+  const out: { row_key: string; data: ContactRow }[] = [];
+  let after = "";
+  for (;;) {
+    const r = await q(after);
+    if (r.error) throw new Error(`read your contacts: ${r.error.message}`);
+    const rows = (r.data ?? []) as { row_key: string; data: ContactRow }[];
+    out.push(...rows);
+    if (rows.length < CONTACTS_PAGE) return out;
+    after = rows[rows.length - 1].row_key;
+  }
+}
+const mergeRows = (a: { row_key: string; data: ContactRow }[], b: { row_key: string; data: ContactRow }[]) => {
+  const m = new Map<string, ContactRow>();
+  for (const r of [...a, ...b]) m.set(r.row_key, r.data);
+  return [...m.entries()].sort(([x], [y]) => x.localeCompare(y)).map(([, d]) => d);
+};
+export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void; setQuiet(userId: string, on: boolean): void; setEpoch(userId: string, epoch: number): void; allContacts(userId: string): ContactRow[]; forgotten(userId: string): string[] } {
   const drafts: (OutreachDraft & { user_id: string })[] = [], dnc: Record<string, Set<string>> = {}, prefs: Record<string, Prefs> = {}, intents: Record<string, string | null> = {};
+  const follow: Record<string, Followup[]> = {}, leases: Record<string, number> = {};
+  const book: Record<string, Map<string, KeyedContact>> = {}, forgottenByUser: Record<string, Set<string>> = {}, epochByUser: Record<string, number> = {};
+  const rowsOf = (u: string) => [...(book[u]?.values() ?? [])].sort((a, z) => a.row_key.localeCompare(z.row_key));
   const quiet = new Set<string>(); // paused, opted out or erased (career_user_quiet in the database)
   let seq = 0;
   const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -622,22 +778,16 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
     async addDnc(u: string, h: string) { (dnc[u] ??= new Set()).add(h); },
     async prefs(u: string) { return { ...{ daily_cap: null, signature: null }, ...(prefs[u] ?? {}) } as Prefs; },
     async setPrefs(u: string, p: Partial<Prefs>) {
-      if (p.daily_cap !== undefined && p.daily_cap !== null && !(Number.isInteger(p.daily_cap) && p.daily_cap >= 1 && p.daily_cap <= MAX_DAILY)) throw new Error(`a daily limit is 1 to ${MAX_DAILY}`);
       prefs[u] = { ...{ daily_cap: null, signature: null }, ...(prefs[u] ?? {}), ...p } as Prefs;
     },
     async approvedDue(limit: number) {
       return copy(drafts.filter((d) => d.status === "approved").sort((a, z) => String(a.approved_at).localeCompare(String(z.approved_at))).slice(0, limit).map((d) => ({ user_id: d.user_id, draft: d })));
     },
-    async claim(u: string, draft: OutreachDraft, hash: string, now: number, dayStart: number) {
+    async claim(u: string, draft: OutreachDraft, hash: string, now: number, _dayStart: number) {
       const cur = drafts.find((x) => x.id === draft.id && x.user_id === u);
       if (!cur) return "not_approved";
-      const mine = drafts.filter((d) => d.user_id === u && d.sent_at && ["sending", "sent", "replied", "bounced"].includes(d.status));
-      const sends = mine.map((d) => Date.parse(d.sent_at!));
-      const first = sends.length ? new Date(Math.min(...sends)).toISOString() : null;
-      const h = await emailHash(cur.recipient.email), to = cur.recipient.email.toLowerCase();
-      const recipientSends = drafts.filter((d) => d.recipient.email.toLowerCase() === to && d.sent_at && ["sending", "sent", "replied", "bounced"].includes(d.status)
-        && Date.parse(d.sent_at) > now - RECIPIENT_WINDOW_DAYS * 86400_000).length;
-      const admit = admitSend({ draft: cur, hash, now, dayStart, sends, firstSentAt: first, own: prefs[u]?.daily_cap ?? null, dnc: Object.values(dnc).some((set) => set.has(h)), recipientSends, quiet: quiet.has(u) });
+      const h = await emailHash(cur.recipient.email);
+      const admit = admitSend({ draft: cur, hash, now, dnc: Object.values(dnc).some((set) => set.has(h)), quiet: quiet.has(u) });
       if (admit === "ok") { cur.status = "sending"; cur.sent_at = new Date(now).toISOString(); }
       return admit;
     },
@@ -645,6 +795,53 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
       return copy(drafts.filter((d) => d.status === "sent" && d.sent_at && d.sent_at >= since).slice(0, limit).map((d) => ({ user_id: d.user_id, draft: d })));
     },
     async lastAssistantIntent(threadId: string) { return intents[threadId] ?? null; },
+    async approvedDrafts(u: string) { return copy(drafts.filter((d) => d.user_id === u && d.status === "approved").sort((a, z) => String(z.created_at).localeCompare(String(a.created_at)) || z.n - a.n)); },
+    async history(u: string, limit = 200) { return copy(drafts.filter((d) => d.user_id === u).sort((a, z) => String(z.created_at).localeCompare(String(a.created_at)) || z.n - a.n).slice(0, limit)); },
+    async drafts(u: string, ids: string[]) { const want = new Set(ids); return copy(drafts.filter((d) => d.user_id === u && want.has(d.id))); },
+    async followups(u: string) { return copy(follow[u] ?? []); },
+    async saveFollowups(u: string, items: Followup[]) { follow[u] = copy(followupValue(items).items); delete leases[u]; },
+    async allFollowups(limit: number) { return copy(Object.entries(follow).filter(([, v]) => v.length).slice(0, limit).map(([user_id, items]) => ({ user_id, items }))); },
+    async claimDueFollowups(now: number, batch: number, leaseMs: number) {
+      const due = Object.entries(follow).map(([user_id, items]) => ({ user_id, items, next: followupValue(items).next_due_at }))
+        .filter((x) => x.next && Date.parse(x.next) <= now && !((leases[x.user_id] ?? 0) > now))
+        .sort((a, z) => a.next!.localeCompare(z.next!) || a.user_id.localeCompare(z.user_id)).slice(0, Math.max(1, batch));
+      for (const x of due) leases[x.user_id] = now + leaseMs;
+      return copy(due.map(({ user_id, items }) => ({ user_id, items })));
+    },
+    async contactsSummary(u: string) {
+      const rows = rowsOf(u), files = [...new Set(rows.map((r) => r.file))].sort();
+      return { total: rows.length, fileCount: files.length, files: files.slice(0, 3) };
+    },
+    async contactsAtFirm(u: string, k: string) { return copy(rowsOf(u).filter((r) => k && (r.firm_key === k || r.firm_raw_key === k)).map((r) => r.data)); },
+    async contactsNamed(u: string, k: string) { return copy(rowsOf(u).filter((r) => k && (r.name_key === k || r.name_key.startsWith(`${k} `))).map((r) => r.data)); },
+    async contactsByEmail(u: string, e: string) { return copy(rowsOf(u).filter((r) => r.email === e.toLowerCase()).map((r) => r.data)); },
+    async contactsInFile(u: string, f: string) { return copy(rowsOf(u).filter((r) => r.file === f).map((r) => r.data)); },
+    async putContacts(u: string, epoch: number, rows: KeyedContact[], o: { replaceFile?: string; unlessForgotten?: boolean } = {}) {
+      if ((epochByUser[u] ?? 0) !== epoch) return null;
+      const m = (book[u] ??= new Map()), gone = (forgottenByUser[u] ??= new Set());
+      if (o.replaceFile !== undefined) for (const [k, r] of m) if (r.file === o.replaceFile) m.delete(k);
+      let n = 0;
+      for (const r of rows) {
+        if (o.unlessForgotten && gone.has(r.person_key)) continue;
+        if (!o.unlessForgotten) gone.delete(r.person_key);
+        m.set(r.row_key, copy({ ...r, email: r.email ? r.email.toLowerCase() : null })); n++;
+      }
+      return n;
+    },
+    async forgetContacts(u: string, epoch: number, sel: { all?: boolean; linkedin?: boolean; rowKeys?: string[] }) {
+      if ((epochByUser[u] ?? 0) !== epoch) return null;
+      const m = (book[u] ??= new Map()), gone = (forgottenByUser[u] ??= new Set()), keys = new Set(sel.rowKeys ?? []);
+      const people = new Set(rowsOf(u).filter((r) => sel.all || (sel.linkedin && (/connections/i.test(r.file) || (r.data as any).linkedin_export === true)) || keys.has(r.row_key)).map((r) => r.person_key));
+      let n = 0;
+      for (const [k, r] of m) if (people.has(r.person_key)) { m.delete(k); n++; }
+      for (const pk of people) gone.add(pk);
+      return n;
+    },
+    async accountEpoch(u: string) { return epochByUser[u] ?? 0; },
+    // Test seams: the account's privacy epoch (an erase bumps it), and a write by "another thread" between a read and a save.
+    setEpoch(u: string, e: number) { epochByUser[u] = e; },
+    allContacts(u: string) { return copy(rowsOf(u).map((r) => r.data)); },
+    forgotten(u: string) { return [...(forgottenByUser[u] ?? [])].sort(); },
     async lapsed(u: string) { return copy(drafts.filter((d) => d.user_id === u && d.status === "skipped" && d.result === "expired").sort((a, z) => String(a.approved_at ?? a.created_at).localeCompare(String(z.approved_at ?? z.created_at)))); },
     setIntent(threadId: string, intent: string | null) { intents[threadId] = intent; },
     setQuiet(userId: string, on: boolean) { if (on) quiet.add(userId); else quiet.delete(userId); },
@@ -678,11 +875,94 @@ export function supabaseOutreachStore(admin: any): OutreachStore {
       return (must(await q.select("id"), "update a draft") ?? []).length === 1;
     },
     async contacted(u) {
-      const rows = must(await admin.from("career_outreach_drafts").select("recipient_email").eq("user_id", u).neq("status", "skipped").limit(5000), "read who was contacted");
-      return new Set((rows ?? []).map((r: any) => String(r.recipient_email).toLowerCase()));
+      // Every address, in pages: a silent cut here would let someone be emailed twice.
+      const out = new Set<string>();
+      for (let from = 0; ; from += 1000) {
+        const rows = must(await admin.from("career_outreach_drafts").select("recipient_email").eq("user_id", u).neq("status", "skipped").order("id").range(from, from + 999), "read who was contacted") ?? [];
+        for (const r of rows) out.add(String(r.recipient_email).toLowerCase());
+        if (rows.length < 1000) return out;
+      }
     },
     async lapsed(u) {
       return (must(await admin.from("career_outreach_drafts").select(COLS).eq("user_id", u).eq("status", "skipped").eq("result", "expired").order("created_at").limit(200), "read the lapsed drafts") ?? []).map(fromRow);
+    },
+    async approvedDrafts(u) {
+      const out: OutreachDraft[] = [];
+      for (let from = 0; ; from += 1000) {
+        const rows = must(await admin.from("career_outreach_drafts").select(COLS).eq("user_id", u).eq("status", "approved").order("created_at", { ascending: false }).order("n", { ascending: false }).order("id").range(from, from + 999), "read your approved drafts") ?? [];
+        out.push(...rows.map(fromRow));
+        if (rows.length < 1000) return out;
+      }
+    },
+    async history(u, limit = 200) {
+      return (must(await admin.from("career_outreach_drafts").select(COLS).eq("user_id", u).order("created_at", { ascending: false }).order("n", { ascending: false }).limit(limit), "read your outreach") ?? []).map(fromRow);
+    },
+    async drafts(u, ids) {
+      if (!ids.length) return [];
+      const out: OutreachDraft[] = [];
+      for (let k = 0; k < ids.length; k += 100) {
+        out.push(...(must(await admin.from("career_outreach_drafts").select(COLS).eq("user_id", u).in("id", ids.slice(k, k + 100)), "read your outreach drafts") ?? []).map(fromRow));
+      }
+      return out;
+    },
+    async followups(u) {
+      const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", FOLLOWUP_KEY).maybeSingle(), "read your follow-up reminders");
+      return Array.isArray(r?.value?.items) ? r.value.items : [];
+    },
+    async saveFollowups(u, items) {
+      // next_due_at is what the leased claim (20261027160000) orders and indexes on; saving releases any lease.
+      must(await admin.from("career_watch_kv").upsert({ user_id: u, key: FOLLOWUP_KEY, value: followupValue(items), updated_at: new Date().toISOString() }, { onConflict: "user_id,key" }), "save your follow-up reminders");
+    },
+    async allFollowups(limit) {
+      const rows = must(await admin.from("career_watch_kv").select("user_id,value").eq("key", FOLLOWUP_KEY).limit(limit), "read follow-up reminders");
+      return (rows ?? []).map((x: any) => ({ user_id: x.user_id, items: Array.isArray(x.value?.items) ? x.value.items : [] }));
+    },
+    async claimDueFollowups(now, batch, leaseMs) {
+      const rows = must(await admin.rpc("career_outreach_followups_claim", { p_now: new Date(now).toISOString(), p_batch: batch, p_lease_seconds: Math.max(1, Math.ceil(leaseMs / 1000)) }), "claim due follow-up reminders");
+      return (rows ?? []).map((x: any) => ({ user_id: String(x.user_id), items: Array.isArray(x.value?.items) ? x.value.items : [] }));
+    },
+    // R1 contacts (career_account_contacts): every read indexed and keyset-paged on row_key; PAGE sizes a call, not the work.
+    async contactsSummary(u) {
+      const r = must(await admin.rpc("career_account_contacts_summary", { p_user: u }), "read your contacts");
+      const x = Array.isArray(r) ? r[0] : r;
+      return { total: Number(x?.total ?? 0), fileCount: Number(x?.file_count ?? 0), files: Array.isArray(x?.files) ? x.files : [] };
+    },
+    async contactsAtFirm(u, k) {
+      if (!k) return [];
+      const a = await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).eq("firm_key", k).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE));
+      const b = await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).eq("firm_raw_key", k).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE));
+      return mergeRows(a, b);
+    },
+    async contactsNamed(u, k) {
+      if (!k) return [];
+      const a = await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).eq("name_key", k).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE));
+      const b = await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).like("name_key", `${k} %`).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE));
+      return mergeRows(a, b);
+    },
+    async contactsByEmail(u, e) {
+      return mergeRows(await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).eq("email", e.toLowerCase()).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE)), []);
+    },
+    async contactsInFile(u, f) {
+      return mergeRows(await pagedContacts((after) => admin.from(CONTACTS_TABLE).select("row_key,data").eq("user_id", u).eq("file", f).gt("row_key", after).order("row_key").limit(CONTACTS_PAGE)), []);
+    },
+    async putContacts(u, epoch, rows, o = {}) {
+      let n = 0;
+      // One call per chunk keeps each request small; a file's rows replace its earlier rows in the first chunk only.
+      for (let k = 0; k === 0 || k < rows.length; k += CONTACTS_PAGE) {
+        const part = rows.slice(k, k + CONTACTS_PAGE).map((r) => ({ ...r, email: r.email ? r.email.toLowerCase() : null }));
+        const w = must(await admin.rpc("career_account_contacts_put", { p_user: u, p_epoch: epoch, p_rows: part, p_replace_file: k === 0 ? o.replaceFile ?? null : null, p_unless_forgotten: !!o.unlessForgotten }), "save your contacts");
+        if (w === null || w === undefined) return null;
+        n += Number(w);
+      }
+      return n;
+    },
+    async forgetContacts(u, epoch, sel) {
+      const w = must(await admin.rpc("career_account_contacts_forget", { p_user: u, p_epoch: epoch, p_all: !!sel.all, p_linkedin: !!sel.linkedin, p_row_keys: sel.rowKeys ?? [] }), "delete your contacts");
+      return w === null || w === undefined ? null : Number(w);
+    },
+    async accountEpoch(u) {
+      const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", "career:account").maybeSingle(), "read your account");
+      return Number(r?.value?.epoch ?? 0) || 0;
     },
     async dnc(u) {
       const rows = must(await admin.from("career_outreach_dnc").select("email_hash").eq("user_id", u).limit(10000), "read the do-not-contact list");

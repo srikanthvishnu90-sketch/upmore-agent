@@ -48,6 +48,44 @@ export function quotedFrom(message: string, quote: string): boolean {
   const q = plain(quote);
   return q.split(" ").filter(Boolean).length >= 2 && ` ${plain(message)} `.includes(` ${q} `);
 }
+// Launch readiness S3 (2026-10-26): only the person's own message may write memory. The model writes the instruction it
+// saves, and the model also reads posting and email text (get_posting, search_jobs), so a posting could make it save a
+// sentence the attacker wrote next to a two-word quote of the person's. An instruction is kept only when every content
+// word of it is in the person's message this turn (compared without case, punctuation or a plural/-ed/-ing ending);
+// the words that only frame it (need, avoid, prefer, never, only, ...) may be the model's.
+const FRAME_WORDS = new Set(("a an the and or but nor to of for in on at by with from about as into than then " +
+  "is are be been was were am it its this that these those any all only no not never always ever again also just " +
+  "do does did dont doesnt didnt wont cant cannot must should can could will would may might " +
+  "i im me my mine you your they them their he she him her his we us our person user candidate " +
+  "need needs needed want wants wanted prefer prefers preferred require requires required avoid avoids " +
+  "like likes keep keeps use uses apply applies please ok okay yes").split(" "));
+const NEGATION = /\b(no|not|never|none|nor|without|avoid|avoids|dont|doesnt|wont|cant|cannot|stop|exclude|excluding)\b/;
+const stem = (w: string) => w.length > 4 && w.endsWith("ies") ? w.slice(0, -3) + "y"
+  : w.length > 5 && w.endsWith("ing") ? w.slice(0, -3)
+  : w.length > 4 && w.endsWith("ed") ? w.slice(0, -2)
+  : w.length > 3 && w.endsWith("es") && /(s|x|z|ch|sh)es$/.test(w) ? w.slice(0, -2)
+  : w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w;
+// The instruction's words that are not in the person's message (empty: it is grounded in what they said). With the quote
+// given, the instruction also keeps its polarity: "no staffing agencies" never becomes "apply to staffing agencies".
+export function ungroundedWords(message: string, instruction: string, quote?: string): string[] {
+  const said = new Set(plain(message).split(" ").filter(Boolean).flatMap((w) => [w, stem(w)]));
+  const out: string[] = [];
+  if (quote !== undefined && NEGATION.test(plain(instruction)) !== NEGATION.test(plain(quote))) out.push(NEGATION.test(plain(instruction)) ? "(a negation they did not say)" : "(their negation, dropped)");
+  for (const w of plain(instruction).split(" ").filter(Boolean)) {
+    if (FRAME_WORDS.has(w) || FRAME_WORDS.has(stem(w))) continue;
+    if (said.has(w) || said.has(stem(w))) continue;
+    if (!out.includes(w)) out.push(w);
+  }
+  return out;
+}
+
+// A name field (an employer, a role) that reads like an instruction: a link, an email address, a line break, or longer
+// than a name. Only text the model read elsewhere would put one there.
+export function instructionShaped(v: unknown): boolean {
+  const s = String(v ?? "");
+  return /https?:|www\.|[^\s@]+@[^\s@]+\.[a-z]/i.test(s) || /[\r\n]/.test(s) || s.trim().length > 80 || s.trim().split(/\s+/).length > 8;
+}
+
 // WO-091b (audit chat-brain F4, BR-084): a standing instruction goes into every later turn's system prompt as something
 // to follow, so one that waives the person's approval ("autopilot", "don't ask me", "without asking"), or asks for an act
 // Trainee never does (sharing their resume on its own, passwords or one-time codes, LinkedIn or Indeed automation), is

@@ -8273,8 +8273,8 @@ const CareerOnboarding = (() => {
     if (/graduat/.test(q)) return cons.graduationDate ? hit(`Your graduation date is ${cons.graduationDate}.`, "profile constraints.graduationDate (stored, ask-once)") : miss("graduation date");
     if (/work authorization|authorised|authorized to work|sponsorship/.test(q)) return cons.workAuthorization ? hit(`Your saved work authorization: ${cons.workAuthorization}.`, "profile constraints.workAuthorization (stored, ask-once)") : miss("work authorization");
     if (/target companies|companies.*target/.test(q)) return (prefs.targetCompanies || []).length ? hit(`Your target companies: ${prefs.targetCompanies.join(", ")}.`, "profile preferences.targetCompanies (stored)") : miss("target companies");
-    if (/what roles|roles.*looking|looking for/.test(q)) return (prefs.roles || []).length ? hit(`You are looking for: ${prefs.roles.join(", ")}.`, "profile preferences.roles (stored)") : miss("target roles");
-    if (/where.*(?:live|based)|location/.test(q)) return basics.location ? hit(`You are based in ${basics.location}.`, "profile basics.location (stored)") : miss("location");
+    if (/what roles|roles?.*(?:looking|want|target)|looking for|what (?:jobs?|positions?|kind of)/.test(q)) return (prefs.roles || []).length ? hit(`You are looking for: ${prefs.roles.join(", ")}.`, "profile preferences.roles (stored)") : miss("target roles");
+    if (/where.*(?:live|based|located)|location|\b(?:city|town)\b/.test(q)) return basics.location ? hit(`You are based in ${basics.location}.`, "profile basics.location (stored)") : miss("location");
     if (/comp floor|pay floor|minimum.*(?:pay|salary|comp)/.test(q)) return prefs.compFloor ? hit(`Your pay floor: ${prefs.compFloor}.`, "profile preferences.compFloor (stored)") : miss("pay floor");
     if (/gpa/.test(q)) {
       if (p.defaults && p.defaults.gpa) return hit(`Your GPA on file: ${p.defaults.gpa}.`, "profile defaults.gpa (stored)");
@@ -8288,6 +8288,8 @@ const CareerOnboarding = (() => {
     }
     return { found: false, answer: null, reasked: false, ask: null };
   }
+  const RECALL_ASK = /\bwhere (?:do|did) i (?:live|stay)\b|\bwhere am i (?:based|located|living)\b|\bwhat (?:city|town) (?:do i live in|am i (?:in|based in))\b|\bwhat (?:roles?|jobs?|positions?|kind of (?:roles?|jobs?)) (?:am i (?:looking for|targeting|after|going for)|do i want)\b|\bwhat am i looking for\b|\bwhat gpa do i have\b|^my gpa\W*$/;
+  const recallText = (t) => t.replace(/\bwher\b/g, "where").replace(/\b(?:waht|wht|wat|whta)\b/g, "what").replace(/\bwhats\b/g, "what's").replace(/\b(?:schol|shcool|scool)\b/g, "school");
   const SCHOOL_ASK = /\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b|\bwhat (?:school|college|university) (?:did|do) i (?:go to|attend)\b|\bwhat(?:'?s| is) my (?:school|college|university|alma mater|degree)\b/;
   function confirmedEducation(p) {
     return ((p && p.facts) || []).filter((f) => f && f.kind === "education" && f.needs_confirmation !== true && (f.status == null || f.status === "confirmed"));
@@ -8620,9 +8622,13 @@ const CareerOnboarding = (() => {
       const r = answerCurrent(c.profile, text);
       return { intent: "onboarding_answer", done: r.done, answered: r.answered, pending: r.pending || null, reply: r.text };
     }
-    if (c.profile && (/^(what'?s|what is) my\b/.test(t) || SCHOOL_ASK.test(t))) {
-      const r = answerFromProfile(c.profile, text);
-      if (r.found || r.ask) return { intent: "profile_recall", found: r.found, source: r.source || null, reply: r.found ? r.answer : r.ask };
+    const tq = recallText(t);
+    if (/^(what'?s|what is) my\b/.test(tq) || SCHOOL_ASK.test(tq) || RECALL_ASK.test(tq)) {
+      const r = answerFromProfile(c.profile || {}, tq);
+      const stated = ((c.statedFacts && Array.isArray(c.statedFacts.facts)) ? c.statedFacts.facts : []).map((f) => f && f.kind);
+      const elsewhere = !r.found && (/work authorization|authorised|authorized to work|sponsorship/.test(tq)
+        || (/where|location|city|town/.test(tq) && stated.includes("geography")) || (/roles?|jobs?|positions?|looking for/.test(tq) && stated.includes("target_role")));
+      if (!elsewhere && (r.found || r.ask)) return { intent: "profile_recall", found: r.found, source: r.source || null, reply: r.found ? r.answer : r.ask };
     }
     if (/\bwhat (?:can you|do you) (?:actually )?do\b.*\bjob search\b|\bwhat can you do for my (?:job|career)\b/.test(t)) {
       const r = capabilityStatus(c.capabilitySources || {});
@@ -22628,18 +22634,19 @@ const CareerRouter = (() => {
     return { intent: "conversation_ack", reply, resultStatus: "completed", sends: 0 };
   }
   function handleStatedFactReadback(text, ctx) {
-    const t = lc(text);
-    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone)\b/) || (/\bwhere am i (based|targeting|looking)\b/.test(t) ? [null, "geography"] : null)
-      || (/\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b/.test(t) ? [null, "school"] : null);
+    const t = lc(text).replace(/\bwher\b/g, "where").replace(/\b(?:waht|wht|wat|whta)\b/g, "what").replace(/\bwhats\b/g, "what's").replace(/\b(?:schol|shcool|scool)\b/g, "school");
+    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone|target role|dream role)\b/) || (/\bwhere am i (based|targeting|looking|located|living)\b|\bwhere (?:do|did) i live\b|\bwhat (?:city|town) (?:do i live in|am i (?:in|based in))\b/.test(t) ? [null, "geography"] : null)
+      || (/\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b|\bwhat (?:school|college|university) (?:did|do) i (?:go to|attend)\b/.test(t) ? [null, "school"] : null)
+      || (/\bwhat (?:roles?|jobs?|positions?|kind of (?:roles?|jobs?)) (?:am i (?:looking for|targeting|after|going for)|do i want)\b|\bwhat am i looking for\b/.test(t) ? [null, "target_role"] : null);
     if (!m) return null;
-    const kind = { "target firm": "target_firm", "target company": "target_firm", major: "majors", school: "school", city: "geography", location: "geography", geography: "geography", year: "year", "class year": "year", level: "level", tone: "tone" }[m[1]] || m[1];
+    const kind = { "target firm": "target_firm", "target company": "target_firm", major: "majors", school: "school", city: "geography", location: "geography", geography: "geography", year: "year", "class year": "year", level: "level", tone: "tone", "target role": "target_role", "dream role": "target_role" }[m[1]] || m[1];
     const all = statedFactsOf(ctx);
     const f = all.find((x) => x.kind === kind);
     if (f) {
       const reply = compose({ headline: "From your record — your words, as stated.", facts: [`On record: ${factLine(f)}.`], nextStep: "Correct it the same way you stated it, or tell me what to run on it first." });
       return { intent: "profile_recall", reply, resultStatus: "completed", sends: 0 };
     }
-    const label = { target_firm: "a target firm", majors: "a major", school: "a school", geography: "a location", year: "a class year", level: "a level", tone: "a tone" }[kind] || kind;
+    const label = { target_firm: "a target firm", majors: "a major", school: "a school", geography: "a location", year: "a class year", level: "a level", tone: "a tone", target_role: "a target role" }[kind] || kind;
     const reply = compose({ headline: "That is not on your record yet.", facts: [`You have not stated ${label} — the record holds only what you state, and nothing is assumed to fill it.`], nextStep: `State ${label} in your own words and it is recorded in this turn.` });
     return { intent: "profile_recall", reply, resultStatus: "awaiting_user", sends: 0 };
   }
@@ -22679,9 +22686,10 @@ const CareerRouter = (() => {
   }
   function handleEligibilityAsk(text, ctx) {
     const t = lc(text);
-    const waQuestion = /\?/.test(s(text)) && /\b(sponsor|sponsorship|visa|work (authorization|permit)|citizenship)\b/.test(t);
+    const waWords = /\b(sponsor|sponsorship|visa|work (authorization|authorisation|permit)|authori[sz]ed to work|citizen|citizenship|green card|permanent resident|immigration status|h-?1b|f-?1)\b/.test(t);
+    const waQuestion = waWords && (/\?/.test(s(text)) || /^(?:(?:so|and|also|wait|ok|okay|hey|quick question)[,:]?\s+)*(?:do|will|would|am|can|have|did) i\b|^(?:(?:so|and|also|wait|ok|okay|hey)[,:]?\s+)*what(?:'s| is) my\b/.test(t));
     if (!/\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t) && !waQuestion) return null;
-    if (!/\?/.test(s(text)) && !/\b(am i|do i|would i|can i|check if i)\b/.test(t)) return null;
+    if (!/\?/.test(s(text)) && !waQuestion && !/\b(am i|do i|would i|can i|check if i)\b/.test(t)) return null;
     if (/\btailor\b/.test(t)) return null;
     if (/\b(offer|negotiat|signing bonus|counter)\b/.test(t)) return null;
     if (/\b(is|does|would|can) (he|she|they)\b|\bmy (roommate|friend|brother|sister|classmate|coworker|co-worker|colleague|partner)\b[^.]*\beligib/.test(t)) return null;
@@ -22761,7 +22769,7 @@ const CareerRouter = (() => {
     }
     const C = threadContextOf(ctx);
     const selfCheck = t.match(/\bam i (?:a |an )?(\w+)\b/);
-    if (selfCheck && /\?/.test(s(text)) && !/^(eligible|qualified)$/.test(selfCheck[1])) {
+    if (selfCheck && /\?/.test(s(text)) && !/^(eligible|qualified|based|located|living|looking|targeting|searching|focused|after|going|from)$/.test(selfCheck[1])) {
       const w = selfCheck[1];
       const hit = C.facts.find((f) => lc(f.value).includes(w) || lc(f.kind) === w);
       const reply = hit

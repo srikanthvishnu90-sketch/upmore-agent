@@ -36,7 +36,7 @@ export function adaptersFromEnv(env: Env, o: { fetch?: typeof fetch; clock?: () 
   if (wired.includes("imessage")) {
     const cap = whole(env.get("LOOPMESSAGE_DAILY_CONTACTS"), DEFAULT_DAILY_CONTACTS);
     if (Number.isNaN(cap)) throw new Error("not configured: LOOPMESSAGE_DAILY_CONTACTS must be a whole number of contacts a day");
-    out.imessage = loopMessageAdapter({ apiKey: env.get("LOOPMESSAGE_API_KEY")!, inboundSecret: env.get("TRAINEE_INBOUND_SECRET"), dailyContacts: cap, fetch: o.fetch, sleep: o.sleep });
+    out.imessage = loopMessageAdapter({ apiKey: env.get("LOOPMESSAGE_API_KEY")!, inboundSecret: env.get("TRAINEE_INBOUND_SECRET"), dailyContacts: cap, fetch: o.fetch, sleep: o.sleep, native: textingNativeOn(env) });
   }
   if (wired.includes("telegram")) {
     out.telegram = telegramAdapter({ token: env.get("TELEGRAM_BOT_TOKEN")!, webhookSecret: env.get("TELEGRAM_WEBHOOK_SECRET"), fetch: o.fetch, clock: o.clock, sleep: o.sleep, native: textingNativeOn(env) });

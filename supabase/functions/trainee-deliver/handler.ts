@@ -7,6 +7,7 @@
 import { equalSecret } from "../_shared/message_service.ts";
 import { deliverDue, type Send } from "../_shared/channel.ts";
 import { toBubbles } from "../_shared/conversation.ts";
+import { imessageNativeRender, textingNativeOn } from "../_shared/channel_voice.ts";
 import type { Channel, DeliveryAdapter } from "../_shared/channel_adapters.ts";
 import type { DeliveryStore } from "../_shared/channel_store.ts";
 
@@ -39,7 +40,9 @@ export async function handleDeliver(req: Request, d: DeliverDeps): Promise<Respo
   const cap = capRaw === undefined || capRaw === "" ? DEFAULT_DAILY_CONTACTS : Number(capRaw);
   if (!Number.isInteger(cap) || cap < 1) return json({ error: "not configured: LOOPMESSAGE_DAILY_CONTACTS must be a whole number of contacts a day" }, 503);
   const adapters: Partial<Record<Channel, DeliveryAdapter>> = { ...others };
-  if (apiKey) adapters.imessage = { channel: "imessage", limits: { dailyContacts: cap }, render: toBubbles, send: d.send(apiKey) };
+  // CHANNEL DELIVERY SCENARIOS (2026-10-29): with CAREER_TEXTING_NATIVE=on iMessage gets plain text too (it was always the
+  // raw markdown here, "**bold**" and "# headings" included, whatever the setting).
+  if (apiKey) adapters.imessage = { channel: "imessage", limits: { dailyContacts: cap }, render: textingNativeOn(d.env) ? imessageNativeRender : toBubbles, send: d.send(apiKey) };
   const started = d.now(), at = new Date(started).toISOString();
   const store = d.store();
   let swept = 0;

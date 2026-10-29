@@ -18,8 +18,13 @@ const COMMANDS: Record<string, ChannelCommand> = {
 const SMS_ONLY: Record<string, ChannelCommand> = { cancel: "stop", end: "stop", quit: "stop" };
 // The whole message is the command (any case, end punctuation ignored); "stop sending me sales jobs" is a message.
 // `channel`: where the text came in. No channel named (the WO-013a simulator, a bare number) keeps the full SMS list.
+// CHANNEL DELIVERY SCENARIOS (2026-10-29): what a phone puts around a typed word is not the word: "STOP…" (iOS turns
+// "..." into one "…"), "Stop," and "STOP;" and quotes around it ("“STOP”"), and the invisible characters a copy and paste
+// carries (zero-width space, word joiner, byte-order mark). Each was read as a message for the brain, so a STOP was a
+// model call and nothing was stopped.
 export function channelCommand(text: string, channel?: Channel | "sms"): ChannelCommand | null {
-  const t = String(text ?? "").trim().toLowerCase().replace(/[.!?\s]+$/g, "");
+  const t = String(text ?? "").replace(/[\u200b-\u200d\u2060\ufeff]/g, "").trim().toLowerCase()
+    .replace(/^[\s"'“”‘’«»(\[]+/, "").replace(/[.!?,;:…~"'“”‘’«»)\]\s]+$/g, "");
   return COMMANDS[t] ?? (channel === undefined || channel === "sms" ? SMS_ONLY[t] ?? null : null);
 }
 export const CHANNEL_REPLIES: Record<ChannelCommand, string> = {
@@ -40,6 +45,9 @@ export type DeliveryMark = { status: "delivered" | "failed" | "skipped_opt_out" 
 export interface ChannelStore {
   due(now: number, limit: number): Promise<OutboxRow[]>; // undelivered, deliver_at <= now, oldest first
   optedOut(contact: string): Promise<boolean>;
+  // CHANNEL DELIVERY SCENARIOS (2026-10-29): when the person (any of their contacts) last said STOP, null when they are not
+  // opted out or the time is not known. Absent: an answer is never held by a STOP (the WO-013a behaviour).
+  optedOutAt?(contact: string): Promise<number | null>;
   // WO-091c: the person's account is paused, opted out or erased (career_user_quiet). Absent: only STOP holds a row.
   quiet?(userId: string): Promise<boolean>;
   // A queued job alert or report (key alert:… or report:…) still wanted now: the person's alert settings, the watch behind
@@ -64,6 +72,7 @@ const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
 export const HELD_NOTE = "held: outside WhatsApp's 24-hour window; it goes out whole when the person next writes";
 export const PAUSED_NOTE = "not sent: the person paused Trainee (or stopped or erased it) after this was queued";
 export const ALERTS_OFF_NOTE = "not sent: the person's job alerts no longer ask for this (paused, stopped or changed after it was queued)";
+export const STOPPED_REPLY_NOTE = "not sent: the person texted STOP after the message this answers; only a message sent after STOP is answered";
 
 // budgetMs: a run that has used its time stops before the next row (a long card is many bubbles, each paced by the
 // provider); what it claimed and did not reach goes back for the next run (the store's release), never half sent.
@@ -88,9 +97,10 @@ export async function deliverDue(o: {
     return contacts.get(ch)!;
   };
   const toNudge = new Map<string, { row: OutboxRow; adapter: DeliveryAdapter }>();
-  const hold = async (m: OutboxRow, adapter: DeliveryAdapter, error: string) => {
+  const hold = async (m: OutboxRow, adapter: DeliveryAdapter, error: string, optedOut = false) => {
     await o.store.mark(m.id, { status: "held", at: o.now, error: error.slice(0, 500) });
     r.held++;
+    if (optedOut) return;
     // One nudge per silence: none when a template already went after the person's last message.
     const since = m.nudgedAt ?? null;
     if (since !== null && (m.lastInboundAt == null || since >= m.lastInboundAt)) return;
@@ -112,7 +122,15 @@ export async function deliverDue(o: {
     if (!adapter) { r.not_wired++; continue; } // claimed but untouched: the run's release puts it back, queued
     // STOP holds what Trainee starts (alerts, reports, cards, receipts); the answer to a message the person sent after STOP
     // still goes out, as the STOP reply promises.
-    if (!isReply(m.key) && await o.store.optedOut(m.contact)) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now }); r.skipped_opt_out++; continue; }
+    const out = await o.store.optedOut(m.contact);
+    if (!isReply(m.key) && out) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now }); r.skipped_opt_out++; continue; }
+    // CHANNEL DELIVERY SCENARIOS (2026-10-29): an answer to a message sent BEFORE the STOP is not one sent after it. The
+    // rest of a long answer still queued (its later parts, a retry) went out after the person said STOP; now it is held
+    // like everything else. The answer row's deliver_at is the time of the message it answers.
+    if (isReply(m.key) && out && o.store.optedOutAt) {
+      const since = await o.store.optedOutAt(m.contact);
+      if (since !== null && m.deliver_at < since) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: STOPPED_REPLY_NOTE }); r.skipped_opt_out++; continue; }
+    }
     // WO-091c: the same for a pause or an erase that came after the row was queued, checked now, at delivery. A pause that
     // cannot be read leaves the row claimed and untouched (the run's release puts it back), never sent on a guess.
     if (!isReply(m.key)) {
@@ -130,7 +148,8 @@ export async function deliverDue(o: {
     }
     const window = adapter.limits.windowMs ?? null;
     const stall = () => { if (isReply(m.key)) stalled.add(m.userId); };
-    if (window !== null && (m.lastInboundAt == null || o.now - m.lastInboundAt >= window)) { stall(); await hold(m, adapter, HELD_NOTE); continue; }
+    // An opted-out person's held answer waits for their next message; Trainee never starts a template to them.
+    if (window !== null && (m.lastInboundAt == null || o.now - m.lastInboundAt >= window)) { stall(); await hold(m, adapter, HELD_NOTE, out); continue; }
     const cap = adapter.limits.dailyContacts ?? Infinity;
     const known = await o.store.sentTo(m.contact, day);
     if (!known && cap !== Infinity && await counted(channel) >= cap) { stall(); r.capped++; continue; } // stays queued for tomorrow's allowance
@@ -145,7 +164,7 @@ export async function deliverDue(o: {
     }
     // WhatsApp refused it for the window or the per-user limit: nothing went out, so it waits whole for the next message.
     stall();
-    if (res.hold) { await hold(m, adapter, res.error); continue; }
+    if (res.hold) { await hold(m, adapter, res.error, out); continue; }
     if (res.optOut) {
       // The person blocked Trainee on this channel (Telegram's 403): that is their STOP; recorded, not retried.
       await o.store.setOptOut(m.contact, true, o.now);
@@ -180,7 +199,7 @@ export async function deliverDue(o: {
 type MemRow = OutboxRow & { status: "queued" | "delivered" | "failed" | "skipped_opt_out" | "held"; retryAt: number | null; sentAt: number | null; error: string | null };
 export function memoryChannel(rows: OutboxRow[] = []): ChannelStore & { rows(): MemRow[]; queue(row: OutboxRow): void; optOuts(): string[]; unhold(userId: string): number } {
   const st: MemRow[] = rows.map((x) => ({ ...x, status: "queued", retryAt: null, sentAt: null, error: null }));
-  const optOut = new Map<string, boolean>(), nudged = new Map<string, number>();
+  const optOut = new Map<string, boolean>(), optOutAt = new Map<string, number>(), nudged = new Map<string, number>();
   return {
     async due(now, limit) {
       return st.filter((x) => (x.status === "queued" || (x.status === "failed" && x.retryAt !== null && x.retryAt <= now)) && x.deliver_at <= now)
@@ -188,7 +207,8 @@ export function memoryChannel(rows: OutboxRow[] = []): ChannelStore & { rows(): 
           ...(x.lastInboundAt !== undefined || nudged.has(x.contact) ? { lastInboundAt: x.lastInboundAt ?? null, nudgedAt: nudged.get(x.contact) ?? null } : {}) }));
     },
     async optedOut(c) { return optOut.get(c) === true; },
-    async setOptOut(c, out) { optOut.set(c, out); },
+    async optedOutAt(c) { return optOut.get(c) === true ? optOutAt.get(c) ?? null : null; },
+    async setOptOut(c, out, at) { optOut.set(c, out); if (out) optOutAt.set(c, at); else optOutAt.delete(c); },
     async contactsSentOn(day, channel) { return new Set(st.filter((x) => x.status === "delivered" && x.sentAt !== null && utcDay(x.sentAt) === day && (!channel || channelOf(x.contact) === channel)).map((x) => x.contact)).size; },
     async sentTo(c, day) { return st.some((x) => x.contact === c && x.status === "delivered" && x.sentAt !== null && utcDay(x.sentAt) === day); },
     async mark(id, m) {

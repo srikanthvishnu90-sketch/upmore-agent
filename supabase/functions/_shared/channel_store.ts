@@ -59,6 +59,16 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
     async optedOut(contact) {
       return must<boolean>(await admin.rpc("channel_opted_out", { p_contact: contact }), "read opt-out") === true;
     },
+    // CHANNEL DELIVERY SCENARIOS (2026-10-29): the time of the person's STOP, read as channel_opted_out reads the STOP itself
+    // (this contact, or any contact of the account it belongs to).
+    async optedOutAt(contact) {
+      const own = must<any>(await admin.from("channel_contacts").select("user_id,opted_out,opted_out_at").eq("contact", contact).maybeSingle(), "read the opt-out time");
+      const rows: any[] = own?.user_id
+        ? must<any[]>(await admin.from("channel_contacts").select("opted_out,opted_out_at").eq("user_id", own.user_id).eq("opted_out", true), "read the opt-out time") || []
+        : own ? [own] : [];
+      const at = rows.filter((r) => r.opted_out === true && r.opted_out_at).map((r) => Date.parse(r.opted_out_at)).filter(Number.isFinite);
+      return at.length ? Math.max(...at) : null;
+    },
     // WO-091c: paused, opted out or erased (career_user_quiet, 20261022120000_career_control_state.sql).
     async quiet(userId) {
       return must<boolean>(await admin.rpc("career_user_quiet", { p_user: userId }), "read the pause") === true;

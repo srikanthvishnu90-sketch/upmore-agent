@@ -28,6 +28,7 @@
 import { equalSecret } from "./message_service.ts";
 import { type ChannelAdapter, type InboundMessage, packMessages, pacer, type ParseResult, type SendResult, type StatusEvent, WHATSAPP_WINDOW_MS } from "./channel_adapters.ts";
 import { nativeRender } from "./channel_voice.ts";
+import { safeSlice } from "./channel_text.ts";
 
 export const WHATSAPP_GRAPH = "https://graph.facebook.com";
 export const WHATSAPP_DEFAULT_VERSION = "v21.0"; // ASSUMED still served; WHATSAPP_GRAPH_VERSION overrides it
@@ -159,7 +160,7 @@ export function whatsappAdapter(o: {
       for (let i = 0; i < bubbles.length; i++) {
         await pace(address);
         const after = i ? ` after ${i} of ${bubbles.length} messages went out` : "";
-        const r = await post({ ...target(address), type: "text", text: { preview_url: true, body: bubbles[i].slice(0, WHATSAPP_CHARS) } });
+        const r = await post({ ...target(address), type: "text", text: { preview_url: true, body: safeSlice(bubbles[i], WHATSAPP_CHARS) } });
         if (r.ok) { if (r.id) ids.push(r.id); continue; }
         // The window closed or the marketing limit held it: nothing of this message went out, so the whole row waits for
         // the person's next message. (After a first message went out, the rest would duplicate it: final, as LoopMessage.)

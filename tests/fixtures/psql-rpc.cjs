@@ -16,10 +16,11 @@ function session({ dir, port, role }) {
     const run = chain.then(async () => {
       const mark = "__END_" + crypto.randomUUID().replace(/-/g, "");
       errs = "";
-      child.stdin.write(`${ready || !role ? "" : `set role ${role};\n`}${sql};\n\\echo ${mark}\n`); ready = true;
+      child.stdin.write(`${ready || !role ? "" : `set role ${role};\n`}${sql};\n\\echo ${mark}\n\\warn ${mark}\n`); ready = true;
       for (;;) {
         const i = lines.indexOf(mark);
-        if (i >= 0) {
+        // stderr is a separate pipe: the error text is complete only once the same mark has come through it too
+        if (i >= 0 && errs.includes(mark)) {
           const out = lines.splice(0, i + 1).slice(0, -1).filter((l) => l !== "");
           if (/ERROR:/.test(errs)) throw new Error(errs.split("\n").find((l) => /ERROR:/.test(l)).replace(/^.*ERROR:\s*/, ""));
           return out;

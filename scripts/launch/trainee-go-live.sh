@@ -215,6 +215,7 @@ MIGRATIONS=(
   20261028110000_career_connector_framework.sql
   20261028120000_career_apply_host_gate.sql
   20261028130000_billing_cancel_at_period_end.sql
+  20261028180000_career_apply_vm_worker.sql
   20261029100000_career_outreach_reply_rules.sql
   20261029160000_career_email_format_guards.sql
   20261029170000_career_resume_on_file_quarantine.sql
@@ -316,6 +317,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_parked_tasks') is not null and to_regclass('public.career_connector_links') is not null and exists (select 1 from pg_proc where proname = 'career_parked_due') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_connector_cancel')"
   "exists (select 1 from pg_proc where proname = 'career_apply_host_backoff_get' and prosrc like '%scope = ''cloud''%')"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'user_subscriptions' and column_name = 'cancel_at_period_end')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_vm_claim') and exists (select 1 from pg_proc where proname = 'career_apply_vm_approval_refusal')"
   "exists (select 1 from pg_proc where proname = 'career_outreach_reply_apply' and prosrc like '%(2) A follow-up of this person''s already queued%') and exists (select 1 from pg_proc where proname = 'career_outreach_rail_takeback' and prosrc like '%(3) What the rail itself already cancelled%')"
   "exists (select 1 from pg_proc where proname = 'career_email_is_webmail') and exists (select 1 from pg_proc where proname = 'career_email_is_role')"
   "exists (select 1 from pg_proc where proname = 'career_resume_on_file' and prosrc like '%owner-delegated%')"

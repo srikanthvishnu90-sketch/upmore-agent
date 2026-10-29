@@ -101,6 +101,8 @@ export async function agentTurn(o: {
   posting?: ((jobId: string) => Promise<any | null>) | null;
   // WO-106 (F4): every job link checked just before it is shown.
   linkCheck?: LinkCheck | null;
+  billing?: import("../_shared/trainee_billing.ts").BillingDeps | null;
+  exporter?: import("../_shared/data_export.ts").ExportDeps | null;
   // FEATURE 13: the staged release's tool policy: tools withheld by name, and a note on what code does instead.
   toolPolicy?: { withhold: readonly string[]; note: string } | null;
 }): Promise<TurnResult> {
@@ -114,7 +116,7 @@ export async function agentTurn(o: {
     system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : "") + (o.summary ? "\n\n" + o.summary : "") + (o.toolPolicy ? "\n\n" + o.toolPolicy.note : ""),
     history: o.history.slice(-HISTORY_WINDOW).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: [o.message, ...notes].filter(Boolean).join("\n\n"),
-    tools: withheld(o.toolPolicy?.withhold, careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null, tailor: o.tailor ?? null, hired: o.hired ?? null, wants: o.wants ?? null, limits: o.limits, posting: o.posting ?? null, situation: o.known?.situation ?? null, linkCheck: o.linkCheck ?? null, conversations: o.conversations ?? null })),
+    tools: withheld(o.toolPolicy?.withhold, careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null, tailor: o.tailor ?? null, hired: o.hired ?? null, wants: o.wants ?? null, limits: o.limits, posting: o.posting ?? null, situation: o.known?.situation ?? null, linkCheck: o.linkCheck ?? null, billing: o.billing ?? null, exporter: o.exporter ?? null, conversations: o.conversations ?? null })),
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });

@@ -112,9 +112,10 @@ serve(async (req: Request) => {
   // WO-028 (2026-10-20): tailored resumes live in the private Storage bucket career-resumes at <uid>/<sha256>.pdf and
   // carry the person's name and email. Storage objects have no cascade from auth.users, so list the folder and remove
   // every file before the auth user goes (Storage REST API, service key; best-effort like the Vault calls above).
-  try {
+  // Also career-exports: the person's own data export files (data_export.ts) carry their whole profile, so they go too.
+  for (const bucket of ["career-resumes", "career-exports"]) try {
     for (let round = 0; round < 50; round++) {
-      const listRes = await fetch(`${SUPABASE_URL}/storage/v1/object/list/career-resumes`, {
+      const listRes = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${bucket}`, {
         method: "POST",
         headers: {
           apikey: SERVICE_KEY,
@@ -127,7 +128,7 @@ serve(async (req: Request) => {
       const objects = await listRes.json();
       const prefixes = (objects || []).filter((o: any) => o && o.name).map((o: any) => `${uid}/${o.name}`);
       if (!prefixes.length) break;
-      const rmRes = await fetch(`${SUPABASE_URL}/storage/v1/object/career-resumes`, {
+      const rmRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}`, {
         method: "DELETE",
         headers: {
           apikey: SERVICE_KEY,

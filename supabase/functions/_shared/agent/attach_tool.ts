@@ -6,6 +6,11 @@ import type { ToolSpec } from "./loop.ts";
 import { fileParts, MAX_FILES } from "../channel_shape.ts";
 
 export const ATTACH_TOOL = "attach_document";
+// DEFAULT OFF (owner, 2026-10-29: nobody should have to download anything). Long detail goes to a hosted page link (create_file:
+// research_brief, comparison, draft, the list page). This tool exists in a turn only when the person asked for a file in so many
+// words ("send me a file", "attach it as a .md", "give me a PDF/doc").
+export const attachAsked = (message: string): boolean =>
+  /\b(?:send|give|attach|email|export|save)\b[^.?!\n]{0,40}\b(?:file|document|doc|pdf|md|txt|attachment|download)\b|\b(?:as|in) an? (?:file|document|pdf|\.?md|\.?txt)\b|\bdownload(?:able)?\b/i.test(String(message ?? ""));
 export function attachTool(): ToolSpec {
   return {
     name: ATTACH_TOOL, effect: "read",

@@ -246,6 +246,8 @@ export async function sendJobCards(o: { userId: string; hits: any[]; deps: JobDe
   // The whole list is remembered up front (with each job), so Next never depends on the page that was shown first.
   await o.deps.store.rememberList(o.userId, listId, refs);
   for (let i = 0; i < jobs.length; i++) await o.deps.store.remember(o.userId, refs[i], jobs[i], "text");
+  // APPLY HERE (apply_here.ts): the postings the person pasted or pointed at, each with ONE Apply button; several go as one list link.
+  if (hits.every((h) => h.apply_here === true)) return await sendApplyHere({ userId: o.userId, jobs, refs, notChecked: hits.map((h) => (Array.isArray(h.not_checked) ? h.not_checked : []) as string[]), listId, deps: o.deps, send: o.send });
   // A mass list is one short line and the link (Telegram shows the link's preview card): the rows, with Apply on each, are on the page.
   if (jobs.length > MASS_FROM && o.deps.feedLinks) {
     const links = await o.deps.feedLinks(o.userId, listId).catch(() => null);
@@ -257,6 +259,43 @@ export async function sendJobCards(o: { userId: string; hits: any[]; deps: JobDe
   }
   const r = await sendJobPage({ userId: o.userId, jobs, page: 0, listId, deps: o.deps, send: o.send });
   return { sent: r.sent, total: jobs.length };
+}
+
+// ---------------------------------------------------------------- apply here: ONE button
+// With a prepared application the button is the hash-bound approval itself (jcy: the tag of the payload shown; the tap re-reads it, a
+// changed one is refused); the text is the exact payload summary. With none (no worker host yet) the button queues the posting and
+// the tap says "Queued", which is all that is true. Several postings: one list link (the hosted page has Apply on each row and one
+// "Apply to all N" bound to the exact set); without a link configured, each posting gets its own one-button message.
+export async function sendApplyHere(o: { userId: string; jobs: JobView[]; refs: string[]; notChecked: string[][]; listId: string; deps: JobDeps; send: JobSender }): Promise<{ sent: number; total: number }> {
+  const { jobs, refs, deps, send } = o;
+  if (jobs.length > 1 && deps.feedLinks) {
+    const links = await deps.feedLinks(o.userId, o.listId).catch(() => null);
+    if (links?.url || links?.webApp) {
+      const r = await send.text({ text: `${jobs.length} postings ready. Open the list: Apply on each, or Apply to all ${jobs.length}.${links.url ? `\n${links.url}` : ""}`, buttons: links.webApp ? [[{ text: "Open the list", webApp: links.webApp }]] : undefined });
+      if (r.ok) return { sent: 1, total: jobs.length };
+    }
+  }
+  let sent = 0;
+  for (let i = 0; i < jobs.length; i++) {
+    const job = jobs[i], ref = refs[i];
+    const prep = await deps.store.prepared(o.userId, job.job_id).catch(() => null);
+    const nc = o.notChecked[i]?.length ? `Not checked: ${o.notChecked[i].join(", ")}.` : "";
+    if (prep && secretFields(prep).length) {
+      const r = await send.text({ text: `${job.title ? `${job.title} at ` : ""}${job.company}: this one has a field that needs you (a password, code or similar), and those never go through chat. Finish it yourself:\n${prep.url}` });
+      if (r.ok) sent++;
+      continue;
+    }
+    const lines = prep
+      ? [...payloadLines(prep, job).slice(0, -2), ...(nc ? [nc] : []), "", "Tap Apply to approve exactly this. Nothing else is sent."]
+      : [captionOf({ ...job, reasons: [], gaps: [] }, deps.now()), ...(nc ? ["", nc] : []), "", "Not prepared yet. Tap Apply to queue it; nothing is sent to the employer until you approve the exact application."];
+    const pages = pageLines(lines);
+    for (let k = 0; k < pages.length; k++) {
+      const last = k === pages.length - 1;
+      const r = await send.text({ text: pages[k], buttons: last ? [[{ text: "Apply", data: prep ? `jcy:${ref}:${hashTag(prep.payload_hash)}` : `jca:${ref}` }]] : undefined });
+      if (last && r.ok) sent++;
+    }
+  }
+  return { sent, total: jobs.length };
 }
 
 // ---------------------------------------------------------------- the exact payload

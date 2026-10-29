@@ -225,9 +225,11 @@ export function linkOf(r: ResearchReply): string | null {
   if (r.report?.verified) return r.report.url;
   return r.sources[0]?.url ?? null;
 }
-export function researchParts(r: ResearchReply): ResearchPart[] {
+// The source-list file is an attachment the person would have to download: off unless they asked for a file (owner, 2026-10-29);
+// the report link carries the same detail as a hosted page.
+export function researchParts(r: ResearchReply, o: { attach?: boolean } = {}): ResearchPart[] {
   const parts: ResearchPart[] = [{ kind: "text", text: r.answer }];
-  if (r.attachment && r.attachment.bytes.length) parts.push({ kind: "attachment", ...r.attachment });
+  if (o.attach === true && r.attachment && r.attachment.bytes.length) parts.push({ kind: "attachment", ...r.attachment });
   const link = linkOf(r);
   if (link) parts.push({ kind: "link", url: link });
   return parts;
@@ -235,8 +237,8 @@ export function researchParts(r: ResearchReply): ResearchPart[] {
 
 const b64 = (b: Uint8Array) => { let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(s); };
 // Web: the same three pieces, rendered by the page as a message, a file and a link with its preview. No card, no button.
-export function webParts(r: ResearchReply) {
-  return researchParts(r).map((p) => p.kind === "text" ? { type: "text" as const, text: p.text }
+export function webParts(r: ResearchReply, o: { attach?: boolean } = {}) {
+  return researchParts(r, o).map((p) => p.kind === "text" ? { type: "text" as const, text: p.text }
     : p.kind === "attachment" ? { type: "file" as const, filename: p.filename, mime: p.mime, size: p.bytes.length, base64: b64(p.bytes) }
     : { type: "link" as const, url: p.url });
 }
@@ -254,6 +256,7 @@ export async function deliverResearch(o: {
   reply: ResearchReply; address: string;
   adapter: Pick<ChannelAdapter, "channel" | "render" | "send" | "sendDocument">;
   record?: (states: PartState[]) => Promise<void> | void;
+  attach?: boolean; // the person asked for a file (default: no attachment)
 }): Promise<{ ok: boolean; states: PartState[] }> {
   const a = o.adapter, states: PartState[] = [];
   const sendText = async (text: string, kind: PartState["kind"]) => {
@@ -264,7 +267,7 @@ export async function deliverResearch(o: {
       return r.ok;
     } catch (e) { states.push({ kind, status: "failed", error: e instanceof Error ? e.message : String(e) }); return false; }
   };
-  const parts = researchParts(o.reply);
+  const parts = researchParts(o.reply, { attach: o.attach });
   let fileFailed = false, linkFailed = false;
   for (const p of parts) {
     if (p.kind === "text") {
@@ -308,4 +311,21 @@ export async function researchTurn(o: {
   const usable = got.verified.filter((v) => isHttps(v.url) && !isBlockedHost(v.url));
   const draft = await composeResearchDraft({ on: true, question: o.question, sources: usable, model: o.model });
   return await buildResearchReply({ question: o.question, draft, verified: got.verified, candidates: o.candidates, report: o.report, now: o.now });
+}
+
+// ------------------------------------------------------------------------------------------------- the research_brief page
+// The long detail of a research answer is a hosted page (file kind research_brief, file_kinds.ts), sent as a link with a preview card,
+// never a file to download. The page is made by a BriefPublisher: code stores the brief for this person and returns the link it
+// minted (the model never writes it). The publisher the research_career_question tool (PR #277) supplies plugs in here; until then
+// briefPublisherFor returns null, so no brief link is claimed, and the flag CAREER_RESEARCH_BRIEF=on only enables a publisher the caller passes.
+export interface ResearchBrief { title: string; facts: { label: string; value: string; source: string }[]; sources: { url: string; title: string }[] }
+export interface BriefPublisher { publish(userId: string, brief: ResearchBrief): Promise<{ url: string } | null> }
+export const researchBriefOn = (env: { get(k: string): string | undefined }) => env.get("CAREER_RESEARCH_BRIEF") === "on";
+export const briefPublisherFor = (env: { get(k: string): string | undefined }, publisher: BriefPublisher | null | undefined): BriefPublisher | null =>
+  researchBriefOn(env) && publisher ? publisher : null;
+// The reply with the brief's link as its report link (a verified, stored, read-back link only: the publisher returns what it stored).
+export async function withBriefLink(r: ResearchReply, userId: string, brief: ResearchBrief, publisher: BriefPublisher | null): Promise<ResearchReply> {
+  if (!publisher || r.report) return r;
+  const made = await publisher.publish(userId, brief).catch(() => null);
+  return made && /^https:\/\//.test(made.url) ? { ...r, report: { url: made.url, verified: true } } : r;
 }

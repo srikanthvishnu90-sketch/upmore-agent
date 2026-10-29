@@ -222,8 +222,22 @@ step test-paths portable_test_paths "${career_tests[@]}" "${shared_tests[@]}" "$
 step browser-runtime browser_ready
 if [[ $partition == all || $partition == architect ]]; then
   # Pending orders stay excluded; every landed architect test runs (an empty folder is a failure).
-  step architect-tests deno test -A --no-check --ignore=tests/architect/pending tests/architect/
-  step apply-cli-typecheck deno check scripts/apply.ts
+  if [[ -z ${GATE_ARCHITECT_SHARD:-} ]]; then
+    step architect-tests deno test -A --no-check --ignore=tests/architect/pending tests/architect/
+    step apply-cli-typecheck deno check scripts/apply.ts
+  else
+    # Architect shards (2026-10-29): GATE_ARCHITECT_SHARD=i/n runs shard i of n of the architect files, split by position
+    # in the sorted list (scripts/architect-shards.ts; tests/architect/ci-shard-partition.test.ts proves the shards
+    # partition the suite). Same command and flags as above, only the file list is a slice. The aggregate job
+    # (gate (architect)) fails unless every shard passed. The apply.ts typecheck runs in shard 1 only.
+    shard=${GATE_ARCHITECT_SHARD%/*}
+    shard_count=${GATE_ARCHITECT_SHARD#*/}
+    deno run -A scripts/architect-shards.ts verify "$shard_count"
+    mapfile -t architect_files < <(deno run -A scripts/architect-shards.ts list "$shard" "$shard_count")
+    printf 'GATE ARCHITECT SHARD %s: %s files\n' "$GATE_ARCHITECT_SHARD" "${#architect_files[@]}"
+    step "architect-tests-shard-$shard" deno test -A --no-check "${architect_files[@]}"
+    if [[ $shard == 1 ]]; then step apply-cli-typecheck deno check scripts/apply.ts; fi
+  fi
 fi
 if [[ $partition == all ]]; then
   step career-and-shared-tests node --test --test-concurrency=2 "${node_all_tests[@]}"
@@ -255,7 +269,7 @@ if [[ $partition == all || $partition == core ]]; then
   step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
   step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
   step career-bundle python3 scripts/build-router-core.py --career-only --check
-  step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts supabase/functions/site-signup/index.ts supabase/functions/site-careers/index.ts supabase/functions/career-cloud-runner/index.ts
+  step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-telegram-link/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts supabase/functions/site-signup/index.ts supabase/functions/site-careers/index.ts supabase/functions/career-cloud-runner/index.ts supabase/functions/outlook-oauth/index.ts
 fi
 
 # Every step's result again at the end: a CI log read from its tail still shows which step failed.

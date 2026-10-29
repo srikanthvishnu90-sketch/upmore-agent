@@ -129,7 +129,7 @@ export async function judgePromptTurn(o: { message: string; userId: string; now:
   try { items = await o.memory.standing(o.userId); }
   catch { return { reply: "I couldn't read your saved instructions just now, so nothing was changed. Try again in a minute.", status: "unreadable", intent }; }
   const mine = judgeInstructionsOf(items);
-  const when = o.judgeOn ? "Every search I run now judges the postings with it." : "The model judge is off right now, so searches are ranked by fit score; it applies once the judge is on.";
+  const when = o.judgeOn ? "Every search I run now judges the postings with it." : "It is saved; for now searches are ranked by how well each matches what you've confirmed, and it applies as soon as judging is switched on.";
   if (show) {
     return mine.length
       ? { reply: `Your judge prompt: "${mine[0]}". ${when}`, status: "shown", intent }
@@ -445,7 +445,9 @@ export async function searchJudgeTurn(o: {
       return `From ${plural(found.total, "posting")} for ${asked(ask)} in the saved snapshot of job boards${fetched ? ` (read ${fetched})` : ""}, not the live board: ${liveNote}. Some may have closed since.`;
     })();
   const facts = o.profile ? CareerProfile.confirmedFacts(o.profile) : [];
-  const fitWord = (h: SearchHit) => h.fit ? (h.fit.excluded ? `not eligible on your confirmed facts (${h.fit.reasons[0] ?? "a hard requirement"})` : `fit ${h.fit.score}/100`) : null;
+  // OWNER LIST #6 (2026-10-28): a fit is said in words, never as a raw score ("fit 12/100" read as a verdict on the person).
+  const matchWord = (n: number | null) => n == null ? "match not scored" : n >= 75 ? "strong match" : n >= 55 ? "good match" : "partial match";
+  const fitWord = (h: SearchHit) => h.fit ? (h.fit.excluded ? `not eligible on your confirmed facts (${h.fit.reasons[0] ?? "a hard requirement"})` : matchWord(h.fit.score)) : null;
   const lineOf = (h: SearchHit, i: number, tail: string | null) =>
     `${i + 1}. ${h.title} at ${h.company || "an employer the posting does not name"}${where(h) ? ` — ${where(h)}` : ""}${h.url ? ` (${h.url})` : ""}${tail ? `. ${tail}` : ""}${/[.!?]$/.test(tail ?? "") ? "" : "."}`;
   const top = hits.slice(0, N);
@@ -470,10 +472,10 @@ export async function searchJudgeTurn(o: {
     if (!o.profile || !facts.length) header += " You have no confirmed facts yet, so every verdict rests on the posting alone.";
   } else {
     rows = top.map((h) => ({ h, tail: fitWord(h) }));
-    const why = o.judge.on ? "the judge is not set up here" : "the model judge is off";
+    // OWNER LIST #6: no internal words ("the model judge is off") in the reply.
     header = found.ranked_by === "newest"
-      ? `Not judged (${why}), and you have no confirmed facts yet, so these are newest first.`
-      : `Ranked by fit score to your confirmed facts; not judged (${why}).`;
+      ? "You have no confirmed facts yet, so these are newest first."
+      : "Ranked by how well each matches what you've confirmed.";
   }
   const listed = rows.slice(0, show);
   const more = rows.length - listed.length;

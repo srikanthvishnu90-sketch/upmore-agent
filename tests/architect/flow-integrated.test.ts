@@ -19,6 +19,7 @@
 //
 // The person is synthetic (TEST). Their facts file carries name and email only, each with its source. Sponsorship and
 // work authorization come only from the person's own chat messages, through their own "use N".
+import { confirmedResumeSql } from "../flow/resume-seed.ts"; // OWNER RULE 2026-10-26: the person has a confirmed resume
 import assertNode from "node:assert/strict";
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const assertEquals = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
@@ -107,6 +108,7 @@ Deno.test({
       await pg.sql(`insert into auth.users (id, email) values ('${PERSON}', 'ada.tester@example.test');
         insert into public.profiles (id) values ('${PERSON}');
         insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false,"daily_limit":"3"}');
+        ${confirmedResumeSql(PERSON, "%PDF-1.4\n% synthetic integrated-test resume\n%%EOF\n")}
         insert into public.agent_threads (id, user_id, title) values ('${THREAD}', '${PERSON}', 'TEST');
         insert into public.agent_messages (thread_id, role, content, created_at) values
           ('${THREAD}', 'user', 'I''m authorized to work in the US', '2026-10-20T15:00:00Z'),
@@ -248,10 +250,14 @@ Deno.test({
         assert(/changed after it was approved/.test(row.reason), row.reason);
       });
 
-      await t.step("one ledger: an employer the extension already applied to within 30 days is refused at the tap", async () => {
-        assertEquals((await tap(D.url)).result, "company_cooldown");
-        assertEquals(await job(D), null);
-        assertEquals(D.posts.length, 0);
+      await t.step("one ledger: another posting at an employer the extension already applied to is queued (D-MS-3: only the same posting is a duplicate)", async () => {
+        // D-MS-3 (owner, 2026-10-27): "one per company per 30 days" is gone. The extension's report was another posting at
+        // this employer, so the tap queues this one (the tampered one above was closed unsent, so the person's own pace of 3
+        // still has room); nothing is sent until a drive claims it.
+        const r = (await tap(D.url)).result;
+        assertEquals(r, "queued", "the employer is no reason to refuse");
+        assertEquals((await job(D)).state, "queued");
+        assertEquals(D.posts.length, 0, "queued, not sent");
       });
     } finally {
       for (const s of [A, B, C, D, E]) await s.close();

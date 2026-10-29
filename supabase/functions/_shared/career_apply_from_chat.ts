@@ -88,12 +88,16 @@ export async function checkListed(picks: Listed[], get?: ((id: string) => Promis
 // True when the profile the server prepares from (career_apply_profile_for: the person's most recent thread's profile)
 // holds at least one resume entry the person confirmed with its recorded event (the trust contract's minimum); false when
 // it holds none; null when it could not be read (unknown decides nothing).
+// OWNER RULE (2026-10-26): the entries' events must be on record too (career_resume_on_file, 20261026210016: each
+// confirmed entry's confirmation_event_id names a fact_confirmed event of this person). Only that function answers:
+// when it errors, is missing or says anything but true/false, the answer is null (unknown), which every caller treats
+// as "no resume" (fail closed). There is no weaker profile-only fallback (review of #194, 2026-10-27).
 export function resumeOnFileReader(admin: { rpc(name: string, args: Record<string, unknown>): PromiseLike<any> }, userId: string): () => Promise<boolean | null> {
   return async () => {
     let r: any;
-    try { r = await admin.rpc("career_apply_profile_for", { p_user: userId }); } catch { return null; }
-    if (r?.error) return null;
-    return hasConfirmedResume(r?.data);
+    try { r = await admin.rpc("career_resume_on_file", { p_user: userId }); } catch { return null; }
+    if (r && !r.error && typeof r.data === "boolean") return r.data;
+    return null;
   };
 }
 // deno-lint-ignore no-explicit-any
@@ -104,7 +108,9 @@ export function hasConfirmedResume(profile: any): boolean {
 }
 export const NO_RESUME_REASON = "no resume on file: I have no confirmed resume to prepare it from";
 export const NO_RESUME_NEXT = "Paste or attach your resume, confirm it, then ask again.";
-// With the server prepare off, a posting is queued without a resume on file; nothing can be prepared from it until one is.
+// OWNER RULE (2026-10-26, "never submit applications without a real resume"): with no confirmed resume nothing is queued,
+// whether or not the server prepare is on (PR #175 queued the want when it was off; that is superseded). Kept for the
+// wording of older replies only.
 export const NO_RESUME_WAIT = "I have no confirmed resume on file yet, so nothing can be prepared until you paste or attach your resume and confirm it.";
 
 // --------------------------------------------------------------------------------------------- the server-side prepare
@@ -121,7 +127,8 @@ export async function kickPrepare(o: {
     const res = await o.fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-      body: JSON.stringify({ user_id: o.userId, job_ids: o.jobIds.slice(0, 100) }),
+      // Every id (NO LIMITS): the door splits a big request into parts; nothing is cut here.
+      body: JSON.stringify({ user_id: o.userId, job_ids: o.jobIds }),
       signal: AbortSignal.timeout(4000),
     });
     await res.body?.cancel().catch(() => {});

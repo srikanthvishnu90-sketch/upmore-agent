@@ -28,7 +28,7 @@ import type { DigestStore, InterviewStore } from "./career_brief_store.ts";
 import { buildDigest, DEFAULT_DIGEST, digestDue } from "./career_digest.ts";
 import { type AheadCandidate, aheadCap, aheadCardText, type AheadOutcome, type AheadStore, AHEAD_WINDOW_MS, selectAhead, stopWhy } from "./career_prepare_ahead.ts";
 
-export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number; mail_model?: string; mail_model_ask?: string; mail_model_calls?: number; mail_model_decided?: number; mail_model_capped?: number; below_threshold?: number; watch_off?: number; watch_unread?: number; ahead_people?: number; ahead_picked?: number; ahead_ready?: number; ahead_cards?: number; below_fit?: number; fit_scored?: number }
+export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number; mail_model?: string; mail_model_ask?: string; mail_model_calls?: number; mail_model_decided?: number; mail_model_capped?: number; below_threshold?: number; watch_off?: number; watch_unread?: number; ahead_people?: number; ahead_picked?: number; ahead_ready?: number; ahead_cards?: number; below_fit?: number; fit_scored?: number; intro_reminders?: number; people_sweeps?: number }
 // WO-091c: a rail that failed for some people still reports what it did for the rest. The error carries that result as
 // `partial`, so the scheduled run records true counts beside the failure, and the message is unchanged.
 export function partialError<T>(message: string, partial: T): Error & { partial: T } {
@@ -272,7 +272,7 @@ export async function runCards(o: {
 // was read and moves the cursor only that far. One person's failure does not stop the others; the run then records it.
 export const MAIL_PEOPLE_PER_RUN = 200, MAIL_OVERLAP_MS = 10 * 60000, MAIL_FIRST_LOOKBACK_MS = 3 * 86400000;
 // model (WO-040): the second pass, "off" unless CAREER_MAIL_MODEL=on; model_calls asked, model_decided read with confidence.
-export interface MailStats { people: number; not_wired: number; statuses: number; followups: number; briefs: number; brief_ms_max: number | null; confirmations: number; asks: number; model?: "off" | "on" | "NOT_WIRED"; model_ask?: string; model_calls?: number; model_decided?: number; model_capped?: number }
+export interface MailStats { people: number; not_wired: number; statuses: number; followups: number; briefs: number; brief_ms_max: number | null; confirmations: number; asks: number; model?: "off" | "on" | "NOT_WIRED"; model_ask?: string; model_calls?: number; model_decided?: number; model_capped?: number; disconnected?: number }
 function awake(now: number, tz: string | null | undefined, q: { quiet_start?: number; quiet_end?: number }): number {
   const quiet = { quiet_start: q.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: q.quiet_end ?? DEFAULT_PREFS.quiet_end };
   let at = now;
@@ -346,6 +346,10 @@ export async function runMail(o: {
       } finally { reserved -= want; }
     }
     const plan = planUpdates(r.mails, apps, o.now, decided);
+    // Google verification (2026-10-26): the Gmail was read before this point; if the person disconnected it meanwhile, nothing
+    // read from it is saved or said (checked again before each kind of write below). A store that cannot tell never skips.
+    const gone = async () => o.store.stillConnected ? !(await o.store.stillConnected(p.user_id)) : false;
+    if (await gone()) { stats.disconnected = (stats.disconnected ?? 0) + 1; return; }
     const fresh = await o.store.record(p.user_id, plan.events);
     const at = awake(o.now, p.tz, p);
     for (const t of plan.texts) {
@@ -363,6 +367,7 @@ export async function runMail(o: {
         had.push(done.row);
       }
     }
+    if (await gone()) { stats.disconnected = (stats.disconnected ?? 0) + 1; return; }
     for (const d of plan.drafts) {
       if (await o.store.saveDraft(p.user_id, d) && await o.outbox.enqueue(p.user_id, { key: `followup:${d.key}`, kind: "followup", text: draftOffer(d), at })) stats.followups++;
     }
@@ -379,7 +384,7 @@ export async function runMail(o: {
         if (await o.outbox.enqueue(p.user_id, { key: `status:confirmed:${c.id}`, kind: "status", text, at })) stats.statuses++;
       }
     }
-    if (r.readThrough !== null) await o.store.saveCursor(p.user_id, r.readThrough);
+    if (r.readThrough !== null && !(await gone())) await o.store.saveCursor(p.user_id, r.readThrough);
   };
   const people = await o.store.people(MAIL_PEOPLE_PER_RUN), size = o.batch ?? 5;
   for (let i = 0; i < people.length; i += size) {

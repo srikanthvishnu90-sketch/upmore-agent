@@ -1,7 +1,8 @@
 // Review probes for #280 (written first; each failed against 9b7d344). Placeholders, label spoofing, the records label, approval order,
 // the fail-closed fact guard, and Remove's honesty.
 import assertNode from "node:assert/strict";
-import { mintFileToken } from "../../supabase/functions/_shared/file_link.ts";
+import { signedIn } from "./file-session-fakes.ts";
+const A = signedIn();
 import { actionsOf, textOf, validateKind, type FileRecord } from "../../supabase/functions/_shared/file_kinds.ts";
 import { createFileService, memoryFileStore, type FileKindStore } from "../../supabase/functions/_shared/file_service.ts";
 import { createFileTool } from "../../supabase/functions/_shared/agent/file_tool.ts";
@@ -61,9 +62,9 @@ Deno.test("probe 4b: the approval is recorded BEFORE any send attempt", async ()
   const seen: unknown[] = [];
   const stub: FileStore = { async remember() {}, async recall() { return null; }, async rememberList() {}, async recallList() { return null; }, async postings() { return []; }, async save() { return "saved"; }, async prepared() { return null; }, async applied() { return false; },
     async want() { return { result: "queued" }; }, async appRow() { return null; }, async claimLink() { return true; }, async wanted() { return false; } };
-  const d: FileDeps = { store: stub, now: () => NOW, env: { get: (k) => ENV[k] }, cards: { async open() { throw new Error("no"); } }, tap: {} as never, files: svc,
+  const d: FileDeps = { ...A.deps, store: stub, now: () => NOW, env: { get: (k) => ENV[k] }, cards: { async open() { throw new Error("no"); } }, tap: {} as never, files: svc,
     fileEffects: { async introduce(u: string) { seen.push((await store.get(u, made.id))?.state.choice); return { ok: false, reason: "mail down" }; } } };
-  const t = (await mintFileToken({ secret: SECRET, userId: U, list: made.id, now: NOW, kind: "s" }))!;
+  const t = await A.tok(U, made.id, NOW);
   const tag = (await store.get(U, made.id))!.tag!;
   const r = await handleFile(new Request("https://x.example/f", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ t, action: "introduce", tag }).toString() }), d);
   eq(seen, ["approved"], "at send time the approval was already stored");
@@ -85,8 +86,8 @@ Deno.test("probe 6: Remove reports failure when the revoke did nothing", async (
   const svc = createFileService({ store, env: { get: (k) => ENV[k] }, now: () => NOW });
   const made = (await svc.create(U, "research_brief", BRIEF)) as { id: string };
   const stub = { async recallList() { return null; } } as unknown as FileStore;
-  const d: FileDeps = { store: stub, now: () => NOW, env: { get: (k) => ENV[k] }, cards: {} as never, tap: {} as never, files: svc };
-  const t = (await mintFileToken({ secret: SECRET, userId: U, list: made.id, now: NOW, kind: "s" }))!;
+  const d: FileDeps = { ...A.deps, store: stub, now: () => NOW, env: { get: (k) => ENV[k] }, cards: {} as never, tap: {} as never, files: svc };
+  const t = await A.tok(U, made.id, NOW);
   const r = await handleFile(new Request("https://x.example/f", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ t, action: "remove" }).toString() }), d);
   const body = await r.text();
   assert(r.status >= 500 || r.status === 409, `status ${r.status}`);
@@ -155,9 +156,9 @@ Deno.test("probe r3-2: two simultaneous Introduce taps attempt exactly one send"
   let sends = 0;
   const stub: FileStore = { async remember() {}, async recall() { return null; }, async rememberList() {}, async recallList() { return null; }, async postings() { return []; }, async save() { return "saved"; }, async prepared() { return null; }, async applied() { return false; },
     async want() { return { result: "queued" }; }, async appRow() { return null; }, async claimLink() { return true; }, async wanted() { return false; } };
-  const d: FileDeps = { store: stub, now: () => NOW, env: { get: (k) => ENV[k] }, cards: { async open() { throw new Error("no"); } }, tap: {} as never, files: svc,
+  const d: FileDeps = { ...A.deps, store: stub, now: () => NOW, env: { get: (k) => ENV[k] }, cards: { async open() { throw new Error("no"); } }, tap: {} as never, files: svc,
     fileEffects: { async introduce() { sends++; await new Promise((r) => setTimeout(r, 15)); return { ok: true }; } } };
-  const t = (await mintFileToken({ secret: SECRET, userId: U, list: made.id, now: NOW, kind: "s" }))!;
+  const t = await A.tok(U, made.id, NOW);
   const tag = (await store.get(U, made.id))!.tag!;
   const tap = (action: string) => handleFile(new Request("https://x.example/f", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ t, action, tag }).toString() }), d);
   await Promise.all([tap("introduce"), tap("introduce"), tap("introduce"), tap("pass")]);

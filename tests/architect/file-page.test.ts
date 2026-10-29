@@ -2,11 +2,13 @@
 // under it), opened by a link from the bot, logged in by Telegram identity (Mini App initData) or a signed single-user link.
 // Everything runs over memory stores and a fake clock: no network, no model, no database.
 import assertNode from "node:assert/strict";
-import { FILE_TTL_MS, feedUrlsFor, mintFileToken, SESSION_TTL_MS, verifyFileToken } from "../../supabase/functions/_shared/file_link.ts";
+import { FILE_TTL_MS, feedUrlsFor, mintFileToken, verifyFileToken } from "../../supabase/functions/_shared/file_link.ts";
 import { initDataHash, verifyInitData } from "../../supabase/functions/_shared/telegram_webapp.ts";
 import { handleFile, type AppRow, type FileDeps, type FileStore } from "../../supabase/functions/trainee-file/handler.ts";
 import { hashTag, jobViewOf, refOf, sendJobCards, type PreparedRow } from "../../supabase/functions/_shared/telegram_jobs.ts";
 import type { TapStore } from "../../supabase/functions/_shared/channel_card_tap.ts";
+import { SESSION_ID, SESSION_TTL_MS as SESSION_MS, sha256 } from "../../supabase/functions/_shared/file_session.ts";
+import { signedIn } from "./file-session-fakes.ts";
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
@@ -29,7 +31,6 @@ function mem(n = 3, o: { unprepared?: number[]; apps?: Record<number, AppRow>; w
   const kv = new Map<string, any>();
   const preps = new Map<number, PreparedRow | null>();
   const apps = new Map<number, AppRow>(Object.entries(o.apps ?? {}).map(([k, v]) => [Number(k), v]));
-  const used = new Set<string>();
   const log = { wants: [] as number[], answered: [] as any[], opened: [] as string[] };
   const num = (jobId: string) => Number(jobId.split(":").pop());
   const store: FileStore = {
@@ -43,7 +44,6 @@ function mem(n = 3, o: { unprepared?: number[]; apps?: Record<number, AppRow>; w
     async applied(u, jobId) { return u === U && apps.has(num(jobId)); },
     async want(_u, job) { log.wants.push(num(job.job_id)); return { result: "queued" }; },
     async appRow(u, jobId) { return u === U ? apps.get(num(jobId)) ?? null : null; },
-    async claimLink(_u, jti) { if (used.has(jti)) return false; used.add(jti); return true; },
     async wanted(u, url) { return u === U && (o.wanted ?? []).includes(Number(url.split("/").pop())); },
   };
   const refs: string[] = [];
@@ -68,11 +68,14 @@ function deps(m: ReturnType<typeof mem>, o: { now?: number; hash?: (n: number) =
     async answer(_u, card, approve) { m.log.answered.push({ card, approve, n: current }); return approve.length ? [{ n: 1, company: "Acme", result: "queued" }] : [{ n: 1, company: "Acme", result: "declined" }]; },
   };
   const env: Record<string, string | undefined> = { TRAINEE_FILE_LINK_SECRET: SECRET, TRAINEE_FILE_BASE_URL: BASE, TELEGRAM_BOT_TOKEN: BOT, TRAINEE_BOT_URL: "https://t.me/TraineeBot", ...(o.env ?? {}) };
-  return { store: m.store, now: () => o.now ?? NOW, env: { get: (k) => env[k] },
+  return { ...A.deps, store: m.store, now: () => o.now ?? NOW, env: { get: (k) => env[k] },
     cards: { async open(_u, ids) { m.log.opened.push(...ids); current = Number(ids[0].split("-").pop()); return { id: CARD, items: [{ n: 1, prepared_id: ids[0], payload_hash: hash(current) }], shown_at: new Date(NOW).toISOString() }; } },
     tap, userOfTelegram: async (id) => o.telegramUsers?.[id] ?? null };
 }
-const tok = async (user = U, list = LIST, now = NOW) => (await mintFileToken({ secret: SECRET, userId: user, list, now }))!;
+// Sign-in (20261029230000): a server session per account, opened the way the phone code step opens one.
+const A = signedIn();
+const tok = async (user = U, list = LIST, now = NOW) => await A.tok(user, list, now);
+const signed = async (user = U, list = LIST, now = NOW) => (await mintFileToken({ secret: SECRET, userId: user, list, now }))!;
 const linkTok = async (user = U, list = LIST) => (await mintFileToken({ secret: SECRET, userId: user, list, now: NOW, kind: "l" }))!;
 // A signed-in page read: the session cookie (the link itself is exchanged once, see the link tests).
 const get = (d: FileDeps, t: string, extra = "") => handleFile(new Request(`https://x.example/f${extra ? "?" + extra.replace(/^&/, "") : ""}`, { headers: { cookie: `tf_s=${t}` } }), d);
@@ -93,11 +96,11 @@ async function signedInit(telegramId: string, authDate: number, token = BOT, ext
 
 // ================================================================== tokens
 Deno.test("token: binds one user and one list; expires; refuses forgery, a wrong key, garbage and a missing secret", async () => {
-  const t = await tok();
+  const t = await signed();
   const v = await verifyFileToken(t, SECRET, NOW + 1000);
   assert(v.ok && v.claims.u === U && v.claims.r === LIST && v.claims.e === NOW + FILE_TTL_MS);
   eq(await verifyFileToken(t, SECRET, NOW + FILE_TTL_MS), { ok: false, why: "expired" });
-  const other = await tok(V);
+  const other = await signed(V);
   eq(await verifyFileToken(`${other.split(".").slice(0, 2).join(".")}.${t.split(".")[2]}`, SECRET, NOW), { ok: false, why: "bad_signature" });
   eq(await verifyFileToken(t, "another-secret-0123456789-abcdef", NOW), { ok: false, why: "bad_signature" });
   for (const junk of ["", "x", "v1.a.b", null, undefined, 5]) assert(!(await verifyFileToken(junk, SECRET, NOW)).ok);
@@ -152,8 +155,10 @@ Deno.test("mini app: opening the page with no token serves the sign-in step; sig
   const html = await ok.text();
   assert(html.includes("Acme") && html.includes("Co2"));
   const t = html.match(/name="t" value="([^"]+)"/)![1];
-  const v = await verifyFileToken(t, SECRET, NOW);
-  assert(v.ok && v.claims.u === U && v.claims.r === LIST && v.claims.e === NOW + SESSION_TTL_MS, "a session token for the verified account only");
+  assert(SESSION_ID.test(t), "an opaque server session id, never a signed token");
+  const row = A.sessions.get(await sha256(t))!;
+  assert(row.user_id === U && row.list === LIST && row.via === "telegram" && row.telegram_id === "777" && row.phone === null && Date.parse(row.expires_at) === NOW + SESSION_MS, "a Telegram session for the verified account only");
+  assert(![...A.sessions.keys()].includes(t), "the database side holds the hash, never the id");
   // a Telegram account that is not linked, a tampered payload, an expired one
   eq((await post(d, { list: LIST, init: await signedInit("999", NOW / 1000) })).status, 403);
   const bad = new URLSearchParams(await signedInit("777", NOW / 1000)); bad.set("user", JSON.stringify({ id: 999 }));
@@ -229,19 +234,21 @@ Deno.test("isolation: user V's token never shows U's list, even with U's list id
   eq(m.log.answered, []);
 });
 
-Deno.test("link states: expired, invalid and unconfigured show a clear state, no job data, no Apply, and a 'Get a new link' button", async () => {
+Deno.test("link states: an expired session, an invalid one and an unconfigured page show a clear state, no job data, no Apply, and a 'Get a new link' button", async () => {
   const m = mem(2); await m.ready;
   const t = await tok();
-  const late = await get(deps(m, { now: NOW + FILE_TTL_MS + 5 }), t);
-  eq(late.status, 410);
+  const late = await get(deps(m, { now: NOW + SESSION_MS + 5 }), t);
+  eq(late.status, 401);
   const h = await late.text();
-  assert(/expired/i.test(plain(h)) && !h.includes("Acme") && !/<form/.test(h) && /href="https:\/\/t\.me\/TraineeBot"[^>]*>Get a new link</.test(h));
-  eq((await get(deps(m), t.slice(0, -3) + "AAA")).status, 403);
-  eq((await get(deps(m, { env: { TRAINEE_FILE_LINK_SECRET: undefined } }), t)).status, 503);
+  assert(/signed out/i.test(plain(h)) && !h.includes("Acme") && !/<form/.test(h) && /href="https:\/\/t\.me\/TraineeBot"[^>]*>Get a new link</.test(h));
+  eq((await get(deps(m), t.slice(0, -3) + "aaa")).status, 403);
+  eq((await get(deps(m, { env: { TRAINEE_FILE_LINK_SECRET: undefined } }), t)).status, 200, "a signed-in session does not need the link secret");
   eq((await handleFile(new Request("https://x.example/f"), deps(m))).status, 403);
-  eq((await post(deps(m, { now: NOW + FILE_TTL_MS + 5 }), { t, action: "apply", ref: await ref(1), tag: hashTag(H) })).status, 410);
+  eq((await post(deps(m, { now: NOW + SESSION_MS + 5 }), { t, action: "apply", ref: await ref(1), tag: hashTag(H) })).status, 401);
   eq(m.log.answered, []);
   eq((await handleFile(new Request("https://x.example/f", { method: "DELETE" }), deps(m))).status, 405);
+  const off = { ...deps(m) }; delete off.sessions;
+  eq((await get(off, t)).status, 503, "no session store: nothing opens");
 });
 
 // ================================================================== status words
@@ -450,7 +457,7 @@ Deno.test("link preview and Mini App: og/twitter tags from real counts, theme-co
 });
 
 // ================================================================== single-use link, cookie session
-Deno.test("link: the fallback link is taken once, exchanged for an HttpOnly Secure SameSite=Lax cookie, and redirects to a clean URL", async () => {
+Deno.test("link: the bot's link opens a phone sign-in, never the list; the pending link rides in an HttpOnly cookie and the URL is clean", async () => {
   const m = mem(2); await m.ready;
   const d = deps(m);
   const link = await linkTok();
@@ -458,42 +465,31 @@ Deno.test("link: the fallback link is taken once, exchanged for an HttpOnly Secu
   eq(r.status, 303);
   eq(r.headers.get("location"), "/file");
   const sc = r.headers.get("set-cookie")!;
-  assert(/^tf_s=v1\./.test(sc) && /HttpOnly/.test(sc) && /Secure/.test(sc) && /SameSite=Lax/.test(sc) && /Max-Age=7200/.test(sc));
-  assert(!r.headers.get("location")!.includes("v1.") && !(await r.text()).includes("v1."));
-  const cookie = sc.split(";")[0];
-  const page = await handleFile(new Request("https://x.example/file", { headers: { cookie } }), d);
+  assert(/^tf_l=v1\./.test(sc) && /HttpOnly/.test(sc) && /Secure/.test(sc) && /SameSite=Lax/.test(sc) && /Max-Age=900/.test(sc), sc);
+  assert(!/tf_s=/.test(sc), "no session from a link");
+  const page = await handleFile(new Request("https://x.example/file", { headers: { cookie: sc.split(";")[0] } }), d);
   eq(page.status, 200);
   const html = await page.text();
-  assert(html.includes("Acme"));
-  assert(!/href="[^"]*[?&]t=/.test(html) && !/[?&]t=v1\./.test(html), "no token in any URL on the page");
-  // the link cannot be used again, from anywhere
-  const again = await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(link)}`), d);
-  eq(again.status, 410);
-  assert(/already used/.test(plain(await again.text())) && !(await again.text().catch(() => "")).includes("Acme"));
+  assert(/Sign in/.test(html) && /name="phone"/.test(html) && /autocomplete="tel"/.test(html), "the phone step");
+  for (const secret of ["Acme", "Data Analyst", "Co2", "ada-resume", ">Apply<", 'value="apply"', "+1512555"]) assert(!html.includes(secret), `the sign-in page shows no ${secret}`);
+  assert(!/name="t"/.test(html), "no session on the sign-in page");
   // a link token is never a session: not for actions, not as a cookie
-  const sess = cookie.split("=")[1];
   eq((await post(d, { t: link, action: "apply", ref: await ref(1), tag: hashTag(H) })).status, 403);
   eq((await handleFile(new Request("https://x.example/file", { headers: { cookie: `tf_s=${link}` } }), d)).status, 403);
   eq(m.log.answered, []);
-  // and a session token is not a link
-  eq((await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(sess)}`), d)).status, 403);
-  // the session works for an action only with its own value in the form (a cookie alone approves nothing: no cross-site posting)
-  const noField = await handleFile(new Request("https://x.example/file", { method: "POST", headers: { cookie, "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ action: "apply", ref: await ref(1), tag: hashTag(H) }).toString() }), d);
-  eq(noField.status, 403);
-  eq(m.log.answered, []);
-  eq((await post(d, { t: sess, action: "apply", ref: await ref(1), tag: hashTag(H) })).status, 200);
-  eq(m.log.answered.length, 1);
 });
 
-Deno.test("link: a preview crawler (Telegram) reads the preview tags without using up the link or seeing any job; an expired or forged link never sets a cookie", async () => {
+Deno.test("link: a preview crawler (Telegram) reads the brand card only, never a count or a job, and does not touch the link; an expired or forged link never sets a cookie", async () => {
   const m = mem(3); await m.ready;
   const d = deps(m);
   const link = await linkTok();
   const bot = await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(link)}`, { headers: { "user-agent": "TelegramBot (like TwitterBot)" } }), d);
   eq(bot.status, 200);
   const h = await bot.text();
-  assert(h.includes('og:title" content="3 matches for you"') && !h.includes("Acme") && !bot.headers.get("set-cookie"));
-  eq((await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(link)}`), d)).status, 303, "the person's own open still works once");
+  assert(h.includes('og:title" content="Your jobs from Trainee"') && !/\b3\b match/.test(h) && !h.includes("Acme") && !bot.headers.get("set-cookie"));
+  const jti = JSON.parse(atob(link.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).j;
+  assert(!A.logins.has(jti), "the crawler began no sign-in");
+  eq((await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(link)}`), d)).status, 303, "the person's own open still works");
   const late = await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent(await linkTok())}`), deps(m, { now: NOW + FILE_TTL_MS + 5 }));
   eq(late.status, 410); assert(!late.headers.get("set-cookie"));
   const forged = await handleFile(new Request(`https://x.example/file?t=${encodeURIComponent((await linkTok()).slice(0, -3) + "AAA")}`), d);

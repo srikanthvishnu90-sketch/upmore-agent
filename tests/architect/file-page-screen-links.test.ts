@@ -2,7 +2,9 @@
 // posting is not queued or approved), and the list-page link is produced by code (feedUrlsFor), goes out as code-written text, and
 // passes the reply-shape link filter exactly (a cut-off copy of it does not). Memory stores, fake transports, no network.
 import assertNode from "node:assert/strict";
-import { feedUrlsFor, mintFileToken } from "../../supabase/functions/_shared/file_link.ts";
+import { feedUrlsFor } from "../../supabase/functions/_shared/file_link.ts";
+import { signedIn } from "./file-session-fakes.ts";
+const A = signedIn();
 import { handleFile, type FileDeps, type FileStore } from "../../supabase/functions/trainee-file/handler.ts";
 import { jobViewOf, refOf, sendJobCards, hashTag, type PreparedRow } from "../../supabase/functions/_shared/telegram_jobs.ts";
 import { shapeReply, urlsIn } from "../../supabase/functions/_shared/channel_shape.ts";
@@ -34,11 +36,11 @@ async function page(o: { preparedFor?: number[] }) {
   const refs: string[] = [];
   for (const n of [1, 2]) { const v = jobViewOf(hit(n), row(n)); const r = await refOf(U, v.job_id); refs.push(r); await store.remember(U, r, v, "text"); }
   await store.rememberList(U, LIST, refs);
-  const d: FileDeps = { store, now: () => NOW, env: { get: (k) => ({ TRAINEE_FILE_LINK_SECRET: SECRET, TRAINEE_FILE_BASE_URL: BASE, TRAINEE_BOT_URL: "https://t.me/TraineeBot" } as Record<string, string>)[k] },
+  const d: FileDeps = { ...A.deps, store, now: () => NOW, env: { get: (k) => ({ TRAINEE_FILE_LINK_SECRET: SECRET, TRAINEE_FILE_BASE_URL: BASE, TRAINEE_BOT_URL: "https://t.me/TraineeBot" } as Record<string, string>)[k] },
     cards: { async open(_u, ids) { log.opened++; return { id: "c", items: [{ n: 1, prepared_id: ids[0], payload_hash: H }], shown_at: new Date(NOW).toISOString() } as any; } },
     tap: { async card(_u, id) { return { id, items: [{ n: 1, prepared_id: pid(1), payload_hash: H }], state: "open", user_id: U } as any; }, async prepared(_u, _ids) { return [{ id: pid(1), payload_hash: H, company: "Co1" }]; },
       async answer(_u, _c, approve) { log.answered++; return approve.length ? [{ n: 1, company: "Co1", result: "queued" }] : []; } } };
-  const t = (await mintFileToken({ secret: SECRET, userId: U, list: LIST, now: NOW }))!;
+  const t = await A.tok(U, LIST, NOW);
   const post = (f: Record<string, string>) => handleFile(new Request("https://x.example/f", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ t, ...f }).toString() }), d);
   return { d, log, refs, post };
 }

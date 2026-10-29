@@ -220,6 +220,7 @@ MIGRATIONS=(
   20261029170000_career_resume_on_file_quarantine.sql
   20261029180000_career_apply_refusal_requeue.sql
   20261029190000_career_apply_unstarted_requeue.sql
+  20261029230000_trainee_file_sessions.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -319,6 +320,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_resume_on_file' and prosrc like '%owner-delegated%')"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_apply_jobs' and column_name = 'not_before') and exists (select 1 from pg_proc where proname = 'career_apply_requeue_refused_for') and exists (select 1 from pg_trigger where tgname = 'career_apply_jobs_not_before') and exists (select 1 from pg_proc where proname = 'career_apply_jobs_fixed' and prosrc like '%career.apply_requeue%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_requeue_unstarted_for') and exists (select 1 from pg_proc where proname = 'career_apply_requeue_unstarted_own')"
+  "to_regclass('public.trainee_file_sessions') is not null and to_regclass('public.trainee_file_logins') is not null and exists (select 1 from pg_proc where proname = 'trainee_file_login_count') and exists (select 1 from pg_proc where proname = 'trainee_file_sessions_revoke_all')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

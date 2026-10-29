@@ -329,7 +329,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // 2026-10-28: this turn's cost row, always (see turnLedger): calls made, zero, or unrecorded. Written in finally, below.
     const ledger = turnLedger(admin, user.id, tid);
     // The mock-interview judge's model call goes through the same ceiling (shadowed like callModel).
-    const supabaseMockStore = (a: any) => supabaseMockStoreUncapped(a, { callModel });
+    // F09: a screen Yes / No tap (body.screen_tap) is never an answer to a mock question: with a tap the mock sees no question as the last word.
+    const supabaseMockStore = (a: any) => {
+      const store = supabaseMockStoreUncapped(a, { callModel });
+      return body.screen_tap && typeof body.screen_tap === "object" ? { ...store, lastAssistantIntent: async () => null } : store;
+    };
     // LAUNCH READINESS R1: this person's turns run one at a time, in arrival order (_shared/career_turn_gate.ts). The
     // ticket is taken before the thread is read and given back after the commit, on every path (finally, below).
     let gate: TurnGate | null = null;
@@ -443,7 +447,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         : null;
       // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
       // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
-      const mock = !tapIn && !card && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const mock = !card && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await mockTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseMockStore(admin) })
         : null;
       // Ask once: "what do you need from me" shows the questions only the person can answer, and the text right after

@@ -19,7 +19,7 @@ import { approvedQuestionsAfterRefusal, assertApprovedPayload, factsFromPayload,
 import { questionsToStore } from "../career-browser/ask-once.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { authorizeCurrentCloudJob } from "./current_sources.ts";
-import { dbHostGate, fileJournal, handBack, type HostGate, type Journal, massRun, type Pacing, pacingFrom, requeueMissing, sentNothingRefusal } from "../career-browser/mass-run.ts";
+import { dbHostGate, fileJournal, handBack, type HostGate, type Journal, massRun, type Pacing, pacingFrom, requeueMissing, sentNothingRefusal, unstartedWhy } from "../career-browser/mass-run.ts";
 
 export interface CloudJob {
   id: string;
@@ -54,6 +54,11 @@ export interface CloudQueue {
   // when it may be handed out again (epoch ms), or null when the database does not have the requeue yet. Absent: the
   // job is recorded not_submitted as before.
   requeue?(job: CloudJob, reason: string, retryAfterS: number | null, until: number): Promise<number | null>;
+  // A claim whose engine never started (the worker stopping, no start inside its lease budget, its host held): the same
+  // job back to the queue, not handed out before `until` (career_apply_requeue_unstarted_for, 20261029190000). Returns
+  // when it may be handed out again (epoch ms), or null when it cannot be put back (a database without it, or one that
+  // refuses it, e.g. a card approval that expired since): then it is recorded not sent. Absent: recorded not sent.
+  putBack?(job: CloudJob, why: string, until: number): Promise<number | null>;
 }
 // "interrupted": the worker was stopped on purpose (systemctl stop, Ctrl+C) while the engine ran. The application is
 // unknown and never re-driven, but a deliberate shutdown is not a failure the employer saw, so the throttle skips it.
@@ -256,9 +261,10 @@ export async function runCloudJob(job: CloudJob, d: {
 // before), one engine process and so one browser context per job, each employer host paced (MASS_SUBMIT_HOST_MAX at once,
 // MASS_SUBMIT_HOST_SPACING_MS between starts, widened after a verification check; mass-run.ts). A queue that cannot be
 // read waits and asks again. stop() ends claiming; the applications in flight finish and are recorded, and any claimed
-// but not started is recorded not_submitted (nothing was sent). With a journal (CLOUD_JOURNAL_DIR) a worker that died
-// leaves each started job recorded unknown_outcome on its next start (never re-driven) and each claimed-but-unstarted one
-// run under its lease, or ended as not sent when its lease has no time left.
+// but not started goes back to the queue, the same job, to run later once (queue.putBack, 20261029190000; nothing was
+// sent; a database without it records it not_submitted). With a journal (CLOUD_JOURNAL_DIR) a worker that died leaves
+// each started job recorded unknown_outcome on its next start (never re-driven) and each claimed-but-unstarted one run
+// under its lease, or put back when its lease budget has no time left.
 export async function cloudLoop(o: {
   queue: CloudQueue;
   runEngine: RunEngine;
@@ -328,6 +334,27 @@ export async function cloudLoop(o: {
       const recorded = await finishOnce(job, "not_submitted", "HOST_RATE_LIMITED", "not_sent", "HOST_RATE_LIMITED");
       log(`${job.id}: not_submitted (not_sent, HOST_RATE_LIMITED)${recorded ? "" : "; NOT RECORDED: the queue marks it unknown after 15 minutes"}`);
       const r = { id: job.id, user_id: job.user_id, state: "not_submitted", reason: "HOST_RATE_LIMITED", outcome: "not_sent" as Outcome, errorKind: "HOST_RATE_LIMITED", recorded };
+      done.push(r);
+      return r;
+    },
+    // Claimed and never started (the scheduler cleared its journal line first): the same job back to the queue, to run
+    // later once (owner: back off, then RESUME). A database that cannot put it back records it not sent, as before.
+    putBack: typeof o.queue.putBack !== "function" ? undefined : async (job, why, until) => {
+      for (let i = 0; i < 4; i++) {
+        try {
+          const nb = await o.queue.putBack!(job, why, until);
+          if (nb === null) break;
+          log(`${job.id}: queued again (not started: ${why.split(":")[0]}; nothing was sent; runs later, after ${new Date(nb).toISOString()})`);
+          done.push({ id: job.id, user_id: job.user_id, state: "queued", reason: why, outcome: "not_sent" as Outcome, errorKind: why.split(":")[0], recorded: true });
+          return { state: "queued", reason: why, recorded: true, not_before: nb };
+        } catch (e: any) {
+          if (/invalid apply (claim|transition)/i.test(String(e?.body ?? e?.message ?? e))) return { state: "closed", reason: why, recorded: true };
+          if (i < 3) await new Promise((r) => setTimeout(r, 50 * 2 ** i));
+        }
+      }
+      const recorded = await finishOnce(job, "not_submitted", why, "not_sent", why);
+      log(`${job.id}: not_submitted (not_sent, ${why})${recorded ? "" : "; NOT RECORDED: the queue marks it unknown after 15 minutes"}`);
+      const r = { id: job.id, user_id: job.user_id, state: "not_submitted", reason: why, outcome: "not_sent" as Outcome, errorKind: why, recorded };
       done.push(r);
       return r;
     },
@@ -483,6 +510,22 @@ export function restQueue(o: { url: string; key: string; fetch?: typeof fetch })
         return Number.isFinite(nb) ? nb : until;
       } catch (e: any) {
         if (e?.status === 404 || requeueMissing(String(e?.body ?? ""))) return null;
+        throw e;
+      }
+    },
+    async putBack(job, why, until) {
+      try {
+        const r = await rpc("career_apply_requeue_unstarted_for", { p_id: job.id, p_lease: job.lease_token, p_why: unstartedWhy(why),
+          p_until: new Date(until).toISOString() });
+        const nb = Date.parse(r?.not_before);
+        return Number.isFinite(nb) ? nb : until;
+      } catch (e: any) {
+        const body = String(e?.body ?? "");
+        if (e?.status === 404 || requeueMissing(body) || /career_apply_requeue_unstarted|invalid unstarted reason/i.test(body)) return null;
+        // No longer this worker's claim: nothing to record (the caller treats it as closed).
+        if (/invalid apply (claim|transition)/i.test(body)) throw e;
+        // The database refused it for another reason (a card approval expired since): recorded not sent instead.
+        if (typeof e?.status === "number" && e.status >= 400 && e.status < 500) return null;
         throw e;
       }
     },

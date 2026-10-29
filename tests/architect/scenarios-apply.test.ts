@@ -26,11 +26,15 @@
 //              host's Retry-After, else doubling), no cap of ours; a check, a wall and an unknown are never retried;
 //              workers killed around a requeue: once the engine may have sent, never driven again; what the person is told
 //              (a waiting job is approved and waiting; the same posting again is never "duplicate" or "already applied")
+//   unstarted  claimed and never started (20261029190000): a worker stopped mid-batch, out of its lease budget, its host
+//              held, killed during another job's engine and restarted past the budget: the same job goes back to the
+//              queue and is submitted once later; never put back once its engine started; a check is the person's, an
+//              unknown never retried; a 503 with no Retry-After is a refusal for load and resumes
 // The end-to-end sample on real Postgres is flow-scenarios-apply.test.ts. No network, no model, no Chromium.
 import assertNode from "node:assert/strict";
 import {
   AGES, BACKOFF_REFUSING, backoffCases, BLOCKING, type CrashCase, crashCases, employerCases, historyCases, type Link, NOW, OUTSIDE_REFUSAL, postingCases, resumeCases,
-  requeueCrashCases, RESUME_SHA, retryCases, rng, type SchedCase, schedCases,
+  requeueCrashCases, RESUME_SHA, retryCases, rng, type SchedCase, schedCases, type UnstartedCase, unstartedCases,
 } from "./scenarios/apply-generator.ts";
 import { memoryWantStore, queueWants, samePosting, screenPicks, wantsFrom } from "../../supabase/functions/_shared/career_apply_want.ts";
 import { formUrlFor, postingKey } from "../../supabase/functions/_shared/posting_key.ts";
@@ -183,7 +187,7 @@ Deno.test(`retry: ${RETRIES.length} Retry-After values: seconds and HTTP dates h
 // A queue with the database's transitions (career_apply_claim_own / career_apply_finish_own): a claim takes queued rows
 // to driving under a fresh lease; a finish needs driving and the lease, else "invalid apply transition".
 interface Row { id: string; url: string; state: string; lease_token: string | null; claimed_at: string | null; reason: string | null; finishes: number;
-  not_before?: number; requeues?: number; claims?: number[]; early?: number }
+  not_before?: number; requeues?: number; claims?: number[]; early?: number; putbacks?: number; badPutBacks?: number }
 type Life = { dead: boolean; die: () => void };
 const never = <T>() => new Promise<T>(() => {});
 function life(): Life & { died: Promise<void> } {
@@ -192,10 +196,14 @@ function life(): Life & { died: Promise<void> } {
   const l = { dead: false, died, die: () => { if (!l.dead) { l.dead = true; res(); } } };
   return l;
 }
-// requeue: the database has 20261029180000 (career_apply_requeue_refused_own, and no claim before a job's not_before);
-// without it, a refusal is recorded not sent, as before.
+// requeue: the database has 20261029180000 (career_apply_requeue_refused_own, and no claim before a job's not_before) and
+// 20261029190000 (career_apply_requeue_unstarted_own: a claim whose engine never started goes back); without them, a
+// refusal and an unstarted claim are recorded not sent, as before. `started(id)`: the test's engine says it started under
+// the row's current lease; a put-back of that lease is counted as a violation (badPutBacks) and refused.
 function fakeDb(urls: string[], o: { requeue?: boolean } = {}) {
-  const rows = new Map<string, Row>(urls.map((url, i) => [`j${String(i).padStart(3, "0")}`, { id: `j${String(i).padStart(3, "0")}`, url, state: "queued", lease_token: null, claimed_at: null, reason: null, finishes: 0, requeues: 0, claims: [], early: 0 }]));
+  const rows = new Map<string, Row>(urls.map((url, i) => [`j${String(i).padStart(3, "0")}`, { id: `j${String(i).padStart(3, "0")}`, url, state: "queued", lease_token: null, claimed_at: null, reason: null, finishes: 0, requeues: 0, claims: [], early: 0, putbacks: 0, badPutBacks: 0 }]));
+  const startedLeases = new Set<string>();
+  const started = (id: string) => { const l = rows.get(id)?.lease_token; if (l) startedLeases.add(l); };
   const payload = (r: Row) => ({ version: 1, user_id: U, job_id: r.id, url: r.url, fields: [], engine_approval: "e".repeat(64), resume_sha256: RESUME_SHA });
   let seq = 0;
   const rpc = async (name: string, a: any, l?: Life, hook?: (name: string, a: any) => void) => {
@@ -223,11 +231,20 @@ function fakeDb(urls: string[], o: { requeue?: boolean } = {}) {
       r.state = "queued"; r.lease_token = null; r.claimed_at = null; r.not_before = nb; r.requeues!++; r.reason = "waiting: the employer's site asked us to slow down";
       return { data: { id: r.id, state: "queued", not_before: new Date(nb).toISOString() }, error: null };
     }
+    if (name === "career_apply_requeue_unstarted_own" && o.requeue) {
+      const r = rows.get(a.p_id);
+      if (!["worker_stopping", "not_started_in_lease", "host_held", "journal_unwritable"].includes(a.p_why)) return { data: null, error: { code: "P0001", message: "invalid unstarted reason" } };
+      if (!r || r.state !== "driving" || r.lease_token !== a.p_lease) return { data: null, error: { code: "P0001", message: "invalid apply claim" } };
+      if (startedLeases.has(a.p_lease)) { r.badPutBacks!++; return { data: null, error: { code: "P0001", message: "invalid apply transition" } }; }
+      const nb = Math.max(Date.parse(a.p_until), Date.now());
+      r.state = "queued"; r.lease_token = null; r.claimed_at = null; r.not_before = nb; r.putbacks!++; r.reason = "waiting: approved, not started yet";
+      return { data: { id: r.id, state: "queued", not_before: new Date(nb).toISOString() }, error: null };
+    }
     return { data: null, error: { message: `no function ${name}` } };
   };
   // The database's own sweep (a drive past its lease is unknown, never driven again).
   const sweep = () => { for (const r of rows.values()) if (r.state === "driving") { r.state = "unknown_outcome"; r.reason = "swept"; } };
-  return { rows, rpc, sweep };
+  return { rows, rpc, sweep, started };
 }
 // A journal kept in memory (the durable file, as another process would find it), seen through one worker's life.
 function memJournal() {
@@ -542,9 +559,10 @@ Deno.test(`resume: ${BACKOFF.length} batches whose hosts refuse (429 with second
         inFlight.delete(id);
         if (BACKOFF_REFUSING.has(h.behavior) && n <= h.refuseTimes) {
           refusedOf.set(id, (refusedOf.get(id) ?? 0) + 1);
-          // The engine's own parse of the header, at the fixed instant the dates were written for.
+          // The engine's own parse of the header, at the fixed instant the dates were written for (a 503 with no
+          // Retry-After: none, the default doubling).
           const s = retryAfterSeconds(h.header, NOW);
-          return { result: { state: "not_submitted", reason: "HOST_RATE_LIMITED", status: h.behavior === "busy_503" ? 503 : 429, retry_after_s: s } as any, evidence: null };
+          return { result: { state: "not_submitted", reason: "HOST_RATE_LIMITED", status: h.behavior.startsWith("busy_503") ? 503 : 429, retry_after_s: s } as any, evidence: null };
         }
         switch (h.behavior) {
           case "captcha": return { result: { state: "needs_user", reason: "captcha" }, evidence: null };
@@ -739,4 +757,195 @@ Deno.test("resume, what the person is told: a waiting job reads as approved and 
   eq(/duplicate|not sent \(/i.test(line), false, line);
   const card = answerText([{ n: 1, company: "Acme", result: "duplicate" } as any]);
   eq(/already in your applications \(sent, or approved and waiting to go\)/.test(card) && !/duplicate|already applied/i.test(card), true, card);
+});
+
+// ------------------------------------------------------------------------------------------------ claimed, never started
+// Owner rule (binding, 2026-10-27): no limits of Trainee's own; back off only when an outside system refuses, then RESUME;
+// each approved application submitted at most once. A claim the worker lets go before its engine started (stopped
+// mid-batch, out of its lease budget, its host held, killed and restarted past the budget) goes back to the queue
+// (career_apply_requeue_unstarted_own/_for, 20261029190000) and runs later, once; before, it was recorded not_submitted
+// and lost. The fake queue's put-back refuses (and counts) any lease whose engine had started.
+const UNSTARTED = unstartedCases(rng(SEED + 12), 240);
+type UOut = { db: ReturnType<typeof fakeDb>; starts: Map<string, number>; refusals: Map<string, number>; unknownBy1: Set<string>; overlap: number; timedOut: boolean };
+async function unstartedRun(c: UnstartedCase): Promise<UOut> {
+  const db = fakeDb(c.jobs.map((j) => j.url), { requeue: true });
+  const plan = new Map(c.hosts.map((h) => [h.host, h]));
+  const starts = new Map<string, number>(), refusals = new Map<string, number>(), inFlight = new Set<string>(), unknownBy1 = new Set<string>();
+  let overlap = 0, startsBy1 = 0, stop1 = false, giveUp = false;
+  const one = life();
+  const j = memJournal();
+  const target = `j${String(c.at).padStart(3, "0")}`;
+  const engine = async (args: string[], who: number) => {
+    if (who === 1 && one.dead) return await never<any>();
+    const id = appId(args), url = args[args.indexOf("--url") + 1], h = plan.get(hostOf(url))!;
+    db.started(id);
+    if (inFlight.has(id)) overlap++;
+    inFlight.add(id);
+    starts.set(id, (starts.get(id) ?? 0) + 1);
+    if (who === 1) startsBy1++;
+    if (c.mode === "stop" && who === 1 && startsBy1 >= c.after + 1) stop1 = true;
+    // Killed during this engine (the target's, or the one after `after` starts when the target is not reached first).
+    if (c.mode === "kill" && who === 1 && (id === target || startsBy1 > c.after + 1)) { one.die(); return await never<any>(); }
+    await new Promise((r) => setTimeout(r, 1));
+    inFlight.delete(id);
+    if (who === 1 && one.dead) return await never<any>();
+    // Refused for load at the page's open, a 503 with no Retry-After: the first time only, then it answers.
+    if (h.behavior === "busy_503_none" && !refusals.has(id)) {
+      refusals.set(id, 1);
+      return { result: { state: "not_submitted", reason: "HOST_RATE_LIMITED", status: 503, retry_after_s: null } as any, evidence: null };
+    }
+    switch (h.behavior) {
+      case "captcha": return { result: { state: "needs_user", reason: "captcha" }, evidence: null };
+      case "timeout": return null;
+      default: return { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: null };
+    }
+  };
+  const deadline = setTimeout(() => { giveUp = true; }, 20_000);
+  // Spacing between starts on one host keeps claims waiting (pending), so a stop or a short budget finds some unstarted.
+  const spaced = pacingFrom(() => undefined, { concurrency: c.slots, hostSpacingMs: 3 });
+  const gate = scaledGate().gate;
+  if (c.mode === "stop" || c.mode === "out_of_time") {
+    // Out of time: a lease budget shorter than the spacing (pacingFrom keeps its 1 s floor; the scheduler takes it as given).
+    const pacing = c.mode === "out_of_time" ? { ...spaced, startBudgetMs: 2 } : spaced;
+    await runLoop({ ...quiet, queue: ownQueue({ rpc: (n, a) => db.rpc(n, a) }), stop: () => stop1 || giveUp, drain: true, gate, pacing, journal: j.view(life()),
+      runEngine: (args) => engine(args, 1) });
+  } else if (c.mode === "kill") {
+    const w1 = runLoop({ ...quiet, queue: ownQueue({ rpc: (n, a) => db.rpc(n, a, one) }), stop: () => giveUp, drain: true, gate, pacing: spaced, journal: j.view(one),
+      runEngine: (args) => engine(args, 1) });
+    await Promise.race([one.died, w1]);
+    for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
+    // What the dead worker left driving: started (its journal says so) or never written to its journal (a lost line) is
+    // unknown, never driven again (the restart's orphan record, or the database's sweep); a journal line not started is
+    // put back by the restart and runs once.
+    for (const row of db.rows.values()) {
+      if (row.state !== "driving") continue;
+      const e = j.entries.get(row.id);
+      if (!e || e.started) unknownBy1.add(row.id);
+    }
+    // Started again on the same journal after the claims' budget: the unstarted ones cannot run under their old lease.
+    await runLoop({ ...quiet, queue: ownQueue({ rpc: (n, a) => db.rpc(n, a) }), stop: () => giveUp, drain: true, gate, pacing: spaced,
+      journal: j.view(life(), {}, 3_600_000), runEngine: (args) => engine(args, 2) });
+  } else {
+    // Held: the last host is held off by another instance's refusal for a while, longer than the lease budget: what this
+    // worker claimed for it cannot start in time and goes back, to be taken again once the hold ends.
+    const held = c.hosts[c.hosts.length - 1].host, holdUntil = Date.now() + 12;
+    const hgate: HostGate = { shared: true, async until(hosts) { return new Map(hosts.map((h) => [h, h === held ? holdUntil : 0])); }, async refused(_h, _w, _s, at) { return at + 2; }, async ok() {} };
+    await runLoop({ ...quiet, queue: ownQueue({ rpc: (n, a) => db.rpc(n, a) }), stop: () => giveUp || Date.now() > holdUntil + 200, drain: true, gate: hgate,
+      pacing: { ...spaced, startBudgetMs: 4 }, journal: j.view(life()), runEngine: (args) => engine(args, 1) });
+  }
+  // Whatever the first worker put back, fresh workers drain (put back means it runs later; one waiting on its host's hold
+  // is taken by the next worker that asks after the hold).
+  do {
+    await runLoop({ ...quiet, queue: ownQueue({ rpc: (n, a) => db.rpc(n, a) }), stop: () => giveUp, drain: true, gate: scaledGate().gate, pacing: spaced, runEngine: (args) => engine(args, 2) });
+    await new Promise((r) => setTimeout(r, 2));
+  } while (!giveUp && [...db.rows.values()].some((x) => x.state === "queued"));
+  clearTimeout(deadline);
+  db.sweep();
+  return { db, starts, refusals, unknownBy1, overlap, timedOut: giveUp };
+}
+Deno.test(`unstarted: ${UNSTARTED.length} batches whose worker lets claims go before they start (stopped mid-batch, out of its lease budget, its host held, killed and restarted past the budget) beside hosts that answer, check, time out or answer a 503 with no Retry-After: every approved job ends exactly once; an unstarted one is put back and submitted once later; none put back after its engine started`, async () => {
+  const rep = report("unstarted");
+  const putBacks: Record<string, number> = {};
+  for (const c of UNSTARTED) {
+    rep.total++;
+    const r = await unstartedRun(c);
+    const plan = new Map(c.hosts.map((h) => [h.host, h]));
+    const name = () => `case ${c.id} ${c.mode} slots ${c.slots} after ${c.after}: ${c.hosts.map((h) => `${h.host}=${h.behavior}`).join(", ")}; ${c.jobs.length} jobs`;
+    check(rep, !r.timedOut, "the workers did not drain the queue in time", name);
+    check(rep, r.overlap === 0, "a job driven twice at once", () => `${name()}: ${r.overlap}`);
+    for (const row of r.db.rows.values()) {
+      const h = plan.get(hostOf(row.url))!, n = r.starts.get(row.id) ?? 0, refused = r.refusals.get(row.id) ?? 0;
+      putBacks[c.mode] = (putBacks[c.mode] ?? 0) + (row.putbacks ?? 0);
+      check(rep, row.badPutBacks === 0, "a claim put back after its engine started", () => `${name()}: ${row.id} x${row.badPutBacks}`);
+      // (A claim the dead worker never wrote to its journal is closed by the database's sweep: unknown, with no finish.)
+      check(rep, (row.finishes === 1 || (r.unknownBy1.has(row.id) && row.finishes === 0)) && !["queued", "driving"].includes(row.state), "a job not recorded exactly once", () => `${name()}: ${row.id} ${row.state} x${row.finishes}`);
+      check(rep, row.early === 0, "a job claimed before its not-before time", () => `${name()}: ${row.id} early x${row.early}`);
+      // Engines: one per refusal before anything was sent, and one more; a job whose engine started otherwise, once.
+      check(rep, n <= refused + 1, "a job driven again after its engine started", () => `${name()}: ${row.id} engine x${n}, refused ${refused}`);
+      if (r.unknownBy1.has(row.id)) {
+        check(rep, row.state === "unknown_outcome" && n <= 1, "a job running when its worker died is not unknown, or was driven again", () => `${name()}: ${row.id} ${row.state} engine x${n}`);
+        continue;
+      }
+      const want = ({ ok: "submitted_unconfirmed", busy_503_none: "submitted_unconfirmed", captcha: "needs_user", timeout: "unknown_outcome" } as Record<string, string>)[h.behavior];
+      check(rep, row.state === want, `${h.behavior}: ${want} (an approved job is never lost unsent)`, () => `${name()}: ${row.id} ${row.state} (${row.reason}) engine x${n} put back ${row.putbacks}`);
+      check(rep, n === refused + 1, `${h.behavior}: driven once (and once more after a refusal before anything was sent)`, () => `${name()}: ${row.id} engine x${n}, refused ${refused}`);
+    }
+  }
+  console.log(`[apply] unstarted: put back by mode ${JSON.stringify(putBacks)}`);
+  // Every way of letting a claim go was met (and put back) somewhere in the battery.
+  for (const m of ["stop", "out_of_time", "held", "kill"]) check(rep, (putBacks[m] ?? 0) > 0, `no claim was let go (${m})`, () => JSON.stringify(putBacks));
+  done(rep);
+});
+
+// The cloud worker (cloudLoop, career_apply_requeue_unstarted_for): stopped mid-batch, the claims it had not started go
+// back and a fresh worker sends each once; one that cannot be put back (its card approval expired: the database refuses)
+// is recorded not sent, never left driving.
+Deno.test("unstarted, the cloud worker: 120 batches stopped mid-batch: the claims not started go back and are submitted once by the next worker; a refused put-back is recorded not sent", async () => {
+  const rep = report("unstarted (cloud)");
+  const r = rng(SEED + 13);
+  const RESUME = new TextEncoder().encode("%PDF-1.4 TEST apply scenarios");
+  const sha = [...new Uint8Array(await crypto.subtle.digest("SHA-256", RESUME))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const tmp = await Deno.makeTempDir({ prefix: "trainee-apply-unstarted-" });
+  let backs = 0;
+  try {
+    for (let k = 0; k < 120; k++) {
+      rep.total++;
+      const n = r.int(3, 9), after = r.int(1, 2), refuseOne = k % 4 === 3;
+      const jobs = await Promise.all(Array.from({ length: n }, async (_, i) => {
+        const payload: any = { version: 1, user_id: "A", job_id: `lever:u${k}:${i}`, company: `TEST Co ${i}`, url: `https://u${k}-${i % 2}.lever.test/t/${i}`, fields: [{ name: "first_name", label: "First name", value: "TEST A", factId: `TEST-A-${i}` }],
+          destination: `https://u${k}-${i % 2}.lever.test/t/${i}/apply`, resume_sha256: sha, privacy_epoch: 1, account_version: 1, expires_at: "2099-01-01T00:00:00Z" };
+        payload.engine_approval = await hashApplyPayload(factsFromPayload(payload).saved);
+        return await cardBound({ id: `job-${k}-${i}`, lease_token: `lease-${k}-${i}-0`, user_id: "A", company: payload.company, url: payload.url, payload });
+      }));
+      const rows = new Map(jobs.map((j) => [j.id, { job: j, driving: false, lease: "", started: false, putbacks: 0, finished: [] as string[], bad: 0 }]));
+      const engine = new Map<string, number>();
+      let seq = 0, refusedPut = 0;
+      const queue = (): CloudQueue => ({
+        claim: async (limit) => {
+          const out = [];
+          for (const x of rows.values()) {
+            if (out.length >= limit || x.driving || x.finished.length) continue;
+            x.driving = true; x.started = false; x.lease = `lease-${x.job.id}-${++seq}`;
+            out.push({ ...x.job, lease_token: x.lease });
+          }
+          return out;
+        },
+        putBack: async (job, why) => {
+          const x = rows.get(job.id)!;
+          if (!x.driving || x.lease !== job.lease_token) throw Object.assign(Error("invalid apply claim"), { body: "invalid apply claim" });
+          if (x.started) { x.bad++; throw Object.assign(Error("invalid apply transition"), { body: "invalid apply transition" }); }
+          if (!/^(WORKER_STOPPING|NOT_STARTED_IN_LEASE|HOST_HELD|JOURNAL_UNWRITABLE)/.test(why)) throw Error("invalid unstarted reason");
+          // Every fourth batch: its first put-back is refused (a card approval that expired since): recorded not sent.
+          if (refuseOne && refusedPut === 0) { refusedPut++; return null; }
+          x.driving = false; x.putbacks++; backs++;
+          return Date.now();
+        },
+        resume: async () => ({ filename: "r.pdf", sha256: sha, b64: btoa(String.fromCharCode(...RESUME)) }),
+        finish: async (j, state) => { const x = rows.get(j.id)!; if (x.lease !== j.lease_token || !x.driving) throw Error("invalid apply transition"); x.finished.push(state); x.driving = false; },
+        ask: async () => 0, gatePresent: async () => true, authorize: authorizer().authorize,
+      });
+      let startsBy1 = 0, stop = false;
+      const run = (who: number) => effectAware(async (args: string[]) => {
+        const url = args[args.indexOf("--url") + 1], id = jobs.find((j) => j.url === url)!.id;
+        rows.get(id)!.started = true;
+        engine.set(id, (engine.get(id) ?? 0) + 1);
+        if (who === 1 && ++startsBy1 >= after) stop = true;
+        await new Promise((res) => setTimeout(res, 1));
+        return { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: { post: { status: 200, mutations: 1 } } };
+      });
+      const pacing = pacingFrom(() => undefined, { concurrency: r.int(1, 3), hostSpacingMs: 3 });
+      await cloudLoop({ queue: queue(), tmpRoot: tmp, idleMs: 1, drain: true, stop: () => stop, log: () => {}, gate: localHostGate(), pacing, runEngine: run(1) });
+      await cloudLoop({ queue: queue(), tmpRoot: tmp, idleMs: 1, drain: true, stop: () => false, log: () => {}, gate: localHostGate(), pacing, runEngine: run(2) });
+      const total = [...rows.values()];
+      check(rep, total.every((x) => x.bad === 0), "a claim put back after its engine started", () => `batch ${k}`);
+      check(rep, total.every((x) => x.finished.length === 1 && !x.driving), "a job not recorded exactly once", () => `batch ${k}: ${JSON.stringify(total.map((x) => [x.job.id, x.finished, x.driving]))}`);
+      const sent = total.filter((x) => x.finished[0] === "submitted_unconfirmed"), unsent = total.filter((x) => x.finished[0] === "not_submitted");
+      check(rep, sent.every((x) => engine.get(x.job.id) === 1) && unsent.every((x) => !engine.has(x.job.id)), "a job driven a wrong number of times", () => `batch ${k}: ${JSON.stringify([...engine])}`);
+      check(rep, sent.length + unsent.length === n && unsent.length === (refuseOne && refusedPut ? 1 : 0), "an unstarted job lost unsent (only a refused put-back is recorded not sent)", () => `batch ${k}: ${unsent.length} not sent, refused put-backs ${refusedPut}`);
+    }
+  } finally {
+    await Deno.remove(tmp, { recursive: true }).catch(() => {});
+  }
+  check(rep, backs > 0, "no claim was put back", () => String(backs));
+  done(rep);
 });

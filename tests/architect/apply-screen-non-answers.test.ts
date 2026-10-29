@@ -17,22 +17,21 @@ Deno.test("non-answers are no facts, for every question", () => {
   assert.equal(parseScreenAnswer("location", "I'm in Pass Christian, MS", true)?.value, "Pass Christian, MS");
 });
 
-Deno.test("negations are read right", () => {
+// Round 4: a yes/no question accepts ONLY the whole message yes/y/yeah/yep/no/n/nope. Every phrase this test once read as an answer
+// ("Not a US citizen", "I don't need sponsorship", "can't relocate"...) is now a non-answer: nothing is written and the question is asked again.
+Deno.test("negations are not guessed at: a phrase writes nothing, only an exact yes / no answers", () => {
   const v = (f: any, m: string) => parseScreenAnswer(f, m, true)?.value;
-  assert.equal(v("citizenship", "Not a US citizen"), "no");
-  assert.equal(v("citizenship", "I'm not a US citizen"), "no");
-  assert.equal(v("citizenship", "I'm not American"), "no");
-  assert.equal(v("citizenship", "I am a US citizen"), "yes");
-  assert.equal(v("citizenship", "I'm not a citizen of India"), undefined, "says nothing about the US");
-  assert.equal(v("relocation", "Not open to relocating"), "no");
-  assert.equal(v("relocation", "can't relocate"), "no");
-  assert.equal(v("relocation", "unwilling to relocate"), "no");
-  assert.equal(v("relocation", "I'd rather not relocate"), "no");
-  assert.notEqual(v("relocation", "happy to relocate"), "no");
-  assert.equal(v("sponsorship", "I don't need sponsorship"), "no");
-  assert.equal(v("sponsorship", "I will need sponsorship later"), "yes");
+  for (const [f, m] of [["citizenship", "Not a US citizen"], ["citizenship", "I'm not a US citizen"], ["citizenship", "I'm not American"], ["citizenship", "I am a US citizen"],
+    ["citizenship", "I'm not a citizen of India"], ["relocation", "Not open to relocating"], ["relocation", "can't relocate"], ["relocation", "unwilling to relocate"],
+    ["relocation", "I'd rather not relocate"], ["relocation", "happy to relocate"], ["sponsorship", "I don't need sponsorship"], ["sponsorship", "I will need sponsorship later"]] as const) {
+    assert.equal(v(f, m), undefined, `${f}: ${m} must write nothing`);
+  }
   assert.equal(v("sponsorship", "no"), "no");
   assert.equal(v("sponsorship", "yes"), "yes");
+  assert.equal(v("citizenship", "no"), "no");
+  assert.equal(v("citizenship", "Yes."), "yes");
+  assert.equal(v("relocation", "Nope"), "no");
+  assert.equal(v("relocation", "yeah"), "yes");
 });
 
 Deno.test("a non-answer writes nothing, re-asks once, then leaves the postings held", async () => {
@@ -58,8 +57,13 @@ Deno.test("a non-answer writes nothing, re-asks once, then leaves the postings h
   assert.equal(b!.meta, undefined, "the question is dropped, the postings stay held");
   assert.equal(profile.facts.length, 0);
   assert.equal(reruns, 0, "held postings are not screened or queued on a non-answer");
-  // a real answer still works after the re-ask
-  const c = await run("Not a US citizen", ["citizenship"], { screen_reasked: true });
+  // a phrase is not an answer, even after the re-ask: nothing is written
+  const c0 = await run("Not a US citizen", ["citizenship"], { screen_reasked: true });
+  assert.deepEqual(c0!.saved, []);
+  assert.equal(c0!.status, "held");
+  assert.equal(profile.facts.length, 0);
+  // a real (exact) answer still works after the re-ask
+  const c = await run("No", ["citizenship"], { screen_reasked: true });
   assert.deepEqual(c!.saved, [{ fact: "citizenship", value: "no" }]);
   assert.equal(profile.facts.length, 1);
 });

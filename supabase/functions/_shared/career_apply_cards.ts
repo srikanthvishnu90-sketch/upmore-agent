@@ -348,7 +348,9 @@ const RESULT: Record<string, string> = {
   // NO LIMITS: the database says daily_cap only against a daily pace the person set themselves (CAPS-1390).
   daily_cap: "not sent: it is over the daily pace you set yourself; say \"no daily pace\" to lift it, then \"show my applications\"",
   company_cooldown: "not sent: you applied to them in the last 30 days",
-  duplicate: "not sent: you already applied to this posting",
+  // The same posting is already in the person's applications: sent, being sent, or approved and waiting (a site that
+  // asked us to slow down: it goes again by itself, 20261029180000). Never "you already applied" for one never sent.
+  duplicate: "not added again: this posting is already in your applications (sent, or approved and waiting to go); each posting goes at most once",
   stale: "not sent: your details changed after it was prepared; prepare it again",
   no_resume: "not sent: there is no confirmed resume on file to send with it",
   changed: "not sent: it changed after the card was shown",

@@ -16,6 +16,11 @@
 //              check, a sign-in wall, 500, a timeout, a refusal mid-batch)
 //   crashes    a batch and the point a worker dies at (before its journal start, after it before the engine, during the
 //              engine, after the engine before the record, after the record before the journal is cleared)
+//   back off   hosts that refuse for load 1-12 times (429 seconds, a date, garbage, none; 503) then clear, beside hosts that
+//              answer, check, wall or time out, drained by 1-3 workers; workers killed around a requeue
+//   unstarted  claimed and never started: a worker stopped mid-batch, out of its lease budget, its host held (the claim
+//              handed back), killed during another job's engine and restarted past the budget, beside hosts that answer,
+//              check (captcha), time out, or refuse for load (a 503 with no Retry-After)
 import { rng, type R } from "../scenarios-fixture.ts";
 export { rng };
 
@@ -312,6 +317,68 @@ export function crashCases(r: R, n: number): CrashCase[] {
   return Array.from({ length: n }, (_, id) => {
     const jobs = r.int(1, 10);
     return { id, jobs, hosts: r.int(1, 3), slots: r.int(1, 4), at: r.int(0, jobs - 1), point: r.pick(CRASH_POINTS), budgetLeft: r.next() < 0.8 };
+  });
+}
+
+// ------------------------------------------------------------------------------------------------ back off, then resume
+// Hosts that refuse for load (429 with Retry-After seconds, an HTTP date, garbage or none; a 503 with seconds) the first
+// `refuseTimes` attempts and then clear, beside hosts that answer, check (captcha), wall (sign-in) or time out; drained by
+// 1-3 workers at once. Owner rule (2026-10-27): back off only when an outside system refuses, then RESUME; each approved
+// application is submitted at most once. `refuseTimes` up to 12 with a 0-2 s Retry-After: no cap of Trainee's own.
+// busy_503_none: a 503 with no Retry-After (a refusal for load all the same: the default doubling, then resume).
+export type BackoffBehavior = "rl_seconds" | "rl_date" | "rl_garbage" | "rl_none" | "busy_503" | "busy_503_none" | "ok" | "captcha" | "login_wall" | "timeout";
+export const BACKOFF_REFUSING = new Set<BackoffBehavior>(["rl_seconds", "rl_date", "rl_garbage", "rl_none", "busy_503", "busy_503_none"]);
+export interface BackoffHost { host: string; behavior: BackoffBehavior; header: string | null; refuseTimes: number }
+export interface BackoffCase { id: number; hosts: BackoffHost[]; jobs: { url: string }[]; slots: number; workers: number }
+const BACKOFF_BEHAVIORS: BackoffBehavior[] = ["rl_seconds", "rl_seconds", "rl_date", "rl_garbage", "rl_none", "busy_503", "ok", "ok", "captcha", "login_wall", "timeout", "busy_503_none"];
+export function backoffCases(r: R, n: number): BackoffCase[] {
+  const out: BackoffCase[] = [];
+  for (let id = 0; id < n; id++) {
+    const many = id % 10 === 9; // no cap of ours: a host that refuses 8-12 times in a row (short Retry-After), then clears
+    const hosts: BackoffHost[] = Array.from({ length: many ? 1 : r.int(1, 4) }, (_, i) => {
+      const behavior: BackoffBehavior = many ? "rl_seconds" : r.pick(BACKOFF_BEHAVIORS), host = `b${id}-${i}.example.test`;
+      const header = behavior === "rl_seconds" || behavior === "busy_503" ? String(many ? r.int(0, 2) : r.int(0, 90))
+        : behavior === "rl_date" ? httpDate(NOW + r.int(0, 90) * 1000, r.pick(["imf", "rfc850", "asctime"] as const))
+        : behavior === "rl_garbage" ? r.pick(GARBAGE) : null;
+      return { host, behavior, header, refuseTimes: BACKOFF_REFUSING.has(behavior) ? (many ? r.int(8, 12) : r.int(1, 4)) : 0 };
+    });
+    const jobs = Array.from({ length: many ? r.int(1, 2) : r.int(2, 10) }, (_, j) => ({ url: `https://${r.pick(hosts).host}/job/${j}` }));
+    out.push({ id, hosts, jobs, slots: r.int(1, 4), workers: r.int(1, 3) });
+  }
+  return out;
+}
+// A worker killed around a requeue: after the engine's 429 and before the requeue is written; right after it is written
+// (before the journal line is cleared); during the engine of the job's second attempt.
+export type RequeueCrashPoint = "after_refusal_before_requeue" | "after_requeue_before_clear" | "during_second_engine";
+export const REQUEUE_CRASH_POINTS: RequeueCrashPoint[] = ["after_refusal_before_requeue", "after_requeue_before_clear", "during_second_engine"];
+export interface RequeueCrashCase { id: number; jobs: number; slots: number; at: number; point: RequeueCrashPoint }
+export function requeueCrashCases(r: R, n: number): RequeueCrashCase[] {
+  return Array.from({ length: n }, (_, id) => {
+    const jobs = r.int(1, 6);
+    return { id, jobs, slots: r.int(1, 3), at: r.int(0, jobs - 1), point: REQUEUE_CRASH_POINTS[id % REQUEUE_CRASH_POINTS.length] };
+  });
+}
+
+// ------------------------------------------------------------------------------------------------ claimed, never started
+// Owner rule (2026-10-27): no limits of Trainee's own; each approved application submitted at most once. A batch claimed
+// by a worker that lets some go before their engines start: it is stopped mid-batch ("stop": after `after` engine
+// starts), its claims run out of their lease budget ("out_of_time": the budget shorter than one engine run, so all but
+// the first of each claim wait too long), the claim is handed back for a host another instance's refusal holds ("held",
+// the leased queue), or it is killed during an engine and started again after the budget ("kill": the journal's
+// unstarted lines are past their time). Beside them hosts that answer, check (captcha), time out (unknown) or refuse for
+// load with a 503 and no Retry-After. Every approved job ends exactly once; one whose engine started is never driven
+// again unless its host refused before anything was sent.
+export type UnstartedMode = "stop" | "out_of_time" | "held" | "kill";
+export const UNSTARTED_MODES: UnstartedMode[] = ["stop", "out_of_time", "held", "kill"];
+export type UnstartedBehavior = "ok" | "captcha" | "timeout" | "busy_503_none";
+export interface UnstartedCase { id: number; mode: UnstartedMode; hosts: { host: string; behavior: UnstartedBehavior }[]; jobs: { url: string }[]; slots: number; after: number; at: number }
+const UNSTARTED_BEHAVIORS: UnstartedBehavior[] = ["ok", "ok", "ok", "captcha", "timeout", "busy_503_none"];
+export function unstartedCases(r: R, n: number): UnstartedCase[] {
+  return Array.from({ length: n }, (_, id) => {
+    const mode = UNSTARTED_MODES[id % UNSTARTED_MODES.length];
+    const hosts = Array.from({ length: r.int(1, 3) }, (_, i) => ({ host: `u${id}-${i}.example.test`, behavior: i === 0 ? "ok" as const : r.pick(UNSTARTED_BEHAVIORS) }));
+    const jobs = Array.from({ length: r.int(3, 10) }, (_, j) => ({ url: `https://${r.pick(hosts).host}/job/${j}` }));
+    return { id, mode, hosts, jobs, slots: r.int(1, 3), after: r.int(0, 2), at: r.int(0, jobs.length - 1) };
   });
 }
 

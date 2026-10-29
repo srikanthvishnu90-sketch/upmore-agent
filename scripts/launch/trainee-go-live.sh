@@ -218,6 +218,8 @@ MIGRATIONS=(
   20261029100000_career_outreach_reply_rules.sql
   20261029160000_career_email_format_guards.sql
   20261029170000_career_resume_on_file_quarantine.sql
+  20261029180000_career_apply_refusal_requeue.sql
+  20261029190000_career_apply_unstarted_requeue.sql
   20261029200000_career_connector_disconnect_rules.sql
 )
 MIGRATION_MARK=(
@@ -316,6 +318,8 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_outreach_reply_apply' and prosrc like '%(2) A follow-up of this person''s already queued%') and exists (select 1 from pg_proc where proname = 'career_outreach_rail_takeback' and prosrc like '%(3) What the rail itself already cancelled%')"
   "exists (select 1 from pg_proc where proname = 'career_email_is_webmail') and exists (select 1 from pg_proc where proname = 'career_email_is_role')"
   "exists (select 1 from pg_proc where proname = 'career_resume_on_file' and prosrc like '%owner-delegated%')"
+  "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_apply_jobs' and column_name = 'not_before') and exists (select 1 from pg_proc where proname = 'career_apply_requeue_refused_for') and exists (select 1 from pg_trigger where tgname = 'career_apply_jobs_not_before') and exists (select 1 from pg_proc where proname = 'career_apply_jobs_fixed' and prosrc like '%career.apply_requeue%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_requeue_unstarted_for') and exists (select 1 from pg_proc where proname = 'career_apply_requeue_unstarted_own')"
   "exists (select 1 from pg_proc where proname = 'career_send_go') and exists (select 1 from pg_proc where proname = 'career_connector_waiting')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

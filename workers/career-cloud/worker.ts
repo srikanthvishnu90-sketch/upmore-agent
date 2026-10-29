@@ -19,7 +19,7 @@ import { approvedQuestionsAfterRefusal, assertApprovedPayload, factsFromPayload,
 import { questionsToStore } from "../career-browser/ask-once.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { authorizeCurrentCloudJob } from "./current_sources.ts";
-import { dbHostGate, fileJournal, handBack, type HostGate, type Journal, massRun, type Pacing, pacingFrom } from "../career-browser/mass-run.ts";
+import { dbHostGate, fileJournal, handBack, type HostGate, type Journal, massRun, type Pacing, pacingFrom, requeueMissing, sentNothingRefusal, unstartedWhy } from "../career-browser/mass-run.ts";
 
 export interface CloudJob {
   id: string;
@@ -49,6 +49,16 @@ export interface CloudQueue {
   // Many instances (the database lane's leased claim, docs/launch/CLOUD-RUNNER.md "Many instances"): a claim that only
   // leases, and the begin that turns the leases this round starts into drives. Absent: the claim starts drives itself.
   begin?(jobs: CloudJob[]): Promise<Set<string>>;
+  // Owner rule (2026-10-27, back off then RESUME): the employer's site refused before anything was sent; the same job
+  // goes back to the queue, not handed out before `until` (career_apply_requeue_refused_for, 20261029180000). Returns
+  // when it may be handed out again (epoch ms), or null when the database does not have the requeue yet. Absent: the
+  // job is recorded not_submitted as before.
+  requeue?(job: CloudJob, reason: string, retryAfterS: number | null, until: number): Promise<number | null>;
+  // A claim whose engine never started (the worker stopping, no start inside its lease budget, its host held): the same
+  // job back to the queue, not handed out before `until` (career_apply_requeue_unstarted_for, 20261029190000). Returns
+  // when it may be handed out again (epoch ms), or null when it cannot be put back (a database without it, or one that
+  // refuses it, e.g. a card approval that expired since): then it is recorded not sent. Absent: recorded not sent.
+  putBack?(job: CloudJob, why: string, until: number): Promise<number | null>;
 }
 // "interrupted": the worker was stopped on purpose (systemctl stop, Ctrl+C) while the engine ran. The application is
 // unknown and never re-driven, but a deliberate shutdown is not a failure the employer saw, so the throttle skips it.
@@ -145,12 +155,15 @@ export async function runCloudJob(job: CloudJob, d: {
   // Mass submission: awaited right before the engine starts (the scheduler's durable journal line). If it throws, the
   // engine never starts and the job is recorded not_submitted: nothing was sent.
   beforeEngine?: () => Promise<void>;
+  // The scheduler puts back a job whose site refused before anything was sent (mass-run.ts sentNothingRefusal): such a
+  // run is returned with requeue: true and not finished here.
+  requeueRefusal?: boolean;
 }) {
   // Capture the claimed job and lease before asynchronous work; the child never selects its authority.
   job = structuredClone(job);
   const now = d.now ?? Date.now, log = d.log ?? ((l: string) => console.log(l)), started = now();
   let s: ReturnType<typeof settle> = { state: "not_submitted", reason: "DRIVER_ERROR", outcome: "error", errorKind: "DRIVER_ERROR" };
-  let run: any = null, began = false;
+  let run: any = null, began = false, putBack = false;
   const dir = await Deno.makeTempDir({ dir: d.tmpRoot, prefix: "trainee-cloud-" });
   try {
     await Deno.chmod(dir, 0o700);
@@ -190,6 +203,8 @@ export async function runCloudJob(job: CloudJob, d: {
       },
     });
     if (["confirmed", "submitted_unconfirmed"].includes(run?.result?.state || "") && !effectAuthorized) throw Error("CARD_CLOUD_AUTH_REQUIRED");
+    // Refused at the page's open, before anything was filled, and no effect was ever asked for: nothing was sent.
+    putBack = !!d.requeueRefusal && !effectRequested && sentNothingRefusal(run?.result) !== null;
     s = settle(run?.result ?? null);
     if (s.state === "unknown_outcome" && d.stopping?.()) s = { ...s, outcome: "interrupted", errorKind: "WORKER_STOPPED" };
   } catch (e: any) {
@@ -204,6 +219,12 @@ export async function runCloudJob(job: CloudJob, d: {
       : settle({ state: "not_submitted", reason: code });
   } finally {
     await Deno.remove(dir, { recursive: true }).catch(() => {});
+  }
+  if (putBack) {
+    log(`${job.id}: the employer's site refused before anything was sent (HOST_RATE_LIMITED); it goes back to the queue`);
+    return { id: job.id, user_id: job.user_id, state: "refused", reason: "HOST_RATE_LIMITED", outcome: "not_sent" as Outcome, errorKind: "HOST_RATE_LIMITED",
+      recorded: false, requeue: true, status: typeof run?.result?.status === "number" ? run.result.status as number : null,
+      ...(typeof run?.result?.retry_after_s === "number" ? { retry_after_s: run.result.retry_after_s as number } : {}) };
   }
   const evidence: Record<string, unknown> = await evidenceOf(job, run, s, { started, finished: now() });
   // Ask, never guess: a stop on required fields with no confirmed fact (needs_answers) puts each one to the person as an
@@ -240,9 +261,10 @@ export async function runCloudJob(job: CloudJob, d: {
 // before), one engine process and so one browser context per job, each employer host paced (MASS_SUBMIT_HOST_MAX at once,
 // MASS_SUBMIT_HOST_SPACING_MS between starts, widened after a verification check; mass-run.ts). A queue that cannot be
 // read waits and asks again. stop() ends claiming; the applications in flight finish and are recorded, and any claimed
-// but not started is recorded not_submitted (nothing was sent). With a journal (CLOUD_JOURNAL_DIR) a worker that died
-// leaves each started job recorded unknown_outcome on its next start (never re-driven) and each claimed-but-unstarted one
-// run under its lease, or ended as not sent when its lease has no time left.
+// but not started goes back to the queue, the same job, to run later once (queue.putBack, 20261029190000; nothing was
+// sent; a database without it records it not_submitted). With a journal (CLOUD_JOURNAL_DIR) a worker that died leaves
+// each started job recorded unknown_outcome on its next start (never re-driven) and each claimed-but-unstarted one run
+// under its lease, or put back when its lease budget has no time left.
 export async function cloudLoop(o: {
   queue: CloudQueue;
   runEngine: RunEngine;
@@ -283,9 +305,58 @@ export async function cloudLoop(o: {
       return "wait";
     },
     run: async (job, onStart) => {
-      const r = await runCloudJob(job, { queue: o.queue, runEngine: o.runEngine, tmpRoot: o.tmpRoot, log, stopping: o.stop, beforeEngine: onStart });
+      const r: any = await runCloudJob(job, { queue: o.queue, runEngine: o.runEngine, tmpRoot: o.tmpRoot, log, stopping: o.stop, beforeEngine: onStart,
+        requeueRefusal: typeof o.queue.requeue === "function" });
+      if (r.requeue) return { state: r.state, reason: r.reason, recorded: false, retry_after_s: r.retry_after_s ?? null, requeue: true, status: r.status ?? null };
       done.push(r);
       return { state: r.state, reason: r.reason, recorded: r.recorded, retry_after_s: (r as { retry_after_s?: number }).retry_after_s ?? null };
+    },
+    // The site refused before anything was sent: the same job back to the queue until the site allows (its approval and
+    // hash kept). A database without the requeue records it not sent, as before. If it cannot be written at all, the
+    // database's sweep closes the drive as unknown after 15 minutes (never driven again).
+    requeue: async (job, q) => {
+      for (let i = 0; i < 4; i++) {
+        try {
+          const nb = await o.queue.requeue!(job, q.reason, q.retryAfterS, q.until);
+          if (nb === null) break;
+          log(`${job.id}: queued again (nothing was sent; the employer's site asked us to wait; runs again after ${new Date(nb).toISOString()})`);
+          const r = { id: job.id, user_id: job.user_id, state: "queued", reason: "HOST_RATE_LIMITED", outcome: "not_sent" as Outcome, errorKind: "HOST_RATE_LIMITED", recorded: true };
+          done.push(r);
+          return { state: "queued", reason: "HOST_RATE_LIMITED", recorded: true, not_before: nb };
+        } catch (e: any) {
+          const text = String(e?.body ?? e?.message ?? e);
+          if (requeueMissing(text)) break;
+          if (/invalid apply (claim|transition)/i.test(text)) return { state: "closed", reason: "HOST_RATE_LIMITED", recorded: true };
+          if (i < 3) await new Promise((r) => setTimeout(r, 50 * 2 ** i));
+          else return { state: "unrecorded", reason: "HOST_RATE_LIMITED", recorded: false };
+        }
+      }
+      const recorded = await finishOnce(job, "not_submitted", "HOST_RATE_LIMITED", "not_sent", "HOST_RATE_LIMITED");
+      log(`${job.id}: not_submitted (not_sent, HOST_RATE_LIMITED)${recorded ? "" : "; NOT RECORDED: the queue marks it unknown after 15 minutes"}`);
+      const r = { id: job.id, user_id: job.user_id, state: "not_submitted", reason: "HOST_RATE_LIMITED", outcome: "not_sent" as Outcome, errorKind: "HOST_RATE_LIMITED", recorded };
+      done.push(r);
+      return r;
+    },
+    // Claimed and never started (the scheduler cleared its journal line first): the same job back to the queue, to run
+    // later once (owner: back off, then RESUME). A database that cannot put it back records it not sent, as before.
+    putBack: typeof o.queue.putBack !== "function" ? undefined : async (job, why, until) => {
+      for (let i = 0; i < 4; i++) {
+        try {
+          const nb = await o.queue.putBack!(job, why, until);
+          if (nb === null) break;
+          log(`${job.id}: queued again (not started: ${why.split(":")[0]}; nothing was sent; runs later, after ${new Date(nb).toISOString()})`);
+          done.push({ id: job.id, user_id: job.user_id, state: "queued", reason: why, outcome: "not_sent" as Outcome, errorKind: why.split(":")[0], recorded: true });
+          return { state: "queued", reason: why, recorded: true, not_before: nb };
+        } catch (e: any) {
+          if (/invalid apply (claim|transition)/i.test(String(e?.body ?? e?.message ?? e))) return { state: "closed", reason: why, recorded: true };
+          if (i < 3) await new Promise((r) => setTimeout(r, 50 * 2 ** i));
+        }
+      }
+      const recorded = await finishOnce(job, "not_submitted", why, "not_sent", why);
+      log(`${job.id}: not_submitted (not_sent, ${why})${recorded ? "" : "; NOT RECORDED: the queue marks it unknown after 15 minutes"}`);
+      const r = { id: job.id, user_id: job.user_id, state: "not_submitted", reason: why, outcome: "not_sent" as Outcome, errorKind: why, recorded };
+      done.push(r);
+      return r;
     },
     unstarted: async (job, why) => {
       const recorded = await finishOnce(job, "not_submitted", why, "not_sent", why);
@@ -431,6 +502,33 @@ export function restQueue(o: { url: string; key: string; fetch?: typeof fetch })
     ask: (job, questions) => rpc("career_apply_cloud_ask", { p_id: job.id, p_lease: job.lease_token, p_questions: questions }),
     finish: (job, state, evidence, outcome, errorKind) =>
       rpc("career_apply_cloud_finish", { p_id: job.id, p_lease: job.lease_token, p_state: state, p_evidence: evidence, p_outcome: outcome, p_error_kind: errorKind }),
+    async requeue(job, reason, retryAfterS, until) {
+      try {
+        const r = await rpc("career_apply_requeue_refused_for", { p_id: job.id, p_lease: job.lease_token, p_reason: reason,
+          p_retry_after_s: retryAfterS, p_until: new Date(until).toISOString() });
+        const nb = Date.parse(r?.not_before);
+        return Number.isFinite(nb) ? nb : until;
+      } catch (e: any) {
+        if (e?.status === 404 || requeueMissing(String(e?.body ?? ""))) return null;
+        throw e;
+      }
+    },
+    async putBack(job, why, until) {
+      try {
+        const r = await rpc("career_apply_requeue_unstarted_for", { p_id: job.id, p_lease: job.lease_token, p_why: unstartedWhy(why),
+          p_until: new Date(until).toISOString() });
+        const nb = Date.parse(r?.not_before);
+        return Number.isFinite(nb) ? nb : until;
+      } catch (e: any) {
+        const body = String(e?.body ?? "");
+        if (e?.status === 404 || requeueMissing(body) || /career_apply_requeue_unstarted|invalid unstarted reason/i.test(body)) return null;
+        // No longer this worker's claim: nothing to record (the caller treats it as closed).
+        if (/invalid apply (claim|transition)/i.test(body)) throw e;
+        // The database refused it for another reason (a card approval expired since): recorded not sent instead.
+        if (typeof e?.status === "number" && e.status >= 400 && e.status < 500) return null;
+        throw e;
+      }
+    },
     async gatePresent() {
       try {
         return typeof (await rpc("career_apply_cloud_open", { p_portal: "lever" })) === "boolean";

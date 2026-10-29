@@ -92,6 +92,9 @@ begin
  -- Each queued row is looked at once (vm_triaged); a row that is fine is marked and never looked at again.
  with c as (select id, public.career_apply_vm_family(url) as fam from public.career_apply_jobs
    where user_id = any (p_users) and state = 'queued' and attempts = 0 and source is null and not vm_triaged
+    -- a queued row whose stored approval is gone / revoked / expired cannot be written by anything (the bridge's queue trigger refuses);
+    -- the claim closes it NOT_APPROVED, so one such row never aborts everyone's triage
+    and public.career_apply_vm_approval_refusal(career_apply_jobs, now_) is null
    order by created_at limit lim for update skip locked),
  u as (update public.career_apply_jobs j set vm_triaged = true,
    state = case c.fam when 'refused' then 'not_submitted' when 'account_gated' then 'needs_user' else j.state end,
@@ -113,11 +116,28 @@ begin
  return public.career_apply_vm_triage_for(array(select t.user_id from public.career_apply_claim_turns t where t.queued and public.career_apply_vm_user_ok(t.user_id)), p_limit);
 end $$;
 
+-- ------------------------------------------------------------------------------------------------ approval
+-- The one question "is this row approved right now?", answered from the stored approval record and nothing in the payload
+-- (review of #279: a hash the enqueuer wrote, or a 64-hex token inside the payload, proves nothing). It is the card-cloud bridge's
+-- own career_message_approval_private.cloud_bound_refusal (20261024130000): the row has an immutable binding to an approval that
+-- exists, is the same person's, is for this exact payload hash and entry, was used by the tap, is not revoked, is not expired
+-- (the approval's 24 hours and the payload's own expires_at), and the person is still eligible. Same predicate the queue trigger
+-- applies when a bound row goes to 'driving', so a row this passes can never be refused later by the trigger and abort a batch.
+-- No bridge, no approval store: fail closed (nothing is approved), never "approved because nothing says otherwise".
+create or replace function public.career_apply_vm_approval_refusal(j public.career_apply_jobs, p_now timestamptz) returns text
+language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare why text;
+begin
+ if to_regprocedure('career_message_approval_private.cloud_bound_refusal(public.career_apply_jobs,timestamptz,boolean)') is null then return 'NOT_APPROVED'; end if;
+ why := career_message_approval_private.cloud_bound_refusal(j, p_now, true);
+ return case when why is null then null else 'NOT_APPROVED' end;
+end $$;
+
 -- ------------------------------------------------------------------------------------------------ claim
 -- p_skip_hosts: hosts this worker is already at its own limit on (so it does not lease what it cannot start).
 create or replace function public.career_apply_vm_claim(p_worker text, p_limit integer, p_per_user integer default 1, p_skip_hosts text[] default '{}')
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
-declare now_ timestamptz := clock_timestamp(); people uuid[]; ids uuid[]; out jsonb;
+declare now_ timestamptz := clock_timestamp(); people uuid[]; ids uuid[]; out jsonb; r record; bad uuid[] := '{}';
  per int := greatest(1, coalesce(p_per_user, 1)); lim int := greatest(0, coalesce(p_limit, 0));
 begin
  if not public.career_apply_vm_enabled() or lim = 0 or p_worker is null or p_worker !~ '^[A-Za-z0-9._:-]{1,64}$' then return '[]'::jsonb; end if;
@@ -140,6 +160,19 @@ begin
    order by j.created_at, j.id limit per for update of j skip locked) q
   order by pp.o, q.created_at, q.id limit lim);
  if cardinality(ids) = 0 then return '[]'::jsonb; end if;
+ -- The stored-approval check on exactly these: a row with no live approval record bound to this person and this exact payload hash
+ -- (missing, wrong hash, revoked, expired, another person's, or enqueued directly) is closed NOT_APPROVED and never handed out.
+ for r in select j.id from public.career_apply_jobs j where j.id = any (ids) and public.career_apply_vm_approval_refusal(j, now_) is not null loop
+  bad := bad || r.id;
+  begin
+   update public.career_apply_jobs set state = 'not_submitted', reason = 'NOT_APPROVED',
+    evidence = evidence || jsonb_build_object('closed_at', now_, 'closed', 'not_approved', 'by', 'vm', 'nothing_sent', true), updated_at = now_
+    where id = r.id and state = 'queued';
+  exception when others then null; -- a row the queue trigger will not let us close stays queued, but is never handed out
+  end;
+ end loop;
+ ids := array(select x from unnest(ids) x where x <> all (bad));
+ if cardinality(ids) = 0 then return '[]'::jsonb; end if;
  -- The approval re-check on exactly these: a payload that no longer hashes to what was approved, or a posting another
  -- path sent since, is closed as not sent and never handed out.
  update public.career_apply_jobs set state = 'not_submitted', reason = 'not sent: the application changed after it was approved',
@@ -154,7 +187,8 @@ begin
    source = 'cloud', vm_worker = p_worker, vm_heartbeat_at = now_, vm_phase = 'preparing'
   where j.id = any (ids) and j.state = 'queued' returning j.*)
  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'lease_token', lease_token, 'user_id', user_id, 'job_id', job_id, 'company', company,
-   'url', url, 'payload', payload, 'payload_hash', payload_hash, 'approval_hash', approval_hash, 'requeues', vm_requeues)), '[]'::jsonb) into out from got;
+   'url', url, 'payload', payload, 'payload_hash', payload_hash, 'approval_hash', approval_hash, 'requeues', vm_requeues,
+   'approval_id', (select b.approval_id from career_message_approval_private.cloud_bound_jobs b where b.job_row_id = got.id))), '[]'::jsonb) into out from got;
  return out;
 end $$;
 
@@ -168,6 +202,8 @@ begin
  if p_phase is not null and p_phase not in ('preparing', 'submitting') then raise exception 'invalid phase'; end if;
  select * into j from public.career_apply_jobs where id = p_id and lease_token = p_lease and vm_worker = p_worker and state = 'driving' for update;
  if not found then return jsonb_build_object('ok', false, 'why', 'lease_lost'); end if;
+ -- Revoked or expired since the claim: stop, whatever the phase (the queue trigger would refuse this write anyway).
+ if public.career_apply_vm_approval_refusal(j, clock_timestamp()) is not null then return jsonb_build_object('ok', false, 'why', 'not_approved'); end if;
  if p_phase = 'submitting' and j.vm_phase = 'preparing' then
   if not public.career_apply_vm_enabled() then return jsonb_build_object('ok', false, 'why', 'switch_off'); end if;
   if not public.career_apply_current(j.user_id, j.payload) then return jsonb_build_object('ok', false, 'why', 'account_changed'); end if;
@@ -218,13 +254,16 @@ begin
   evidence = evidence || jsonb_build_object('reaped_at', now_, 'by', 'vm'), updated_at = now_
   where state = 'driving' and vm_worker is not null and vm_phase = 'submitting' and vm_heartbeat_at < now_ - stale;
  get diagnostics a = row_count;
- update public.career_apply_jobs set state = 'queued', attempts = 0, lease_token = null, claimed_at = null, vm_worker = null, vm_heartbeat_at = null,
+ update public.career_apply_jobs j set state = 'queued', attempts = 0, lease_token = null, claimed_at = null, vm_worker = null, vm_heartbeat_at = null,
   vm_phase = null, vm_requeues = vm_requeues + 1, updated_at = now_
-  where state = 'driving' and vm_worker is not null and vm_phase = 'preparing' and vm_heartbeat_at < now_ - stale and vm_requeues < 2;
+  where state = 'driving' and vm_worker is not null and vm_phase = 'preparing' and vm_heartbeat_at < now_ - stale and vm_requeues < 2
+   and public.career_apply_vm_approval_refusal(j, now_) is null; -- an approval gone since the claim is not put back in the queue
  get diagnostics b = row_count;
- update public.career_apply_jobs set state = 'not_submitted', reason = 'worker_lost_before_submit',
+ update public.career_apply_jobs j set state = 'not_submitted',
+  reason = case when vm_requeues >= 2 then 'worker_lost_before_submit' else 'NOT_APPROVED' end,
   evidence = evidence || jsonb_build_object('reaped_at', now_, 'by', 'vm', 'nothing_sent', true), updated_at = now_
-  where state = 'driving' and vm_worker is not null and vm_phase = 'preparing' and vm_heartbeat_at < now_ - stale and vm_requeues >= 2;
+  where state = 'driving' and vm_worker is not null and vm_phase = 'preparing' and vm_heartbeat_at < now_ - stale
+   and (vm_requeues >= 2 or public.career_apply_vm_approval_refusal(j, now_) is not null);
  get diagnostics c = row_count;
  return jsonb_build_object('unknown', a, 'requeued', b, 'closed_not_sent', c);
 end $$;
@@ -238,6 +277,7 @@ begin
  if not found then return jsonb_build_object('ok', false); end if;
  -- A portal the VM cannot fill at all (a sign-in-only employer) is finished by the person; re-queuing it would wait for nothing.
  if not public.career_apply_vm_claimable(j.url) then return jsonb_build_object('ok', false, 'why', 'site_not_supported_yet'); end if;
+ if public.career_apply_vm_approval_refusal(j, clock_timestamp()) is not null then return jsonb_build_object('ok', false, 'why', 'not_approved'); end if;
  update public.career_apply_jobs set state = 'queued', reason = null, evidence = evidence || jsonb_build_object('handoff_done_at', clock_timestamp()), updated_at = clock_timestamp()
   where id = j.id;
  return jsonb_build_object('ok', true);
@@ -284,7 +324,7 @@ do $$ begin
  if exists (select from pg_roles where rolname = 'authenticator') then grant apply_vm_worker to authenticator; end if;
 end $$;
 grant usage on schema public to apply_vm_worker;
-revoke all on function public.career_apply_vm_enabled(), public.career_apply_vm_user_ok(uuid), public.career_apply_vm_family(text), public.career_apply_vm_claimable(text),
+revoke all on function public.career_apply_vm_approval_refusal(public.career_apply_jobs, timestamptz), public.career_apply_vm_enabled(), public.career_apply_vm_user_ok(uuid), public.career_apply_vm_family(text), public.career_apply_vm_claimable(text),
  public.career_apply_vm_triage(integer), public.career_apply_vm_triage_for(uuid[], integer), public.career_apply_vm_claim(text, integer, integer, text[]), public.career_apply_vm_heartbeat(uuid, uuid, text, text),
  public.career_apply_vm_resume(uuid, uuid, text), public.career_apply_vm_complete(uuid, uuid, text, text, text, jsonb), public.career_apply_vm_reap(integer),
  public.career_apply_vm_handoff_requeue(uuid, text), public.career_apply_vm_status_of(public.career_apply_jobs), public.career_apply_status_for(uuid, text),

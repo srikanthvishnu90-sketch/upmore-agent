@@ -123,11 +123,11 @@ function createWorker(o) {
       answers[f.label.replace(/\s*\*\s*$/, "").trim()] = String(f.value);
     }
     const pool = { id: row.id, ats: site.ats, url: row.url, facts: {}, answers, resume: { path: resumePath, sha256: p.resume_sha256, preparedWithSha256: p.resume_sha256 } };
-    // The worker (parallel-apply) needs {approval_id, hash}. The claim above already proved this payload hashes to the stored
-    // approval_hash, and engine_approval is the approval token inside that hashed payload, so it is the approval_id. parallel-apply
-    // cannot check that id against a record: this is that check (the row was claimed from the approvals queue by hash).
-    if (!/^[a-f0-9]{64}$/.test(String(p.engine_approval || ""))) return { refuse: "NOT_APPROVED" };
-    pool.approval = { approval_id: p.engine_approval, hash: payloadHash(pool) };
+    // parallel-apply needs {approval_id, hash} and cannot know whether approval_id is real. The claim (career_apply_vm_claim) only
+    // hands out a row whose stored approval record is bound to this person and this payload hash, not revoked, not expired, and
+    // returns that record's id (never a token read out of the payload); the last heartbeat before the click checks it again.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(row.approval_id || ""))) return { refuse: "NOT_APPROVED" };
+    pool.approval = { approval_id: row.approval_id, hash: payloadHash(pool) };
     return { pool, host: site.host };
   }
 

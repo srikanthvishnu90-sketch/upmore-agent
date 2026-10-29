@@ -77,6 +77,11 @@ confirmation write (190 ms at 20,000 rows, growing with the table), which capped
 1. Review and apply `supabase/migrations/20261028180000_career_apply_vm_worker.sql` (SQL editor or your usual migration step). It adds
    columns, the `apply_vm_worker` role (can run the VM functions and read no table), the claim/heartbeat/resume/complete/reap/triage functions,
    the status functions and one performance fix. Everything is OFF until step 3.
+   It needs the card-cloud bridge (`20261024130000`) applied first: the VM claims a row only with a stored approval from the bridge (bound to the
+   person and the exact payload hash, not revoked, not expired; `cloud_bound_refusal`), and a row without one is closed `NOT_APPROVED` and never
+   leased. An enqueue alone, or a hash the enqueuer wrote, is not an approval. Without the bridge nothing is approved (it fails closed). The
+   same check runs again in the heartbeat that precedes the Submit click, so a revoke or expiry after the claim stops the item. The bridge's
+   eligibility list (`test_users`, or its enrollment) still applies: it is the bridge's own rule for who a card-bound row may be sent for.
 2. Mint the worker's key on your own computer (the secret never touches a file, the repo or chat):
    `SUPABASE_JWT_SECRET='<paste from Settings > API>' node scripts/launch/mint-apply-vm-jwt.cjs 90`
    It prints a JWT with role `apply_vm_worker`, valid 90 days. If your project signs with the newer asymmetric keys, PostgREST will not accept it:

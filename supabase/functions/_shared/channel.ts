@@ -76,7 +76,8 @@ export const STOPPED_REPLY_NOTE = "not sent: the person texted STOP after the me
 // PROACTIVE SCENARIOS (2026-10-29): a job alert or daily report is news on its day, not later. Rows wait in the outbox while
 // the person has no texting channel (the dashboard's matches feed reads them there), and when they connected one, every
 // alert and report of the weeks before went out at once, each still saying "first seen 20 min ago". Past this age, an
-// alert or report is not sent; the dashboard still lists it.
+// alert or report is not sent; the dashboard still lists it. Not on a channel with a service window (WhatsApp): there a
+// row held for the window goes out whole when the person next writes, however late (WO-038/W5).
 export const ALERT_STALE_MS = 48 * 3600000;
 export const STALE_NOTE = "not sent: a job alert or report more than 48 hours past its time is no longer news";
 
@@ -146,7 +147,7 @@ export async function deliverDue(o: {
     }
     // A job alert or report queued before the person paused or stopped their alerts by text (their watch, not the
     // account) is checked again now. Not wanted: not sent. A check that cannot be read leaves the row for the next run.
-    if (/^(alert|report):/.test(m.key) && o.now - m.deliver_at > ALERT_STALE_MS) {
+    if (/^(alert|report):/.test(m.key) && o.now - m.deliver_at > ALERT_STALE_MS && (adapter.limits.windowMs ?? null) === null) {
       await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: STALE_NOTE }); r.skipped_opt_out++; continue;
     }
     if (/^(alert|report):/.test(m.key) && o.store.alertWanted) {

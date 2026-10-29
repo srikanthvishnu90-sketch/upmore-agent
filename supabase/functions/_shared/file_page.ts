@@ -2,12 +2,12 @@
 // short description of the role; tapping the description opens the full posting. One tiny line on top says which resume the
 // Apply taps use. Pure functions: a model in, HTML or plain text out.
 //
-// Rules that do not move: the status word says what is true (Queued / Preparing / Submitted / Confirmed / Failed / Needs you /
-// Unknown) and "applied" is never written before a submit; the logo comes only from the employer's own domain, else a lettermark;
-// posting text is untrusted and always escaped.
+// Rules that do not move: the status word says what is true (Queued / Preparing / Sending / Submitted / Confirmed / Failed /
+// Not submitted / Needs you / Unknown) and "applied" is never written; the logo comes only from the employer's own domain, else a
+// lettermark; posting text is untrusted and always escaped (bidi overrides and isolates removed, links only http and https).
 import type { JobView } from "./telegram_jobs.ts";
 
-export type Word = "queued" | "preparing" | "submitted" | "confirmed" | "failed" | "needs you" | "unknown";
+export type Word = "queued" | "preparing" | "sending" | "submitted" | "confirmed" | "failed" | "not submitted" | "needs you" | "unknown";
 export interface Status { word: Word; detail: string }
 export interface AppRow {
   id: string; state: string; reason: string | null; confirmation_id: string | null; created_at: string; updated_at: string;
@@ -18,12 +18,16 @@ export interface Row {
   status: Status | null; // null: nothing yet, so the row offers Apply
   tag: string | null; // first 16 hex of the payload hash this row's Apply is bound to; null when nothing is prepared yet
   resume: string | null; byHand: boolean; note?: string;
+  blocked?: string | null; // why this row offers no Apply (it cannot pass the posting screen, or is the same posting as a row above)
   sends?: string; send?: { label: string; value: string; needs?: boolean }[];
   meta?: string; metaSrc?: "From the posting" | "Reported, not verified" | null; why?: string[];
 }
 export interface Feed { og?: Og; token: string; rows: Row[]; setHash: string | null; setSize: number; top?: string; botUrl?: string | null }
 
-export const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+// Bidi overrides and isolates (U+202A-E, U+2066-9) in a company, title or location would reverse the text after them on the page,
+// a provenance label included; they are dropped, never rendered.
+export const BIDI_CONTROLS = /[\u202A-\u202E\u2066-\u2069]/g;
+export const esc = (s: unknown) => String(s ?? "").replace(BIDI_CONTROLS, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 export const dayOf = (iso: string | null | undefined) => { const t = iso ? Date.parse(iso) : NaN; if (Number.isNaN(t)) return null; const d = new Date(t); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; };
@@ -37,9 +41,10 @@ export function statusOf(o: { app: AppRow | null; wanted: boolean }): Status | n
       case "confirmed": return { word: "confirmed", detail: `${who} confirmed it${a.confirmation_id ? ` (${a.confirmation_id})` : ""}.` };
       case "submitted_unconfirmed": return { word: "submitted", detail: `${who} hasn't confirmed it yet.` };
       case "queued": return { word: "queued", detail: "We haven't started it yet." };
-      case "driving": return { word: "preparing", detail: "Sending now; not submitted yet." };
+      case "driving": return { word: "sending", detail: "Being sent now; not submitted yet." };
       case "needs_user": return { word: "needs you", detail: a.reason ?? "It stopped and needs you." };
-      case "failed": case "not_submitted": return { word: "failed", detail: a.reason ?? "No reason was recorded." };
+      case "failed": return { word: "failed", detail: a.reason ?? "No reason was recorded." };
+      case "not_submitted": return { word: "not submitted", detail: a.reason ?? "It was not sent." };
       case "unknown_outcome": return { word: "unknown", detail: `We can't tell whether it reached ${who}. It won't be sent again.` };
       default: return { word: "unknown", detail: `Recorded as ${a.state}; not known to be sent.` };
     }
@@ -59,6 +64,8 @@ export function fullOf(description: string | null | undefined): string | null {
   return plain ? clip(plain, 12000) : null;
 }
 export const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
+// Only an http or https posting link becomes a link on the page (a stored "javascript://www.linkedin.com/..." is never one).
+export const webUrl = (u: string) => { try { const x = new URL(u); return x.protocol === "https:" || x.protocol === "http:" ? u : null; } catch { return null; } };
 
 // ---------------------------------------------------------------- html
 const CSS = `
@@ -84,7 +91,7 @@ ul.rows{list-style:none;margin:0;padding:0}
 .act{flex:none;margin:0}
 .apply{display:inline-flex;align-items:center;justify-content:center;min-width:96px;min-height:48px;padding:6px 20px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;text-decoration:none;cursor:pointer}.apply:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 .chip{flex:none;min-height:48px;display:inline-flex;align-items:center;justify-content:flex-end;font-weight:600;color:var(--mute)}
-.chip.queued,.chip.submitted,.chip.confirmed{color:var(--good)}.chip.failed,.chip.unknown{color:var(--bad)}.chip.needs-you{color:var(--warn)}
+.chip.queued,.chip.sending,.chip.submitted,.chip.confirmed{color:var(--good)}.chip.failed,.chip.not-submitted,.chip.unknown{color:var(--bad)}.chip.needs-you{color:var(--warn)}
 details{margin:4px 0 0 58px}summary{list-style:none;cursor:pointer;min-height:44px;padding:4px 0}
 summary::-webkit-details-marker{display:none}
 .role{display:block;font-weight:500}.desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--mute);font-size:16px}
@@ -121,12 +128,15 @@ function rowHtml(r: Row, token: string): string {
   const j = r.job;
   const initial = esc((j.company.trim()[0] ?? "?").toUpperCase());
   const img = r.logo ? `<img src="${esc(r.logo)}" alt="${esc(j.company)} logo" width="48" height="48" loading="lazy" referrerpolicy="no-referrer">` : "";
+  const link = webUrl(j.url), host = link ? hostOf(link) : "";
   let act: string;
-  if (r.status) act = `<span class="chip ${r.status.word.replace(" ", "-")}" role="status">${esc(cap1(r.status.word))}</span>`;
-  else if (r.byHand) act = `<a class="apply" href="${esc(j.url)}" rel="noopener noreferrer" aria-label="Open ${esc(j.title)} at ${esc(j.company)} to apply there yourself">Apply there</a>`;
-  else act = `<form method="post" class="ajax act">${hidden(token, "apply", `<input type="hidden" name="ref" value="${esc(r.ref)}"><input type="hidden" name="tag" value="${r.tag ?? "none"}">`)}<button type="submit" class="apply" aria-label="Apply to ${esc(j.title)} at ${esc(j.company)}">Apply</button></form>`;
-  const more = r.full ? `<p class="full">${esc(r.full)}</p>${hostOf(j.url) ? `<p><a href="${esc(j.url)}" rel="noopener noreferrer">Open on ${esc(hostOf(j.url))}</a></p>` : ""}` : `<p class="full">The full posting text isn't on file.</p>${hostOf(j.url) ? `<p><a href="${esc(j.url)}" rel="noopener noreferrer">Open on ${esc(hostOf(j.url))}</a></p>` : ""}`;
-  const note = r.note ? `<p class="note">${esc(r.note)} ${refresh(token)}</p>` : r.status && r.status.word !== "queued" && r.status.word !== "preparing" ? `<p class="note">${esc(r.status.detail)}</p>` : r.status ? `<p class="note">${esc(r.status.detail)}</p>` : r.byHand ? `<p class="note">Not applied for automatically on this site.</p>` : "";
+  if (r.status) act = `<span class="chip ${r.status.word.replace(/ /g, "-")}" role="status">${esc(cap1(r.status.word))}</span>`;
+  else if (r.byHand) act = link ? `<a class="apply" href="${esc(link)}" rel="noopener noreferrer" aria-label="Open ${esc(j.title)} at ${esc(j.company)} to apply there yourself">Apply there</a>` : "";
+  else if (r.blocked) act = "";
+  else act = `<form method="post" class="ajax act">${hidden(token, "apply", `<input type="hidden" name="ref" value="${esc(r.ref)}"><input type="hidden" name="tag" value="${esc(r.tag ?? "none")}">`)}<button type="submit" class="apply" aria-label="Apply to ${esc(j.title)} at ${esc(j.company)}">Apply</button></form>`;
+  const openOn = host ? `<p><a href="${esc(link)}" rel="noopener noreferrer">Open on ${esc(host)}</a></p>` : "";
+  const more = r.full ? `<p class="full">${esc(r.full)}</p>${openOn}` : `<p class="full">The full posting text isn't on file.</p>${openOn}`;
+  const note = r.note ? `<p class="note">${esc(r.note)} ${refresh(token)}</p>` : r.status ? `<p class="note">${esc(r.status.detail)}</p>` : r.byHand ? `<p class="note">Not applied for automatically on this site.</p>` : r.blocked ? `<p class="note">Not offered: ${esc(r.blocked)}</p>` : "";
   const meta = r.meta ? `<p class="meta">${esc(r.meta)}${r.metaSrc ? ` · ${esc(r.metaSrc)}` : ""}</p>` : "";
   const sendsLine = r.sends ? `<p class="meta">${esc(r.sends)}</p>` : "";
   const sendList = r.send?.length ? `<p class="sendh">What we send</p><ul class="send">${r.send.map((x) => `<li>${esc(x.label)}: ${x.needs ? `<strong>Needs you</strong>` : esc(x.value)}</li>`).join("")}</ul>` : "";
@@ -167,13 +177,16 @@ export function renderLinkState(title: string, paras: string[], botUrl?: string 
 
 // ---------------------------------------------------------------- plain text twin: every row, its state, what Apply does
 export function renderText(f: Feed): string {
+  return renderTextRaw(f).replace(BIDI_CONTROLS, "");
+}
+function renderTextRaw(f: Feed): string {
   const names = [...new Set(f.rows.map((r) => r.resume).filter(Boolean))];
   const L = ["Your jobs", ...(names.length ? [`Applying with: ${names.join(", ")}`] : []), `Apply to all: ${f.setHash && f.setSize >= 2 ? `available (${f.setSize} rows)` : "not available"}`, ""];
   f.rows.forEach((r, i) => {
     L.push(`${i + 1}. ${r.job.company} - ${r.job.title}`);
     if (r.snippet) L.push(`   ${r.snippet}`);
     L.push(`   Status: ${r.status ? r.status.word : "available"}${r.status ? ` (${r.status.detail})` : ""}`);
-    L.push(`   Apply: ${r.status ? "closed" : r.byHand ? "not automated on this site; apply there yourself" : "available"}`);
+    L.push(`   Apply: ${r.status ? "closed" : r.byHand ? "not automated on this site; apply there yourself" : r.blocked ? `not offered: ${r.blocked}` : "available"}`);
     if (r.job.url) L.push(`   Posting: ${r.job.url}`);
     if (r.note) L.push(`   ${r.note}`);
   });

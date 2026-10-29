@@ -256,7 +256,7 @@ Deno.test("status: each state flips the row to its own truthful word; 'applied' 
   const cases: [string, ReturnType<typeof mem>, string][] = [
     ["approved", mem(1, { apps: { 1: appRow("queued") } }), "Queued"],
     ["preparing (wanted)", mem(1, { unprepared: [1], wanted: [1] }), "Preparing"],
-    ["being sent", mem(1, { apps: { 1: appRow("driving") } }), "Preparing"],
+    ["being sent", mem(1, { apps: { 1: appRow("driving") } }), "Sending"],
     ["submitted", mem(1, { apps: { 1: appRow("submitted_unconfirmed") } }), "Submitted"],
     ["confirmed", mem(1, { apps: { 1: appRow("confirmed", { confirmation_id: "C-123" }) } }), "Confirmed"],
     ["failed", mem(1, { apps: { 1: appRow("failed", { reason: "the form changed" }) } }), "Failed"],

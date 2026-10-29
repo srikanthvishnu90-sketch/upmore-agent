@@ -31,6 +31,7 @@ import { type Button } from "./channel_adapters.ts";
 
 export const TG_CAPTION_MAX = 1024;
 export const PAGE_SIZE = 5;
+export const MASS_FROM = 3; // more than this many postings go as one link to the list page, not one card each
 export const DETAILS_MAX = 3600;
 
 export interface JobView {
@@ -66,6 +67,8 @@ export interface JobDeps {
   now: () => number;
   env: { get(k: string): string | undefined };
   events?: Parameters<typeof tapCard>[0]["events"];
+  // The hosted feed for a list: a Telegram Mini App URL and a signed-link fallback (either null when not configured).
+  feedLinks?: (userId: string, listId: string) => Promise<{ webApp: string | null; url: string | null }>;
   facts?: (userId: string) => Promise<any[]>; // the person's CONFIRMED facts, for the posting screen's knock-outs; none known = none confirmed
 }
 
@@ -157,17 +160,18 @@ export function captionOf(job: JobView, now: number): string {
   const where = [job.location, job.remote === "remote" ? "Remote" : job.remote === "hybrid" ? "Hybrid" : job.remote === "onsite" ? "On-site" : ""].filter(Boolean);
   const dedup = where.filter((w, i) => where.findIndex((x) => x.toLowerCase() === w.toLowerCase()) === i);
   const posted = agoOf(job.posted_at, now), seen = agoOf(job.first_seen_at, now);
+  // Company first, then the role: a list scans by employer. A fact the posting does not state is left out, not listed as "not listed".
   const lines = [
-    job.title, `${job.company}${dedup.length ? ` · ${dedup.join(" · ")}` : ""}`, "",
-    `Pay: ${job.pay ?? "not listed"}`,
+    job.company, job.title, ...(dedup.length ? [dedup.join(" · ")] : []), "",
+    ...(job.pay ? [`Pay: ${job.pay}`] : []),
     ...(job.level ? [`Level: ${job.level}`] : []),
-    posted ? `Posted: ${posted}` : seen ? `First seen: ${seen}` : "Posted: not listed",
-    `Apply by: ${job.deadline ? (dayOf(job.deadline) ?? "not listed") : "not listed"}`,
+    ...(posted ? [`Posted: ${posted}`] : seen ? [`First seen: ${seen}`] : []),
+    ...(job.deadline && dayOf(job.deadline) ? [`Apply by: ${dayOf(job.deadline)}`] : []),
     ...(job.source ? [`Source: ${job.source}`] : []),
     ...(job.reasons.length ? ["", "Why it fits you:", ...job.reasons.slice(0, 3).map((r) => `• ${r}`)] : []),
     ...(job.gaps.length ? ["Gaps:", ...job.gaps.slice(0, 2).map((r) => `• ${r}`)] : []),
   ];
-  const text = lines.join("\n");
+  const text = lines.join("\n").replace(/\n{3,}/g, "\n\n");
   return text.length <= TG_CAPTION_MAX ? text : `${text.slice(0, TG_CAPTION_MAX - 1)}…`;
 }
 
@@ -213,7 +217,10 @@ export async function sendJobPage(o: { userId: string; jobs: JobView[]; page: nu
   let photo = 0, text = 0;
   for (const job of slice) {
     const ref = await refOf(o.userId, job.job_id);
-    const caption = captionOf(job, deps.now()), buttons = jobButtons(ref), logo = logoUrl(job, deps.env);
+    const lastOfPage = job === slice[slice.length - 1] && from + PAGE_SIZE < o.jobs.length;
+    const left = o.jobs.length - (from + PAGE_SIZE);
+    const caption = captionOf(job, deps.now()), logo = logoUrl(job, deps.env);
+    const buttons: Button[][] = [...jobButtons(ref), ...(lastOfPage ? [[{ text: `Next ${Math.min(PAGE_SIZE, left)} of ${left} more`, data: `jcn:${o.listId}:${o.page + 1}` }]] : [])];
     let shownAs: "photo" | "text" = "text";
     if (logo) { const r = await send.photo({ photoUrl: logo, caption, buttons }).catch(() => ({ ok: false })); if (r.ok) { shownAs = "photo"; photo++; } }
     if (shownAs === "text") {
@@ -222,10 +229,6 @@ export async function sendJobPage(o: { userId: string; jobs: JobView[]; page: nu
       else continue; // not delivered: no card is remembered for a button nobody can tap
     }
     await deps.store.remember(o.userId, ref, job, shownAs);
-  }
-  const shown = Math.min(o.jobs.length, from + PAGE_SIZE);
-  if (shown < o.jobs.length) {
-    await send.text({ text: `Showing ${from + 1}-${shown} of ${o.jobs.length}.`, buttons: [[{ text: `Next ${Math.min(PAGE_SIZE, o.jobs.length - shown)}`, data: `jcn:${o.listId}:${o.page + 1}` }]] });
   }
   return { sent: photo + text, photo, text };
 }
@@ -243,6 +246,15 @@ export async function sendJobCards(o: { userId: string; hits: any[]; deps: JobDe
   // The whole list is remembered up front (with each job), so Next never depends on the page that was shown first.
   await o.deps.store.rememberList(o.userId, listId, refs);
   for (let i = 0; i < jobs.length; i++) await o.deps.store.remember(o.userId, refs[i], jobs[i], "text");
+  // A mass list is one short line and the link (Telegram shows the link's preview card): the rows, with Apply on each, are on the page.
+  if (jobs.length > MASS_FROM && o.deps.feedLinks) {
+    const links = await o.deps.feedLinks(o.userId, listId).catch(() => null);
+    if (links?.url || links?.webApp) {
+      const line = `${jobs.length} jobs for you.${links.url ? ` Open the list: ${links.url}` : ""}`;
+      const r = await o.send.text({ text: line, buttons: links.webApp ? [[{ text: "Open the list", webApp: links.webApp }]] : undefined });
+      if (r.ok) return { sent: 1, total: jobs.length };
+    }
+  }
   const r = await sendJobPage({ userId: o.userId, jobs, page: 0, listId, deps: o.deps, send: o.send });
   return { sent: r.sent, total: jobs.length };
 }
@@ -349,17 +361,17 @@ function pageLines(lines: string[], max = 3800): string[] {
 
 // ---------------------------------------------------------------- taps
 export interface JobTapResult { toast: string; status: string }
-const BLOCKED_HOST = /(^|\.)(linkedin\.com|indeed\.com|joinhandshake\.com)$/i;
+export const BLOCKED_HOST = /(^|\.)(linkedin\.com|indeed\.com|joinhandshake\.com)$/i;
 export const GONE_REPLY = "That card is too old for me to open. Ask me for the postings again and I'll send fresh ones.";
 export const NO_WORKER_REPLY = (company: string, title: string) =>
-  `Queued: ${title ? `${title} at ` : ""}${company}. Status: queued, not applied. I haven't prepared this application yet because the prepare worker isn't connected to your account, so there is nothing to approve and nothing has gone to the employer. When it's prepared I'll show you the exact application here with Confirm / Edit / Cancel.`;
+  `Queued: ${title ? `${title} at ` : ""}${company}. We haven't started it yet and nothing has gone to the employer. When it's ready I'll show you the exact application to approve.`;
 export const QUEUED_REPLY = (company: string, title: string) =>
-  `Confirmed: ${title ? `${title} at ` : ""}${company}, exactly as shown. Status: queued, not applied. It goes to the employer only when the apply worker runs it; until then it is waiting, and I'll tell you what comes back. Nothing has been submitted yet.`;
+  `Approved: ${title ? `${title} at ` : ""}${company}, exactly as shown. Queued, not submitted yet. I'll tell you what comes back.`;
 
 // The posting screen (career_apply_gate.ts via screenPicks, PR #276) for a card tap: a closed, stale, scam-looking or knock-out
 // posting is never queued and never shown for approval. The stored posting row is read fresh at the tap; if it cannot be read
 // the tap fails closed (nothing queued) rather than skipping the screen.
-async function screenedOut(userId: string, job: JobView, deps: JobDeps): Promise<string | null> {
+export async function screenedOut(userId: string, job: JobView, deps: JobDeps): Promise<string | null> {
   let row: PostingRow | null;
   const UNREADABLE = "I couldn't check that posting just now (it may have closed), so nothing was queued. Tap Apply again in a minute.";
   try { row = (await deps.store.postings([job.job_id]))[0] ?? null; } catch { return UNREADABLE; }

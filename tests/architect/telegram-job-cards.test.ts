@@ -78,17 +78,18 @@ Deno.test("cards: a posting with a logo is one sendPhoto with the logo URL, a ca
   eq(c.method, "sendPhoto");
   eq(c.body.chat_id, 42);
   eq(c.body.photo, "https://www.google.com/s2/favicons?sz=128&domain=acme.com");
-  for (const want of ["Data Analyst 1", "Acme · Austin, TX · Hybrid", "Pay: $90k-$110k", "Level: mid", "Posted: 3 d ago (Oct 25)", "Apply by: not listed", "Source: Greenhouse", "• You list SQL", "• No Tableau on file"]) assert(c.body.caption.includes(want), `caption has "${want}":\n${c.body.caption}`);
+  for (const want of ["Acme\nData Analyst 1\nAustin, TX · Hybrid", "Pay: $90k-$110k", "Level: mid", "Posted: 3 d ago (Oct 25)", "Source: Greenhouse", "• You list SQL", "• No Tableau on file"]) assert(c.body.caption.includes(want), `caption has "${want}":\n${c.body.caption}`);
   assert(c.body.caption.length <= 1024);
   const ref = await refOf(U, "greenhouse:acme:1");
   eq(c.body.reply_markup.inline_keyboard, [[{ text: "Apply", callback_data: `jca:${ref}` }, { text: "Details", callback_data: `jcd:${ref}` }, { text: "Save", callback_data: `jcs:${ref}` }]]);
   for (const b of c.body.reply_markup.inline_keyboard[0]) assert(new TextEncoder().encode(b.callback_data).length <= 64);
 });
 
-Deno.test("cards: nothing is invented: no pay, level or reasons stated means 'not listed' or no line at all", () => {
+Deno.test("cards: nothing is invented: a fact the posting does not state is left out, never listed as 'not listed'", () => {
   const j = jobViewOf({ job_id: "lever:x:9", company: "Zed", title: "Analyst", location: "", url: "https://jobs.lever.co/x/9" }, null);
   const cap = captionOf(j, NOW);
-  assert(cap.includes("Pay: not listed") && cap.includes("Apply by: not listed") && cap.includes("Posted: not listed"));
+  assert(!/not listed|Pay:|Apply by:|Posted:/.test(cap), cap);
+  assert(cap.startsWith("Zed\nAnalyst"), "company first, then the role");
   assert(!/Level:|Why it fits|Gaps:|Remote|Hybrid/.test(cap), cap);
 });
 
@@ -96,7 +97,7 @@ Deno.test("cards: no employer domain (an ATS link) means a text card with the sa
   const t = fakeTelegram(), m = memStore({ postings: [row(2, { company_domain: null })] }), log = { answered: [] as any[] };
   await sendJobCards({ userId: U, hits: [hit(2)], deps: deps(m, log), send: t.send });
   eq(t.calls.map((c) => c.method), ["sendMessage"]);
-  assert(t.calls[0].body.text.startsWith("Data Analyst 2\nAcme") && t.calls[0].body.reply_markup.inline_keyboard[0].length === 3);
+  assert(t.calls[0].body.text.startsWith("Acme\nData Analyst 2") && t.calls[0].body.reply_markup.inline_keyboard[0].length === 3);
   eq(logoUrl({ company: "Acme", company_domain: null, url: "https://boards.greenhouse.io/acme/jobs/2" }, { get: () => undefined }), null);
   eq(logoUrl({ company: "Acme", company_domain: null, url: "https://careers.acme.com/jobs/2" }, { get: () => undefined }), "https://www.google.com/s2/favicons?sz=128&domain=acme.com");
 });
@@ -113,16 +114,16 @@ Deno.test("cards: a long list pages 5 at a time with a Next button that sends th
   const d = deps(m, log);
   const r = await sendJobCards({ userId: U, hits: [1, 2, 3, 4, 5, 6, 7].map((n) => hit(n)), deps: d, send: t.send });
   eq([r.sent, r.total], [5, 7]);
-  const nextMsg = t.calls.at(-1)!;
-  eq(nextMsg.method, "sendMessage");
-  assert(nextMsg.body.text.startsWith("Showing 1-5 of 7"));
-  const next = nextMsg.body.reply_markup.inline_keyboard[0][0];
-  eq(next.text, "Next 2");
+  const lastCard = t.calls.at(-1)!;
+  eq(lastCard.body.reply_markup.inline_keyboard[0].length, 3, "Apply / Details / Save stay");
+  const next = lastCard.body.reply_markup.inline_keyboard[1][0];
+  eq(next.text, "Next 2 of 2 more");
+  assert(t.calls.slice(0, -1).every((c) => c.body.reply_markup.inline_keyboard.length === 1), "Next rides only on the last card, in its own keyboard, not as another bubble");
   t.calls.length = 0;
   const res = await tapJob({ userId: U, data: next.callback_data, messageId: "1", deps: d, send: t.send });
   eq(res.status, "next");
   eq(t.calls.filter((c) => c.method === "sendPhoto").length, 2);
-  assert(!t.calls.some((c) => /^Showing/.test(c.body.text ?? "")), "no Next after the last page");
+  assert(!t.calls.some((c) => JSON.stringify(c.body.reply_markup ?? {}).includes("jcn:")), "no Next after the last page");
 });
 
 Deno.test("details: a text card grows in place; a photo card gets the requirements as a reply under it; nothing is applied", async () => {
@@ -153,7 +154,7 @@ Deno.test("save: once, then 'already saved'", async () => {
   eq((await tapJob({ userId: U, data: `jcs:${ref}`, messageId: "1", deps: d, send: t.send })).status, "already");
 });
 
-Deno.test("apply with no prepared application: queued to be prepared, and the message says queued, not applied; nothing opened or approved", async () => {
+Deno.test("apply with no prepared application: queued to be prepared, and the message says queued, in plain words; nothing opened or approved", async () => {
   const t = fakeTelegram(), m = memStore({ postings: [row(1)] }), log = { answered: [] as any[] }, opened: string[] = [];
   const d = deps(m, log, { opened });
   await sendJobCards({ userId: U, hits: [hit(1)], deps: d, send: t.send });
@@ -163,7 +164,7 @@ Deno.test("apply with no prepared application: queued to be prepared, and the me
   eq(r.status, "queued_unprepared");
   eq(m.log.wants, ["greenhouse:acme:1"]);
   const said = t.calls.map((c) => c.body.text).join("\n");
-  assert(/queued, not applied/i.test(said) && /prepare worker isn't connected/.test(said) && !/submitted|sent to/i.test(said.replace("nothing has gone to the employer", "")), said);
+  assert(/^Queued:/.test(said) && /haven't started it yet/.test(said) && !/worker|applied/i.test(said) && !/submitted|sent to/i.test(said.replace("nothing has gone to the employer", "")), said);
   eq([log.answered, opened], [[], []]);
 });
 
@@ -196,7 +197,7 @@ Deno.test("confirm: the button's hash tag must match the payload on file now; a 
   assert(/changed after I showed it, so nothing was approved/.test(t.calls[0].body.text));
 });
 
-Deno.test("confirm: with the matching tag it opens the one-item card and approves exactly it through the card path; the reply says queued, not applied", async () => {
+Deno.test("confirm: with the matching tag it opens the one-item card and approves exactly it through the card path; the reply says queued, not submitted yet", async () => {
   const t = fakeTelegram(), m = memStore({ postings: [row(1)], prepared: prepared(H) }), log = { answered: [] as any[] }, opened: string[] = [];
   const d = deps(m, log, { opened });
   await sendJobCards({ userId: U, hits: [hit(1)], deps: d, send: t.send });
@@ -207,7 +208,7 @@ Deno.test("confirm: with the matching tag it opens the one-item card and approve
   eq(opened, [PID]);
   eq(log.answered, [{ card: CARD, approve: [1] }]);
   const said = t.calls.at(-1)!.body.text;
-  assert(/Status: queued, not applied/.test(said) && /Nothing has been submitted yet/.test(said), said);
+  assert(/^Approved:/.test(said) && /Queued, not submitted yet/.test(said) && !/applied/i.test(said), said);
 });
 
 Deno.test("no apply without Confirm: Apply, Details, Save, Edit and Cancel never answer a card", async () => {

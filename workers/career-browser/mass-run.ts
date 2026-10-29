@@ -175,6 +175,11 @@ export class HostPacer {
     this.running.set(host, (this.running.get(host) ?? 0) + 1);
     this.last.set(host, now);
   }
+  // The engine actually starting (after the decision's own async work): spacing counts from the later of the two, so
+  // two real starts on one host are never closer than the spacing however long each took to get going.
+  began(host: string, now: number) {
+    this.last.set(host, Math.max(this.last.get(host) ?? 0, now));
+  }
   ended(host: string) {
     this.running.set(host, Math.max(0, (this.running.get(host) ?? 0) - 1));
   }
@@ -370,6 +375,7 @@ export async function massRun<J extends MassJob>(o: {
     let began = false;
     const onStart = async () => {
       if (o.journal) await o.journal.start(item.job.id);
+      pacer.began(item.host, now());
       began = true;
     };
     const pr: Promise<void> = (async () => {

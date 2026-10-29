@@ -297,7 +297,8 @@ Deno.test({ name: "FAMILY EMAIL: job mail read, classified, tracked and reminded
       const calls = google.gmail().length;
       const other = handler!.chat("tok-o");
       const r = await say(other, "check my email");
-      eq(r.resultStatus, "NOT_WIRED", r.reply);
+      // Task 3 (connector framework): with no mailbox of their own, Trainee asks once for one and nothing is read.
+      assert(["NOT_WIRED", "asked", "not_wired"].includes(String(r.resultStatus)) && !/assessment|Acme/.test(r.reply), r.reply);
       eq(google.gmail().length, calls, "no Gmail call without their own grant");
       const s = await say(other, "where do I stand with Acme?");
       assert(!/assessment|OA/.test(s.reply), s.reply);

@@ -157,23 +157,40 @@ jobs:
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
           exit 0
-  gate-architect:
-    name: gate (architect)
+  gate-architect-shard:
+    name: gate (architect shard ${{ matrix.shard }}/6)
     runs-on: ubuntu-24.04
     # The architect step of the gate (tests/architect, Deno: handler and flow tests that each provision a throwaway
     # Postgres, several driving Chromium) and its companion Deno check of scripts/apply.ts, split out of gate (core)
     # 2026-10-26 (see the gate job's comment). Runs in parallel with the other gate jobs; it is not advisory, and a
     # failure here fails the run exactly as it did inside gate (core). It needs the same tooling (node, Chromium,
     # Postgres 16 from the runner image), so its setup is the same as the other gate jobs'.
-    timeout-minutes: 30
+    # Sharded 2026-10-29: the single job ran `deno test` over all 200+ architect files serially, 1,323 s in the
+    # Career gate step of a green run (run 40790880196; setup took ~25 s) and past the 30-minute cap on others
+    # (runs 40788526016, 40787919188 cancelled), which blocked every PR. Six shards by sorted-file index
+    # (scripts/architect-shards.ts; tests/architect/ci-shard-partition.test.ts proves each file runs in exactly one),
+    # so ~220 s of tests per shard plus setup. The 45-minute cap is a backstop, not a target. The required check
+    # name `gate (architect)` is the aggregate job below.
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
     env:
       GATE_PARTITION: architect
+      GATE_ARCHITECT_SHARD: ${{ matrix.shard }}/6
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "22.23.3" }
       - uses: denoland/setup-deno@v2
         with: { deno-version: "v2.9.6" }
+      - name: Cache the Deno dir (esm.sh / jsr / npm imports of the tests)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/deno
+          key: deno-2.9.6-${{ hashFiles('tests/architect/**/*.ts', 'supabase/functions/_shared/**/*.ts', 'scripts/apply.ts') }}
+          restore-keys: deno-2.9.6-
       - name: Install tooling and use the runner's packaged Chrome
         run: |
           # The versions come from tools/package.json + tools/package-lock.json, the same pins the career browser worker installs
@@ -212,6 +229,24 @@ jobs:
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
           exit 0
+  gate-architect:
+    name: gate (architect)
+    runs-on: ubuntu-24.04
+    # The required check (name unchanged). Passes only when every architect shard succeeded and the shards still
+    # partition tests/architect exactly. always() so a failed or cancelled shard fails this check rather than skipping it.
+    needs: gate-architect-shard
+    if: always()
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: Every architect shard succeeded
+        run: |
+          echo "architect shards: ${{ needs.gate-architect-shard.result }}"
+          test "${{ needs.gate-architect-shard.result }}" = success
+      - name: Every architect test file is in exactly one shard
+        run: deno run -A scripts/architect-shards.ts verify 6
   gate-coverage-shard:
     name: gate (forms-ci coverage shard ${{ matrix.shard }}/5)
     runs-on: ubuntu-24.04
@@ -354,4 +389,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Migrations, RLS and SQL tests on a throwaway Postgres 16, plus the migration ledger
-        run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH bash tests/db/run.sh
+        run: |
+          set -o pipefail
+          PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH bash tests/db/run.sh 2>&1 | tee "$RUNNER_TEMP/db.log"
+      # The failing lines as annotations, readable through the checks API where the raw log is not.
+      - name: Failure lines as annotations
+        if: failure()
+        run: echo "::error::$(tail -n 60 "$RUNNER_TEMP/db.log" | grep -v '^  ok ' | tail -n 30 | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+  send-rail-load:
+    name: load (send rail)
+    runs-on: ubuntu-24.04
+    # Mass networking (lane M1, owner's scale rule 2026-10-27): 10,000 people x 50 approved emails plus one heavy
+    # sender, 20 concurrent sender sessions, real Postgres 16, Gmail faked. Its own job so the gate's time caps are not
+    # spent on it; it fails the run like any other job. The measured numbers are printed (SEND RAIL LOAD ...).
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: The sending rail under load
+        run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH deno test -A --no-check tests/load/send-rail-load.test.ts

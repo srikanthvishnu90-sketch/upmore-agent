@@ -62,7 +62,7 @@ Deno.test({ name: "SERIAL-1490/1491: the employer guard at the real handler: exa
       eq(said.intent, "profile_correction", said.reply);
       const exact = await say(chat, "apply to the Data Analyst role at Contoso Analytics");
       eq([exact.intent, exact.resultStatus], ["career_apply_queue", "refused"], exact.reply);
-      assert(/Contoso Analytics is their current employer/.test(exact.reply) && !/where you work now\?/.test(exact.reply), exact.reply);
+      assert(/Contoso Analytics is your current employer/.test(exact.reply) && !/where you work now\?/.test(exact.reply) && !/\btheir\b|\bthey (?:said|set|did|work|named|already)\b|themselves|the person/i.test(exact.reply), exact.reply);
       eq(await wanted(me), []);
       const other = await say(chat, "apply to the Data Analyst role at Fabrikam Data");
       eq([other.intent, other.resultStatus], ["career_apply_queue", "queued"], other.reply);
@@ -99,7 +99,7 @@ Deno.test({ name: "SERIAL-1490/1491: the employer guard at the real handler: exa
       eq(await wanted(me), ["greenhouse:acmerobotics:1"]);
       const again = await say(chat, "apply to the Data Analyst role at Acme Health");
       eq([again.intent, again.resultStatus], ["career_apply_queue", "refused"], again.reply);
-      assert(/they said so when asked/.test(again.reply) && !/where you work now\?/.test(again.reply), `their answer is remembered on the thread: ${again.reply}`);
+      assert(/you said so when I asked/.test(again.reply) && !/where you work now\?/.test(again.reply), `their answer is remembered on the thread: ${again.reply}`);
       const back = await say(chat, "apply to the Data Analyst role at Acme Robotics Inc");
       eq([back.intent, back.resultStatus], ["career_apply_queue", "already"], `their no is remembered too: ${back.reply}`);
       eq(await wanted(me), ["greenhouse:acmerobotics:1"]);
@@ -128,7 +128,7 @@ Deno.test({ name: "SERIAL-1490/1491: the employer guard at the real handler: exa
       eq(await wanted(me), ["greenhouse:acmerobotics:1", "greenhouse:contoso:3", "greenhouse:fabrikam:4"]);
       const rerun = await say(chat, "apply to these");
       eq(rerun.resultStatus, "already", rerun.reply);
-      assert(!/where you work now\?/.test(rerun.reply) && /they said so when asked/.test(rerun.reply), rerun.reply);
+      assert(!/where you work now\?/.test(rerun.reply) && /you said so when I asked/.test(rerun.reply), rerun.reply);
       eq((await wanted(me)).length, 3);
       eq(await wanted(PEOPLE["tok-a"]), ["greenhouse:fabrikam:4"], "another person's queue is untouched");
     });

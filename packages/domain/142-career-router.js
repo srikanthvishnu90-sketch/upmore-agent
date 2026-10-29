@@ -4234,12 +4234,159 @@ const CareerRouter = (() => {
   // battery's tailor turns. The honest answer names the TARGET the
   // user named (their words, a pasted posting, or a company file's
   // own bar), states the one missing input, and asks for it once.
+  // LETTER TARGET (D-007, 2026-10-29; the onboarding battery): "write a cover letter … I live in Boston" set the letter's
+  // target to "the Boston Consulting Group role": the company-file matcher (cirMatches) takes the first word of a file's
+  // name as the firm, so a city (Boston), a school (Boston University) or any word that opens a firm's name was expanded
+  // into a firm the person never named. The target of a letter or a tailoring ask is now only what the person named: a
+  // posting they referenced, or a company named as a whole name: a company file's or a posting's name (or that firm's
+  // own short form: BCG, Goldman, McKinsey), or a capitalized name in a frame that makes it the employer ("the analyst
+  // role at X", "X's internship", "the company is X", "apply to X", "a cover letter for X"). A name standing where a
+  // place, a school, a skill or an employer they already have stands, or after "not", is never the target; a word that is
+  // also a firm (Target, Amazon, Apple, Delta, Oracle, Notion, Ramp) is the firm only when written as one, in a target
+  // frame. Nothing named: no target, and the reply asks which role.
+  const LT_CITIES = new Set(["new york", "new york city", "nyc", "chicago", "san francisco", "sf", "boston", "houston", "dallas", "los angeles", "la", "seattle", "austin", "miami", "charlotte", "denver", "phoenix", "philadelphia", "philly", "san antonio", "san diego", "san jose", "jacksonville", "columbus", "fort worth", "indianapolis", "washington", "washington dc", "dc", "nashville", "detroit", "portland", "las vegas", "memphis", "louisville", "baltimore", "milwaukee", "albuquerque", "tucson", "fresno", "sacramento", "atlanta", "omaha", "raleigh", "minneapolis", "tampa", "orlando", "pittsburgh", "cincinnati", "cleveland", "st louis", "kansas city", "salt lake city", "honolulu", "newark", "jersey", "jersey city", "new jersey", "brooklyn", "queens", "manhattan", "oakland", "palo alto", "menlo park", "mountain view", "cambridge", "providence", "hartford", "buffalo", "richmond", "madison", "boulder", "ann arbor", "irvine", "durham", "london", "toronto", "paris", "berlin", "dublin", "singapore", "sydney", "tokyo", "mumbai", "bangalore", "texas", "california", "florida", "georgia", "ohio", "virginia", "illinois", "massachusetts", "michigan", "arizona", "colorado", "oregon", "nevada", "utah", "carolina", "north carolina", "south carolina", "pennsylvania", "maryland", "minnesota", "wisconsin", "tennessee", "indiana", "missouri", "kentucky", "louisiana", "alabama", "iowa", "kansas", "oklahoma", "connecticut", "delaware", "maine", "vermont", "midwest", "bay area", "silicon valley", "canada", "mexico", "india", "china", "uk", "usa", "us", "america", "europe", "remote"]);
+  const LT_SCHOOLS = new Set(["mit", "nyu", "ucla", "usc", "bu", "bc", "ut", "asu", "uw", "uiuc", "umich", "cmu", "gt", "harvard", "stanford", "yale", "princeton", "columbia", "cornell", "duke", "northwestern", "georgetown", "penn", "upenn", "wharton", "berkeley", "rice", "emory", "tufts", "purdue", "vanderbilt", "brown", "dartmouth", "caltech", "notre dame", "northeastern", "babson", "baruch", "rutgers"]);
+  const LT_SCHOOL_WORD = /\b(?:university|univ|college|institute|school|academy|polytechnic)\b/i;
+  // Firms' names that are also ordinary words or people's names: the firm only when written as one, in a target frame.
+  const LT_COMMON = new Set(["target", "amazon", "apple", "delta", "oracle", "meta", "notion", "ramp", "stripe", "plaid", "snowflake", "millennium", "citadel", "square", "block", "visa", "chase", "shell", "gap", "dove", "general", "american", "united", "capital", "morgan", "wells", "goldman", "phoenix", "progressive", "discover", "compass", "pinterest", "zoom", "slack", "box", "mercury", "brex", "figma", "google", "uber", "lyft", "bain", "deloitte", "jane", "hudson", "two"]);
+  // First words of a file's name that never stand for the firm on their own (a city, a first name, a shared word).
+  // Deloitte and Citadel name more than the one arm the file is about (Deloitte Tax, Citadel LLC): read as typed.
+  const LT_TOKEN_AMBIG = new Set(["boston", "jane", "hudson", "morgan", "two", "point", "d", "de", "jpmorganchase", "the", "archetype", "deloitte", "citadel"]);
+  const LT_ALIASES = { "goldman-sachs-ibd": ["Goldman Sachs", "Goldman"], "jpmorgan-ibd": ["JPMorganChase", "JPMorgan Chase", "JPMorgan", "JP Morgan", "J.P. Morgan", "J. P. Morgan"], "morgan-stanley-ibd": ["Morgan Stanley"], bcg: ["Boston Consulting Group", "BCG"], bain: ["Bain & Company", "Bain and Company", "Bain"], mckinsey: ["McKinsey & Company", "McKinsey and Company", "McKinsey"], "de-shaw": ["D. E. Shaw", "D.E. Shaw", "DE Shaw"], "deloitte-consulting": ["Deloitte Consulting"], "citadel-securities": ["Citadel Securities"], "hudson-river-trading": ["Hudson River Trading", "HRT"], "jane-street": ["Jane Street"], "two-sigma": ["Two Sigma"], notion: ["Notion Labs", "Notion"] };
+  const LT_ROLE_WORD = "(?:role|roles|job|jobs|position|positions|internship|internships|intern|posting|opening|openings|application|offer|team|program|opportunity|cover letter|letter|resume|cv|ibd|analyst|associate|summer|interview|recruiter|swe|pm|fde|data|software|engineering|product|consulting|marketing|finance|investment|ib|sales|design|research|operations|strategy|new grad|grad|campus|rotational)";
+  const LT_AFTER_OK = new RegExp(`^(?:\\s*$|\\s*[.,;:!?)\\]"'’—–-]|['’]s\\b|\\s+(?:${LT_ROLE_WORD}|and|or|please|pls|plz|thanks|thank|thx|asap|now|today|too|instead|since|because|as|in|which|that|where|i|it|this|by|on|next|first|again|specifically|rather|but|not|so|if|when|who|tho|though|ty)\\b|\\s+&|\\s+\\d|\\s+[A-Z])`);
+  const LT_PRODUCT_AFTER = /^\s+(?:excel|word|office|powerpoint|outlook|teams|azure|sheets|docs|slides|analytics|ads|adwords|cloud|drive|workspace|foundry|gotham|sql|server|database|db|365|suite|certification|certified|certificate|dashboards?|apis?|sdk|stack|river|pie|pies|juice|watch|music|tv|pay|prime|store|stores|card|cards|rewards|points|hedging|neutral|function|variant|rainforest|basin|forest|airlines?|air|rising|bird|fire)\b/i;
+  const LT_TARGET_BEFORE = /(?:\b(?:for|at|to|towards?|targeting|join|joining|re|with)|\b(?:apply|applying|applied|interview|interviewing)\s+(?:to|at|for|with)|\b(?:company|firm|employer|bank|startup|fund) is|\b(?:it'?s|its|it is) (?:for|at))\s+(?:the\s+|a\s+|an\s+|my\s+)?$/i;
+  // The verb (or "not") a name stands after that makes it a place, a school, a skill, an employer they have, or not the
+  // target, with up to four list items between ("I know Python, SQL and Snowflake", "I live near Boston or Austin").
+  const LT_EXCLUDE_BEFORE = /(?:\b(?:live|lives|living|lived|based|located|reside|resides|residing|grew up|raised|born|moving|move|moved|relocating|relocate|relocated|commute|from|near|outside|around|visit|visiting|visited|studied|study|studies|studying|graduated|graduating|graduate|attend|attends|attended|attending|enrolled|student|students|alum|alumni|alumnus|alumna|major|majored|majoring|degree|know|knows|knew|proficient|experience|experienced|skilled|familiar|fluent|certified|certification|using|use|used|uses|skills?|tools?|trained|work|works|working|worked|employed|interned|interning|currently|formerly|previously|ex|not|except|excluding|besides|than|instead|never|no|nor|avoid|skip|hate|hated|left|quit|fired|laid off|anything but|everything but|all but|i was|i am|i'm|i’m)\b|n['’]t)(?:\s+(?:in|at|to|from|of|with|on|for|near|by|a|an|the|my|our|up|out|off|about|over|currently|still|now|right now|full[- ]time|part[- ]time|as an? [a-z]+))*:?\s+(?:[A-Za-z0-9.&'’-]+(?:\s+[A-Za-z0-9.&'’-]+){0,2}\s*(?:,|\band\b|\bor\b|&|\/)\s*){0,4}$/i;
+  // "want to work at X", "hope to intern at X": the place they aim for is the target.
+  const LT_ASPIRE_BEFORE = /\b(?:want|wanna|wants|wanted|like|love|hope|hoping|plan|planning|aim|aiming|dream|trying|try|apply|applying|going|eager|excited|keen|chance|opportunity)\s+(?:\w+\s+)?to\s+(?:work|intern|join|be)\s+(?:at|for|with)\s+(?:the\s+)?$/i;
+  const ltPlain = (v) => lc(v).replace(/’/g, "'").replace(/\s+/g, " ").trim();
+  const ltEsc = (v) => s(v).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+  const ltClean = (v) => s(v).split(/\s+—\s+|\s+-\s+/)[0].replace(/\s*\([^)]*\)\s*/g, " ").replace(/,?\s+(?:Inc\.?|LLC|Ltd\.?|Corp\.?)$/i, "").replace(/\s+/g, " ").trim();
+  const ltIsPlace = (v) => LT_CITIES.has(ltPlain(v).replace(/[.,]/g, ""));
+  const ltIsSchool = (v) => LT_SCHOOL_WORD.test(s(v)) || LT_SCHOOLS.has(ltPlain(v).replace(/[.,]/g, ""));
+  function ltLexicon(ctx) {
+    const out = [];
+    let cirs = [];
+    try { cirs = cirListOf(ctx) || []; } catch { cirs = []; }
+    const real = cirs.filter((x) => x && !String(x.company_id || "").startsWith("archetype"));
+    const firstCount = {};
+    for (const x of real) { const tok = ltPlain(ltClean(cirShortName(x))).split(" ")[0]; if (tok) firstCount[tok] = (firstCount[tok] || 0) + 1; }
+    for (const x of real) {
+      const name = ltClean(cirShortName(x));
+      if (!name) continue;
+      const forms = new Set([name, ...(LT_ALIASES[s(x.company_id)] || [])]);
+      const words = name.split(" ");
+      const tok = ltPlain(words[0]).replace(/[^a-z0-9]/g, "");
+      if (words.length > 1 && tok.length >= 4 && firstCount[ltPlain(words[0])] === 1 && !LT_TOKEN_AMBIG.has(tok) && !LT_CITIES.has(tok) && !LT_SCHOOLS.has(tok)) forms.add(words[0]);
+      out.push({ name, cir: x, forms: [...forms] });
+    }
+    for (const p of postingsFromCtx(ctx || {})) {
+      const name = ltClean(s(p.company).replace(/\s*\(fictional\)\s*/gi, " "));
+      if (!name || ltIsPlace(name) || ltIsSchool(name) || out.some((e) => ltPlain(e.name) === ltPlain(name))) continue;
+      out.push({ name, cir: null, forms: [name] });
+    }
+    return out;
+  }
+  // Is the name typed at [i, j) the employer the ask is for? `full` is true when the typed form is the firm's whole name.
+  function ltOccurrenceOk(raw, i, j, full) {
+    const typed = raw.slice(i, j);
+    const before = raw.slice(0, i), after = raw.slice(j);
+    if (/[A-Za-z0-9&]$/.test(before) || /^[A-Za-z0-9]/.test(after)) return false;
+    // Part of a longer name: "Bain Capital", "Goldman Sachs Asset Management", "Jane Street Capital" are other firms.
+    if (/^[ \t]+[A-Z][a-z]/.test(after) && !/^[ \t]+(?:IBD|Data|Software|Summer|Product|Analyst|Engineering|Investment|Consulting|Marketing|Finance|Sales|Research|Strategy|Operations|Design|Intern|Internship|Associate|Role|Job|Position|Posting|Cover|Resume|Letter|Application|Team|Program|SWE|PM|FDE|Inc|Corp|Co|Ltd|Please|Thanks|Thank|I|Write|Can|Could|Also|And|Or)\b/.test(after)) return false;
+    if (/\b[Ii](?:\s+was|\s+am|['’]m)\s+(?:currently\s+|still\s+|now\s+)?(?:at|with)\s+(?:the\s+)?$/.test(before)) return false;
+    if (/^\s+(?:university|college|institute|school|academy)\b/i.test(after)) return false;
+    if (/\b(?:university|college|school|institute)\s+of\s+(?:the\s+)?$/i.test(before)) return false;
+    if (LT_PRODUCT_AFTER.test(after)) return false;
+    const plain = ltPlain(typed).replace(/[.,]/g, "");
+    if (LT_CITIES.has(plain) || LT_SCHOOLS.has(plain)) return false;
+    const aspire = LT_ASPIRE_BEFORE.test(before);
+    if (!aspire && LT_EXCLUDE_BEFORE.test(before) && !/\b(?:role|job|position|internship|opening|posting|program)\s+(?:at|with|for)\s+(?:the\s+)?$/i.test(before)) return false;
+    if (/\b(?:used to|previously|formerly)\s+(?:work|intern)\s+(?:at|for|with)\s+(?:the\s+)?$/i.test(before)) return false;
+    const frame = aspire || LT_TARGET_BEFORE.test(before) || new RegExp(`^(?:['’]s\\b|\\s+${LT_ROLE_WORD}\\b)`, "i").test(after);
+    const words = plain.split(" ");
+    const common = words.length === 1 && LT_COMMON.has(plain.replace(/[^a-z0-9]/g, ""));
+    const acronym = /^[A-Z][A-Z&.]{1,5}$/.test(typed.replace(/\s+/g, ""));
+    const sentenceStart = before === "" || /[.!?\n]\s*["“(]?\s*$/.test(before) || /^\s*["“(]?\s*$/.test(before);
+    const capital = /^[A-Z]/.test(typed) && !sentenceStart;
+    if (common) {
+      // A word that is also a firm: written as the firm (capitalized mid-sentence) in a target frame, or standing alone
+      // after one ("a cover letter for amazon").
+      if (!frame) return false;
+      if (!capital) return LT_TARGET_BEFORE.test(before) && /^\s*(?:$|[.!?,;]|(?:please|pls|plz|thanks|thank you|thx)\b)/i.test(after);
+      return LT_AFTER_OK.test(after);
+    }
+    if (words.length === 1 && !acronym && !full) return frame && LT_AFTER_OK.test(after);
+    if (words.length === 1 && !acronym && !capital && !frame) return false;
+    return LT_AFTER_OK.test(after) || frame;
+  }
+  const LT_ROLE_LEAD = /^(?:Data|Software|Summer|Senior|Junior|Entry|Product|Marketing|Finance|Financial|Consulting|Investment|Engineering|Analyst|Analytics|Intern|Internship|Job|Jobs|Role|Roles|Position|The|A|An|My|Your|Our|Their|His|Her|Him|Me|Them|Hiring|Manager|Recruiter|Mom|Dad|Business|Operations|Sales|Research|Strategy|Design|UX|UI|SWE|PM|New|Grad|Graduate|Campus|Full|Part|Remote|Hybrid|Onsite|This|That|These|Those|It|I|Cover|Letter|Resume|CV|Application|Applications|Associate|Program|Team|Fall|Spring|Winter|Opening|Posting|Company|Firm|Employer|Startup|Startups|Big|Tech|FAANG|MBB|Please|Thanks|Hi|Hey|Hello|Can|Could|Would|Will|Should|Write|Draft|Make|Tailor|Help|Need|Want|Also|And|Or|Not|No|Yes|Ok|Okay|Sure|Any|Some|Every|Each|One|Two|Three|Next|First|Last|Other|Another|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December|Python|SQL|Java|JavaScript|Excel|Tableau|React|AWS|Linux|English|Spanish|Chinese|French|LinkedIn|Indeed|Handshake|Gmail|Outlook|Telegram|Trainee|Upmore|ChatGPT|AI|GPA|PhD|MBA|BS|BA|MS|US|USA|UK|EU|Engineer|Developer|Scientist|Designer|Consultant|Specialist|Coordinator|Assistant|Director|Lead|Staff|Principal|Me)$/;
+  const LT_ROLE_TRAIL = /^(?:Data|Software|Summer|Product|Marketing|Finance|Financial|Consulting|Investment|Engineering|Analyst|Analytics|Intern|Internship|Job|Jobs|Role|Roles|Position|Business|Operations|Sales|Research|Strategy|Design|UX|UI|SWE|PM|IB|IBD|FDE|Cover|Letter|Resume|CV|Application|Associate|Program|Team|Opening|Posting|Please|Thanks|Engineer|Developer|Scientist|Designer|Consultant|Specialist|Coordinator|Assistant|Manager|Recruiter|Hiring|Summer|New|Grad)$/;
+  const LT_ROLE_NOUN = /^(?:Analyst|Intern|Internship|Role|Job|Position|Engineer|Developer|Scientist|Designer|Consultant|Associate|Manager|Specialist|Coordinator|Assistant|Recruiter|Program|Opening|Posting|Team|Application|Letter|Resume|CV|IBD|SWE|PM|FDE|IB)$/;
+  // A capitalized name typed in a frame that makes it the employer, for a firm with no company file or posting here.
+  function ltUnknownNamed(raw) {
+    const NAME = "([A-Z][A-Za-z0-9&.'’-]*(?:\\s+(?:&\\s+)?(?:[A-Z][A-Za-z0-9&.'’-]*|of|&)){0,3})";
+    // The frame's words in any case ("Cover letter for", "APPLY TO"); the name itself capitalized as typed.
+    const ci = (v) => v.replace(/(\\.)|([a-z])/g, (m, esc, ch) => esc || `[${ch}${ch.toUpperCase()}]`);
+    const frames = [
+      new RegExp(`\\b${ci("(?:role|job|position|internship|opening|posting|program|offer|interview|team|analyst|engineer|intern|associate|developer|scientist|manager|designer|consultant|work)\\s+(?:at|with)\\s+(?:the\\s+)?")}${NAME}`, "g"),
+      new RegExp(`\\b${ci("(?:company|firm|employer|bank|startup|fund)\\s+is\\s+(?:called\\s+)?")}${NAME}`, "g"),
+      new RegExp(`\\b${ci("(?:apply|applying|application|applications)\\s+(?:to|at|for)\\s+(?:the\\s+)?")}${NAME}`, "g"),
+      // "a cover letter for X", "tailor my resume for X": the ask's own words, then for/at, then the name (no clause between).
+      new RegExp(`\\b${ci("(?:cover\\s+letter|letter|resume|cv|tailor|draft)")}(?:\\s+(?!about\\b|on\\b|of\\b|from\\b|in\\b|during\\b|when\\b|while\\b|after\\b|before\\b)[a-z]+){0,3}\\s+${ci("(?:for|at)")}\\s+${NAME}`, "g"),
+      new RegExp(`\\b${NAME}['’]s\\s+(?:[a-z][a-z /&-]{0,30}\\s+)?${ci("(?:role|job|position|internship|opening|posting|program)")}\\b`, "g"),
+    ];
+    const hits = [];
+    for (const re of frames) {
+      for (const m of raw.matchAll(re)) {
+        if (!/^[A-Z]/.test(m[1])) continue;
+        // The name ends at its sentence ("Adobe. I'm based in ...").
+        let name = m[1].split(/[.!?](?=\s)/)[0].replace(/['’]s$/, "").replace(/[.,]+$/, "").trim();
+        // A role typed after the firm is the role, not the firm ("Acme Data Analyst" is Acme; "Acme Consulting" is a firm).
+        const ws = name.split(/\s+/);
+        for (let k = 1; k < ws.length; k++) {
+          const rest = ws.slice(k).map((w) => w.replace(/[.,]/g, ""));
+          if (rest.every((w) => LT_ROLE_TRAIL.test(w)) && LT_ROLE_NOUN.test(rest[rest.length - 1])) { ws.length = k; break; }
+        }
+        while (ws.length > 1 && /^(?:of|and|&|Please|Thanks)$/i.test(ws[ws.length - 1])) ws.pop();
+        name = ws.join(" ");
+        if (!name || name.length < 2 || LT_ROLE_LEAD.test(name.split(/\s+/)[0].replace(/[.,]/g, ""))) continue;
+        if (ltIsPlace(name) || ltIsSchool(name) || ltIsPlace(name.split(/\s+/)[0]) && name.split(/\s+/).length === 1) continue;
+        const i = m.index + m[0].lastIndexOf(m[1]);
+        if (!ltOccurrenceOk(raw, i, i + name.length, true)) continue;
+        hits.push({ name, idx: i });
+      }
+    }
+    return hits;
+  }
+  // The employer a letter or tailoring ask names, or null. Exported for the scenario battery
+  // (tests/architect/scenarios-letter-target.test.ts).
+  function letterTargetOf(text, ctx) {
+    const raw = s(text);
+    const hits = [];
+    for (const e of ltLexicon(ctx || {})) {
+      for (const form of e.forms) {
+        const re = new RegExp(`(?<![A-Za-z0-9])${ltEsc(form).replace(/&/g, "(?:&|and)")}(?![A-Za-z0-9])`, "gi");
+        const full = ltPlain(form) === ltPlain(e.name) || form.trim().split(/\s+/).length > 1 || /^[A-Z]{2,5}$/.test(form);
+        for (const m of raw.matchAll(re)) {
+          if (ltOccurrenceOk(raw, m.index, m.index + m[0].length, full)) { hits.push({ name: e.name, cir: e.cir, idx: m.index, typed: m[0] }); break; }
+        }
+      }
+    }
+    for (const u of ltUnknownNamed(raw)) hits.push({ name: u.name, cir: null, idx: u.idx, typed: u.name });
+    // The earliest name; at one place the longest (a firm's whole name over the one it opens with), a company file first.
+    hits.sort((a, b) => a.idx - b.idx || b.typed.length - a.typed.length || (b.cir ? 1 : 0) - (a.cir ? 1 : 0));
+    const h = hits[0];
+    return h ? { company: h.name, cir: h.cir, typed: h.typed } : null;
+  }
   function tailorTargetOf(text, ctx) {
     const p = ctx.posting || null;
     if (p && (p.company || p.title)) return { label: `${p.title || "the role"} at ${p.company || "the company you pasted"}`.trim(), cir: null, company: p.company || null };
-    let comp = null, cir = null;
-    try { cir = cirFor(text, ctx); if (cir && !String(cir.company_id || "").startsWith("archetype")) comp = cirShortName(cir); } catch { cir = null; }
-    if (!comp) comp = companyFromText(text, ctx);
+    const named = letterTargetOf(text, ctx);
+    const comp = named ? named.company : null, cir = named ? named.cir : null;
     if (comp) {
       const roleM = s(text).match(/\b(software engineering|data|finance|investment banking|product|consulting|marketing|engineering)\s+(internship|intern|role)\b/i);
       return { label: `the ${comp}${roleM ? ` ${roleM[1].toLowerCase()} ${roleM[2].toLowerCase()}` : " role"}`, cir, company: comp };
@@ -12228,6 +12375,9 @@ const CareerRouter = (() => {
       && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b|\bwhat (do|does) (postings|employers|companies|firms) (require|look for|want|expect)\b|\bpostings (name|ask|require|usually|emphasize)\b/.test(t)
       && !/\binterviews?\b[^.]*\b(prepar\w*|get ready|getting ready|prep)\b|\b(prepar\w*|get ready|getting ready)\b[^.]*\binterviews?\b/.test(t)
       && !/\b(roles?|jobs?|internships?|positions?|openings?)\b/.test(t)
+      // LETTER TARGET (2026-10-29): a cover-letter or tailoring ask is no people campaign ("draft a cover letter …
+      // Previously I was at Phoenix Contact" planned an outreach list of investment bankers at firms nobody named).
+      && !/\bcover[ -]?lett?e?rs?\b|\bcovr letters?\b|\btailor\w*\b[^.]*\b(?:resume|cv)\b/.test(t)
       && !(/\bone company\b/.test(t) && /\b\d{1,3}\s+(?:people|person)\b/.test(text) && /\bwarm/.test(t))) {
       const cp = handleCampaignPlan(text, c);
       if (cp) return cp;
@@ -12356,11 +12506,11 @@ const CareerRouter = (() => {
       // which tailored the pool's top SWE role under the named firm's
       // ask. A named-company company file resolves the firm here —
       // tailor-branch only; archetype files never resolve as a firm.
-      let comp = companyFromText(text, c);
-      let compCir = null;
-      if (!comp) {
-        try { const hit = cirFor(text, c); if (hit && !String(hit.company_id || "").startsWith("archetype")) { compCir = hit; comp = cirShortName(hit); } } catch { compCir = null; }
-      }
+      // LETTER TARGET (D-007, 2026-10-29): the firm is only one the ask names as a whole name (letterTargetOf); a city,
+      // school or skill that opens a firm's name ("tailor my resume, I live in Boston") is no firm.
+      const namedTarget = letterTargetOf(text, c);
+      const comp = namedTarget ? namedTarget.company : null;
+      const compCir = namedTarget ? namedTarget.cir : null;
       if (comp) {
         const named = postingByCompanyTitle(c, comp, text);
         if (named) {
@@ -15418,6 +15568,6 @@ const CareerRouter = (() => {
   // own parser whether a turn names a company/title, so its
   // targeted KB lookup beyond the recency window can never drift
   // from the parser that will resolve the named role in-turn.
-  return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf, detypo };
+  return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf, detypo, letterTargetOf };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;

@@ -2,7 +2,8 @@
 // application proof, plan review, comparison, draft, research brief), each = a typed schema + renderer + truthful action set + a
 // plain-text twin, behind one page shell and one create_file tool. Memory stores, a fake clock, no network, no model.
 import assertNode from "node:assert/strict";
-import { mintFileToken } from "../../supabase/functions/_shared/file_link.ts";
+import { signedIn } from "./file-session-fakes.ts";
+const A = signedIn();
 import { actionsOf, KIND_IDS, SOURCES, textOf, validateKind, type FileRecord } from "../../supabase/functions/_shared/file_kinds.ts";
 import { createFileService, memoryFileStore } from "../../supabase/functions/_shared/file_service.ts";
 import { createFileTool } from "../../supabase/functions/_shared/agent/file_tool.ts";
@@ -143,11 +144,11 @@ function world(env: Record<string, string | undefined> = ENV, at = { t: NOW }) {
   const sent: unknown[] = [];
   const stub = (): FileStore => ({ async remember() {}, async recall() { return null; }, async rememberList() {}, async recallList() { return null; }, async postings() { return []; }, async save() { return "saved"; }, async prepared() { return null; }, async applied() { return false; },
     async want() { return { result: "queued" }; }, async appRow() { return null; }, async claimLink() { return true; }, async wanted() { return false; } });
-  const deps = (o: { intro?: boolean } = {}): FileDeps => ({ store: stub(), now: () => at.t, env: { get: (k) => env[k] }, cards: { async open() { throw new Error("no"); } }, tap: {} as never, files: svc,
+  const deps = (o: { intro?: boolean } = {}): FileDeps => ({ ...A.deps, store: stub(), now: () => at.t, env: { get: (k) => env[k] }, cards: { async open() { throw new Error("no"); } }, tap: {} as never, files: svc,
     ...(o.intro ? { fileEffects: { async introduce(_u: string, r: FileRecord) { sent.push(r.data.message); return { ok: true }; } } } : {}) });
   return { store, svc, deps, sent, at };
 }
-const tok = async (user: string, id: string, now = NOW) => (await mintFileToken({ secret: SECRET, userId: user, list: id, now, kind: "s" }))!;
+const tok = async (user: string, id: string, now = NOW) => await A.tok(user, id, now);
 const get = (d: FileDeps, t: string, q = "") => handleFile(new Request(`https://x.example/f${q}`, { headers: { cookie: `tf_s=${t}` } }), d);
 const post = (d: FileDeps, f: Record<string, string>) => handleFile(new Request("https://x.example/f", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(f).toString() }), d);
 const plain = (h: string) => h.replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ");

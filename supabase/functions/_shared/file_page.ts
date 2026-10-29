@@ -93,6 +93,7 @@ details[open] .desc{display:block;-webkit-line-clamp:unset}
 .full{white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;margin:8px 0}
 .note a,details a,.top-note a{color:var(--link)}.lnk{display:inline;min-height:44px;padding:0 4px;border:0;background:none;color:var(--link);font:inherit;text-decoration:underline;cursor:pointer}.sendh{margin:8px 0 2px;font-weight:600;font-size:15px}.send{margin:0 0 8px;padding-left:20px;font-size:15px;color:var(--mute)}.send li{margin:2px 0;overflow-wrap:anywhere}
 :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:8px}
+.foot{margin-top:24px;padding-top:14px;border-top:1px solid var(--line);font-size:15px;color:var(--mute)}
 @media (max-width:360px){details,.meta,.why,.note{margin-left:0}.apply{min-width:80px;padding:6px 12px}}
 `;
 export interface Og { title: string; description: string; image: string | null }
@@ -139,8 +140,22 @@ export function renderFeed(f: Feed): string {
   const withLine = names.length ? `<p class="with">Applying with: ${esc(names.join(", "))}</p>` : "";
   const all = f.setHash && f.setSize >= 2 ? `<form method="post" class="ajax all">${hidden(f.token, "applyall", `<input type="hidden" name="set" value="${f.setHash}">`)}<button type="submit">Apply to all ${f.setSize}</button></form>` : "";
   const top = f.top ? `<p class="top-note" role="alert">${esc(f.top)} ${refresh(f.token)}</p>` : "";
-  const inner = `<div id="root"><header>${BRAND}<h1>Your jobs</h1>${withLine}${all}</header><main id="main">${top}<ul class="rows">${f.rows.map((r) => rowHtml(r, f.token)).join("")}</ul></main></div>`;
+  const inner = `<div id="root"><header>${BRAND}<h1>Your jobs</h1>${withLine}${all}</header><main id="main">${top}<ul class="rows">${f.rows.map((r) => rowHtml(r, f.token)).join("")}</ul></main>${signOutFoot(f.token)}</div>`;
   return layout("Your jobs - Trainee", inner, { script: FEED_SCRIPT, tg: true, og: f.og });
+}
+// Sign out of this page here, or everywhere it is open (every session of the account ends; each needs a new sign-in).
+export const signOutFoot = (token: string) => `<footer class="foot"><form method="post" style="display:inline">${hidden(token, "signout")}<button type="submit" class="lnk">Sign out</button></form> · <form method="post" style="display:inline">${hidden(token, "signout_all")}<button type="submit" class="lnk">Sign out everywhere</button></form></footer>`;
+
+// PHONE SIGN-IN (file_session.ts): a link opens this, never the list. Step 1 the number, step 2 the texted code. Nothing about
+// the person or their jobs is on either page, not even a masked number.
+const LOGIN_CSS = `.login label{display:block;margin:14px 0 6px;font-weight:600}.login input{box-sizing:border-box;width:100%;max-width:320px;min-height:48px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:18px;background:var(--bg);color:inherit}.login .apply{margin-top:14px}.login .hint{font-size:15px;opacity:.8}`;
+export function renderPhoneLogin(o: { step: "phone" | "code"; note?: string; botUrl?: string | null }): string {
+  const note = o.note ? `<p class="top-note" role="alert">${esc(o.note)}</p>` : "";
+  const form = o.step === "phone"
+    ? `<form method="post" class="login"><input type="hidden" name="action" value="phone_start"><label for="phone">Your phone number</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required maxlength="32" placeholder="+1 (555) 000-0000"><p class="hint">The number on your Trainee account. We text it a 6-digit code.</p><button type="submit" class="apply">Text me a code</button></form>`
+    : `<form method="post" class="login"><input type="hidden" name="action" value="phone_verify"><label for="code">6-digit code</label><input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 -]{6,9}" required maxlength="9"><button type="submit" class="apply">Sign in</button></form><form method="post" class="login"><input type="hidden" name="action" value="phone_reset"><button type="submit" class="lnk">Use a different number</button></form>`;
+  const lead = o.step === "phone" ? "Sign in with your phone number to see your jobs and apply." : "If that is the number on your Trainee account, we texted it a code. Type it here.";
+  return layout("Sign in - Trainee", `<header>${BRAND}<h1>Sign in</h1></header><main id="main">${note}<p>${esc(lead)}</p>${form}<p class="hint">Trainee never asks for a password, and never asks for this code in chat.</p>${o.botUrl ? `<p><a href="${esc(o.botUrl)}" rel="noopener noreferrer">Get a new link</a></p>` : ""}</main>`, { css: LOGIN_CSS });
 }
 export function renderBootstrap(list: string): string {
   return layout("Opening your jobs - Trainee", `<header>${BRAND}<h1>Opening your jobs</h1></header><main id="main"><p>Signing you in with Telegram.</p><p id="nodata" hidden>Open this page from the button in Telegram, or use the link Trainee sent you.</p><noscript><p>This needs JavaScript. Use the link Trainee sent you instead.</p></noscript></main>`, { script: BOOT_SCRIPT, tg: true, bodyAttrs: `data-list="${esc(list)}"` });

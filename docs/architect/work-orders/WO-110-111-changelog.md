@@ -31,9 +31,9 @@ Baseline (trunk + PR 266, router): 1.6 / 2.4 / 2.0 / 4.4 / 4.7 / 3.1 / 1.6 / 3.5
 | Reference resolution against the last shown list (ordinals, "compare them", "the X one", "that X thing"), run before company intel; unknown names are not repeated | "compare them" and "the second one" hit the company-file dossier or the Trainee menu | held-out (b); `wo-111-general` 2, 3, 4 | in the row above |
 | Limits stated in chat bind the next search (hybrid, no weekends, no evenings or nights, remote); the counts say what was left out | Work mode and shift limits were enforced only from a saved profile | held-out (c); `wo-111-general` 7 | in the row above |
 | No tailor offer without confirmed resume entries; first-person claims ("I have 6 years of Tableau") are recorded | The offer assumed a resume; claims were not captured | held-out (d); `wo-111-general` 8 | natural 4.3 |
-| Role lines use a comma, not an em dash, between link and place | The natural check allows two em dashes per reply | T02.1, T03.1 | natural 4.2 -> 4.3 |
 
-Original 30 after this round (router): 3.8 / 4.8 / 5.0 / 4.7 / 5.0 / 4.3 / 4.7 / 4.9, 10 of 30 clean.
+
+Original 30 after this round (router): 3.8 / 4.8 / 5.0 / 4.7 / 5.0 / 4.2 / 4.7 / 4.9, 10 of 30 clean. Career node suite: 3041 pass / 247 fail here against trunk 3042 / 246 (the one extra was fixed after the run; the same 246 fail on trunk).
 
 ## What remains (router path)
 Interview prep, cover letters and tailoring do not use confirmed facts (T06.2, T18, T25). The open-questions listing does not know the

@@ -3,6 +3,7 @@
 import { deliverDue } from "./channel.ts";
 import { supabaseChannelStore } from "./channel_store.ts";
 import { adaptersFromEnv } from "./channel_registry.ts";
+import { shapeReply } from "./channel_shape.ts";
 
 // The turn runs as the person through agent-chat's service-role path, so history, erase, the host's STOP and pause,
 // persistence and the hourly turn limit are the chat's own. The channel is never sent: the brain is channel-blind.
@@ -12,8 +13,8 @@ import { adaptersFromEnv } from "./channel_registry.ts";
 // meets revision_conflict (the gate timed out or is not applied) and the turn did nothing before its save, nothing of it
 // was saved, so the same turn key is sent once more and agent-chat runs it again on a fresh read; any other refusal is not retried.
 export const CONFLICT_RETRIES = 1;
-export function chatThroughAgent(url: string, key: string, o: { retryDelayMs?: number } = {}) {
-  return async (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => {
+export function chatThroughAgent(url: string, key: string, o: { retryDelayMs?: number; channel?: string } = {}) {
+  return async (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null; screenTap?: { qid: string; answer: string } | null }) => {
     let res: Response, body: Record<string, unknown>;
     for (let attempt = 0; ; attempt++) {
       res = await fetch(`${url}/functions/v1/agent-chat`, {
@@ -21,7 +22,9 @@ export function chatThroughAgent(url: string, key: string, o: { retryDelayMs?: n
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
         // SERIAL-1462: the provider's reply-to id travels to the turn; a card's text yes counts only in reply to the card.
         body: JSON.stringify({ as_user_id: a.userId, message: a.message, turn_key: a.turnKey, ...(a.threadId ? { thread_id: a.threadId } : {}),
-          ...(a.replyToMessageId ? { reply_to_message_id: a.replyToMessageId } : {}) }),
+          ...(a.replyToMessageId ? { reply_to_message_id: a.replyToMessageId } : {}), ...(a.screenTap ? { screen_tap: { qid: a.screenTap.qid, answer: a.screenTap.answer } } : {}),
+          // REPLY SHAPE: only the channel's name, fixed when the webhook builds this function (never a per-turn argument), so the turn can lay its reply out for it (agent-chat shapes Telegram only).
+          ...(o.channel ? { channel: o.channel } : {}) }),
       });
       body = await res.json().catch(() => ({})) as Record<string, unknown>;
       // Only a turn that did nothing before its refused save is run again: one that answered a card, sent an email or
@@ -46,7 +49,17 @@ export function chatThroughAgent(url: string, key: string, o: { retryDelayMs?: n
     const artifacts = Array.isArray(body.artifacts)
       ? (body.artifacts as any[]).filter((a) => a && typeof a.ref === "string" && a.ref).map((a) => ({ ref: String(a.ref), filename: String(a.filename ?? "document.pdf"), mime: String(a.mime ?? "application/pdf") }))
       : [];
-    return { status: res.status, reply: String(body.reply ?? ""), threadId: typeof body.thread_id === "string" ? body.thread_id : null, ...(parts ? { parts } : {}), ...(cardId ? { cardId } : {}), ...(resultStatus ? { resultStatus } : {}), ...(artifacts.length ? { artifacts } : {}) };
+    // JOB CARDS: the postings the turn's search found (agent-chat puts them on the response), sent as cards after the reply.
+    const postings = Array.isArray(body.postings) ? (body.postings as unknown[]).filter((p) => p && typeof p === "object").slice(0, 200) : [];
+    // F09: the posting screen's yes/no question rides meta.screen_buttons = ["Yes","No"]; only exactly that is honored.
+    const sb = Array.isArray(meta.screen_buttons) ? meta.screen_buttons : null;
+    const screenQid = typeof meta.screen_qid === "string" && /^[0-9a-f]{8}$/.test(meta.screen_qid) ? meta.screen_qid : null;
+    const screenButtons = !!sb && sb.length === 2 && sb[0] === "Yes" && sb[1] === "No" && !!screenQid;
+    // REPLY SHAPE: the files and links that follow the reply, clamped again here (names, sizes, counts) before they are sent.
+    const sh = body.shape && typeof body.shape === "object" ? body.shape as Record<string, unknown> : null;
+    const shaped = sh ? shapeReply({ attachments: sh.attachments, links: sh.links }) : null;
+    const shape = shaped && (shaped.attachments.length || shaped.links.length) ? { attachments: shaped.attachments, links: shaped.links } : null;
+    return { status: res.status, reply: String(body.reply ?? ""), ...(shape ? { shape } : {}), threadId: typeof body.thread_id === "string" ? body.thread_id : null, ...(parts ? { parts } : {}), ...(cardId ? { cardId } : {}), ...(resultStatus ? { resultStatus } : {}), ...(artifacts.length ? { artifacts } : {}), ...(postings.length ? { postings } : {}), ...(screenButtons ? { screenButtons, screenQid } : {}) };
   };
 }
 

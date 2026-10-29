@@ -215,6 +215,13 @@ MIGRATIONS=(
   20261028110000_career_connector_framework.sql
   20261028120000_career_apply_host_gate.sql
   20261028130000_billing_cancel_at_period_end.sql
+  20261029100000_career_outreach_reply_rules.sql
+  20261029160000_career_email_format_guards.sql
+  20261029170000_career_resume_on_file_quarantine.sql
+  20261029180000_career_apply_refusal_requeue.sql
+  20261029190000_career_apply_unstarted_requeue.sql
+  20261029200000_career_connector_disconnect_rules.sql
+  20261029230000_trainee_file_sessions.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -309,6 +316,13 @@ MIGRATION_MARK=(
   "to_regclass('public.career_parked_tasks') is not null and to_regclass('public.career_connector_links') is not null and exists (select 1 from pg_proc where proname = 'career_parked_due') and exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_connector_cancel')"
   "exists (select 1 from pg_proc where proname = 'career_apply_host_backoff_get' and prosrc like '%scope = ''cloud''%')"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'user_subscriptions' and column_name = 'cancel_at_period_end')"
+  "exists (select 1 from pg_proc where proname = 'career_outreach_reply_apply' and prosrc like '%(2) A follow-up of this person''s already queued%') and exists (select 1 from pg_proc where proname = 'career_outreach_rail_takeback' and prosrc like '%(3) What the rail itself already cancelled%')"
+  "exists (select 1 from pg_proc where proname = 'career_email_is_webmail') and exists (select 1 from pg_proc where proname = 'career_email_is_role')"
+  "exists (select 1 from pg_proc where proname = 'career_resume_on_file' and prosrc like '%owner-delegated%')"
+  "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_apply_jobs' and column_name = 'not_before') and exists (select 1 from pg_proc where proname = 'career_apply_requeue_refused_for') and exists (select 1 from pg_trigger where tgname = 'career_apply_jobs_not_before') and exists (select 1 from pg_proc where proname = 'career_apply_jobs_fixed' and prosrc like '%career.apply_requeue%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_requeue_unstarted_for') and exists (select 1 from pg_proc where proname = 'career_apply_requeue_unstarted_own')"
+  "exists (select 1 from pg_proc where proname = 'career_send_go') and exists (select 1 from pg_proc where proname = 'career_connector_waiting')"
+  "to_regclass('public.trainee_file_sessions') is not null and to_regclass('public.trainee_file_logins') is not null and exists (select 1 from pg_proc where proname = 'trainee_file_login_count') and exists (select 1 from pg_proc where proname = 'trainee_file_sessions_revoke_all')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

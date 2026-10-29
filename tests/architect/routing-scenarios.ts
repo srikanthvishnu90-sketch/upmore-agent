@@ -14,8 +14,7 @@
 import { connectorAsk } from "../../supabase/functions/_shared/connectors.ts";
 import { outlookAsk } from "../../supabase/functions/_shared/outlook_connector.ts";
 import { siteAsk, trackAsk } from "../../supabase/functions/_shared/career_outreach_track.ts";
-import { parsePeopleAsk } from "../../supabase/functions/_shared/career_people.ts";
-import { parseTargetAsk } from "../../supabase/functions/_shared/career_people_provider.ts";
+import { parsePeopleAsk, targetAskOf } from "../../supabase/functions/_shared/career_people.ts";
 import { forgetAsk, parseNetworkingAsk, pastedCsv } from "../../supabase/functions/_shared/career_networking.ts";
 import { parseCardReply } from "../../supabase/functions/_shared/career_apply_cards.ts";
 import { parseMockCommand } from "../../supabase/functions/_shared/career_mock.ts";
@@ -87,7 +86,8 @@ export function pureRoute(message: string, w: World = {}): Route {
 // career_people.ts peopleTurn, in their order). trackAsk's tracking asks other than the list need history on record,
 // which a fresh person has none of.
 function networkingAsk(m: string): boolean {
-  if (!/\b(?:linked ?in|indeed|handshake)\b/i.test(m) && parseTargetAsk(m)) return true;
+  // The people turn reads a discovery ask through targetAskOf (its own tidying: filler, courtesy, emoji; never a site).
+  if (targetAskOf(m)) return true;
   if (parsePeopleAsk(m) || pastedCsv(m) || forgetAsk(m)) return true;
   const t = trackAsk(m);
   if (t && (t.kind === "list" || t.kind === "site")) return true;

@@ -26,7 +26,9 @@ const NOT_SENT: Record<string, string> = {
   PERSON_DID_NOT_SUBMIT: "Submit was not pressed in the window within 10 minutes",
   IDENTITY_NUMBER_REQUESTED: "the form asks for an ID number, which Trainee never fills in",
   ACCOUNT_LOGIN_REQUIRED: "the employer's site needs you to sign in to an account first",
-  HOST_RATE_LIMITED: "the employer's site was turning visitors away for a while (too many requests), so nothing was filled in; ask me to send it again later",
+  // Since 20261029180000 such an application goes back to the queue and is sent once the site allows (no receipt until
+  // it ends); this is said only by a database without that requeue.
+  HOST_RATE_LIMITED: "the employer's site was turning visitors away for a while (too many requests), so nothing was filled in or sent",
   needs_answers: "the form has questions you have not answered yet",
 };
 const NEEDS_YOU: Record<string, string> = {

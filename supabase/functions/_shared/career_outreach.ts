@@ -23,7 +23,7 @@ import { CareerProfile } from "./router_core.career.js";
 import { approvalWords } from "./approval_words.ts";
 
 export type ModelFn = (payload: any) => Promise<any>;
-export interface Recipient { name: string; firm: string; title: string; school: string; email: string; source: string; prior_firms?: string[] }
+export interface Recipient { name: string; firm: string; title: string; school: string; email: string; source: string; prior_firms?: string[]; address?: "published" | "inferred" }
 export type Status = "shown" | "approved" | "skipped" | "sending" | "sent" | "failed" | "bounced" | "replied";
 export interface OutreachDraft {
   id: string; batch_id: string; thread_id: string | null; n: number;
@@ -223,13 +223,16 @@ export function outreachLock(text: string, s: LockSources): Lock {
     if (GENERIC_CAPS.has(w) || COMMON.has(w.toLowerCase().replace(/['’]/g, "")) || inAny(w)) continue;
     miss(u);
   }
-  // 2. Who a claim is about. "I ... at X" is about the person: X must be in their confirmed facts.
-  for (const m of text.matchAll(FIRST)) {
+  // 2. Who a claim is about. "I ... at X" is about the person: X must be in their confirmed facts. Read sentence by sentence
+  // (NETWORKING SCENARIOS, 2026-10-29): a name ending a sentence ("I studied at DePaul University. Would you ...") ran
+  // into the next one's first word, so a fact on record was refused as "DePaul University. Would".
+  const bySentence = (rx: RegExp) => sentencesOf(text).flatMap((x) => [...x.matchAll(rx)]);
+  for (const m of bySentence(FIRST)) {
     const e = trimEntity(m[1]);
     if (e && !GENERIC_CAPS.has(e) && !(hasWords(personCorpus, e) || sameFirmIn(personCorpus, e))) wrong(`"${m[0].trim()}" says this about you, but ${e} is not in your confirmed facts`);
   }
   // "you ... at X" is about the recipient: X must be on their row.
-  for (const m of text.matchAll(SECOND)) {
+  for (const m of bySentence(SECOND)) {
     const e = trimEntity(m[1]);
     if (e && !GENERIC_CAPS.has(e) && !(hasWords(rowCorpus, e) || sameFirmIn(rowCorpus, e))) wrong(`"${m[0].trim()}" says this about them, but ${e} is not on their row`);
   }
@@ -313,7 +316,10 @@ const who = (r: Recipient) => [r.name, r.title, r.firm].filter(Boolean).join(", 
 export function draftText(d: OutreachDraft): string {
   const common = (d.shared ?? []).length ? `In common: ${(d.shared ?? []).map((s) => `${s.value} (your ${s.fact || "fact"}; their ${s.field.replace("_", " ")})`).join("; ")}\n` : "";
   const m = messageOf(d);
-  return `${d.n}. To: ${who(d.recipient)} <${m.to}>\nFrom your list: ${d.recipient.source}\n${common}Subject: ${m.subject}\n\n${m.text}`;
+  // An address web discovery found is labeled on the card (owner rule, 2026-10-27: "the card labels each address").
+  const label = d.recipient.address === "inferred" ? " (inferred address: guessed from the company's email format, never published; it may bounce)"
+    : d.recipient.address === "published" ? " (published address)" : "";
+  return `${d.n}. To: ${who(d.recipient)} <${m.to}>${label}\nFrom your list: ${d.recipient.source}\n${common}Subject: ${m.subject}\n\n${m.text}`;
 }
 export const BATCH_FOOT = `Reply "send all", "send 1-7,9" for some, "redo 3" for a new version, "skip 4" to drop one, "edit 3: your words" to change one, or "send none".`;
 // The batch, split on purpose into messages of at most 1,500 characters; a draft is never cut across two.

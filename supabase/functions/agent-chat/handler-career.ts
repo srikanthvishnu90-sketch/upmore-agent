@@ -55,6 +55,8 @@ import { emailStatusAsk, outreachStatusTurn } from "../_shared/career_send_rail.
 import { standingTurn, supabaseStanding } from "../_shared/career_standing.ts";
 // FEATURE 14: receipts
 import { receiptTurn, supabaseReceipts } from "../_shared/career_apply_receipt_read.ts";
+import { chatScreenFacts } from "../_shared/career_apply_gate.ts";
+import { screenAnswerTurn, screenMeta, screenTapTurn, TAP_INTENT, TAP_STALE_REPLY } from "../_shared/career_apply_screen_answer.ts";
 import { applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerTurn, paceReader, paceTurn, supabaseEmployerAskStore } from "../_shared/career_apply_chat.ts";
 import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 // FEATURE 9: account memory (stated-fact provenance, standing needs on the router path).
@@ -84,7 +86,7 @@ import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.t
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
 import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
-import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
+import { askFor, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
 import { connectorAsk, connectorChatTurn, connectorFailure } from "../_shared/connectors.ts"; // Task 3 (FEATURE GV's disconnect included)
 import { networkingTurn, siteRefusedTurn } from "../_shared/career_networking.ts"; // FEATURE 10
@@ -96,6 +98,9 @@ import { careerGrant, followupTurn, gmailReadNow, mailNow, supabaseFollowupStore
 import { gmailSender } from "../_shared/career_outreach_gmail.ts";
 import { fileUploadFor } from "../_shared/channel_resume_upload.ts"; // FEATURE 16
 import { outlookAsk, outlookChatTurn } from "../_shared/outlook_connector.ts"; // M4: Outlook
+import { shapeForTurn } from "../_shared/channel_shape.ts"; // REPLY SHAPE
+import { supabaseFileStore } from "../trainee-file/store.ts";
+import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts"; // FILE KINDS
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
@@ -326,7 +331,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // 2026-10-28: this turn's cost row, always (see turnLedger): calls made, zero, or unrecorded. Written in finally, below.
     const ledger = turnLedger(admin, user.id, tid);
     // The mock-interview judge's model call goes through the same ceiling (shadowed like callModel).
-    const supabaseMockStore = (a: any) => supabaseMockStoreUncapped(a, { callModel });
+    // F09: a screen Yes / No tap (body.screen_tap) is never an answer to a mock question: with a tap the mock sees no question as the last word.
+    const supabaseMockStore = (a: any) => {
+      const store = supabaseMockStoreUncapped(a, { callModel });
+      return body.screen_tap && typeof body.screen_tap === "object" ? { ...store, lastAssistantIntent: async () => null } : store;
+    };
     // LAUNCH READINESS R1: this person's turns run one at a time, in arrival order (_shared/career_turn_gate.ts). The
     // ticket is taken before the thread is read and given back after the commit, on every path (finally, below).
     let gate: TurnGate | null = null;
@@ -397,6 +406,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
       let agentMeta: Record<string, unknown> | null = null;
+      let turnAttachments: unknown[] = [], turnLinks: string[] | null = null, turnFileLinks: string[] = []; // REPLY SHAPE: what the agent staged; the URLs it may show
+      let turnPostings: unknown[] = []; // JOB CARDS: what the turn's search found, for channels that show cards
       const events = supabaseEventStore(admin);
       // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
       // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
@@ -404,6 +415,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // SERIAL-1461: the id of the message this text replies to, when the channel passes one (a string or a number). A
       // text yes approves a card only in direct reply to the message that carried it.
       const replyTo = typeof body.reply_to_message_id === "string" || typeof body.reply_to_message_id === "number" ? body.reply_to_message_id : null;
+      // F09: a tap on the screen's Yes / No buttons (body.screen_tap = { qid, answer }) is an EXPLICIT answer to that one open question and
+      // nothing else. Every other consumer of a text yes / no (the card's yes, an employer question, a link, outreach, billing...) is
+      // skipped for it, so a button is never read as a typed word by whichever consumer happens to be waiting.
+      const tapRaw = body.screen_tap && typeof body.screen_tap === "object" ? body.screen_tap as Record<string, unknown> : null;
+      const tapIn = tapRaw ? { qid: String(tapRaw.qid ?? ""), answer: String(tapRaw.answer ?? "") } : null;
       // M4: Outlook (Microsoft Graph) as a peer of Gmail, from any channel: "connect my outlook" / "use my work email" makes a
       // one-time link bound to this person, channel and thread; "disconnect outlook" deletes the access and what was read
       // from it and cancels its pending sends (_shared/outlook_connector.ts). Code's, before every other turn.
@@ -411,23 +427,23 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // its state and use, and what waits on it), "connect gmail" (a one-time link from any channel), "disconnect gmail" /
       // "disconnect outlook" (revoke where possible, erase, cancel pending sends, read back), and a task that needs a
       // connector not connected ("check my outlook"): asked once with the link, parked, resumed by the connect callback.
-      const connAns = !careerTask && !careerBatch && connectorAsk(message)
+      const connAns = !tapIn && !careerTask && !careerBatch && connectorAsk(message)
         ? await connectorChatTurn({ admin, env: Deno.env, fetch, now: Date.now, message, userId: user.id, threadId: tid, bridge: isBridgeCall })
           .catch((e) => { console.error("connector turn:", e?.message ?? e); return connectorFailure(message); })
         : null;
       // OWNER RULE: never LinkedIn, Indeed or Handshake. An ask to apply, message or act on one of them, or a link to one,
       // is declined plainly, naming the site, before every other turn (no card, question, apply, link read or batch sees
       // it): nothing is queued and nothing is left waiting for a later "yes" (career_networking.ts siteRefusedTurn).
-      const siteNo = !connAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const siteNo = !tapIn && !connAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await siteRefusedTurn({ message, userId: user.id, threadId: tid, now: Date.now(), state: ctx as unknown as Record<string, unknown>,
             store: supabaseOutreachStore(admin), events, model: null })
           .catch((e) => { console.error("site refusal turn:", e?.message ?? e); return null; })
         : null;
-      const outlookAns = !connAns && !siteNo && !careerTask && !careerBatch && outlookAsk(message)
+      const outlookAns = !tapIn && !connAns && !siteNo && !careerTask && !careerBatch && outlookAsk(message)
         ? await outlookChatTurn({ admin, message, userId: user.id, threadId: tid, bridge: isBridgeCall, now: Date.now(), env: Deno.env })
           .catch((e) => { console.error("outlook turn:", e?.message ?? e); return null; })
         : null;
-      const card = !connAns && !outlookAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const card = !tapIn && !connAns && !outlookAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         // FEATURE 16: OWNER RULE (2026-10-26): no card without a confirmed resume on file (resumeReady).
         ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
         : null;
@@ -444,7 +460,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // "use 2" saves it.
       const draftMeter = ledger.track(newMeter());
       const draftCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
-      const asked = !card && !mock && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const asked = !tapIn && !card && !mock && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin), situation,
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
         : null;
@@ -457,7 +473,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // last word), and applying by email: "apply by email to Acme" shows the whole email drafted from confirmed facts,
       // and "yes" while it is the last word sends exactly that email once from the person's Gmail, only with
       // CAREER_EMAIL_SEND=on (WO-091c; off, the yes is told so and the card is kept). Code's, like the card.
-      const free = !card && !mock && !asked && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
+      const free = !tapIn && !card && !mock && !asked && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
       const which = free ? await confirmWhichTurn({ message, userId: user.id, threadId: tid, store: supabaseConfirmStore(admin) }) : null;
       const sendToken = careerTokenFor({
         env: Deno.env, fetch, now: Date.now,
@@ -495,7 +511,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // message; sending is the scheduled run's. A store that cannot be read sends the text on to the brain, never a guess.
       const outreachStore = supabaseOutreachStore(admin), outreachMeter = ledger.track(newMeter());
       const outreachModel = (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { meter: outreachMeter, role: "chat" });
-      const outreachAns = !card && !mock && !asked && !which && !emailed && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const outreachAns = !tapIn && !card && !mock && !asked && !which && !emailed && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await outreachTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: outreachStore, events, tz: undefined,
             redraft: (d) => draftFor({ model: outreachModel, facts: ((ctx as any).profile?.facts ?? []), r: d.recipient, previous: d.body }),
             gmailConnected: () => careerGrantHas(admin, user.id, GMAIL_SEND_SCOPE), connectAsk: missingIntegration("gmail"),
@@ -513,7 +529,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // are this thread's last word (each approved only by its exact payload's hash), "follow up after 5 days", and
       // "what's happened with my outreach" / "who replied" / "who wants to talk", read from the tracked conversations.
       const repliesStore = supabaseRepliesStore(admin);
-      const repliesAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const repliesAns = !tapIn && !card && !mock && !asked && !which && !emailed && !outreachAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await repliesTurn({ message, userId: user.id, chatThreadId: tid, now: Date.now(), store: repliesStore,
             // Never fails the turn: an unreadable time zone is none (the replies turn says times in UTC then).
             tz: await (async () => { try { const r: any = await admin.from("career_alert_prefs").select("tz").eq("user_id", user.id).maybeSingle(); return r?.data?.tz ?? null; } catch { return null; } })() })
@@ -521,13 +537,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         : null;
       // WO-039: the cloud on and off, code's like the card: "apply for me in the cloud" shows the exact terms, a "yes" while
       // they are the thread's last word (and nothing was texted since) turns it on, and "cloud off" turns it off at any time.
-      const cloud = !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const cloud = !tapIn && !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cloudTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCloudOptinStore(admin) })
         : null;
       // Option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's
       // tap on the exact payload does. A "yes" while the cloud card is the thread's last word only opens that card, read
       // as the person. Never on a channel's service-role turn.
-      const cardYes = !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const cardYes = !tapIn && !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cloudCardYesTurn({ message, threadId: tid, ownSession: !isBridgeCall, store: personCloudCardStore(supabase) })
         : null;
       // SUBMIT-STEER-1130: "did my application to Acme go through?", "where are my applications": answered from
@@ -540,27 +556,59 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // only on an apply ask; the once-per-employer guard and the card's approval stand.
       // SERIAL-1430 (b): "set my daily pace to N" / "no daily pace": the person's own number, kept only when the column holds
       // it (career_apply_pace_set refuses the rest and says the rule); code's, like the card.
-      const paced = !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const paced = !tapIn && !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await paceTurn({ message, userId: user.id, admin })
         : null;
       // The screens read the confirmed facts and what the person stated in chat ("I work at X" lands in statedFacts).
-      const screenFacts = [...CareerProfile.confirmedFacts((ctx as any).profile ?? {}),
-        ...(((ctx as any).statedFacts?.facts ?? []) as any[]).map((f) => ({ kind: f.kind, value: f.value, text: f.evidence ?? f.value, stated: true }))];
+      // Real shapes: profile facts are { kind, text } (location, eligibility, education...), stated facts { kind, value }.
+      const screenFactsNow = () => chatScreenFacts(CareerProfile.confirmedFacts((ctx as any).profile ?? {}), ((ctx as any).statedFacts?.facts ?? []) as any[]);
+      const screenFacts = screenFactsNow();
       const employerAsk = supabaseEmployerAskStore(admin);
       // SERIAL-1490/1491: "is X where you work now?" is answered by the next yes or no while that question is this thread's
       // last word: no queues exactly that posting once, yes keeps it out; the same answer again is told it stands.
-      const employerAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !paced && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const feature1 = feature1Deps({ admin, userId: user.id, env: Deno.env, fetch: (i, init) => fetch(i, init), posting: (id) => supabasePostingsDb(admin).get(id) });
+      // F09: the person's answer to the posting screen's question (meta.screen_ask on the thread's last reply) is saved as a
+      // confirmed profile fact, and the held postings are screened again with it (career_apply_screen_answer.ts).
+      const screenAns = tapIn ? await (async () => {
+          const last = await employerAsk.lastAssistant(tid);
+          if (!(ctx as any).profile) (ctx as any).profile = CareerProfile.createProfile({});
+          return await screenTapTurn({
+            qid: tapIn.qid, answer: tapIn.answer, now: Date.now(), last: last as any, profile: (ctx as any).profile, addFact: (p: any, f: any) => CareerProfile.addFact(p, f),
+            rerun: (held) => applyTurn({
+              ...feature1.apply, message: "apply to all of them", userId: user.id, now: Date.now(), postings: supabasePostingsDb(admin), wants: supabaseWantStore(admin),
+              apps: () => supabaseApplications(admin)(user.id), facts: screenFactsNow(), limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid),
+              shortlist: held.map((h) => ({ id: h.job_id ?? undefined, title: h.title, company: h.company, location: "", url: h.url })) as any,
+            }),
+          });
+        })().catch((e) => { console.error("screen tap turn:", e?.message ?? e); return { reply: TAP_STALE_REPLY, status: "stale", intent: TAP_INTENT, saved: [] } as any; })
+        : !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !paced && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await (async () => {
+          const last = await employerAsk.lastAssistant(tid);
+          if (!(last?.meta as any)?.screen_ask) return null;
+          if (!(ctx as any).profile) (ctx as any).profile = CareerProfile.createProfile({});
+          return await screenAnswerTurn({
+            message, now: Date.now(), last: last as any, profile: (ctx as any).profile, addFact: (p: any, f: any) => CareerProfile.addFact(p, f),
+            rerun: (held) => applyTurn({
+              ...feature1.apply, message: "apply to all of them", userId: user.id, now: Date.now(), postings: supabasePostingsDb(admin), wants: supabaseWantStore(admin),
+              apps: () => supabaseApplications(admin)(user.id), facts: screenFactsNow(), limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid),
+              shortlist: held.map((h) => ({ id: h.job_id ?? undefined, title: h.title, company: h.company, location: "", url: h.url })) as any,
+            }),
+          });
+        })().catch((e) => { console.error("screen answer turn:", e?.message ?? e); return null; })
+        : null;
+      const employerAnsOnly = !tapIn && !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !paced && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await employerAnswerTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: employerAsk, wants: supabaseWantStore(admin),
-            apps: () => supabaseApplications(admin)(user.id), facts: screenFacts, limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid) })
+            apps: () => supabaseApplications(admin)(user.id), facts: screenFacts, limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid),
+            posting: (id) => supabasePostingsDb(admin).get(id) })
           .catch((e) => { console.error("employer answer turn:", e?.message ?? e); return null; })
         : null;
+      const employerAns = (screenAns as any) ?? employerAnsOnly;
       // FEATURE 1: apply from chat (career_apply_from_chat.ts). The apply turn below also resolves positions ("apply to 1
       // and 3", "the 2nd one") on the thread's last list, refuses a listed posting closed or not found on file and every
       // posting when no confirmed resume is on file, asks the worker's prepare-ahead for exactly the rows queued (only with
       // CAREER_PREPARE_AHEAD_URL set; off by default) and starts its reply with the coverage ("3/3 queued; ..."). After the
       // router's batch turn, an answer it recorded in chat is recorded on the matching open queue question as well
       // (career_apply_answers_for reads it). Nothing is approved or sent here: only the card's tap does that.
-      const feature1 = feature1Deps({ admin, userId: user.id, env: Deno.env, fetch: (i, init) => fetch(i, init), posting: (id) => supabasePostingsDb(admin).get(id) });
       // FEATURE 1 end
       // BILLING BY TEXT (owner, 2026-10-27): "what am I paying", "cancel my plan", "my invoices" (career_billing.ts). Before
       // FEATURE 17, so "cancel my plan" is billing and "cancel my application to X" stays the cancel turn's. The price and
@@ -744,7 +792,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       } else if (employerAns) {
         // The question stays the thread's last word while any posting is still unanswered; the answers ride the reply.
         out = { reply: employerAns.reply, intent: employerAns.intent, resultStatus: employerAns.status, contained: false, handler: "apply_employer" };
-        agentMeta = { ...(employerAns.answers?.length ? { employer_answers: employerAns.answers } : {}), ...(employerAns.pending?.length ? { employer_question: employerAns.pending } : {}) };
+        agentMeta = { ...(employerAns.answers?.length ? { employer_answers: employerAns.answers } : {}), ...(employerAns.pending?.length ? { employer_question: employerAns.pending } : {}), ...((employerAns as any).meta ?? {}) };
         if (employerAns.intent === EMPLOYER_ANSWER_INTENT && !employerAns.answers?.length) agentMeta = null;
       } else if (billing) {
         // A cancel waiting for its yes is this thread's last word, its exact payload on the reply (meta.billing_cancel).
@@ -758,6 +806,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const asking = !!queued.ask?.length;
         out = { reply: queued.reply, intent: asking ? EMPLOYER_ASK_INTENT : queued.intent, resultStatus: queued.status, contained: false, handler: "apply_queue" };
         if (asking) agentMeta = { employer_question: queued.ask };
+        // F09: the screen's question for a fact not confirmed rides the reply, so the next message can answer it.
+        const sm = screenMeta(queued.screen);
+        if (sm) agentMeta = { ...(agentMeta ?? {}), ...sm };
       } else if (receiptAns) {
         // FEATURE 14: the pictures ride result.documents, materialized below like every turn document.
         out = { reply: receiptAns.reply, intent: receiptAns.intent, resultStatus: receiptAns.status, contained: false, handler: "receipt", ...(receiptAns.result ? { result: receiptAns.result as unknown as Record<string, unknown> } : {}) };
@@ -805,6 +856,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           // WO-033: drafts from the person's lists (the model writes, the fact-lock checks), and Hunter when its key is set.
           outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) },
           conversations: repliesStore,
+          // REPLY SHAPE: Telegram with the reply writer on gets the shape rules and the attach_document tool.
+          shape: replyWriterOn(Deno.env) && writerChannel((body as any)?.channel) === "telegram",
+          files: createFileService({ store: supabaseFileKindStore(admin), env: Deno.env, now: Date.now, records: { application: (u, id) => supabaseFileStore(admin).appRow(u, id) } }),
           verifier: hunterVerifier({ fetch, apiKey: Deno.env.get("HUNTER_API_KEY"), cache: supabaseCheckCache(admin), now: Date.now }),
           tailor: { posting: (id) => postingsDb.get(id), personas: supabasePersonaStore(admin), resumes: supabaseResumeStore(admin), render: edgeRenderer() },
           // WO-066: "apply me to these" puts the postings in the person's own queue; the extension prepares each, and each
@@ -822,6 +876,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           out = host.runTurn(message, ctx);
         } else {
           // A batch of outreach drafts is shown by code, and its intent makes the next text an answer to it.
+          turnPostings = Array.isArray(turn.postings) ? turn.postings : [];
+          turnAttachments = turn.attachments ?? []; turnLinks = turn.linksSeen ?? []; turnFileLinks = turn.fileLinks ?? [];
           out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent", ...(turn.show?.parts ? { parts: turn.show.parts } : {}) };
           agentMeta = { brain: staged.chosen ? "staged" : "agent", ...(staged.chosen ? { router_intent: staged.decision?.intent ?? null } : {}), tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
         }
@@ -839,7 +895,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = f5Prompt
           ? { reply: f5Prompt.reply, intent: f5Prompt.intent, resultStatus: f5Prompt.status, contained: false, handler: "judge_prompt" }
           : host.runTurn(message, ctx);
-        const f5Ask = f5Free && !f5Prompt ? askFromRouter(message, out, (ctx as any).discovery) : null;
+        // askFor: the router's search plus the parameters the message states (level, pay, season, employer, sponsorship), or a
+        // role search the router did not run at all (posting_constraints.ts reads it from the message itself).
+        const f5Said = f5Free && !f5Prompt ? askFor(message, out, (ctx as any).discovery) : null;
+        const f5Ask = f5Said?.ask ?? null;
         if (f5Ask) {
           const f5Meter = ledger.track(newMeter());
           const f5Cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
@@ -849,7 +908,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
               judge: { on: f5JudgeOn, model: (payload) => callModel(f5Cfg, payload, { meter: f5Meter, role: "chat" }), cache: supabaseJudgeCache(admin),
                 n: Number(Deno.env.get("CAREER_JUDGE_N")) || undefined, standing: () => supabaseMemoryStore(admin).standing(user.id) } });
             if (found) {
-              out = { ...out, reply: found.reply, resultStatus: found.status, handler: "search_judge" };
+              out = { ...out, reply: f5Said?.append ? `${out.reply}\n\n${found.reply}` : found.reply, resultStatus: found.status, handler: "search_judge" };
               (ctx as any).discovery = { ...((ctx as any).discovery ?? {}), lastShortlist: found.shortlist, lastSource: found.source };
             }
           } catch (e) { console.error("career search judge: the router's reply stands:", (e as Error)?.message ?? e); }
@@ -877,7 +936,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           seen.upload = await fileUploadFor(admin, user.id, seen.upload);
           // END FEATURE 16
           const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.account as any)?.memory?.profile ?? (loaded.snapshot as any)?.stores?.profile ?? null,
-            after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, events });
+            after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, said: seen.said, events });
           if (ev.unshown || ev.untraced || ev.refused) console.error(`career evidence: held as drafts: ${ev.unshown} not shown, ${ev.untraced} not in the upload, ${ev.refused} event not recorded`);
           // A confirmation the host could not evidence is not claimed: those facts are drafts again, and the reply says so.
           const held = heldReply(ev);
@@ -969,6 +1028,21 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         }
         await ledger.record(wMeter);
       }
+      // REPLY SHAPE (_shared/channel_shape.ts): on Telegram with the writer on, the answer is one short paragraph, detail rides as
+      // files and links as their own messages (the channel sends them in that order). A turn that shows an exact payload is untouched.
+      let shapeField: { attachments: { filename: string; content: string }[]; links: string[] } | null = null;
+      {
+        const sh = shapeForTurn({ on: replyWriterOn(Deno.env), channel: writerChannel((body as any)?.channel), reply: out.reply, attachments: turnAttachments, allowedLinks: turnLinks,
+          writable: writable(out, agentMeta, { structured: !!(careerTask || careerBatch) }) });
+        if (sh.reply !== out.reply) out = { ...out, reply: sh.reply };
+        shapeField = sh.shape;
+        // FILE KINDS: the links to the pages create_file made were minted by code; they are sent after the answer whatever the shape decided.
+        if (turnFileLinks.length) shapeField = { attachments: shapeField?.attachments ?? [], links: [...(shapeField?.links ?? []), ...turnFileLinks.filter((l) => !(shapeField?.links ?? []).includes(l))] };
+        if (sh.notes.length) agentMeta = { ...(agentMeta || {}), reply_shape: sh.notes.slice(0, 8) };
+      }
+      // ONBOARDING SCENARIOS (2026-10-29): a turn answered here, before or beside the host (a card, an apply, a connector, the
+      // brain), still ends a pending resume ask's turn: a later bare yes is that turn's, not the resume's (career_host.js).
+      (host as any).noteTurn?.(ctx, out.intent);
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       // CHANNEL-DOC-1: documents the turn produced (the tailored
       // resume PDF; the delivery handler's documents) are materialized
@@ -998,7 +1072,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const visibleReply = [reply, ...reminderLines].join("\n");
       // The same reply as separate messages for a texting channel: the note, each part whole, then the reminders.
       const parts = out.parts ? [...(flowCtx.note ? [flowCtx.note] : []), ...out.parts, ...(artifactNote ? [artifactNote] : []), ...reminderLines] : null;
-      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), ...(artifactsField ? { artifacts: artifactsField } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), ...(artifactsField ? { artifacts: artifactsField } : {}), ...(turnPostings.length ? { postings: turnPostings } : {}), ...(shapeField ? { shape: shapeField } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
       const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent, batchIntent });
       // WO-028: "forget everything" also removes the tailored resumes (they carry the person's name and email); best
       // effort, after the erase is recorded, like the rest of the erase's side effects.

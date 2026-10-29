@@ -1924,6 +1924,18 @@ const CareerRouter = (() => {
     if (kinds.size < 2 || !(kinds.has("experience") || kinds.has("education"))) return null;
     return drafts;
   }
+  // ONBOARDING SCENARIOS (2026-10-29): the composer keeps a few clean sentences per reply and drops every line or sentence
+  // with a "|" (a markdown table to it), so a resume entry written "Company | Title | Dates" (or one cut at a sentence
+  // end, or past the bubble cap) was never shown: the evidence step held it ("not shown word for word") and the person
+  // could never confirm it, while the router told them it was confirmed. Entries shown for a yes go out verbatim, each on
+  // its own numbered line; only the headline goes through the composer.
+  function entriesReply(head, facts, listTitle, lines, nextStep) {
+    const top = Reply ? Reply.composeResult({ headline: head }).bubbles.join("\n") : head;
+    const parts = [top, ...(facts || []).filter(Boolean)];
+    if (lines && lines.length) parts.push(`${listTitle}\n${lines.join("\n")}`);
+    parts.push(nextStep);
+    return parts.join("\n\n");
+  }
   function handleResumePasteIngest(text, ctx) {
     const raw = s(text);
     // CHAT PASTE SHAPE (text-path measurement 2026-10-24): a resume
@@ -1967,6 +1979,15 @@ const CareerRouter = (() => {
     try { res = ProfileMod.ingestResume(profile, raw, { now: nowOf(ctx) }); } catch { return null; }
     if (!res || !res.ok) return null;
     ctx.profile = profile;
+    // ONBOARDING SCENARIOS (2026-10-29): the same resume again, word for word, is the one already confirmed: nothing is
+    // added (no second copy of any entry) and no new yes is asked for. A pending ask for an earlier paste is over.
+    if (res.same_as_confirmed) {
+      const wm = threadMirrorForWrite(ctx);
+      if (wm) delete wm.resumeIngest;
+      const n = (profile.facts || []).filter((f) => f && f.source === "resume-ingest" && !f.needs_confirmation).length;
+      return { intent: "career_resume_ingest", resultStatus: "unchanged", sends: 0, resume_ingest: { drafts: 0, same_as_confirmed: true },
+        reply: compose({ headline: "That is the resume already on your record — nothing changed.", facts: [`Its ${n} entr${n === 1 ? "y is" : "ies are"} confirmed as you gave them, so I added nothing and need no new yes.`, ...(Array.isArray(res.replaced_drafts) && res.replaced_drafts.length ? ["The other resume you pasted, which you had not confirmed, is set aside: nothing from it is used."] : [])], nextStep: "To change an entry, tell me what it should say, or paste the updated resume." }) };
+    }
     const byKind = {};
     for (const f of profile.facts || []) if (f && f.source === "resume-ingest" && f.needs_confirmation) byKind[f.kind] = (byKind[f.kind] || 0) + 1;
     const total = Object.values(byKind).reduce((a, b) => a + b, 0);
@@ -1994,8 +2015,12 @@ const CareerRouter = (() => {
     // entries whose own words were actually SHOWN to the person, so
     // the presenting reply lists each entry itself, whole. These are
     // the same entries the marker binds and the yes will approve.
-    if (presented.length) facts.push(`Here is what I read from it:\n${presented.map((f, i) => `${i + 1}. ${f.text}`).join("\n")}`);
-    const reply = compose({ headline: "Your resume is on record — as drafts, awaiting your word.", facts, nextStep: target ? `Say "yes, that's my resume" and I confirm them and tailor for ${target.label} in the same turn.` : "Say \"yes, that's my resume\" and I confirm them as your facts — then name a role and the tailoring runs on them." });
+    // A section this reader does not take entries from (a summary, interests) is named, never silently dropped.
+    if (Array.isArray(res.unread_sections) && res.unread_sections.length) facts.push(`I did not read these sections into your record: ${res.unread_sections.slice(0, 8).join(", ")}. Nothing from them is used.`);
+    if (Array.isArray(res.replaced_drafts) && res.replaced_drafts.length) facts.push("This replaces the resume you pasted before it, which you had not confirmed.");
+    if ((profile.facts || []).some((f) => f && f.source === "resume-ingest" && !f.needs_confirmation)) facts.push("Your confirmed resume stays in use until you confirm this one; then this one replaces it.");
+    const reply = entriesReply("Your resume is on record — as drafts, awaiting your word.", facts, "Here is what I read from it, word for word:", presented.map((f, i) => `${i + 1}. ${f.text}`),
+      target ? `Say "yes, that's my resume" and I confirm them and tailor for ${target.label} in the same turn.` : "Say \"yes, that's my resume\" and I confirm them as your facts — then name a role and the tailoring runs on them.");
     return { intent: "career_resume_ingest", reply, resultStatus: "awaiting_user", sends: 0, resume_ingest: { drafts: total, byKind } };
   }
   // The confirmation half of the paste journey: the user's yes
@@ -2004,15 +2029,69 @@ const CareerRouter = (() => {
   // (recorded by handleTailorNeedsFacts when it said "the target is
   // set"), the tailoring the product promised runs in this turn and
   // its document rides the reply.
+  // ONBOARDING SCENARIOS (2026-10-29, tests/architect/scenarios-onboarding.test.ts; D-007): the person's reply to the
+  // entries shown is read by 122's confirmationReply, and only a plain yes confirms. Before this, any message STARTING with
+  // a yes word confirmed every entry ("yes?", "yeah maybe", "correct?", "yes, is the GPA right?", "do it later", "it is
+  // what it is"), and so did a yes given to a later question (the GPA asked for, a search, a "no" that the bare-reply
+  // resolver answered with "no question is waiting"), because the ask stood until anything confirmed it. Now:
+  //   - a plain yes while the entries are the last thing asked confirms them (the binding checks below are unchanged);
+  //     after another turn (the host marks the ask stale), only a yes that names the resume does;
+  //   - a correction ("my title was X not Y", "change Y to X", "not Y, X") changes exactly the one shown entry that holds
+  //     Y, keeps it a draft, and shows it again for a yes; Y in no entry, or in several, changes nothing and asks;
+  //   - a no, a question, a hedge, a pause or an emoji confirms nothing, and the person is asked again plainly.
+  function resumeAskReply(head, extra, lines) {
+    return entriesReply(head, [...(extra || []), "Every entry is still a draft: nothing is tailored, put on a form or sent from a draft."], "Now it reads, word for word:", lines || [],
+      "If every entry I showed you is right, reply \"yes, that's my resume\"; to fix one, tell me what it should say (for example \"my title was X, not Y\").");
+  }
+  function applyResumeCorrection(corr, profile, mir) {
+    const ids = new Set(Array.isArray(mir.resumeIngest.factIds) ? mir.resumeIngest.factIds : []);
+    const shown = (profile.facts || []).filter((f) => f && ids.has(f.id) && f.needs_confirmation && f.source === "resume-ingest");
+    const esc = corr.from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`${/^\w/.test(corr.from) ? "\\b" : ""}${esc}${/\w$/.test(corr.from) ? "\\b" : ""}`, "gi");
+    const has = (f) => [f.title, f.text, f.name, ...(f.bullets || [])].some((x) => typeof x === "string" && (re.lastIndex = 0, re.test(x)));
+    const hits = shown.filter(has);
+    const order = (f) => (mir.resumeIngest.factIds || []).indexOf(f.id) + 1;
+    if (hits.length !== 1) return { hits, order };
+    const f = hits[0];
+    const swap = (x) => (typeof x === "string" ? x.replace(re, corr.to) : x);
+    f.title = swap(f.title); f.text = swap(f.text); if (f.name) f.name = swap(f.name);
+    if (Array.isArray(f.bullets)) f.bullets = f.bullets.map(swap);
+    if (Array.isArray(f.skills)) f.skills = f.skills.map(swap);
+    f.needs_confirmation = true; f.status = "draft";
+    f.corrections = [...(Array.isArray(f.corrections) ? f.corrections : []), { from: corr.from, to: corr.to }];
+    // The ask now binds to the entry as corrected and shown again.
+    if (Array.isArray(mir.resumeIngest.entries)) for (const e of mir.resumeIngest.entries) if (e && e.id === f.id) e.sha256 = sha256(s(f.text || ""));
+    return { hits, order, fact: f };
+  }
   function handleResumeIngestConfirm(text, ctx) {
     const mir = threadMirrorOf(ctx);
     if (!mir || !mir.resumeIngest) return null;
     const raw = s(text).trim();
-    if (raw.split(/\s+/).length > 8) return null;
-    if (/\b(no|not|wrong|wait|stop|don'?t)\b/i.test(raw)) return null;
-    if (!/^(yes|yeah|yep|confirm|confirmed|correct|that'?s right|that is right|looks right|looks good|all correct|that'?s my resume|it is|do it)\b/i.test(raw)) return null;
     const profile = ctx.profile && typeof ctx.profile === "object" ? ctx.profile : null;
-    if (!profile) return null;
+    if (!raw || !profile || !ProfileMod || typeof ProfileMod.confirmationReply !== "function") return null;
+    const said = ProfileMod.confirmationReply(raw);
+    const nWords = raw.split(/\s+/).length;
+    if (said.kind === "other" || nWords > (said.kind === "correction" ? 40 : 16)) return null;
+    const stale = mir.resumeIngest.stale === true;
+    const wm = threadMirrorForWrite(ctx);
+    const ask = (head, extra, lines) => { if (wm && wm.resumeIngest) delete wm.resumeIngest.stale; return { intent: "career_resume_ingest", resultStatus: "awaiting_user", sends: 0, resume_ingest: { confirmed: 0 }, reply: resumeAskReply(head, extra, lines) }; };
+    if (said.kind === "correction") {
+      const r = applyResumeCorrection(said, profile, mir);
+      if (r.fact) return ask(`Changed entry ${r.order(r.fact)} — nothing is confirmed yet.`, [], [`${r.order(r.fact)}. ${r.fact.text}`]);
+      if (stale && !r.hits.length) return null;
+      if (r.hits.length > 1) return ask(`I changed nothing — “${said.from}” is in ${r.hits.length} of the entries I showed you.`, [`It is in entries ${r.hits.map(r.order).join(", ")}. Tell me which one to change (for example "in entry ${r.order(r.hits[0])}, ${said.to} not ${said.from}").`]);
+      return ask(`I changed nothing — I couldn't find “${said.from}” in the entries I showed you.`, []);
+    }
+    if (said.kind === "no") {
+      if (stale) return null;
+      return ask("Nothing is confirmed.", ["Tell me which entry is wrong and what it should say, or paste the corrected resume and I will read it again."]);
+    }
+    if (said.kind === "unclear") {
+      if (stale) return null;
+      return ask("I haven't confirmed anything yet.", []);
+    }
+    // A plain yes. After another turn it is a yes to whatever was asked last, unless it names the resume.
+    if (stale && !/\b(?:resume|cv|r[eé]sum[eé]|entries)\b/i.test(raw)) return ask("I didn't take that yes as confirming your resume — it came after another question.", []);
     // SPLIT-1146 (a): the yes binds to the PRESENTED content — when
     // the marker carries the presented drafts' ids, only those facts
     // confirm; a resume draft that was never in the presented content
@@ -2020,7 +2099,8 @@ const CareerRouter = (() => {
     // with no matching draft left standing confirms nothing and says
     // so — the old behavior flipped every standing draft on a
     // generic yes.
-    const presentedIds = Array.isArray(mir.resumeIngest.factIds) && mir.resumeIngest.factIds.length ? new Set(mir.resumeIngest.factIds) : null;
+    // An empty presentation confirms nothing (it used to read as "no marker ids", so a yes flipped every standing draft).
+    const presentedIds = Array.isArray(mir.resumeIngest.factIds) ? new Set(mir.resumeIngest.factIds) : null;
     // JOIN-1213: verify BEFORE flipping any — when the marker
     // carries per-entry digests, every presented entry must still
     // stand as a draft with its presented text. An entry changed
@@ -2039,13 +2119,18 @@ const CareerRouter = (() => {
       }
     }
     let confirmed = 0;
+    const confirmedIds = [];
     for (const f of profile.facts || []) {
-      if (f && f.needs_confirmation && f.source === "resume-ingest" && (!presentedIds || presentedIds.has(f.id))) { f.needs_confirmation = false; f.status = "confirmed"; confirmed += 1; }
+      if (f && f.needs_confirmation && f.source === "resume-ingest" && (!presentedIds || presentedIds.has(f.id))) { f.needs_confirmation = false; f.status = "confirmed"; confirmed += 1; confirmedIds.push(f.id); }
     }
     if (presentedIds && !confirmed) {
       return { intent: "career_resume_ingest", resultStatus: "blocked", sends: 0, resume_ingest: { confirmed: 0 },
         reply: compose({ headline: "I did not confirm anything — the resume drafts on the record are not the ones I showed you.", facts: ["That yes binds only to the exact resume content presented for approval; the drafts standing now do not match it, so nothing was confirmed from it."], nextStep: "Paste the resume again and I will show you its drafts for a fresh yes." }) };
     }
+    // ONBOARDING SCENARIOS (2026-10-29): the resume just confirmed is the person's resume. Every entry of an earlier
+    // resume leaves the profile (before this, the old school and GPA were still read back, tailored and put on forms
+    // beside the new ones; "what's my GPA?" answered with the replaced resume's).
+    const superseded = presentedIds && confirmed && typeof ProfileMod.supersedeResume === "function" ? ProfileMod.supersedeResume(profile, confirmedIds, { now: nowOf(ctx) }) : [];
     const target = mir.tailorTarget && mir.tailorTarget.company ? mir.tailorTarget : null;
     const wmir = threadMirrorForWrite(ctx);
     if (wmir) delete wmir.resumeIngest;
@@ -2077,8 +2162,8 @@ const CareerRouter = (() => {
         return chained;
       }
     }
-    const reply = compose({ headline: "Confirmed — your resume facts are on your record.", facts: [`${confirmed} fact${confirmed === 1 ? "" : "s"} from the resume you pasted are confirmed, in your own words — tailoring, packets, and answers now run on them.`], nextStep: "Name a role (or paste a posting) and the tailoring runs on them." });
-    return { intent: "career_resume_ingest", reply, resultStatus: "completed", sends: 0, resume_ingest: { confirmed } };
+    const reply = compose({ headline: "Confirmed — your resume facts are on your record.", facts: [`${confirmed} fact${confirmed === 1 ? "" : "s"} from the resume you pasted are confirmed, in your own words — tailoring, packets, and answers now run on them.`, ...(superseded.length ? ["It replaces your earlier resume: nothing from that one is used any more."] : [])], nextStep: "Name a role (or paste a posting) and the tailoring runs on them." });
+    return { intent: "career_resume_ingest", reply, resultStatus: "completed", sends: 0, resume_ingest: { confirmed, ...(superseded.length ? { superseded: superseded.length } : {}) } };
   }
   // PENDING AFFIRMATION (text-path measurement 2026-10-24): a bare
   // affirmation binds to the pending state that asked for it —
@@ -2991,7 +3076,9 @@ const CareerRouter = (() => {
     // instruction, not an affirmation, and is untouched.
     if (/\?/.test(raw) || /\b(and then|what next|what now|so what)\b/i.test(raw)) return null;
     if (ctx.plan && ctx.plan.kind === "campaign_plan") return null;
-    if (mir.resumeIngest) return null;
+    // A resume ask stands this down while it is the last thing asked, or when the yes names the resume (ONBOARDING
+    // SCENARIOS 2026-10-29: once another question came after it, a bare yes is that question's).
+    if (mir.resumeIngest && (mir.resumeIngest.stale !== true || /\b(?:resume|cv)\b/i.test(raw))) return null;
     // ROOT-CAUSE (2026-10-24): a read-back is the pending question
     // only while it is the FRESHEST thing the conversation is
     // standing on. When a later serve opened another frame (a
@@ -14317,19 +14404,20 @@ const CareerRouter = (() => {
   // only the "what's my <fact kind>" family; the answer is the
   // record itself (factLine), or the honest absence — never a guess.
   function handleStatedFactReadback(text, ctx) {
-    const t = lc(text);
+    const t = lc(text).replace(/\bwher\b/g, "where").replace(/\b(?:waht|wht|wat|whta)\b/g, "what").replace(/\bwhats\b/g, "what's").replace(/\b(?:schol|shcool|scool)\b/g, "school");
     // "where did I go to school?" is the school ask too (a confirmed resume answers it first, in 130's profile recall).
-    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone)\b/) || (/\bwhere am i (based|targeting|looking)\b/.test(t) ? [null, "geography"] : null)
-      || (/\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b/.test(t) ? [null, "school"] : null);
+    const m = t.match(/\bwhat(?:'s| is) my (target firm|target company|major|school|city|location|year|class year|level|tone|target role|dream role)\b/) || (/\bwhere am i (based|targeting|looking|located|living)\b|\bwhere (?:do|did) i live\b|\bwhat (?:city|town) (?:do i live in|am i (?:in|based in))\b/.test(t) ? [null, "geography"] : null)
+      || (/\bwhere (?:did|do) i (?:go to |attend )?(?:school|college|university|study)\b|\bwhat (?:school|college|university) (?:did|do) i (?:go to|attend)\b/.test(t) ? [null, "school"] : null)
+      || (/\bwhat (?:roles?|jobs?|positions?|kind of (?:roles?|jobs?)) (?:am i (?:looking for|targeting|after|going for)|do i want)\b|\bwhat am i looking for\b/.test(t) ? [null, "target_role"] : null);
     if (!m) return null;
-    const kind = { "target firm": "target_firm", "target company": "target_firm", major: "majors", school: "school", city: "geography", location: "geography", geography: "geography", year: "year", "class year": "year", level: "level", tone: "tone" }[m[1]] || m[1];
+    const kind = { "target firm": "target_firm", "target company": "target_firm", major: "majors", school: "school", city: "geography", location: "geography", geography: "geography", year: "year", "class year": "year", level: "level", tone: "tone", "target role": "target_role", "dream role": "target_role" }[m[1]] || m[1];
     const all = statedFactsOf(ctx);
     const f = all.find((x) => x.kind === kind);
     if (f) {
       const reply = compose({ headline: "From your record — your words, as stated.", facts: [`On record: ${factLine(f)}.`], nextStep: "Correct it the same way you stated it, or tell me what to run on it first." });
       return { intent: "profile_recall", reply, resultStatus: "completed", sends: 0 };
     }
-    const label = { target_firm: "a target firm", majors: "a major", school: "a school", geography: "a location", year: "a class year", level: "a level", tone: "a tone" }[kind] || kind;
+    const label = { target_firm: "a target firm", majors: "a major", school: "a school", geography: "a location", year: "a class year", level: "a level", tone: "a tone", target_role: "a target role" }[kind] || kind;
     const reply = compose({ headline: "That is not on your record yet.", facts: [`You have not stated ${label} — the record holds only what you state, and nothing is assumed to fill it.`], nextStep: `State ${label} in your own words and it is recorded in this turn.` });
     return { intent: "profile_recall", reply, resultStatus: "awaiting_user", sends: 0 };
   }
@@ -14402,9 +14490,14 @@ const CareerRouter = (() => {
     // this role?") is this handler's own class even when it never
     // says "eligible" — without the question class it fell through
     // to the internship tail, which read "need … role" as a search.
-    const waQuestion = /\?/.test(s(text)) && /\b(sponsor|sponsorship|visa|work (authorization|permit)|citizenship)\b/.test(t);
+    // Also without a question mark when it is asked of the person ("do i need visa sponsorship", "am i a citizen",
+    // "what's my visa status"), and for citizenship and status words (scenarios-facts.test.ts: "am I a citizen?" read
+    // "not on your record" with the person's saved authorization on file, and "do i need visa sponsorship" got a generic
+    // H-1B essay instead of their record).
+    const waWords = /\b(sponsor|sponsorship|visa|work (authorization|authorisation|permit)|authori[sz]ed to work|citizen|citizenship|green card|permanent resident|immigration status|h-?1b|f-?1)\b/.test(t);
+    const waQuestion = waWords && (/\?/.test(s(text)) || /^(?:(?:so|and|also|wait|ok|okay|hey|quick question)[,:]?\s+)*(?:do|will|would|am|can|have|did) i\b|^(?:(?:so|and|also|wait|ok|okay|hey)[,:]?\s+)*what(?:'s| is) my\b/.test(t));
     if (!/\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t) && !waQuestion) return null;
-    if (!/\?/.test(s(text)) && !/\b(am i|do i|would i|can i|check if i)\b/.test(t)) return null;
+    if (!/\?/.test(s(text)) && !waQuestion && !/\b(am i|do i|would i|can i|check if i)\b/.test(t)) return null;
     if (/\btailor\b/.test(t)) return null; // a tailor ask owns its posting
     if (/\b(offer|negotiat|signing bonus|counter)\b/.test(t)) return null; // negotiation owns its eligibility-flavored turns
     if (/\b(is|does|would|can) (he|she|they)\b|\bmy (roommate|friend|brother|sister|classmate|coworker|co-worker|colleague|partner)\b[^.]*\beligib/.test(t)) return null; // someone else's eligibility is not graded from this record
@@ -14527,7 +14620,9 @@ const CareerRouter = (() => {
     // it land here answered a grading question with a record
     // non-sequitur ("That is not on your record…").
     const selfCheck = t.match(/\bam i (?:a |an )?(\w+)\b/);
-    if (selfCheck && /\?/.test(s(text)) && !/^(eligible|qualified)$/.test(selfCheck[1])) {
+    // "where am I based?" and "what roles am I looking for?" are read-backs of a location or a role (the stated-fact
+    // read-back below), never a "not on your record" over a record that holds them.
+    if (selfCheck && /\?/.test(s(text)) && !/^(eligible|qualified|based|located|living|looking|targeting|searching|focused|after|going|from)$/.test(selfCheck[1])) {
       const w = selfCheck[1];
       const hit = C.facts.find((f) => lc(f.value).includes(w) || lc(f.kind) === w);
       const reply = hit
@@ -15410,6 +15505,15 @@ const CareerRouter = (() => {
   // own parser whether a turn names a company/title, so its
   // targeted KB lookup beyond the recency window can never drift
   // from the parser that will resolve the named role in-turn.
-  return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf, detypo };
+  // ONBOARDING SCENARIOS (2026-10-29): the host tells the router every turn's outcome, whoever answered it (120, 130, this
+  // router, 141, or a turn the edge handler answered before the host). A turn that was not the resume ask's own leaves the
+  // ask stale: the entries are still drafts, but a later bare yes is no longer a yes to them (handleResumeIngestConfirm).
+  function noteServedTurn(ctx, intent) {
+    try {
+      const m = threadMirrorOf(ctx);
+      if (m && m.resumeIngest && typeof m.resumeIngest === "object" && intent !== "career_resume_ingest") m.resumeIngest.stale = true;
+    } catch { /* a mark never breaks a turn */ }
+  }
+  return { handleChat, noteServedTurn, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf, detypo };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;

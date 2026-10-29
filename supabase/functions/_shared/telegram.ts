@@ -23,6 +23,11 @@ import { nativeRender, telegramPlain } from "./channel_voice.ts";
 
 export const TELEGRAM_API = "https://api.telegram.org";
 export const TELEGRAM_CHARS = 4096;
+export const TELEGRAM_CAPTION = 1024; // a photo's caption
+// deno-lint-ignore no-explicit-any
+const inlineKeyboard = (rows: { text: string; data?: string; loginUrl?: string; url?: string; webApp?: string }[][]): any => ({ inline_keyboard: rows.map((row) => row.map((b) => b.webApp ? { text: b.text.slice(0, 64), web_app: { url: b.webApp } } : b.url ? { text: b.text.slice(0, 64), url: b.url } : b.loginUrl
+  ? { text: b.text.slice(0, 64), login_url: { url: b.loginUrl, request_write_access: true } }
+  : { text: b.text.slice(0, 64), callback_data: String(b.data ?? "").slice(0, 64) })) });
 export const TELEGRAM_FILE_MAX = 20 * 1024 * 1024; // what a bot may download (getFile)
 const PACK = 1500; // the texting rule: one message carries at most 1,500 characters, longer text is split on purpose
 const SECRET_RE = /^[A-Za-z0-9_-]{32,256}$/;
@@ -77,6 +82,15 @@ export function parseTelegramUpdate(u: any): { message: InboundMessage | null; i
     return { message: { ...base, kind: "text", text: typeof m.caption === "string" ? m.caption.slice(0, 1000) : "",
       document: { fileId: d.file_id.slice(0, 300), uniqueId: d.file_unique_id.slice(0, 120), name: String(d.file_name ?? "resume").slice(0, 200) || "resume",
         mime: String(d.mime_type ?? "").slice(0, 120), size: Number.isSafeInteger(d.file_size) ? d.file_size : null } } };
+  }
+  // PHONE LOGIN (owner, 2026-10-28): the "Share my phone number" button (request_contact) comes back as message.contact
+  // {phone_number, user_id} (https://core.telegram.org/bots/api#contact, ASSUMED field names). It is the sender's own number
+  // only when contact.user_id is the sender's id; anyone can forward another person's contact card, and that proves nothing.
+  const sc = m.contact;
+  if (sc && typeof sc === "object") {
+    const digits = String(sc.phone_number ?? "").replace(/[^0-9]/g, "");
+    const own = Number.isSafeInteger(sc.user_id) && sc.user_id === m.from?.id && digits.length >= 8 && digits.length <= 15;
+    return { message: { ...base, kind: "text", text: "", sharedPhone: own ? "own" : "other", ...(own ? { phone: `+${digits}` } : {}) } };
   }
   // FEATURE 16: a photo or a file Trainee can't read, and a voice, audio or video message, each get a plain answer (never
   // silence); a sticker is still left alone.
@@ -178,10 +192,42 @@ export function telegramAdapter(o: {
         return { ok: false, error: `Telegram sendDocument HTTP ${res.status}: ${redact(String(body?.description ?? "")).slice(0, 120)}`, retryable: false };
       } catch (e) { return { ok: false, error: redact(`Telegram unreachable: ${e instanceof Error ? e.message : String(e)}`).slice(0, 200), retryable: false }; }
     },
+    // REPLY SHAPE: a link alone in its message, preview on for exactly that URL (link_preview_options {is_disabled:false, url};
+    // https://core.telegram.org/bots/api#linkpreviewoptions, ASSUMED field names), so Telegram shows the title and image card.
+    async sendLink(address, url): Promise<SendResult> {
+      await pace(address);
+      const r = await call("sendMessage", { chat_id: Number(address), text: url.slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false, url, prefer_large_media: true } });
+      if ("error" in r) return { ok: false, error: redact(`Telegram unreachable: ${r.error instanceof Error ? r.error.message : String(r.error)}`).slice(0, 200), retryable: false };
+      if (r.status === 200 && r.body?.ok === true) return { ok: true, id: r.body?.result?.message_id != null ? String(r.body.result.message_id) : null };
+      return { ok: false, error: `Telegram sendLink HTTP ${r.status}: ${redact(String(r.body?.description ?? "")).slice(0, 120)}`, retryable: false };
+    },
     // FEATURE 16: every tap is answered once, so the person's button stops spinning (answerCallbackQuery; ASSUMED).
     async answerCallback(callbackId, text): Promise<boolean> {
       const r = await call("answerCallbackQuery", { callback_query_id: callbackId, text: String(text ?? "").slice(0, 200) });
       return !("error" in r) && r.status === 200 && r.body?.ok === true;
+    },
+    // JOB CARDS (owner, 2026-10-28): the company logo with the posting as its caption (sendPhoto; photo by public URL, caption
+    // at most 1,024 characters, plain text; https://core.telegram.org/bots/api#sendphoto, ASSUMED). A refusal (Telegram could
+    // not fetch the logo) is a plain failure, and the caller sends the same card as text.
+    async sendPhoto(address, p): Promise<SendResult> {
+      await pace(address);
+      const r = await call("sendPhoto", { chat_id: Number(address), photo: p.photoUrl, caption: p.caption.slice(0, TELEGRAM_CAPTION),
+        ...(p.buttons?.length ? { reply_markup: inlineKeyboard(p.buttons) } : {}) });
+      if ("error" in r) return { ok: false, error: redact(`Telegram unreachable: ${r.error instanceof Error ? r.error.message : String(r.error)}`).slice(0, 200), retryable: false };
+      if (r.status === 200 && r.body?.ok === true) return { ok: true, id: r.body?.result?.message_id != null ? String(r.body.result.message_id) : null };
+      return { ok: false, error: `Telegram sendPhoto HTTP ${r.status}: ${redact(String(r.body?.description ?? "")).slice(0, 120)}`, retryable: false };
+    },
+    // JOB CARDS: Details on a text card expands it in place (editMessageText, ASSUMED); a photo card's caption is edited with
+    // editMessageCaption. "message is not modified" (the same words twice) is not a failure.
+    async editMessage(address, messageId, e): Promise<SendResult> {
+      const photo = !!e.caption;
+      const r = await call(photo ? "editMessageCaption" : "editMessageText", { chat_id: Number(address), message_id: Number(messageId),
+        ...(photo ? { caption: e.text.slice(0, TELEGRAM_CAPTION) } : { text: e.text.slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: true } }),
+        ...(e.buttons ? { reply_markup: inlineKeyboard(e.buttons) } : {}) });
+      if ("error" in r) return { ok: false, error: redact(`Telegram unreachable: ${r.error instanceof Error ? r.error.message : String(r.error)}`).slice(0, 200), retryable: false };
+      if (r.status === 200 && r.body?.ok === true) return { ok: true, id: String(messageId) };
+      if (r.status === 400 && /not modified/i.test(String(r.body?.description ?? ""))) return { ok: true, id: String(messageId) };
+      return { ok: false, error: `Telegram edit HTTP ${r.status}: ${redact(String(r.body?.description ?? "")).slice(0, 120)}`, retryable: false };
     },
     async send(address, bubbles, opts): Promise<SendResult> {
       if (!bubbles.length) return { ok: false, error: "nothing to send: the message has no text", retryable: false };
@@ -190,8 +236,14 @@ export function telegramAdapter(o: {
         await pace(address);
         const after = i ? ` after ${i} of ${bubbles.length} messages went out` : "";
         // FEATURE 16: buttons (the card's Approve and Decline) ride the last part, under the whole card.
-        const keyboard = i === bubbles.length - 1 && opts?.buttons?.length
-          ? { reply_markup: { inline_keyboard: opts.buttons.map((row) => row.map((b) => b.loginUrl
+        const last = i === bubbles.length - 1;
+        // PHONE LOGIN: a reply keyboard with one request_contact button (the person taps once; Telegram sends their own
+        // verified number), or the removal of that keyboard once the number arrived.
+        const keyboard = last && opts?.shareContact
+          ? { reply_markup: { keyboard: [[{ text: opts.shareContact.slice(0, 64), request_contact: true }]], resize_keyboard: true, one_time_keyboard: true } }
+          : last && opts?.removeKeyboard ? { reply_markup: { remove_keyboard: true } }
+          : last && opts?.buttons?.length
+          ? { reply_markup: { inline_keyboard: opts.buttons.map((row) => row.map((b) => b.webApp ? { text: b.text.slice(0, 64), web_app: { url: b.webApp } } : b.url ? { text: b.text.slice(0, 64), url: b.url } : b.loginUrl
             ? { text: b.text.slice(0, 64), login_url: { url: b.loginUrl, request_write_access: true } }
             : { text: b.text.slice(0, 64), callback_data: String(b.data ?? "").slice(0, 64) })) } } : {};
         let r = await call("sendMessage", { chat_id: Number(address), text: bubbles[i].slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...(o.native ? { parse_mode: "HTML" } : {}), ...keyboard });

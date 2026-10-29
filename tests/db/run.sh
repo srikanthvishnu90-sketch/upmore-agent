@@ -206,7 +206,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026060106_career_ingest_runs.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" || "$t" == "$HERE/career_apply_wanted_candidates.test.sql" || "$t" == "$HERE/career_apply_no_volume_ceiling.test.sql" || "$t" == "$HERE/career_apply_pace_parse.test.sql" || "$t" == "$HERE/career_apply_pace_state.test.sql" || "$t" == "$HERE/career_apply_card_yes_window.test.sql" || "$t" == "$HERE/career_outbox_card_id.test.sql" || "$t" == "$HERE/career_apply_receipt_store.test.sql" || "$t" == "$HERE/career_mail_drafts_sent.test.sql" || "$t" == "$HERE/career_account_memory.test.sql" || "$t" == "$HERE/career_apply_want_guard.test.sql" || "$t" == "$HERE/career_alert_min_fit.test.sql" || "$t" == "$HERE/career_apply_cloud_runner.test.sql" || "$t" == "$HERE/career_erase_complete.test.sql" || "$t" == "$HERE/career_turn_gate.test.sql" || "$t" == "$HERE/career_kb_postings_recency_index.test.sql" || "$t" == "$HERE/career_resume_required.test.sql" || "$t" == "$HERE/channel_telegram_login.test.sql" || "$t" == "$HERE/career_outreach_followup_claim.test.sql" || "$t" == "$HERE/career_send_queue.test.sql" || "$t" == "$HERE/turn_cost_always_recorded.test.sql" || "$t" == "$HERE/global_daily_model_budget.test.sql" || "$t" == "$HERE/definer_lockdown.test.sql" || "$t" == "$HERE/career_outreach_replies.test.sql" || "$t" == "$HERE/google_disconnect_erase.test.sql" || "$t" == "$HERE/career_account_contacts.test.sql" || "$t" == "$HERE/career_people_scale.test.sql" || "$t" == "$HERE/career_apply_mass_submit.test.sql" || "$t" == "$HERE/career_apply_host_backoff.test.sql" || "$t" == "$HERE/career_apply_host_gate.test.sql" || "$t" == "$HERE/career_apply_vm_approval.test.sql" || "$t" == "$HERE/career_cloud_hosted_apply.test.sql" || "$t" == "$HERE/career_outlook_connector.test.sql" || "$t" == "$HERE/billing_cancel_at_period_end.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" || "$t" == "$HERE/career_apply_wanted_candidates.test.sql" || "$t" == "$HERE/career_apply_no_volume_ceiling.test.sql" || "$t" == "$HERE/career_apply_pace_parse.test.sql" || "$t" == "$HERE/career_apply_pace_state.test.sql" || "$t" == "$HERE/career_apply_card_yes_window.test.sql" || "$t" == "$HERE/career_outbox_card_id.test.sql" || "$t" == "$HERE/career_apply_receipt_store.test.sql" || "$t" == "$HERE/career_mail_drafts_sent.test.sql" || "$t" == "$HERE/career_account_memory.test.sql" || "$t" == "$HERE/career_apply_want_guard.test.sql" || "$t" == "$HERE/career_alert_min_fit.test.sql" || "$t" == "$HERE/career_apply_cloud_runner.test.sql" || "$t" == "$HERE/career_erase_complete.test.sql" || "$t" == "$HERE/career_turn_gate.test.sql" || "$t" == "$HERE/career_kb_postings_recency_index.test.sql" || "$t" == "$HERE/career_resume_required.test.sql" || "$t" == "$HERE/channel_telegram_login.test.sql" || "$t" == "$HERE/career_outreach_followup_claim.test.sql" || "$t" == "$HERE/career_send_queue.test.sql" || "$t" == "$HERE/turn_cost_always_recorded.test.sql" || "$t" == "$HERE/global_daily_model_budget.test.sql" || "$t" == "$HERE/definer_lockdown.test.sql" || "$t" == "$HERE/career_outreach_replies.test.sql" || "$t" == "$HERE/google_disconnect_erase.test.sql" || "$t" == "$HERE/career_account_contacts.test.sql" || "$t" == "$HERE/career_people_scale.test.sql" || "$t" == "$HERE/career_apply_mass_submit.test.sql" || "$t" == "$HERE/career_apply_host_backoff.test.sql" || "$t" == "$HERE/career_apply_host_gate.test.sql" || "$t" == "$HERE/career_apply_vm_approval.test.sql" || "$t" == "$HERE/career_cloud_hosted_apply.test.sql" || "$t" == "$HERE/career_outlook_connector.test.sql" || "$t" == "$HERE/billing_cancel_at_period_end.test.sql" || "$t" == "$HERE/career_outreach_reply_rules.test.sql" || "$t" == "$HERE/career_apply_refusal_requeue.test.sql" || "$t" == "$HERE/career_apply_unstarted_requeue.test.sql" || "$t" == "$HERE/trainee_file_sessions.test.sql" || "$t" == "$HERE/career_connector_disconnect_rules.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -231,6 +231,13 @@ if [[ -f "$BRIDGE_PATH" ]]; then
     [[ "$(basename "$file")" == 20261026210016_* ]] && continue
     # 20261026210017 replaces 20261026210016's career_resume_on_file (one confirmed resume, #211), so it follows it.
     [[ "$(basename "$file")" == 20261026210017_* ]] && continue
+    # 20261029170000 replaces 20261026210017's career_resume_on_file (a quarantined entry is no resume), so it follows it.
+    [[ "$(basename "$file")" == 20261029170000_* ]] && continue
+    # 20261029180000 redefines career_apply_jobs_fixed (20261025100000) and gates every claim the mass-submission files
+    # rewrite, so it follows them and the resume rule, last.
+    [[ "$(basename "$file")" == 20261029180000_* ]] && continue
+    # 20261029190000 builds on 20261029180000 (not_before, the requeue's setting), so it follows it.
+    [[ "$(basename "$file")" == 20261029190000_* ]] && continue
     # The mass-submission files (2026-10-27, career_apply_host_backoff and career_apply_mass_submit) likewise: the
     # historical phases below re-create the claims and checks they rewrite and assert the old behaviour, so they are
     # applied last. (Matched by prefix, for tests/flow/provision-pg.sh as above.)
@@ -570,6 +577,49 @@ echo "== career_apply_vm_approval.test.sql (the VM claim refuses NOT_APPROVED: n
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210017_career_resume_on_file_one_record.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210017_career_resume_on_file_one_record.sql"
 "${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('20261026210017_career_resume_on_file_one_record.sql','$(sha256sum "$ROOT/supabase/migrations/20261026210017_career_resume_on_file_one_record.sql" | cut -d' ' -f1)') on conflict do nothing"
+# APPLY SCENARIOS (20261029170000): a quarantined entry (the owner's bank, the answer-all delegation; D-007) is not a
+# resume on file; applied twice (idempotent), right after 20261026210017, whose function it replaces.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029170000_career_resume_on_file_quarantine.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029170000_career_resume_on_file_quarantine.sql"
+"${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('20261029170000_career_resume_on_file_quarantine.sql','$(sha256sum "$ROOT/supabase/migrations/20261029170000_career_resume_on_file_quarantine.sql" | cut -d' ' -f1)') on conflict do nothing"
+echo "== career_resume_on_file: a quarantined entry is no resume on file (D-007)"
+"${PSQL[@]}" -t -A -o /dev/null -c "begin;
+  insert into auth.users(id, email) values ('00000000-0000-4000-8000-0000000c9a01', 'quarantine-resume@example.test'), ('00000000-0000-4000-8000-0000000c9a02', 'own-resume@example.test');
+  insert into public.profiles(id) values ('00000000-0000-4000-8000-0000000c9a01'), ('00000000-0000-4000-8000-0000000c9a02');
+  insert into public.career_watch_kv(user_id, key, value) values
+   ('00000000-0000-4000-8000-0000000c9a01', 'career:account', '{\"memory\":{\"profile\":{\"facts\":[{\"kind\":\"experience\",\"status\":\"confirmed\",\"needs_confirmation\":false,\"confirmation_event_id\":\"q-ev-1\",\"factId\":\"F-033\",\"text\":\"TEST bank entry\"},{\"kind\":\"education\",\"status\":\"confirmed\",\"needs_confirmation\":false,\"confirmation_event_id\":\"q-ev-2\",\"provenance\":\"owner-delegated answer-all\",\"text\":\"TEST delegated entry\"}]}}}'),
+   ('00000000-0000-4000-8000-0000000c9a02', 'career:account', '{\"memory\":{\"profile\":{\"facts\":[{\"kind\":\"experience\",\"status\":\"confirmed\",\"needs_confirmation\":false,\"confirmation_event_id\":\"q-ev-3\",\"factId\":\"F-003\",\"text\":\"TEST own entry\"}]}}}');
+  insert into public.career_events(user_id, kind, subject, detail) values
+   ('00000000-0000-4000-8000-0000000c9a01', 'fact_confirmed', 'TEST', '{\"confirmation_event_id\":\"q-ev-1\"}'),
+   ('00000000-0000-4000-8000-0000000c9a01', 'fact_confirmed', 'TEST', '{\"confirmation_event_id\":\"q-ev-2\"}'),
+   ('00000000-0000-4000-8000-0000000c9a02', 'fact_confirmed', 'TEST', '{\"confirmation_event_id\":\"q-ev-3\"}');
+  do \$\$ begin
+    if public.career_resume_on_file('00000000-0000-4000-8000-0000000c9a01') then raise exception 'FAIL a quarantined entry read as a resume on file'; end if;
+    if not public.career_resume_on_file('00000000-0000-4000-8000-0000000c9a02') then raise exception 'FAIL the person''s own confirmed entry is a resume on file'; end if;
+    raise notice 'ok   a quarantined entry is no resume on file; the person''s own confirmed entry is';
+  end \$\$;
+  rollback;" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# BACK OFF, THEN RESUME (20261029180000): a host's refusal before anything was sent puts the same job back, not handed out
+# before its not-before time, its approval kept; applied twice (idempotent), after 20261029170000 and every file whose
+# claims and guard (career_apply_jobs_fixed) it builds on.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029180000_career_apply_refusal_requeue.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029180000_career_apply_refusal_requeue.sql"
+"${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('20261029180000_career_apply_refusal_requeue.sql','$(sha256sum "$ROOT/supabase/migrations/20261029180000_career_apply_refusal_requeue.sql" | cut -d' ' -f1)') on conflict do nothing"
+echo "== career_apply_refusal_requeue.test.sql (refused before submit: the same job queued again, not claimed before the host's hold ends, then once; every refusal backs off again, no cap; unknown, finished, checks, the extension never put back)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_refusal_requeue.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# CLAIMED, NEVER STARTED (20261029190000): a claim the worker lets go before its engine started goes back to the queue,
+# the same job with its approval, and runs later once; applied twice (idempotent), after 20261029180000.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029190000_career_apply_unstarted_requeue.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029190000_career_apply_unstarted_requeue.sql"
+"${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('20261029190000_career_apply_unstarted_requeue.sql','$(sha256sum "$ROOT/supabase/migrations/20261029190000_career_apply_unstarted_requeue.sql" | cut -d' ' -f1)') on conflict do nothing"
+echo "== career_apply_unstarted_requeue.test.sql (claimed, never started: the same job queued again with its approval, run later once; a started, finished, proven, lapsed or extension drive never put back; a card-bound cloud job too)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_unstarted_requeue.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# TRAINEE FILE SIGN-IN (20261029230000): sessions held as a hash, revocable one or all; a link's sign-in begun once, its
+# texts and code tries counted atomically under their caps, used up once; applied twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029230000_trainee_file_sessions.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029230000_trainee_file_sessions.sql"
+echo "== trainee_file_sessions.test.sql (a link's sign-in once; texts and tries capped atomically; sign out one or everywhere; deleted account takes its sessions; anon and signed-in people read nothing)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/trainee_file_sessions.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_resume_required.test.sql (no resume hash: not queued, not claimed, not prepared, not carded; the resume on file needs its events; uploads erased)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_resume_required.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # FEATURE 16 (20261026220016): Telegram's login links a chat once, to one account; applied twice (idempotent).
@@ -605,12 +655,40 @@ echo "== career_outreach_replies.test.sql (a stop is final; one follow-up after 
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outreach_replies.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_outreach_replies_load.py (10,000 people, 50,000 approved actions, 20 concurrent workers: exactly once, fair)"
 python3 "$HERE/career_outreach_replies_load.py" "${PSQL[@]}"
+# REPLY SCENARIOS (20261029100000): career_outreach_reply_apply and career_outreach_rail_takeback again (an opt-out or a
+# bounce cancels every queued email to the address; an out-of-office with a return date delays a queued follow-up; a
+# follow-up the rail cancelled before it went is not counted as sent). After 20261027240000 re-created them just above;
+# twice (idempotent), then its test.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029100000_career_outreach_reply_rules.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029100000_career_outreach_reply_rules.sql"
+echo "== career_outreach_reply_rules.test.sql (an opt-out or a bounce cancels anyone's queued email to the address; an out-of-office delays a queued follow-up past its return date; a follow-up never sent is never counted)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outreach_reply_rules.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # D-MN-3 (20261027210000): the people provider's dedupe at 1M people rows and its lookup queue under 20 concurrent
 # workers (exactly once, fair across people), measured. The ledger above applied it; applied twice more: idempotent.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027210000_career_people_provider.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027210000_career_people_provider.sql"
 echo "== career_people_provider_scale.py (1M people rows: indexed dedupe; 55,000 lookups, 20 workers: exactly once, fair)"
 python3 "$HERE/career_people_provider_scale.py" "${PSQL[@]}"
+# NETWORKING SCENARIOS (20261029160000): the address guards over the provider above (a role inbox is never format
+# evidence; webmail domains learn no format; a bounced format infers nobody new). After 20261027210000's re-application
+# just above, which would otherwise overwrite them; twice (idempotent), then the scale run's functions again.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029160000_career_email_format_guards.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029160000_career_email_format_guards.sql"
+echo "== career_email_format_guards (a role inbox teaches no format; webmail learns none; a bounced format is suspended)"
+"${PSQL[@]}" -t -A -o /dev/null -c "do \$\$ begin
+  if not public.career_email_is_role('careers@stripe.com') then raise exception 'FAIL careers@ is a role inbox'; end if;
+  if public.career_email_is_role('jane.doe@stripe.com') then raise exception 'FAIL a person is not a role inbox'; end if;
+  if not public.career_email_is_webmail('gmail.com') then raise exception 'FAIL gmail.com is webmail'; end if;
+  raise notice 'ok   role inboxes and webmail are recognized by the format guards';
+end \$\$;" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# CONNECTOR SCENARIOS (20261029200000): a disconnect cancels every email of the mailbox (one a worker holds included), the
+# worker's last check, the other mailbox, the replies lane, what waits counted, opt-outs outlive the account. After the
+# re-applications of 20261027200000 and 20261028110000 above, which would otherwise overwrite its functions; twice
+# (idempotent), then its test.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029200000_career_connector_disconnect_rules.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261029200000_career_connector_disconnect_rules.sql"
+echo "== career_connector_disconnect_rules.test.sql (every email of a disconnected mailbox cancelled, held ones too; nothing re-queued after a reconnect; opt-outs outlive the account)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_connector_disconnect_rules.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left
 # (the card-cloud bridge included). The test applies it (twice) over production's shape, then checks the whole schema:
 # no SECURITY DEFINER function anon can run, none without a fixed search_path.

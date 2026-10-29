@@ -37,7 +37,7 @@ export const PAYLOAD_INTENTS: ReadonlySet<string> = new Set([
   // router intents that show a draft or a mock question verbatim
   "outreach_draft", "negotiation_draft", "career_tailor", "prep_mock_start", "prep_mock_next", "prep_mock_followup",
 ]);
-const PAYLOAD_META = ["card_id", "email_card", "offer_card", "open_card", "career_approval_card_id", "employer_question"];
+const PAYLOAD_META = ["card_id", "email_card", "offer_card", "open_card", "career_approval_card_id", "employer_question", "screen_ask"];
 
 export function writable(out: { intent?: string | null; reply?: string; parts?: unknown }, meta: Record<string, unknown> | null, o: { structured: boolean }): boolean {
   if (o.structured) return false;
@@ -293,7 +293,7 @@ const FORMAT: Record<WriterChannel, string> = {
   sms: "Channel: SMS. Plain text only, no markdown at all.",
   imessage: "Channel: iMessage. Plain text only, no markdown at all.",
   whatsapp: "Channel: WhatsApp. Plain text; *bold* at most once if it truly helps.",
-  telegram: "Channel: Telegram. Plain text; **bold** at most once if it truly helps.",
+  telegram: "Channel: Telegram. Plain text; **bold** at most once if it truly helps. Shape: one short paragraph that answers first; keep what REPLY says is published or confirmed apart from what it says is unknown or not verified, and say plainly when something could not be verified; never turn a gap into a guess. Leave each link on its own line (the channel sends links as separate preview messages) and add none.",
   web: "Channel: the web chat. Plain text; **bold** at most once if it truly helps.",
 };
 export function writerPayload(f: TurnFacts, message: string, channel: WriterChannel): Record<string, unknown> {

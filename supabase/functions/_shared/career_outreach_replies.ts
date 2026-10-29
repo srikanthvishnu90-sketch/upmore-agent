@@ -23,7 +23,7 @@
 // by backing off that mailbox and resuming.
 import { type ModelFn, outreachLock, payloadHash, confirmed, factText, parseBatchYes, parseNumbers, OPT_OUT_LINE, sha256 } from "./career_outreach.ts";
 import { ONE_ADDRESS } from "./career_outreach_gmail.ts";
-import { queueApproved, type Rpc } from "./career_send_rail.ts";
+import { autoReply, decodeEntities, deliveryNotice, newText, optedOut, queueApproved, type Rpc } from "./career_send_rail.ts";
 import { type Busy, type CalendarProvider, fmtIn, googleCalendar, isFree, type OutlookCalendarPort, outlookCalendar, proposeSlots, type Slot, validZone } from "./career_calendar.ts";
 
 // ------------------------------------------------------------------------------------------------ shapes
@@ -122,15 +122,13 @@ const clip = (s: unknown, n: number) => String(s ?? "").replace(/\s+/g, " ").tri
 export const addressOf = (from: string) => (/<([^>]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
 
 // ------------------------------------------------------------------------------------------------ the rule pre-pass
-const BOUNCE_FROM = /\b(mailer-daemon|postmaster|mail delivery (?:subsystem|system)|microsoftexchange[0-9a-f]*)\b/i;
-const BOUNCE_SUBJECT = /(delivery status notification|undeliverable|undelivered mail|delivery has failed|mail delivery failed|returned mail|failure notice|address not found|delivery failure)/i;
-const OOO_SUBJECT = /^\s*(?:re:\s*)?(?:automatic reply|auto(?:matic)?[- ]?reply|autoreply|out of (?:the )?office|ooo\b|away from (?:the )?office|on vacation|on leave)/i;
-const OOO_TEXT = /\b(?:i am|i'm|i will be) (?:currently )?(?:out of (?:the )?office|away|on (?:vacation|leave|holiday|pto|parental leave))\b|\bout of (?:the )?office (?:until|through|till)\b/i;
-const STOP_TEXT = /^\s*(?:stop|unsubscribe|remove me|opt out|please stop)\b|\b(?:unsubscribe|stop (?:emailing|contacting|writing to|messaging) me|remove me from|take me off|do not (?:contact|email) me|don'?t (?:contact|email|write to) me|opt me out|not interested|no longer interested|please don'?t reach out|no thanks?,? (?:i'?m|we'?re) (?:all )?set)\b/i;
+// The words are the sending rail's (career_send_rail.ts deliveryNotice, autoReply, newText, optedOut): one reading of a
+// thread for both lanes.
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 // The date an out-of-office says they are back, as the start of that day in `tz`; null when none is said plainly.
 export function returnDate(text: string, now: number, tz: string): string | null {
-  const t = String(text ?? "").toLowerCase();
+  // "10 November", "5th of Nov": the month first, as the patterns below read it.
+  const t = String(text ?? "").toLowerCase().replace(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?/g, "$2 $1");
   const near = /(?:back|return(?:ing)?|in the office|available)\b[^.]{0,40}?\b(?:on |by |after )?(?:(?:mon|tues|wednes|thurs|fri|satur|sun)day,? )?(?:(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? (\d{1,2})|(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?|(\d{4})-(\d{2})-(\d{2}))/.exec(t)
     ?? /(?:until|through|till)\b[^.]{0,20}?(?:(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? (\d{1,2})|(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?|(\d{4})-(\d{2})-(\d{2}))/.exec(t);
   if (!near) return null;
@@ -145,13 +143,18 @@ export function returnDate(text: string, now: number, tz: string): string | null
   if (at > now + 366 * DAY) return null;
   return new Date(Date.UTC(new Date(at).getUTCFullYear(), new Date(at).getUTCMonth(), new Date(at).getUTCDate())).toISOString();
 }
-export type Rule = { cls: "bounce" | "out_of_office" | "not_interested"; return_at?: string | null; by: "headers" | "words" } | null;
+// "notice": a delivery delay warning or a read receipt. Neither is an answer: nothing is recorded and nothing changes (a
+// delay is not a bounce: the mail system is still trying).
+export type Rule = { cls: "bounce" | "out_of_office" | "not_interested" | "notice"; return_at?: string | null; by: "headers" | "words" } | null;
 export function rulePass(m: MailMsg, recipient: string, now: number, tz: string): Rule {
+  const notice = deliveryNotice({ from: m.from, subject: m.subject, text: m.text, headers: m.headers });
+  if (notice === "bounce") return { cls: "bounce", by: "headers" };
+  if (notice) return { cls: "notice", by: "headers" };
   const h = Object.fromEntries(Object.entries(m.headers ?? {}).map(([k, v]) => [k.toLowerCase(), String(v ?? "")]));
-  if (BOUNCE_FROM.test(m.from) || BOUNCE_SUBJECT.test(m.subject) || /report-type=delivery-status/i.test(h["content-type"] ?? "") || /^\s*5\.\d\.\d/.test(h["x-failed-recipients"] ? "5.0.0" : "")) return { cls: "bounce", by: "headers" };
   const auto = /auto-replied|auto-generated/i.test(h["auto-submitted"] ?? "") || "x-autoreply" in h || "x-autorespond" in h || /auto_reply/i.test(h["precedence"] ?? "") || /^(?:oof|autoreply)$/i.test(h["x-auto-response-suppress"] ?? "");
-  if (auto || OOO_SUBJECT.test(m.subject) || OOO_TEXT.test(m.text.slice(0, 600))) return { cls: "out_of_office", return_at: returnDate(`${m.subject}\n${m.text}`, now, tz), by: auto ? "headers" : "words" };
-  if (addressOf(m.from) === recipient.toLowerCase() && STOP_TEXT.test(m.text.slice(0, 400).split(/\n\s*(?:on .{0,80} wrote:|-{2,}|>)/i)[0])) return { cls: "not_interested", by: "words" };
+  if (autoReply(m)) return { cls: "out_of_office", return_at: returnDate(`${m.subject}\n${newText(m.text)}`, now, tz), by: auto ? "headers" : "words" };
+  // Only the reply's own new words, never the quoted history below it.
+  if (addressOf(m.from) === recipient.toLowerCase() && optedOut(newText(m.text).slice(0, 600))) return { cls: "not_interested", by: "words" };
   return null;
 }
 
@@ -202,6 +205,7 @@ export function checkReading(input: any, now: number, tz: string): Reading | nul
 }
 export async function understand(o: { msg: MailMsg; thread: ThreadRow; model: ModelFn | null; now: number; tz: string }): Promise<Reading> {
   const rule = rulePass(o.msg, o.thread.recipient_email, o.now, o.tz);
+  if (rule?.cls === "notice") return { cls: "other", summary: "A mail system's notice (a delivery delay or a read receipt), not an answer.", asks: [], commitments: [], times: [], contact_tz: null, return_at: null, referral: null, by: "rules" };
   if (rule) {
     const summary = rule.cls === "bounce" ? "The email bounced: the address did not accept it." : rule.cls === "out_of_office"
       ? `Automatic out-of-office reply${rule.return_at ? `; back ${fmtIn(Date.parse(rule.return_at), o.tz).replace(/,? \d.*$/, "")}` : ""}.` : "They asked not to be contacted.";
@@ -269,6 +273,8 @@ export async function conversationFor(store: RepliesStore, userId: string, threa
 // One message on a watched thread, understood and recorded once.
 export async function recordMessage(o: { store: RepliesStore; userId: string; thread: ThreadRow; msg: MailMsg; model: ModelFn | null; now: number; tz: string }): Promise<string> {
   const t = o.thread;
+  // A delivery delay warning or a read receipt is not a turn of the conversation: nothing is recorded, nothing changes.
+  if (!o.msg.fromMe && rulePass(o.msg, t.recipient_email, o.now, o.tz)?.cls === "notice") return "ignored";
   if (o.msg.fromMe) {
     const conv = mergeTurn(t, { who: "person", asks: [], commitments: [], at: o.msg.at });
     const after = { ...t, ...conv };
@@ -350,7 +356,7 @@ export async function runReplySync(o: SyncRun) {
         stats.messages++;
         const t = (await o.store.thread(row.user_id, base.id)) ?? base; // the state after the turns before this one
         const res = await recordMessage({ store: o.store, userId: row.user_id, thread: t, msg: m, model: o.model, now: o.now, tz });
-        if (res !== "seen") { stats.recorded++; stats.classes[res] = (stats.classes[res] ?? 0) + 1; }
+        if (res !== "seen" && res !== "ignored") { stats.recorded++; stats.classes[res] = (stats.classes[res] ?? 0) + 1; }
       }
       await o.store.releaseSync(row.user_id, row.provider, o.worker, got.cursor, got.more ? o.now : o.now + 300_000, null);
     } catch (e) {
@@ -366,11 +372,21 @@ export async function runReplySync(o: SyncRun) {
 const GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me";
 export const GMAIL_READ_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 const b64dec = (s: string) => { try { const bin = atob(String(s).replace(/-/g, "+").replace(/_/g, "/")); return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))); } catch { return ""; } };
+// HTML as text: line breaks where the markup breaks lines, the quoted history (Gmail's gmail_quote, a blockquote,
+// Outlook's reply header and rule) marked with "> " so newText cuts it there, entities decoded.
+export function htmlText(html: string): string {
+  return decodeEntities(String(html ?? "")
+    .replace(/<(style|script|head|title)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<(?:blockquote|div[^>]*\b(?:class="[^"]*gmail_quote|id="(?:divRplyFwdMsg|appendonsend)")|hr)\b[^>]*>/gi, "\n> ")
+    .replace(/<br\s*\/?>|<\/(?:p|div|li|tr|h\d)>/gi, "\n")
+    .replace(/<[^>]+>/g, ""))
+    .replace(/[ \t\u00a0]+/g, " ").replace(/\n /g, "\n");
+}
 function plainOf(p: any, depth = 0): string {
   if (!p || depth > 6) return "";
   if (p.mimeType === "text/plain" && p.body?.data) return b64dec(p.body.data);
   for (const c of p.parts ?? []) { const x = plainOf(c, depth + 1); if (x) return x; }
-  if (p.mimeType === "text/html" && p.body?.data) return b64dec(p.body.data).replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ");
+  if (p.mimeType === "text/html" && p.body?.data) return htmlText(b64dec(p.body.data));
   return "";
 }
 export function gmailMsg(j: any): MailMsg {

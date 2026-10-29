@@ -191,10 +191,10 @@ export function disconnectWords(r: DisconnectResult): string {
 // ------------------------------------------------------------------------------------------------ the chat
 export const OUTLOOK_CONNECT_RE = /^\s*(?:please\s+|can you\s+|i want to\s+|i'?d like to\s+|let'?s\s+)?(?:connect|link|add|hook up|set up|use)\s+(?:my\s+|an?\s+)?(?:outlook|hotmail|live|msn|office\s*365|o365|microsoft\s*365|microsoft|exchange|work|school|university|college)(?:\s+(?:email|e-mail|mail|account|inbox|calendar|address))*(?:\s+(?:account|instead|too|as well|to send))?[\s.!?]*$/i;
 export const OUTLOOK_DISCONNECT_RE = /^\s*(?:please\s+)?(?:disconnect|unlink|revoke|remove)\s+(?:access\s+to\s+|trainee\s+from\s+)?(?:my\s+)?(?:outlook|hotmail|microsoft|office\s*365|work\s+email)(?:\s+(?:account|email|mail))?[\s.!]*$/i;
-export const OUTLOOK_STATUS_RE = /^\s*(?:is|are)\s+(?:my\s+)?(?:outlook|hotmail|microsoft|work\s+email)(?:\s+(?:account|email|mail))?\s+(?:still\s+)?connected\s*\??\s*$/i;
+export const OUTLOOK_STATUS_RE = /^\s*(?:is|are)\s+(?:my\s+)?(?:outlook|hotmail|microsoft|work\s+email)(?:\s+(?:account|email|mail))?\s+(?:still\s+)?connected\s*[?.!]*\s*$/i;
 export type OutlookAsk = "connect" | "disconnect" | "status";
 export function outlookAsk(message: string): OutlookAsk | null {
-  const t = String(message ?? "").trim();
+  const t = String(message ?? "").replace(/\s+/g, " ").trim();
   if (OUTLOOK_DISCONNECT_RE.test(t)) return "disconnect";
   if (OUTLOOK_STATUS_RE.test(t)) return "status";
   if (OUTLOOK_CONNECT_RE.test(t)) return "connect";

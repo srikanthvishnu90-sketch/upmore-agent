@@ -92,15 +92,24 @@ const CANCEL = [
   /^(?:please )?(?:cancel|withdraw) (?:my|the) (.+?) application(?: please)?$/i,
   /^(?:please )?(?:actually,? )?(?:don'?t|do not) (?:apply(?: me)?|send(?: it| my application)?|submit(?: it| my application)?) (?:to|for|at) (.+?)(?: after all)?(?: please)?$/i,
   /^(?:actually,? )?never ?mind(?: the| my)? (.+?) application$/i,
+  // ROUTING SCENARIOS (2026-10-29): "withdraw from X" and "remove X from my list / queue" are this ask. Before, the people
+  // search read "withdraw" as a job title at X, and the contacts turn deleted a contact named X ("remove X from my list").
+  /^(?:please )?withdraw(?: me| my application)? from (.+?)(?: please)?$/i,
+  /^(?:please )?(?:remove|take|drop) (.+?) (?:off|from) my (?:application |apply )?(?:list|queue)(?: please)?$/i,
 ];
+// A greeting or "ok so" before the ask is not part of it ("hey don't apply to X" is the cancel, never an apply).
+const LEAD = /^(?:(?:hey|hi|hello|ok|okay|so|pls|please|actually|oh|um|wait|can you|could you|would you)\b[,!:]?\s+)+/i;
+// A second ask joined to the employer ("withdraw from X and apply to Y") is not an employer's name: the router asks.
+const SECOND_ASK = /(?:\b(?:and|then|also|plus)|[,;])\s+(?:(?:please|pls|just|instead)\s+)?(?:apply|cancel|withdraw|connect|email|message|send|find|show|tell|check|stop|remove|reach|contact|who|what|where|how)\b/i;
 export function cancelAsk(message: string): string | null {
-  const t = String(message ?? "").replace(/[.!?]+\s*$/, "").replace(/\s+/g, " ").trim();
+  const t = String(message ?? "").replace(/\s+/g, " ").trim().replace(/^[^\p{L}\p{N}"'(]+/u, "").replace(/[^\p{L}\p{N}"')]+$/u, "")
+    .replace(/(?:,? (?:thanks|thank you|thx|ty|pls))+$/i, "").replace(/[.!?]+\s*$/, "").replace(LEAD, "");
   if (t.length > 160) return null;
   for (const re of CANCEL) {
     const m = re.exec(t);
     if (!m) continue;
     const co = m[1].replace(/^(?:the|my) /i, "").replace(/ (?:application|job|role|one)$/i, "").trim();
-    if (!co || /^(?:it|that|this|everything|all|applying|application|applications)$/i.test(co) || co.split(" ").length > 6) return null;
+    if (!co || /^(?:it|that|this|everything|all|applying|application|applications)$/i.test(co) || co.split(" ").length > 6 || SECOND_ASK.test(co)) return null;
     return co;
   }
   return null;

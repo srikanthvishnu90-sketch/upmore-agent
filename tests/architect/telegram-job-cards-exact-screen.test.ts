@@ -94,9 +94,15 @@ Deno.test("a fresh, open posting still queues through the screen", async () => {
   eq([r.status, log.wants], ["queued_unprepared", 1]);
 });
 
-Deno.test("with a confirmed-facts source wired in, a knock-out the person has not confirmed holds the Apply (asked, not guessed)", async () => {
-  const t = tg(), { deps, log } = setup({ postings: () => [posting({ location: "Austin, TX" })] });
-  const r = await tapJob({ userId: U, data: `jca:${await refOf(U, JOB)}`, messageId: "1", deps: { ...deps, facts: async () => [] }, send: t.send });
+Deno.test("round 6: with a confirmed-facts source wired in, an UNKNOWN fact proceeds (not held); a CONFIRMED conflict holds the Apply with the one relocation question", async () => {
+  // nothing confirmed: the Apply goes through
+  const t0 = tg(), s0 = setup({ postings: () => [posting({ location: "Austin, TX", description: "Analyze data. This is an in-office role." })] });
+  const r0 = await tapJob({ userId: U, data: `jca:${await refOf(U, JOB)}`, messageId: "1", deps: { ...s0.deps, facts: async () => [] }, send: t0.send });
+  eq([r0.status, s0.log.wants], ["queued_unprepared", 1]);
+  // a confirmed home in another city + an in-office posting + relocation unknown: held, asked, not guessed
+  const home = [{ id: "f1", kind: "location", text: "Lives in Chicago, IL", status: "confirmed", needs_confirmation: false, screen_key: "location" }];
+  const t = tg(), { deps, log } = setup({ postings: () => [posting({ location: "Austin, TX", description: "Analyze data. This is an in-office role." })] });
+  const r = await tapJob({ userId: U, data: `jca:${await refOf(U, JOB)}`, messageId: "1", deps: { ...deps, facts: async () => home }, send: t.send });
   eq([r.status, log.wants], ["screened", 0]);
-  assert(/confirm/i.test(all(t)), all(t));
+  assert(/relocat/i.test(all(t)), all(t));
 });

@@ -13,7 +13,7 @@ const posting = (n: number, company = `Test Co ${n}`, title = "Data Analyst") =>
 const world = (postings: any[], apps: any[] = []) => {
   const wants = memoryWantStore();
   const search = async (words: string[]) => postings.filter((p) => words.every((w) => `${p.company} ${p.title}`.toLowerCase().includes(w.toLowerCase())));
-  const turn = (message: string, facts: any[] = []) => applyTurn({ message, userId: "u1", now: NOW, postings: { search }, wants, apps: async () => apps, facts: [...facts, ...[{ key: "location", value: "Chicago, IL" }, { key: "relocation", value: "yes" }]] });
+  const turn = (message: string, facts: any[] = []) => applyTurn({ message, userId: "u1", now: NOW, postings: { search }, wants, apps: async () => apps, facts });
   return { wants, turn };
 };
 

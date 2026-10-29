@@ -24,7 +24,7 @@ const PRIOR = [
 ];
 const world = (o: { shortlist?: ShortlistEntry[]; apps?: any[]; facts?: any[]; limits?: () => Promise<any> } = {}) => {
   const wants = memoryWantStore();
-  const turn = (message: string) => applyTurn({ message, userId: "u1", now: NOW, postings: { search: async () => [] }, wants, apps: async () => o.apps ?? [], facts: [...(o.facts ?? []), ...[{ key: "location", value: "Chicago, IL" }, { key: "relocation", value: "yes" }]], shortlist: o.shortlist, limits: o.limits });
+  const turn = (message: string) => applyTurn({ message, userId: "u1", now: NOW, postings: { search: async () => [] }, wants, apps: async () => o.apps ?? [], facts: o.facts ?? [], shortlist: o.shortlist, limits: o.limits });
   return { wants, turn, keys: async () => (await wants.list("u1")).map((w) => w.posting_key).sort() };
 };
 

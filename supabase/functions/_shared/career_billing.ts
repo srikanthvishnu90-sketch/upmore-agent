@@ -6,6 +6,7 @@
 //   Stripe's idempotency key. A changed row is refused and asked again. No retention offers, no detours;
 // - receipts are Stripe's paid invoices with the links Stripe returned, never a constructed one.
 // Stripe is reached with fetch and form encoding (no SDK); the key is read by the handler and never printed.
+import { approvalWords } from "./approval_words.ts";
 
 export const BILLING_INTENT = "career_billing";
 export const BILLING_CANCEL_INTENT = "career_billing_cancel_ask";
@@ -48,7 +49,8 @@ const PRICE: RegExp[] = [
   new RegExp(`^how much (?:is|does|do i pay for|am i paying for) ${WHO}(?: cost)?${MONTH}$`),
   new RegExp(`^(?:how much does|what does) (?:trainee|my plan|my subscription|the plan|the subscription) cost${MONTH}$`),
   /^(?:what'?s|what is|show(?: me)?|check) (?:my (?:billing|subscription)|trainee'?s pricing|the pricing)$/,
-  /^(?:my plan|my subscription|billing|my billing|pricing)$/,
+  /^(?:my plan|my subscription|billing|my billing|pricing|my bill)$/,
+  /^(?:what'?s|what is|how much is|show(?: me)?|check) my (?:bill|monthly bill|trainee bill)$/,
   /^what plan am i on$/,
 ];
 const CANCEL: RegExp[] = [
@@ -73,13 +75,14 @@ export function billingAsk(message: string): { kind: "price" | "cancel" | "recei
   return null;
 }
 // The answer to a waiting cancel. Only an exact affirmative is a yes; a question is never one.
-const YES = /^(?:yes|yep|yeah|yup|y|yes please|yes,? cancel(?: it| my plan| my subscription)?|confirm|confirmed|do it|go ahead)$/;
+const YES = /^(?:yes|yep|yeah|yup|y|yes please|yes,? cancel(?: it| my plan| my subscription)?|confirm|confirmed|do it|go ahead|yes,? (?:do it|go ahead))$/;
 const NO = /^(?:no|nope|nah|n|no thanks|no thank you|don'?t|do not|keep it|keep my plan|never ?mind|cancel that|don'?t cancel(?: it)?)$/;
 const UNSURE = /^(?:maybe|later|wait|hold on|hang on|not now|not yet|not sure|i'?m not sure|idk|hmm+|none|ok|okay|k|sure|let me think|one sec|give me a (?:sec|minute))$/;
 export function cancelAnswer(message: string): "yes" | "no" | "unsure" | null {
   const raw = String(message ?? "").trim();
   if (raw.includes("?")) return "unsure";
-  const t = plain(raw).replace(/[,.!]+$/, "");
+  // A thumbs-up alone, or "yess"/"yse" alone, is "yes" (approval_words.ts).
+  const t = plain(approvalWords(raw)).replace(/[,.!]+$/, "");
   if (YES.test(t)) return "yes";
   if (NO.test(t)) return "no";
   if (UNSURE.test(t)) return "unsure";

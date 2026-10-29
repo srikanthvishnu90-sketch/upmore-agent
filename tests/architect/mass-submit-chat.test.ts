@@ -219,7 +219,7 @@ const LIST: ShortlistEntry[] = Array.from({ length: 60 }, (_, i) => ({
 }));
 const applyWorld = (o: { resume?: boolean | null } = {}) => {
   const wants = memoryWantStore();
-  const turn = (message: string) => applyTurn({ message, userId: "u1", now: T, postings: { search: async () => [] }, wants, apps: async () => [], facts: [{ key: "location", value: "Chicago, IL" }, { key: "relocation", value: "yes" }], shortlist: LIST,
+  const turn = (message: string) => applyTurn({ message, userId: "u1", now: T, postings: { search: async () => [] }, wants, apps: async () => [], facts: [], shortlist: LIST,
     resumeOnFile: async () => o.resume === undefined ? true : o.resume });
   return { wants, turn, keys: async () => (await wants.list("u1")).map((w) => w.posting_key) };
 };

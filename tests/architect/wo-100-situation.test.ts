@@ -114,7 +114,7 @@ Deno.test("WO-100/8 a queued application is on the timeline: recall of apply_que
   const p = (WORLD as any).postings[0];
   await db.putMany([{ ...p, provider: "greenhouse", board: "stripe", last_seen_at: p.first_seen_at, closed_at: null }]);
   const tools = careerTools({ postings: async () => [], events, wants, posting: (id) => db.get(id) });
-  const c = { userId: USER, threadId: "A", now: Date.parse(WORLD.now), state: { profile: { facts: [{ key: "location", value: "Chicago, IL" }, { key: "relocation", value: "yes" }] } }, turn: { message: "apply to the Stripe data analyst role", added: [], before: "" } };
+  const c = { userId: USER, threadId: "A", now: Date.parse(WORLD.now), state: {}, turn: { message: "apply to the Stripe data analyst role", added: [], before: "" } };
   const q: any = await tools.find((x) => x.name === "queue_applications")!.run({ postings: [{ job_id: p.job_id, url: p.url, company: "Stripe", title: "Data Analyst" }] }, c as any);
   assert(q.queued === 1, JSON.stringify(q));
   const r: any = await tools.find((x) => x.name === "recall")!.run({ kinds: ["apply_queued"] }, c as any);

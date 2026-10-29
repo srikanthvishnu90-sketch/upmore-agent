@@ -89,10 +89,30 @@ Deno.test("screenTapTurn: records the answer only when the qid is the open quest
     ["yes", QID, { intent: "x", meta: { ...ASK().meta, screen_ask: [{ fact: "sponsorship", question: "?" }, { fact: "citizenship", question: "?" }] } }]] as const) {
     const r = await run(answer, qid, last);
     assert.equal(r.r.status, "stale", JSON.stringify([answer, qid]));
-    assert.equal(r.r.reply, TAP_STALE_REPLY);
+    assert.ok(r.r.reply.startsWith(TAP_STALE_REPLY), r.r.reply);
     assert.deepEqual(r.r.saved, []);
     assert.equal(r.facts, 0);
+    // round 6: a stale tap carries the open question forward (its id, buttons, ask, held), so what is open is never killed
+    const m: any = (last as any)?.meta ?? {};
+    if (m.screen_ask) {
+      assert.deepEqual((r.r.meta as any)?.screen_qid, m.screen_qid);
+      assert.deepEqual((r.r.meta as any)?.screen_ask, m.screen_ask);
+      assert.deepEqual((r.r.meta as any)?.screen_buttons, m.screen_buttons);
+      assert.deepEqual((r.r.meta as any)?.screen_held, m.screen_held);
+      assert.equal(r.r.intent, (last as any).intent);
+    } else {
+      assert.equal((r.r.meta as any)?.screen_ask, undefined, "no question is invented");
+    }
   }
+  // the old button of question 1 while question 2 is open: question 2 survives, and its own tap then records
+  const q2 = ASK("22222222", "relocation");
+  const stale = await run("yes", QID, q2);
+  assert.equal(stale.r.status, "stale");
+  assert.equal((stale.r.meta as any).screen_qid, "22222222");
+  assert.ok(stale.r.reply.includes("relocation?"), "the open question is put again under the notice");
+  const profile: any = CareerProfile.createProfile({});
+  const done = await screenTapTurn({ qid: "22222222", answer: "yes", now: NOW, last: { intent: q2.intent, meta: stale.r.meta as any }, profile, addFact: (p, f) => CareerProfile.addFact(p, f) });
+  assert.deepEqual(done.saved, [{ fact: "relocation", value: "yes" }]);
 });
 
 Deno.test("meta.screen_buttons + a question id reach the channel; the screen asks ONE question at a time", async () => {

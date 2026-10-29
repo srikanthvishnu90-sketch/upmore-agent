@@ -126,8 +126,14 @@ export interface GateResult {
   dropped: Dropped[];
   held: { job_id: string | null; company: string; title: string; url: string; facts: ScreenFactKey[] }[]; // waiting on a fact the person has not confirmed
   asks: { fact: ScreenFactKey; question: string; count: number }[]; // each missing fact once
+  // Facts the screen could not check because the person has not confirmed them: the posting PROCEEDS ("not checked"), it is never held
+  // or interrogated for them (owner ruling: unknown = proceed and label; a CONFIRMED conflicting fact stops it; closed / stale / scam stop it regardless).
+  unchecked: { posting: { job_id: string | null; company: string; title: string; url: string }; facts: ScreenFactKey[] }[];
   counts: { total: number; ok: number; dropped: number; held: number; by_kind: Partial<Record<DropKind, number>> };
 }
+
+// A pure yes / no, so the Yes / No buttons and a one-word reply answer it.
+export const GATE_QUESTIONS = { relocation: "Would you relocate for this role? Reply yes or no." } as const;
 
 export function gatePicks(picks: GatePick[], o: { facts: any[]; now: number }): GateResult {
   const sp: (ScreenPosting & { _i: number })[] = picks.map((p, _i) => ({
@@ -144,12 +150,20 @@ export function gatePicks(picks: GatePick[], o: { facts: any[]; now: number }): 
     by_kind[kind] = (by_kind[kind] ?? 0) + 1;
     return { posting: id(picks[idOf(x as any)]), kind, reason: x.reason, why: x.why } as Dropped;
   });
+  // The ONE question left to ask: relocation, and only when a confirmed home exists, the posting is in person somewhere else, and the
+  // person has not said whether they would move. Every other missing fact (location included) is "not checked": the posting proceeds.
   const askCount = new Map<ScreenFactKey, number>();
-  const held = b.needs_fact.map((x) => { for (const f of x.facts) askCount.set(f, (askCount.get(f) ?? 0) + 1); return { ...id(picks[idOf(x as any)]), facts: x.facts }; });
-  const asks = b.asks.map((a) => ({ fact: a.fact, question: a.question, count: askCount.get(a.fact) ?? a.keys.length }));
+  const ok = b.include.map((x) => picks[idOf(x as any)]);
+  const held: GateResult["held"] = [], unchecked: GateResult["unchecked"] = [];
+  for (const x of b.needs_fact) {
+    const p = picks[idOf(x as any)];
+    if (x.facts.includes("relocation")) { askCount.set("relocation", (askCount.get("relocation") ?? 0) + 1); held.push({ ...id(p), facts: ["relocation"] }); }
+    else { ok.push(p); unchecked.push({ posting: id(p), facts: x.facts }); }
+  }
+  const asks = askCount.size ? [{ fact: "relocation" as ScreenFactKey, question: GATE_QUESTIONS.relocation, count: askCount.get("relocation") ?? 0 }] : [];
   return {
-    ok: b.include.map((x) => picks[idOf(x as any)]), dropped, held, asks,
-    counts: { total: picks.length, ok: b.include.length, dropped: dropped.length, held: held.length, by_kind },
+    ok, dropped, held, asks, unchecked,
+    counts: { total: picks.length, ok: ok.length, dropped: dropped.length, held: held.length, by_kind },
   };
 }
 

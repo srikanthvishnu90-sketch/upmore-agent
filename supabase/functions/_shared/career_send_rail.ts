@@ -314,7 +314,17 @@ async function inSent(d: WorkerDeps, userId: string, it: Claimed): Promise<{ id:
 
 type Outcome = { id: string; outcome: string } & Record<string, unknown>;
 // One claimed email: what happened to it. Nothing is written here; the caller records outcomes in small batches.
-async function sendOne(d: WorkerDeps, it: Claimed, stats: WorkerStats): Promise<Outcome> {
+// CONNECTOR SCENARIOS (2026-10-29): the last check before an email leaves (career_send_go, 20261029180000). A disconnect
+// cancels every email of that mailbox, the ones a worker holds included; a worker that has not handed its email to the
+// provider yet asks here and stops. Nothing is sent after the cancel commits; one already handed over is recorded as sent.
+async function mayGo(d: WorkerDeps, it: Claimed, worker: string, stats: WorkerStats, out: (o: string, x?: Record<string, unknown>) => Outcome): Promise<Outcome | null> {
+  const now = d.now ?? Date.now;
+  const go = await call(d, "career_send_go", { worker, id: it.id }).catch(() => null);
+  if (go === "go") return null;
+  stats.stale++;
+  return out("retry", { untried: true, detail: go === null ? "could not check the email before sending" : "cancelled before it went", retry_at: new Date(now() + 60_000).toISOString() });
+}
+async function sendOne(d: WorkerDeps, it: Claimed, stats: WorkerStats, worker: string): Promise<Outcome> {
   const now = d.now ?? Date.now;
   const out = (outcome: string, extra: Record<string, unknown> = {}): Outcome => ({ id: it.id, outcome, ...extra });
   const m: Mail = { to: it.to, subject: it.subject, text: it.body };
@@ -336,9 +346,11 @@ async function sendOne(d: WorkerDeps, it: Claimed, stats: WorkerStats): Promise<
     if (seen === null) { stats.retry++; return out("retry", { detail: "could not check Sent before a second try", retry_at: new Date(now() + 60_000).toISOString() }); }
     if (seen) { stats.already_sent++; return out("already_sent", { gmail_id: seen.id, thread_id: seen.threadId }); }
   }
-  if (it.provider === "outlook") return await viaProvider(d, it, m, stats, out);
+  if (it.provider === "outlook") return (await mayGo(d, it, worker, stats, out)) ?? await viaProvider(d, it, m, stats, out);
   const token = await d.token(it.user_id, GMAIL_SEND_SCOPE).catch(() => null);
   if (!token) { stats.reconnect++; return out("reconnect", { untried: true, detail: "no Google grant that may send" }); }
+  const stop = await mayGo(d, it, worker, stats, out);
+  if (stop) return stop;
   let ans: GmailAnswer;
   try {
     const unsubscribe = it.kind === "outreach" && it.from_email ? { mailto: it.from_email, url: d.unsubscribeUrl?.(it) ?? null } : null;
@@ -417,7 +429,7 @@ export async function runSendWorker(d: WorkerDeps, o: WorkerOpts): Promise<Worke
             pending.push({ id: it.id, outcome: "retry", untried: true, detail: stop ? "account paused" : "worker out of time", retry_at: new Date(now()).toISOString() });
             continue;
           }
-          const r = await sendOne(d, it, stats);
+          const r = await sendOne(d, it, stats, o.worker);
           pending.push(r);
           stop = r.outcome === "quota" || r.outcome === "reconnect" || r.outcome === "policy";
           if (pending.length >= RECORD_EVERY) await record(false);

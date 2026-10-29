@@ -57,7 +57,7 @@ LIVE_MISSING_DEFAULT="20261026120018_career_resume_one_record.sql 20261020110000
   20261026230400_career_kb_postings_recency_index.sql
   20261026230017_career_cloud_hosted_apply.sql 20261027140000_career_apply_host_backoff.sql 20261027141000_career_apply_mass_submit.sql 20261028050000_agent_turn_costs_always_recorded.sql 20261028070000_global_daily_model_budget.sql 20261028120000_career_apply_host_gate.sql
   20261028130000_billing_cancel_at_period_end.sql 20261029100000_career_outreach_reply_rules.sql 20261029160000_career_email_format_guards.sql
-  20261029170000_career_resume_on_file_quarantine.sql"
+  20261029170000_career_resume_on_file_quarantine.sql 20261029180000_career_connector_disconnect_rules.sql"
 # 20261026210016 and 20261026220016 (FEATURE 16, NOT APPLIED) are new here, not live; 20261026210016 reads
 # career_apply_profile_for, created by 20261025120000 (missing above).
 # The last four are not live: 20261026060006 and 20261026060106 alter career_board_state, created by 20261021110000

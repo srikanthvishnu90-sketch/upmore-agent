@@ -218,6 +218,7 @@ MIGRATIONS=(
   20261029100000_career_outreach_reply_rules.sql
   20261029160000_career_email_format_guards.sql
   20261029170000_career_resume_on_file_quarantine.sql
+  20261029180000_career_connector_disconnect_rules.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -315,6 +316,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_outreach_reply_apply' and prosrc like '%(2) A follow-up of this person''s already queued%') and exists (select 1 from pg_proc where proname = 'career_outreach_rail_takeback' and prosrc like '%(3) What the rail itself already cancelled%')"
   "exists (select 1 from pg_proc where proname = 'career_email_is_webmail') and exists (select 1 from pg_proc where proname = 'career_email_is_role')"
   "exists (select 1 from pg_proc where proname = 'career_resume_on_file' and prosrc like '%owner-delegated%')"
+  "exists (select 1 from pg_proc where proname = 'career_send_go') and exists (select 1 from pg_proc where proname = 'career_connector_waiting')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

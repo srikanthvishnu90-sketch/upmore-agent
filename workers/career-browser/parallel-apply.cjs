@@ -4,13 +4,21 @@
 // Chromium contexts, with retries.
 //
 // Rules it enforces in code (CLAUDE.md, D-007):
-//  - exact payload: `approval.payloadHash` must equal the hash of {url, ats, facts, answers, resume.sha256}; any change
-//    after approval refuses the run.
+//  - exact payload: the job input must carry `approval: { approval_id, hash }`. `hash` must equal the hash of
+//    {url, ats, facts, answers, resume.sha256} (computed here, at the start AND again just before the submit click); an
+//    absent approval, an empty approval_id or any mismatch refuses the run. NOTE: a hash only proves integrity. This
+//    module cannot know whether `approval_id` is a real approval, so the CALLER (the apply-VM worker, #279) MUST verify
+//    approval_id against the stored approval record (exists, not revoked/expired, bound to this payload) BEFORE calling.
 //  - one resume: the file at resume.path must hash to resume.sha256 and resume.preparedWithSha256 (the file the
 //    application was prepared with); it is the only file ever uploaded.
 //  - no invented facts: a field is filled only from payload.facts / payload.answers. A required field with no value stops
 //    the run as needs_user naming the field. An optional field with no value is left blank.
-//  - no bot-check work: a captcha/"verify you are human" page stops the run as needs_user/bot_check. Never solved.
+//  - no bot-check work: a captcha/"verify you are human" (recaptcha/hcaptcha/turnstile iframes, scripts, widgets or text)
+//    stops the run as needs_user/bot_check whether or not the page has a form, on load and again right before submit.
+//    Never solved, never submitted past.
+//  - hard denylist: linkedin.com, indeed.com, joinhandshake.com and every subdomain are refused before any navigation,
+//    independent of `allowHosts`. Every main-frame navigation (redirects included) and the form action (checked before the
+//    submit click) must be on an allowed host too, else the run is refused.
 //  - at most once: a failure BEFORE the submit click is retried (fresh context); once submit is clicked the run is never
 //    retried: a missing confirmation is unknown_outcome.
 //  - local only by default: only loopback hosts are driven. Real employer hosts need `allowHosts` from the caller
@@ -31,7 +39,27 @@ const FACT_RULES = [
   [/^email\b/i, "email"], [/^phone\b/i, "phone"], [/^(current )?(company|employer)\b/i, "current_company"],
   [/^linkedin\b/i, "linkedin_url"],
 ];
-const BOT_RE = /verify you are human|g-recaptcha|h-captcha|cf-turnstile|are you a robot/i;
+const BOT_RE = /verify\s+(?:that\s+)?you(?:\s+are|(?:'|\u2019|&#0*39;|&rsquo;|&apos;)re)\s+(?:a\s+)?(?:human|not a robot)|captcha|turnstile|challenges\.cloudflare\.com|are you a robot|not a robot/i;
+const DENY_HOSTS = ["linkedin.com", "indeed.com", "joinhandshake.com"];
+const LOOPBACK = ["127.0.0.1", "localhost", "::1", "[::1]"];
+const normHost = (h) => String(h || "").toLowerCase().replace(/\.+$/, "");
+const isDeniedHost = (h) => { const n = normHost(h); return DENY_HOSTS.some((d) => n === d || n.endsWith(`.${d}`)); };
+// Verdict for a URL a page is about to load or post to. The denylist always wins over allowHosts.
+function urlVerdict(u, allowHosts = []) {
+  let url;
+  try { url = new URL(u); } catch { return { ok: false, reason: "host_not_allowed", host: String(u).slice(0, 80) }; }
+  const host = normHost(url.hostname);
+  if (isDeniedHost(host)) return { ok: false, reason: "host_denied", host };
+  if (!/^https?:$/.test(url.protocol)) return { ok: false, reason: "host_not_allowed", host: url.protocol };
+  if (!LOOPBACK.includes(host) && !allowHosts.map(normHost).includes(host)) return { ok: false, reason: "host_not_allowed", host };
+  return { ok: true, host };
+}
+async function botCheck(page) {
+  if (BOT_RE.test(await page.content())) return true;
+  return page.frames().some((f) => BOT_RE.test(f.url()));
+}
+const hasApproval = (p) => !!p.approval && typeof p.approval.approval_id === "string" && p.approval.approval_id.trim() !== ""
+  && typeof p.approval.hash === "string" && p.approval.hash === payloadHash(p);
 const CONFIRM_RE = /thank you for applying|application (has been )?submitted|we['’]ve received your application/i;
 
 function valueFor(label, facts, answers) {
@@ -51,9 +79,9 @@ class NeedsUser extends Error { constructor(reason, field) { super(`${reason}${f
 
 function checkPayload(p, { allowHosts = [] } = {}) {
   if (!p || !p.url || !p.facts || !p.resume) throw new NeedsUser("invalid_payload");
-  const host = new URL(p.url).hostname;
-  if (!["127.0.0.1", "localhost", "::1", "[::1]"].includes(host) && !allowHosts.includes(host)) throw new NeedsUser("host_not_allowed", host);
-  if (!p.approval || p.approval.payloadHash !== payloadHash(p)) throw new NeedsUser("not_approved", "payload changed after approval or never approved");
+  const v = urlVerdict(p.url, allowHosts);
+  if (!v.ok) throw new NeedsUser(v.reason, v.host);
+  if (!hasApproval(p)) throw new NeedsUser("not_approved", "no approval {approval_id, hash}, or the payload changed after approval");
   const bytes = fs.readFileSync(p.resume.path);
   const h = sha256(bytes);
   if (h !== p.resume.sha256 || h !== p.resume.preparedWithSha256) throw new NeedsUser("resume_mismatch", "the resume is not the one this application was prepared with");
@@ -64,11 +92,42 @@ async function attempt(browser, p, opts, timing) {
   const ctx = await browser.newContext({ viewport: { width: 900, height: 1100 } });
   const page = await ctx.newPage();
   page.setDefaultTimeout(opts.stepTimeoutMs || 15000);
+  const allow = opts.allowHosts || [];
+  const blocked = [];
+  // Main-frame navigations (the first load, every redirect hop, any later navigation) to a host that is denied or not allowed
+  // are aborted before a request leaves the browser.
+  // GET navigations are fetched with redirects off so the Location of each hop is checked BEFORE the browser requests it
+  // (a browser-followed redirect would already have reached the other host); the 3xx is handed back and the next hop comes
+  // through this same handler.
+  await ctx.route("**/*", async (route) => {
+    const req = route.request();
+    if (req.isNavigationRequest() && req.frame() === page.mainFrame()) {
+      const g = urlVerdict(req.url(), allow);
+      if (!g.ok) { blocked.push(g.host); return route.abort("blockedbyclient"); }
+      if (req.method() === "GET") {
+        const resp = await route.fetch({ maxRedirects: 0 });
+        const loc = resp.status() >= 300 && resp.status() < 400 ? resp.headers().location : null;
+        if (loc) {
+          const next = urlVerdict(new URL(loc, req.url()).href, allow);
+          if (!next.ok) { blocked.push(next.host); return route.abort("blockedbyclient"); }
+        }
+        return route.fulfill({ response: resp });
+      }
+    }
+    return route.continue();
+  });
+  const onAllowedHost = () => {
+    if (blocked.length) throw new NeedsUser("redirect_not_allowed", blocked[0]);
+    const g = urlVerdict(page.url(), allow);
+    if (!g.ok) throw new NeedsUser("redirect_not_allowed", g.host);
+  };
   try {
     const t0 = Date.now();
-    const resp = await page.goto(p.url, { waitUntil: "domcontentloaded" });
+    let resp;
+    try { resp = await page.goto(p.url, { waitUntil: "domcontentloaded" }); } catch (e) { onAllowedHost(); throw e; }
+    onAllowedHost();
     if (!resp || resp.status() >= 400) throw new Error(`page_load_${resp ? resp.status() : "none"}`);
-    if (BOT_RE.test(await page.content()) && !(await page.$("form"))) throw new NeedsUser("bot_check", p.url);
+    if (await botCheck(page)) throw new NeedsUser("bot_check", p.url);
     // An employer that wants the person to sign in first: never signed into, never given a password (the person does that).
     if (await page.$('input[type="password"]')) throw new NeedsUser("login_required", p.url);
     timing.load = Date.now() - t0;
@@ -94,6 +153,17 @@ async function attempt(browser, p, opts, timing) {
       filled.push({ field: c.label, source: p.answers && Object.prototype.hasOwnProperty.call(p.answers, c.label.replace(/\s*\*\s*$/, "").trim()) ? "answer" : "fact" });
     }
     timing.fill = Date.now() - t1;
+    // Last checks before the click, on what is actually on the page now: still an allowed host, no bot check that appeared
+    // while filling, the form posts to an allowed host, and the payload still hashes to what was approved.
+    onAllowedHost();
+    if (await botCheck(page)) throw new NeedsUser("bot_check", p.url);
+    const action = await page.$eval('form button[type="submit"]', (b) => {
+      const a = b.getAttribute("formaction") ?? (b.form && b.form.getAttribute("action"));
+      return new URL(a || location.href, document.baseURI).href;
+    });
+    const av = urlVerdict(action, allow);
+    if (!av.ok) throw new NeedsUser("form_action_not_allowed", av.host);
+    if (!hasApproval(p)) throw new NeedsUser("not_approved", "payload changed after approval");
     if (opts.shotBefore) await page.screenshot({ path: opts.shotBefore, fullPage: true });
     // The caller records "submitting" (and re-checks its lease and kill switch) BEFORE the click; a refusal stops here, unsent.
     if (opts.onPhase) await opts.onPhase("submitting");
@@ -103,6 +173,7 @@ async function attempt(browser, p, opts, timing) {
     try {
       await Promise.all([page.waitForLoadState("domcontentloaded"), page.click('button[type="submit"]')]);
       await page.waitForSelector("#confirmation, h1", { timeout: opts.stepTimeoutMs || 15000 });
+      if (blocked.length) return { status: "unknown_outcome", reason: `after submit: navigation to a disallowed host was refused (${blocked[0]})`, filled };
     } catch (e) {
       return { status: "unknown_outcome", reason: `after submit: ${e.message.split("\n")[0]}`, filled };
     }
@@ -160,4 +231,4 @@ async function runPool(browser, payloads, opts = {}) {
   return { results, wallMs: Date.now() - started, concurrency };
 }
 
-module.exports = { applyOne, runPool, payloadHash, checkPayload, sha256, NeedsUser };
+module.exports = { applyOne, runPool, payloadHash, checkPayload, sha256, urlVerdict, DENY_HOSTS, NeedsUser };

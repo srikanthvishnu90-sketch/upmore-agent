@@ -123,7 +123,11 @@ function createWorker(o) {
       answers[f.label.replace(/\s*\*\s*$/, "").trim()] = String(f.value);
     }
     const pool = { id: row.id, ats: site.ats, url: row.url, facts: {}, answers, resume: { path: resumePath, sha256: p.resume_sha256, preparedWithSha256: p.resume_sha256 } };
-    pool.approval = { payloadHash: payloadHash(pool) };
+    // The worker (parallel-apply) needs {approval_id, hash}. The claim above already proved this payload hashes to the stored
+    // approval_hash, and engine_approval is the approval token inside that hashed payload, so it is the approval_id. parallel-apply
+    // cannot check that id against a record: this is that check (the row was claimed from the approvals queue by hash).
+    if (!/^[a-f0-9]{64}$/.test(String(p.engine_approval || ""))) return { refuse: "NOT_APPROVED" };
+    pool.approval = { approval_id: p.engine_approval, hash: payloadHash(pool) };
     return { pool, host: site.host };
   }
 

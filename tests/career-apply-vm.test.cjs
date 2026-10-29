@@ -245,7 +245,7 @@ test("a sign-in wall is handed back as 'needs you', never signed into, nothing s
   try {
     const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "li-")), "r.pdf"); fs.writeFileSync(f, "%PDF-1.4\n");
     const p = { id: "login", ats: "lever", url: `${mock.base}/lever/login1`, facts: {}, answers: {}, resume: { path: f, sha256: sha256(fs.readFileSync(f)), preparedWithSha256: sha256(fs.readFileSync(f)) } };
-    p.approval = { payloadHash: payloadHash(p) };
+    p.approval = { approval_id: "appr-login", hash: payloadHash(p) };
     const r = await applyOne(browser, p);
     assert.equal(r.status, "needs_user"); assert.equal(r.reason, "login_required");
     assert.equal(mock.submissions.length, 0);

@@ -138,10 +138,10 @@ Deno.test({ name: "f05 (l): the live board's matches, ranked by fit to confirmed
     const t = await chat.say(ask);
     ok(t);
     assert(/^From 3 live postings for data analyst in Chicago, first seen in the last 7 days\./m.test(t.reply), `${ask}: ${t.reply}`);
-    assert(/Ranked by fit score to your confirmed facts; not judged \(the model judge is off\)\./.test(t.reply), t.reply);
+    assert(/Ranked by how well each matches what you've confirmed\./.test(t.reply) && !/\d+\/100|model judge/.test(t.reply), t.reply); // OWNER LIST #6 (2026-10-28): fit in words, no internal words
     const rows = listed(t.reply);
     eq(rows.length, 3, t.reply);
-    assert(rows.every((l) => /TEST Live (Analytics|Retail|Freight)/.test(l) && /fit \d+\/100|not eligible/.test(l)), t.reply);
+    assert(rows.every((l) => /TEST Live (Analytics|Retail|Freight)/.test(l) && /(strong|good|partial) match|not eligible/.test(l)), t.reply);
     assert(!/TEST Snapshot|New York/.test(t.reply), `nothing from the snapshot or another city: ${t.reply}`);
     assert(/https:\/\/boards\.greenhouse\.io\/f05live\/jobs\/1/.test(t.reply), "each posting with its own link");
   }
@@ -202,7 +202,7 @@ Deno.test({ name: "f05 (g): a reason that names something not in the posting or 
   assert(/2\/3 judged; 0 strong, 0 fair; 2 dropped as weak\/no; 1 not judged \(the reason named something not in the posting or your profile\)/.test(t.reply), t.reply);
   const rows = listed(t.reply);
   eq(rows.length, 1, t.reply);
-  assert(/TEST Live Analytics.*not judged; fit \d+\/100/.test(rows[0]), rows[0]);
+  assert(/TEST Live Analytics.*not judged; (strong|good|partial) match/.test(rows[0]), rows[0]);
   assert(!/Google/.test(t.reply), "the invented reason is never shown");
 } });
 

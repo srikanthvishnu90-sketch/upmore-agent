@@ -72,7 +72,7 @@ Deno.test({ name: "F13: the staged brain release at the real handler", sanitizeR
     globalThis.fetch = fakeOpenAI as typeof fetch;
     handler = await careerHandler(pg, PEOPLE);
     const say = async (c: Chat, message: string) => { const r = await c.say(message); eq(r.status, 200, r.reply); return r; };
-    const costRows = async (id: string) => Number((await pg.sql(`select count(*) from public.agent_turn_costs where user_id = '${id}'`)).trim());
+    const costRows = async (id: string) => Number((await pg.sql(`select count(*) from public.agent_turn_costs where user_id = '${id}' and calls > 0`)).trim()); // rows with model calls; a zero-call turn leaves a calls = 0 row (2026-10-28)
 
     await t.step("unset: the router answers, byte-identical to the router itself; no model call", async () => {
       setBrain(null);

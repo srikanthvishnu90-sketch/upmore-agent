@@ -43,14 +43,24 @@ Deno.test({
           union all select '${heavy}'::uuid;
         insert into auth.users (id, email) select id, id::text || '@example.test' from ppl;
         insert into public.profiles (id) select id from ppl;
-        insert into public.career_watch_kv (user_id, key, value) select id, 'career:account', '{"epoch":0,"version":0,"paused":false}' from ppl;
+        -- The owner's resume rule (20261026210016): each person has a confirmed resume on file (an experience entry, its
+        -- fact_confirmed event, the file the cloud keeps), and every payload binds that file's sha256; without it the claim's
+        -- queued -> driving guard skips the row and nothing is ever sent.
+        insert into public.career_watch_kv (user_id, key, value) select id, 'career:account', jsonb_build_object('epoch', 0, 'version', 0, 'paused', false,
+          'memory', jsonb_build_object('profile', jsonb_build_object('facts', jsonb_build_array(jsonb_build_object('kind', 'experience', 'status', 'confirmed',
+          'needs_confirmation', false, 'confirmation_event_id', 'scale-ev-' || id, 'text', 'Analyst, Scale Co'))))) from ppl;
+        insert into public.career_events (user_id, kind, subject, detail, source)
+          select id, 'fact_confirmed', 'resume entry', jsonb_build_object('confirmation_event_id', 'scale-ev-' || id), 'chat' from ppl;
+        insert into public.career_apply_cloud_resumes (user_id, sha256, filename, bytes, privacy_epoch)
+          select id, encode(sha256(convert_to('%PDF-1.4 scale test resume', 'UTF8')), 'hex'), 'resume.pdf', convert_to('%PDF-1.4 scale test resume', 'UTF8'), 0 from ppl;
         insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, created_at)
         select x.user_id, x.job_id, x.company, x.url, x.p, h, h, x.at from (
           select p.id as user_id, 'scale:' || p.id || ':' || n as job_id, 'TEST Co ' || n as company,
             'https://' || (case when (n % ${HOSTS}) < 2 then 'refuse-' else 'h' end) || (n % ${HOSTS}) || '.example.test/' || p.id || '/' || n as url,
             jsonb_build_object('version', 1, 'user_id', p.id, 'job_id', 'scale:' || p.id || ':' || n, 'company', 'TEST Co ' || n,
               'url', 'https://h.example.test/' || n, 'fields', '[]'::jsonb, 'privacy_epoch', 0, 'account_version', 0,
-              'expires_at', '2099-01-01T00:00:00Z', 'engine_approval', repeat('a', 64)) as p,
+              'expires_at', '2099-01-01T00:00:00Z', 'engine_approval', repeat('a', 64),
+              'resume_sha256', encode(sha256(convert_to('%PDF-1.4 scale test resume', 'UTF8')), 'hex')) as p,
             now() - make_interval(secs => n) as at
           from ppl p cross join lateral generate_series(1, case when p.id = '${heavy}' then ${HEAVY} else ${PER} end) n) x
         cross join lateral (select public.career_apply_payload_hash(x.p) as h) hh;
@@ -142,7 +152,13 @@ Deno.test({
       // unknown one was started exactly once before the kill.
       assert(sent + (states.not_submitted ?? 0) + unknown === total, `every item accounted for: ${JSON.stringify(states)}`);
       assert(unknown <= CONC, `only what the killed worker was running is unknown (${unknown} <= ${CONC})`);
-      assert(runs.length === total, `every item's engine started once: ${runs.length} of ${total}`);
+      // Every item that finished was started exactly once. An item the killed worker had begun (its row moved to driving) may
+      // have died before its start line was written: such an item is swept unknown and never driven again, never unstarted
+      // and finished, and there are at most what that worker held.
+      const unknownIds = new Set((await pg.sql(`select id from public.career_apply_jobs where state = 'unknown_outcome'`)).split("\n").filter(Boolean));
+      const notRun = [...userOf.keys()].filter((id) => !per.has(id));
+      assert(notRun.every((id) => unknownIds.has(id)), `an item that was never started finished anyway: ${notRun.filter((id) => !unknownIds.has(id)).slice(0, 5)}`);
+      assert(runs.length + notRun.length === total && notRun.length <= CONC, `every item's engine started once (${runs.length} of ${total}; ${notRun.length} begun by the killed worker before their start was logged)`);
       // A host's refusal ends that one application as not sent (nothing was filled), each with the host's reason.
       const notSent = Number(await pg.sql(`select count(*) from public.career_apply_jobs where state = 'not_submitted' and reason <> 'HOST_RATE_LIMITED'`));
       assert(notSent === 0, `every not-sent one is a host refusal (${notSent} other)`);

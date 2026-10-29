@@ -4,7 +4,10 @@
 // approved payload. Routes: GET /greenhouse/<job>, GET /lever/<job>, POST /<ats>/<job>/submit, GET /__submissions.
 // A job id starting with "flaky" answers 503 to its first page load (to prove the worker's retry); "bot" shows a
 // captcha-style check instead of a form (the worker must stop and hand it to the person); "latency=<ms>" in the query
-// delays the page and the submit like a real employer.
+// delays the page and the submit like a real employer. "captchaform-<recaptcha|hcaptcha|turnstile|text|iframe>" is a REAL
+// application form that also carries a bot check (the worker must still hand it back unfilled); "redir-<n>?to=<url>" answers
+// 302 to <url> (to prove redirects are validated); "?action=<url>" / "?formaction=<url>" on a greenhouse job point the form's
+// post at <url> (to prove the form action is validated).
 const http = require("node:http");
 const crypto = require("node:crypto");
 
@@ -13,9 +16,9 @@ body{font:15px system-ui,sans-serif;max-width:640px;margin:24px auto;color:#1b1f
 input[type=text],input[type=email],input[type=tel],select,textarea{width:100%;padding:8px;border:1px solid #9aa4b2;border-radius:4px;box-sizing:border-box}
 button{margin-top:18px;padding:10px 18px;background:#1a7f5a;color:#fff;border:0;border-radius:4px;font-size:15px}.brand{color:#667}</style></head><body>${body}</body></html>`;
 
-const GH = (job) => page("Job Application for Software Engineer Intern at Mock Greenhouse Co", `
+const GH = (job, { action, formaction, extra = "" } = {}) => page("Job Application for Software Engineer Intern at Mock Greenhouse Co", `
 <p class="brand">MOCK GREENHOUSE (test fixture, not a real employer)</p><h1>Software Engineer Intern</h1>
-<form id="application-form" method="post" action="/greenhouse/${job}/submit" enctype="multipart/form-data">
+<form id="application-form" method="post" action="${action || `/greenhouse/${job}/submit`}" enctype="multipart/form-data">
 <label for="first_name">First Name <span>*</span></label><input id="first_name" name="first_name" type="text" required>
 <label for="last_name">Last Name <span>*</span></label><input id="last_name" name="last_name" type="text" required>
 <label for="email">Email <span>*</span></label><input id="email" name="email" type="email" required>
@@ -26,7 +29,7 @@ const GH = (job) => page("Job Application for Software Engineer Intern at Mock G
 <select id="q_auth" name="question_auth" required><option value="">Please select</option><option>Yes</option><option>No</option></select>
 <label for="q_spons">Will you now or in the future require sponsorship for employment visa status? <span>*</span></label>
 <select id="q_spons" name="question_sponsorship" required><option value="">Please select</option><option>Yes</option><option>No</option></select>
-<button type="submit" id="submit_app">Submit Application</button></form>`);
+${extra}<button type="submit" id="submit_app"${formaction ? ` formaction="${formaction}"` : ""}>Submit Application</button></form>`);
 
 const LV = (job) => page("Mock Lever Co - Software Engineer Intern", `
 <p class="brand">MOCK LEVER (test fixture, not a real employer)</p><h1>Software Engineer Intern</h1>
@@ -76,10 +79,19 @@ function startMockAts({ port = 0 } = {}) {
       loads[job] = (loads[job] || 0) + 1;
       if (job.startsWith("flaky") && loads[job] === 1) return send(503, "temporarily unavailable");
       if (job.startsWith("bot")) return send(200, BOT());
+      if (job.startsWith("redir")) { res.writeHead(302, { location: url.searchParams.get("to") || "/" }); return res.end(); }
+      if (job.startsWith("captchaform")) {
+        const kind = job.split("-")[1];
+        const extra = { recaptcha: '<div class="g-recaptcha" data-sitekey="TEST-NEVER-SOLVED"></div>',
+          hcaptcha: '<script src="/static/hcaptcha/api.js"></script>', turnstile: '<div class="cf-turnstile" data-sitekey="TEST-NEVER-SOLVED"></div>',
+          text: "<p>Please verify you are human before applying.</p>", iframe: '<iframe src="/static/recaptcha/anchor" title="check"></iframe>' }[kind] || "";
+        return send(200, GH(job, { extra }));
+      }
       if (job.startsWith("login")) return send(200, page("Sign in", `<h1>Sign in to apply</h1><form method="post" action="/${ats}/${job}/login"><input type="text" name="user"><input type="password" name="pw"><button type="submit">Sign in</button></form>`));
       if (job.startsWith("rate")) { res.writeHead(429, { "retry-after": "60", "content-type": "text/plain" }); return res.end("slow down"); }
       // A cookie per page load: a context that shared cookies between people would show up as a foreign cookie at submit.
       res.setHeader("set-cookie", `sid=${job}; Path=/`);
+      if (ats === "greenhouse" && (url.searchParams.get("action") || url.searchParams.get("formaction"))) return send(200, GH(job, { action: url.searchParams.get("action"), formaction: url.searchParams.get("formaction") }));
       return send(200, ats === "greenhouse" ? GH(job) : LV(job));
     }
     if (req.method === "POST" && isSubmit) {

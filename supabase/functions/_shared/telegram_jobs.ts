@@ -21,7 +21,9 @@
 // - Per-chat isolation: every button's reference is derived from the person and the posting (sha256 of "<user>|<job id>"), every
 //   read is scoped to the person who tapped, and a tap from a chat that is no one's account never reaches this file.
 import { type CardStore } from "./career_apply_cards.ts";
-import { contentOf } from "./career_apply_gate.ts";
+import { chatScreenFacts, contentOf } from "./career_apply_gate.ts";
+import { statedFactsBefore } from "./career_account_memory.ts";
+import { CareerProfile } from "./router_core.career.js";
 import { screenPicks } from "./career_apply_want.ts";
 import { tapCard, type TapStore } from "./channel_card_tap.ts";
 import { cardDigest } from "./channel_card_tap.ts";
@@ -246,17 +248,50 @@ export async function sendJobCards(o: { userId: string; hits: any[]; deps: JobDe
 }
 
 // ---------------------------------------------------------------- the exact payload
-const SECRETISH = /pass(word)?|secret|token|otp|one[- ]?time|ssn|social security|card number/i;
-const isSecretish = (f: any) => SECRETISH.test(`${f?.name ?? ""} ${f?.label ?? ""}`);
+// What counts as a secret, anywhere the payload hash covers (every field's name / label / type / id / placeholder / autocomplete,
+// every key at any depth of the payload, every card line, and values that look like a card number, SSN or API key):
+const SECRETISH = /\bpass(?:word|wd|code|phrase|port)?\b|passw|secret|token|\botp\b|one[- ]?time|\b[2m]fa\b|verification[- ]?code|security[- ]?code|\bssn\b|social[- ]?security|card[- ]?number|\bcc[- ]?num|\bcvv\b|\bcvc\b|api[-_ ]?key|credential|bearer|private[-_ ]?key|auth[-_ ]?code|sign[-_ ]?in[-_ ]?code/i;
+const SECRET_TYPE = /^(?:password|passwd|secret|otp|one-time-code|current-password|new-password|cc-number|cc-csc|cc-exp)$/i;
+const luhn = (d: string) => { let n = 0, alt = false; for (let i = d.length - 1; i >= 0; i--) { let x = Number(d[i]); if (alt) { x *= 2; if (x > 9) x -= 9; } n += x; alt = !alt; } return n % 10 === 0; };
+const secretValue = (v: unknown): boolean => {
+  if (typeof v !== "string") return false;
+  const t = v.trim();
+  if (!t) return false;
+  if (/\b\d{3}-\d{2}-\d{4}\b/.test(t)) return true; // an SSN
+  if (/^bearer\s+\S{8,}/i.test(t) || /^(?:sk|pk|rk|ghp|gho|xox[abprs]|eyJ)[-_A-Za-z0-9.]{16,}$/.test(t)) return true; // a token / key
+  for (const m of t.matchAll(/(?:\d[ -]?){13,19}/g)) { const d = m[0].replace(/\D/g, ""); if (d.length >= 13 && d.length <= 19 && luhn(d)) return true; } // a card number
+  return false;
+};
+const hasValue = (v: unknown) => v !== null && v !== undefined && (typeof v === "string" ? v.trim() !== "" : typeof v === "object" ? Object.keys(v as object).length > 0 : true);
+const isSecretish = (f: any) => SECRET_TYPE.test(String(f?.type ?? "").trim()) || SECRETISH.test(`${f?.name ?? ""} ${f?.label ?? ""} ${f?.id ?? ""} ${f?.key ?? ""} ${f?.placeholder ?? ""} ${f?.autocomplete ?? ""} ${f?.kind ?? ""} ${f?.type ?? ""}`);
+// Any key at any depth that names a secret and carries a value, or any value that looks like one: the path to it (never the value).
+function secretPaths(v: unknown, path: string, out: string[], depth = 0): void {
+  if (depth > 6 || v === null || v === undefined) return;
+  if (Array.isArray(v)) { v.forEach((x, i) => { if (x && typeof x === "object" && !Array.isArray(x) && isSecretish(x) && hasValue((x as any).value)) out.push(`${path}[${i}]`); else secretPaths(x, `${path}[${i}]`, out, depth + 1); }); return; }
+  if (typeof v === "object") {
+    for (const [k, x] of Object.entries(v as Record<string, unknown>)) {
+      if (SECRETISH.test(k) && hasValue(x)) out.push(path ? `${path}.${k}` : k);
+      else secretPaths(x, path ? `${path}.${k}` : k, out, depth + 1);
+    }
+    return;
+  }
+  if (secretValue(v)) out.push(path || "a value");
+}
+const secretLine = (l: string) => (SECRETISH.test(l) && (/[:=]\s*\S/.test(l) || /\b\d{4,}\b/.test(l))) || secretValue(l);
 // Everything the payload hash covers is shown here, in the person's words, or the application is not offered for Confirm:
 //   * every field with a value is listed (a file field as "file <name>"); blank fields are listed together as "Left blank";
 //   * every other top-level key of the payload is listed with its value;
-//   * a field that looks like a secret (password, one-time code, token, SSN, card number) is NEVER printed and NEVER approved
-//     here: it is listed as "needs you", and an application with such a field carrying a value gets no Confirm button (the
-//     person types it into the employer's own form themselves; no password or code goes through chat).
+//   * a field, key or card line that looks like a secret (password-type input, one-time code, token, SSN, card number) is NEVER
+//     printed and NEVER approved here: it is listed as "needs you", and an application with such a thing carrying a value gets no
+//     Confirm button (the person types it into the employer's own form themselves; no password or code goes through chat).
 export function secretFields(p: PreparedRow): string[] {
-  const fields: any[] = Array.isArray(p.payload?.fields) ? (p.payload.fields as any[]) : [];
-  return fields.filter((f) => isSecretish(f) && String(f?.value ?? "").trim()).map((f) => clean(f.label ?? f.name, 120) || "a field");
+  const pl: any = p.payload ?? {};
+  const out: string[] = [];
+  const fields: any[] = Array.isArray(pl.fields) ? pl.fields : [];
+  fields.forEach((f, i) => { if (isSecretish(f) && hasValue(f?.value)) out.push(clean(f.label ?? f.name, 120) || `field ${i + 1}`); else if (f && hasValue(f?.value) && secretValue(f.value)) out.push(clean(f.label ?? f.name, 120) || `field ${i + 1}`); });
+  for (const [k, v] of Object.entries(pl)) { if (k === "fields") continue; const sub: string[] = []; if (SECRETISH.test(k) && hasValue(v)) sub.push(k); else secretPaths(v, k, sub); out.push(...sub.map((x) => clean(x, 120))); }
+  (Array.isArray(p.card_lines) ? p.card_lines : []).forEach((l, i) => { if (secretLine(String(l ?? ""))) out.push(`card line ${i + 1}`); });
+  return out;
 }
 export function payloadLines(p: PreparedRow, job: JobView | null): string[] {
   const pl = p.payload ?? {};
@@ -267,12 +302,18 @@ export function payloadLines(p: PreparedRow, job: JobView | null): string[] {
   const isFile = (f: any) => /file/i.test(String(f?.type ?? ""));
   const has = (f: any) => !!String(f?.value ?? "").trim();
   const name = (f: any) => clean(f?.label ?? f?.name, 200) || "(unnamed field)";
-  const cover = fields.find((f) => isCover(f) && !isFile(f) && !isSecretish(f) && has(f));
-  const secret = fields.filter(isSecretish);
-  const answers = fields.filter((f) => f !== cover && !isSecretish(f) && has(f));
-  const blank = fields.filter((f) => !isSecretish(f) && !has(f));
+  const cover = fields.find((f) => isCover(f) && !isFile(f) && !isSecretish(f) && !secretValue(f.value) && has(f));
+  const looksSecret = (f: any) => isSecretish(f) || (has(f) && secretValue(f.value));
+  const secret = fields.filter(looksSecret);
+  const answers = fields.filter((f) => f !== cover && !looksSecret(f) && has(f));
+  const blank = fields.filter((f) => !looksSecret(f) && !has(f));
   const shown = new Set(["fields", "resume_sha256", "resume_name", "resume_file", "title"]);
-  const extra = Object.entries(pl).filter(([k]) => !shown.has(k));
+  const extraAll = Object.entries(pl).filter(([k]) => !shown.has(k));
+  const extraSecret: string[] = [];
+  const extra = extraAll.filter(([k, v]) => { const sub: string[] = []; if (SECRETISH.test(k) && hasValue(v)) sub.push(k); else secretPaths(v, k, sub); if (sub.length) { extraSecret.push(...sub); return false; } return true; });
+  const cardLines = (Array.isArray(p.card_lines) ? p.card_lines : []).map((l) => String(l ?? ""));
+  const cardSecret = cardLines.filter(secretLine).length;
+  const needsYou = [...secret.map(name), ...extraSecret.map((x) => clean(x, 120)), ...(cardSecret ? [`${cardSecret} line${cardSecret > 1 ? "s" : ""} of the card (left out)`] : [])];
   const title = job?.title ?? clean((pl as any).title ?? "", 160);
   const val = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
   return [
@@ -284,9 +325,9 @@ export function payloadLines(p: PreparedRow, job: JobView | null): string[] {
     answers.length ? "Answers:" : "Answers: none",
     ...answers.map((f) => (isFile(f) ? `• ${name(f)}: file ${String(f.value).trim()}` : `• ${name(f)}: ${String(f.value).trim()}`)),
     ...(blank.length ? [`Left blank: ${blank.map(name).join("; ")}`] : []),
-    ...(secret.length ? ["Needs you (I never type or send these; fill them in yourself on the employer's form):", ...secret.map((f) => `• ${name(f)}`)] : []),
+    ...(needsYou.length ? ["Needs you (I never type or send these; fill them in yourself on the employer's form):", ...needsYou.map((x) => `• ${x}`)] : []),
     ...(extra.length ? ["Also in this application:", ...extra.map(([k, v]) => `• ${clean(k, 80)}: ${val(v)}`)] : []),
-    ...(p.card_lines?.length ? ["", "As the card reads:", ...p.card_lines.map((l) => `• ${l}`)] : []),
+    ...(cardLines.filter((l) => !secretLine(l)).length ? ["", "As the card reads:", ...cardLines.filter((l) => !secretLine(l)).map((l) => `• ${l}`)] : []),
     "", "Nothing is sent until you tap Confirm. Edit changes it; Cancel drops it.",
   ];
 }
@@ -320,7 +361,9 @@ export const QUEUED_REPLY = (company: string, title: string) =>
 // the tap fails closed (nothing queued) rather than skipping the screen.
 async function screenedOut(userId: string, job: JobView, deps: JobDeps): Promise<string | null> {
   let row: PostingRow | null;
-  try { row = (await deps.store.postings([job.job_id]))[0] ?? null; } catch { return "I couldn't check that posting just now (it may have closed), so nothing was queued. Tap Apply again in a minute."; }
+  const UNREADABLE = "I couldn't check that posting just now (it may have closed), so nothing was queued. Tap Apply again in a minute.";
+  try { row = (await deps.store.postings([job.job_id]))[0] ?? null; } catch { return UNREADABLE; }
+  if (!row) return UNREADABLE; // no row on file is an unreadable posting, not a clean one: fail closed
   const content = contentOf(row ?? { posted_at: job.posted_at, first_seen_at: job.first_seen_at, remote: job.remote });
   const facts = await (deps.facts?.(userId) ?? Promise.resolve([])).catch(() => []);
   const r = screenPicks([{ job_id: job.job_id, url: job.url, company: job.company, title: job.title, location: job.location, content }], { apps: [], facts, now: deps.now() });
@@ -429,6 +472,20 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
     return { toast: queued ? "Confirmed, queued." : "Nothing approved.", status: queued ? "confirmed" : r.status };
   }
   return { toast: "That button no longer works.", status: "unknown" };
+}
+
+// The person's CONFIRMED facts for the posting screen: the same source and shape the chat's apply turn uses (agent-chat/handler-career.ts:
+// CareerProfile.confirmedFacts of the account's profile + the facts the person stated), read from the account record (career_watch_kv
+// "career:account"). An unreadable record throws: the screen then sees no facts, so a knock-out that needs one HOLDS the posting.
+// deno-lint-ignore no-explicit-any
+export function supabaseConfirmedFacts(admin: any): (userId: string) => Promise<any[]> {
+  return async (userId) => {
+    const r = await admin.from("career_watch_kv").select("value").eq("user_id", userId).eq("key", "career:account").maybeSingle();
+    if (r.error) throw new Error(`read the account: ${r.error.message}`);
+    const acct = r.data?.value ?? null;
+    const profile = acct?.memory?.profile ?? { facts: [] };
+    return chatScreenFacts(CareerProfile.confirmedFacts(profile), statedFactsBefore(acct, null));
+  };
 }
 
 // ---------------------------------------------------------------- the store over Supabase

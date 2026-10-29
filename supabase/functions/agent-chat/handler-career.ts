@@ -55,6 +55,8 @@ import { outreachStatusTurn } from "../_shared/career_send_rail.ts"; // "where a
 import { standingTurn, supabaseStanding } from "../_shared/career_standing.ts";
 // FEATURE 14: receipts
 import { receiptTurn, supabaseReceipts } from "../_shared/career_apply_receipt_read.ts";
+import { chatScreenFacts } from "../_shared/career_apply_gate.ts";
+import { screenAnswerTurn, screenMeta } from "../_shared/career_apply_screen_answer.ts";
 import { applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerTurn, paceReader, paceTurn, supabaseEmployerAskStore } from "../_shared/career_apply_chat.ts";
 import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 // FEATURE 9: account memory (stated-fact provenance, standing needs on the router path).
@@ -547,24 +549,43 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await paceTurn({ message, userId: user.id, admin })
         : null;
       // The screens read the confirmed facts and what the person stated in chat ("I work at X" lands in statedFacts).
-      const screenFacts = [...CareerProfile.confirmedFacts((ctx as any).profile ?? {}),
-        ...(((ctx as any).statedFacts?.facts ?? []) as any[]).map((f) => ({ kind: f.kind, value: f.value, text: f.evidence ?? f.value, stated: true }))];
+      // Real shapes: profile facts are { kind, text } (location, eligibility, education...), stated facts { kind, value }.
+      const screenFactsNow = () => chatScreenFacts(CareerProfile.confirmedFacts((ctx as any).profile ?? {}), ((ctx as any).statedFacts?.facts ?? []) as any[]);
+      const screenFacts = screenFactsNow();
       const employerAsk = supabaseEmployerAskStore(admin);
       // SERIAL-1490/1491: "is X where you work now?" is answered by the next yes or no while that question is this thread's
       // last word: no queues exactly that posting once, yes keeps it out; the same answer again is told it stands.
-      const employerAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !paced && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const feature1 = feature1Deps({ admin, userId: user.id, env: Deno.env, fetch: (i, init) => fetch(i, init), posting: (id) => supabasePostingsDb(admin).get(id) });
+      // F09: the person's answer to the posting screen's question (meta.screen_ask on the thread's last reply) is saved as a
+      // confirmed profile fact, and the held postings are screened again with it (career_apply_screen_answer.ts).
+      const screenAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !paced && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await (async () => {
+          const last = await employerAsk.lastAssistant(tid);
+          if (!(last?.meta as any)?.screen_ask) return null;
+          if (!(ctx as any).profile) (ctx as any).profile = CareerProfile.createProfile({});
+          return await screenAnswerTurn({
+            message, now: Date.now(), last: last as any, profile: (ctx as any).profile, addFact: (p: any, f: any) => CareerProfile.addFact(p, f),
+            rerun: (held) => applyTurn({
+              ...feature1.apply, message: "apply to all of them", userId: user.id, now: Date.now(), postings: supabasePostingsDb(admin), wants: supabaseWantStore(admin),
+              apps: () => supabaseApplications(admin)(user.id), facts: screenFactsNow(), limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid),
+              shortlist: held.map((h) => ({ id: h.job_id ?? undefined, title: h.title, company: h.company, location: "", url: h.url })) as any,
+            }),
+          });
+        })().catch((e) => { console.error("screen answer turn:", e?.message ?? e); return null; })
+        : null;
+      const employerAnsOnly = !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !paced && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await employerAnswerTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: employerAsk, wants: supabaseWantStore(admin),
             apps: () => supabaseApplications(admin)(user.id), facts: screenFacts, limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid),
             posting: (id) => supabasePostingsDb(admin).get(id) })
           .catch((e) => { console.error("employer answer turn:", e?.message ?? e); return null; })
         : null;
+      const employerAns = (screenAns as any) ?? employerAnsOnly;
       // FEATURE 1: apply from chat (career_apply_from_chat.ts). The apply turn below also resolves positions ("apply to 1
       // and 3", "the 2nd one") on the thread's last list, refuses a listed posting closed or not found on file and every
       // posting when no confirmed resume is on file, asks the worker's prepare-ahead for exactly the rows queued (only with
       // CAREER_PREPARE_AHEAD_URL set; off by default) and starts its reply with the coverage ("3/3 queued; ..."). After the
       // router's batch turn, an answer it recorded in chat is recorded on the matching open queue question as well
       // (career_apply_answers_for reads it). Nothing is approved or sent here: only the card's tap does that.
-      const feature1 = feature1Deps({ admin, userId: user.id, env: Deno.env, fetch: (i, init) => fetch(i, init), posting: (id) => supabasePostingsDb(admin).get(id) });
       // FEATURE 1 end
       // BILLING BY TEXT (owner, 2026-10-27): "what am I paying", "cancel my plan", "my invoices" (career_billing.ts). Before
       // FEATURE 17, so "cancel my plan" is billing and "cancel my application to X" stays the cancel turn's. The price and
@@ -744,7 +765,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       } else if (employerAns) {
         // The question stays the thread's last word while any posting is still unanswered; the answers ride the reply.
         out = { reply: employerAns.reply, intent: employerAns.intent, resultStatus: employerAns.status, contained: false, handler: "apply_employer" };
-        agentMeta = { ...(employerAns.answers?.length ? { employer_answers: employerAns.answers } : {}), ...(employerAns.pending?.length ? { employer_question: employerAns.pending } : {}) };
+        agentMeta = { ...(employerAns.answers?.length ? { employer_answers: employerAns.answers } : {}), ...(employerAns.pending?.length ? { employer_question: employerAns.pending } : {}), ...((employerAns as any).meta ?? {}) };
         if (employerAns.intent === EMPLOYER_ANSWER_INTENT && !employerAns.answers?.length) agentMeta = null;
       } else if (billing) {
         // A cancel waiting for its yes is this thread's last word, its exact payload on the reply (meta.billing_cancel).
@@ -758,6 +779,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const asking = !!queued.ask?.length;
         out = { reply: queued.reply, intent: asking ? EMPLOYER_ASK_INTENT : queued.intent, resultStatus: queued.status, contained: false, handler: "apply_queue" };
         if (asking) agentMeta = { employer_question: queued.ask };
+        // F09: the screen's question for a fact not confirmed rides the reply, so the next message can answer it.
+        const sm = screenMeta(queued.screen);
+        if (sm) agentMeta = { ...(agentMeta ?? {}), ...sm };
       } else if (receiptAns) {
         // FEATURE 14: the pictures ride result.documents, materialized below like every turn document.
         out = { reply: receiptAns.reply, intent: receiptAns.intent, resultStatus: receiptAns.status, contained: false, handler: "receipt", ...(receiptAns.result ? { result: receiptAns.result as unknown as Record<string, unknown> } : {}) };

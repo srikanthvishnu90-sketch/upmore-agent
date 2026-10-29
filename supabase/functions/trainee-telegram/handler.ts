@@ -11,7 +11,7 @@ import { ingestResumeFile, supabaseUploadRecorder } from "../_shared/channel_res
 import { supabaseTapStore, tapCard } from "../_shared/channel_card_tap.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { fetchArtifactBytes } from "../_shared/channel_artifacts.ts";
-import { type JobDeps, type JobSender, sendJobCards, supabaseJobStore, tapJob } from "../_shared/telegram_jobs.ts";
+import { type JobDeps, type JobSender, sendJobCards, supabaseConfirmedFacts, supabaseJobStore, tapJob } from "../_shared/telegram_jobs.ts";
 import { supabaseCardStore } from "../_shared/career_apply_cards.ts";
 
 export interface ProviderWebhookDeps {
@@ -43,7 +43,7 @@ export function webhookDeps(adapter: ChannelAdapter, d: ProviderWebhookDeps): Co
     } : {}),
     ...(admin ? { cardTap: async (a: { userId: string; data: string; now: number }) => await tapCard({ ...a, store: supabaseTapStore(admin), events: supabaseEventStore(admin) }) } : {}),
     ...(admin ? (() => {
-      const jd = (): JobDeps => ({ store: supabaseJobStore(admin), cards: supabaseCardStore(admin), tap: supabaseTapStore(admin), now: d.now, env: d.env, events: supabaseEventStore(admin) });
+      const jd = (): JobDeps => ({ store: supabaseJobStore(admin), cards: supabaseCardStore(admin), tap: supabaseTapStore(admin), now: d.now, env: d.env, events: supabaseEventStore(admin), facts: supabaseConfirmedFacts(admin) });
       return {
         jobTap: async (a: { userId: string; data: string; messageId: string | null; contact: string }) =>
           await tapJob({ userId: a.userId, data: a.data, messageId: a.messageId, deps: jd(), send: jobSenderFor(adapter, addressOf(a.contact)) }),

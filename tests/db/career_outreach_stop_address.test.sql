@@ -1,4 +1,4 @@
--- NETWORKING ROUND 2 (20261030080000_career_outreach_stop_address.sql), in the database alone: "stop emailing X" stops
+-- NETWORKING ROUND 2 (20261030090000_career_outreach_stop_address.sql), in the database alone: "stop emailing X" stops
 -- every email of this person's to X that has not gone (queued on the rail, held by a worker, outreach drafts shown or
 -- approved, replies-lane follow-ups shown or approved) and turns follow-ups to X off; their email to Y and another
 -- person's email to X are untouched; the held email stops at the worker's last check, or, when it had already reached

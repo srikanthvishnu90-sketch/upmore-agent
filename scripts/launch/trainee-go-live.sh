@@ -231,7 +231,7 @@ MIGRATIONS=(
   20261030050000_account_erase_r2.sql
   20261030060000_career_resume_confirm_atomic.sql
   20261030070000_proactive_r2.sql
-  20261030080000_career_outreach_stop_address.sql
+  20261030090000_career_outreach_stop_address.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"

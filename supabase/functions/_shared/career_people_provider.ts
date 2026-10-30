@@ -228,7 +228,7 @@ export interface Candidate {
   source_ref: string; source_url: string | null; provider: ProviderName | null; provider_id: string | null; domain: string | null; email_status: string | null;
   email_evidence: number | null; email_confidence: number | null; mx: string | null; sendable: boolean; fetched_at: string | null; same_as: number | null;
   connected_on: string | null; profile_text: string | null;
-  // NETWORKING R2 (2026-10-30, 20261030080000): the address opted out with anyone, or bounced for anyone.
+  // NETWORKING R2 (2026-10-30, 20261030090000): the address opted out with anyone, or bounced for anyone.
   blocked?: boolean;
 }
 export interface ProviderStore {

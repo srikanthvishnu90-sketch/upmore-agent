@@ -1218,7 +1218,7 @@ export function supabaseRepliesStore(admin: any): RepliesStore {
       const r = must(await admin.rpc("career_send_stop_address", { p: { user: u, email: email.trim().toLowerCase() } }), "stop emailing an address") ?? {};
       return { queued: Number(r.queued) || 0, drafts: Number(r.drafts) || 0, actions: Number(r.actions) || 0, threads: Number(r.threads) || 0, sent: Number(r.sent) || 0 };
     },
-    // The person's conversations and their drafts not sent yet (career_outreach_addresses_named, 20261030080000).
+    // The person's conversations and their drafts not sent yet (career_outreach_addresses_named, 20261030090000).
     async addressesNamed(u, name) {
       const rows = (await rpc("career_outreach_addresses_named", { p: { user: u, name } }, "read your outreach")) ?? [];
       return (Array.isArray(rows) ? rows : []).map((r: any) => ({ email: String(r.email), name: String(r.name) }));

@@ -742,11 +742,11 @@ echo "== career_resume_confirm_atomic.test.sql (a refused save writes no evidenc
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030070000_proactive_r2.sql"
 echo "== proactive_r2.test.sql (the day's and week's cap, the fit floor, off and paused at the moment of queuing; held rows marked; the template budget claimed; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/proactive_r2.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
-# NETWORKING ROUND 2 (20261030080000): "stop emailing X" stops every email of this person's to X that has not gone (queued,
+# NETWORKING ROUND 2 (20261030090000): "stop emailing X" stops every email of this person's to X that has not gone (queued,
 # held by a worker, approved and shown drafts, follow-ups shown or approved) and turns follow-ups off, and nothing else;
 # discovery marks an opted-out or bounced address as blocked; a held email sent before the stop is recorded as sent.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030080000_career_outreach_stop_address.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030080000_career_outreach_stop_address.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030090000_career_outreach_stop_address.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030090000_career_outreach_stop_address.sql"
 echo "== career_outreach_stop_address.test.sql (stop emailing X: exactly this person's waiting emails to X; a held one stops at its last check; a sent one is recorded; candidates marked blocked; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outreach_stop_address.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left

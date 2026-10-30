@@ -7,8 +7,8 @@
 //                  hours move an alert to the end of quiet hours in the person's zone; one report per local day at or
 //                  after their hour, with the last day's matches and the held ones, or a plain "no new matches"; a
 //                  posting published days before it was first seen (a new board's backlog) is never news (freshWhenSeen)
-//   WO-037         a weekly cap on top of the daily one: no more than the person's max_per_week (default 15, at most 25)
-//                  alerts in any rolling 7 days (sent_this_week, counted from the outbox by the run); past it, held.
+//   no weekly cap (owner rule "no limits"): alerts are paced per day (max_instant_per_day) never by a count per week in the planner (the
+//                  database's career_alert_enqueue still holds a rolling-week count; see FEATURES.md 0a). max_per_week / sent_this_week are accepted and ignored.
 //   F7 (fit)       with the person's fit to each posting (career_alert_fit.ts: 121 scoreFit over their confirmed facts,
 //                  the watch record's scoring_profile), the day's room goes to the best fits first (fit, then freshest),
 //                  and the fit floor holds: a posting their confirmed facts are knocked out of (a license, a clearance,
@@ -22,7 +22,7 @@ export interface AlertPrefs {
   on: boolean; keywords: string[]; locations: string[]; remote_ok: boolean;
   report_hour: number; quiet_start: number; quiet_end: number; max_instant_per_day: number;
   floor?: Floor; // the person's stated relevance floor (C-04); absent means nothing is hidden
-  max_per_week?: number; // WO-037: alerts in any rolling 7 days; absent means WEEKLY_DEFAULT
+  max_per_week?: number; // ignored: there is no weekly cap
   min_fit?: number; // F7: the lowest fit score (0-100) the person wants alerted; absent means only knockouts are held back
   // The watches the person set by text (career_watch_alerts.ts), each matched on its own: a posting is news when it
   // fits one watch whole (its role, its places, its floor, its firms), never one watch's role in another's city.
@@ -67,8 +67,7 @@ function byFit(fits: Map<string, AlertFit> | undefined) {
 
 export const DEFAULT_PREFS: AlertPrefs = { on: true, keywords: [], locations: [], remote_ok: true, report_hour: 8, quiet_start: 22, quiet_end: 7, max_instant_per_day: 3 };
 export const MAX_INSTANT_PER_DAY = 10, REPORT_LIMIT = 10;
-export const WEEKLY_DEFAULT = 15, WEEKLY_MAX = 25;
-export const weeklyCap = (p: AlertPrefs) => Math.max(0, Math.min(WEEKLY_MAX, Math.floor(p.max_per_week ?? WEEKLY_DEFAULT)));
+export const WEEKLY_MAX = 25; // only the bound the settings validator still accepts for the ignored max_per_week
 const DAY = 86400000;
 
 // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): what a phone does not show is not part of a posting's words. Zero-width and
@@ -205,8 +204,7 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
       .filter((p) => ms(p.first_seen_at) >= since && freshWhenSeen(p) && matchPosting(p, prefs) && floorOk(p))
       .sort(byFit(fits));
     const dayRoom = Math.min(MAX_INSTANT_PER_DAY, Math.floor(prefs.max_instant_per_day)) - Math.max(0, u.instant_sent_today | 0);
-    const weekRoom = weeklyCap(prefs) - Math.max(0, Number(u.sent_this_week ?? 0));
-    let room = Math.max(0, Math.min(dayRoom, Number.isFinite(weekRoom) ? weekRoom : 0));
+    let room = Math.max(0, dayRoom);
     const at = isQuiet(l.hour, prefs) ? nextAwake(o.now, u.tz, prefs) : o.now;
     // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): one alert per job. The same job on two boards (its own id on each, other
     // pay) was two alerts, and took two of the day's places.

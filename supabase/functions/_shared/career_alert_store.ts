@@ -3,7 +3,7 @@
 // with career_alerts.ts, writes the outbox (one row per person and key, ever) and saves the counters. Delivery from the
 // outbox is the texting channel's job (WO-013); the simulator drains its own in-memory queue.
 // Tables: supabase/migrations/20261019010001_career_alerts.sql.
-import { DEFAULT_PREFS, MAX_INSTANT_PER_DAY, WEEKLY_MAX, weeklyCap, type AlertPrefs, type PlanUser } from "./career_alerts.ts";
+import { DEFAULT_PREFS, MAX_INSTANT_PER_DAY, WEEKLY_MAX, type AlertPrefs, type PlanUser } from "./career_alerts.ts";
 import { validFloor } from "./career_floor.ts";
 
 export interface AlertRow extends PlanUser { sent_on: string | null } // sent_on: the local day instant_sent_today counts
@@ -114,8 +114,10 @@ export function memoryAlertStore(initial?: MemoryAlerts): AlertStore & Outbox & 
       if (typeof row.prefs.min_fit === "number" && !(typeof m.fit === "number" && m.fit >= row.prefs.min_fit)) return "below_fit";
       const today = row.sent_on === c.day ? Math.max(0, row.instant_sent_today | 0) : 0;
       if (today >= Math.min(MAX_INSTANT_PER_DAY, Math.floor(Number(row.prefs.max_instant_per_day) || 0))) return "capped";
-      const since = Date.parse(c.weekSince);
-      if (st.outbox.filter((o) => o.userId === userId && o.kind === "alert" && o.at >= since).length >= weeklyCap(row.prefs)) return "capped";
+      // Mirrors the database function career_alert_enqueue (20261030070000_proactive_r2.sql), which still holds a rolling-week
+      // count (max_per_week, default 15, at most 25). The planner (career_alerts.ts) no longer has one; this double stays faithful to the database.
+      const since = Date.parse(c.weekSince), weekCap = Math.max(0, Math.min(WEEKLY_MAX, Math.floor(Number(row.prefs.max_per_week ?? 15))));
+      if (st.outbox.filter((o) => o.userId === userId && o.kind === "alert" && o.at >= since).length >= weekCap) return "capped";
       const was = { n: row.instant_sent_today, on: row.sent_on };
       row.instant_sent_today = today + 1;
       row.sent_on = c.day;

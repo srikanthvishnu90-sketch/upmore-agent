@@ -91,6 +91,9 @@ export interface DeliveryAdapter {
   channel: Channel;
   limits: Partial<ChannelLimits>;
   render(text: string): string[];
+  // KNOWN GAPS (2026-10-30): true when send() delivers its text as HTML (Telegram with the texting voice on), so a sender
+  // whose text did not come through render() escapes it first. Absent: plain text.
+  htmlText?: boolean;
   send(address: string, bubbles: string[], opts?: SendOptions): Promise<SendResult>;
   // The short utility template that says updates are waiting (WhatsApp, outside the window). null: no template is
   // configured, so the messages wait and nothing is sent.

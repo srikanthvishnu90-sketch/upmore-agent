@@ -14,6 +14,7 @@ import { fetchArtifactBytes } from "../_shared/channel_artifacts.ts";
 import { type JobDeps, type JobSender, sendJobCards, supabaseConfirmedFacts, supabaseJobStore, tapJob } from "../_shared/telegram_jobs.ts";
 import { feedUrlsFor } from "../_shared/file_link.ts";
 import { supabaseCardStore } from "../_shared/career_apply_cards.ts";
+import { escapeHtml, textingNativeOn } from "../_shared/channel_voice.ts";
 
 export interface ProviderWebhookDeps {
   env: { get(k: string): string | undefined };
@@ -26,10 +27,13 @@ export interface ProviderWebhookDeps {
   admin?: any; // FEATURE 16: the service client, for the resume file and the card's buttons
 }
 // The adapter's sends, bound to one chat, as the job cards use them.
+// KNOWN GAPS (2026-10-30, #311): with the texting voice on, the adapter sends text as HTML; a card's text is the posting's
+// own words (an employer's "R&D", "<5 years"), so it is escaped first. A photo's caption and an edit go as plain text.
 export function jobSenderFor(adapter: ChannelAdapter, address: string): JobSender {
+  const asSent = (t: string) => (adapter.htmlText ? escapeHtml(t) : t);
   return {
     photo: async (a) => adapter.sendPhoto ? await adapter.sendPhoto(address, a) : { ok: false },
-    text: async (a) => { const r = await adapter.send(address, [a.text], { buttons: a.buttons }); return { ok: r.ok, id: r.ok ? r.id : null }; },
+    text: async (a) => { const r = await adapter.send(address, [asSent(a.text)], { buttons: a.buttons }); return { ok: r.ok, id: r.ok ? r.id : null }; },
     ...(adapter.editMessage ? { edit: async (a: { messageId: string; text: string; buttons?: any; caption?: boolean }) => await adapter.editMessage!(address, a.messageId, a) } : {}),
   };
 }
@@ -73,6 +77,8 @@ export function webhookDeps(adapter: ChannelAdapter, d: ProviderWebhookDeps): Co
 }
 
 export async function handleTelegram(req: Request, d: ProviderWebhookDeps): Promise<Response> {
-  const adapter = d.adapter ? d.adapter(d.env) : telegramAdapter({ token: d.env.get("TELEGRAM_BOT_TOKEN") || "", webhookSecret: d.env.get("TELEGRAM_WEBHOOK_SECRET") || "" });
+  // KNOWN GAPS (2026-10-30, #311): the webhook's own replies (a fixed answer, the #301 second message, job cards) get the
+  // texting voice too when CAREER_TEXTING_NATIVE=on, like the outbox's delivery (channel_registry.ts); off, unchanged.
+  const adapter = d.adapter ? d.adapter(d.env) : telegramAdapter({ token: d.env.get("TELEGRAM_BOT_TOKEN") || "", webhookSecret: d.env.get("TELEGRAM_WEBHOOK_SECRET") || "", native: textingNativeOn(d.env) });
   return await handleChannelWebhook(req, adapter, webhookDeps(adapter, d));
 }

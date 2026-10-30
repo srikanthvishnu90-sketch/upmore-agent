@@ -189,7 +189,12 @@ function dropSuperseded(profile: any, id: string, was: string, text: string) {
 
 export function careerTools(deps: {
   postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; mail?: Pick<MailStore, "applications" | "events"> | null;
-  events?: EventStore | null; tz?: string; interviews?: InterviewStore | null; digest?: DigestStore | null; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null; hired?: HiredSource | null;
+  events?: EventStore | null;
+  // KNOWN GAPS (2026-10-30): confirm_profile_fact's fact_confirmed events, held by the turn and written with its commit
+  // (agent-chat: heldEvents, career_host_commit_evidenced), so a refused save leaves no event without its confirmed fact.
+  // Absent: the timeline (`events`), as before.
+  confirmations?: EventStore | null;
+  tz?: string; interviews?: InterviewStore | null; digest?: DigestStore | null; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null; hired?: HiredSource | null;
   wants?: WantStore | null; limits?: Limits;
   posting?: ((jobId: string) => Promise<any | null>) | null;
   // WO-100: the person's situation, read once this turn (career_situation.ts); absent, the tools read this thread alone.
@@ -314,9 +319,9 @@ export function careerTools(deps: {
         // each other by confirmation_event_id, with an owner provenance the answer contract accepts. A row that could not
         // be recorded stamps nothing, so the fact reads as needs-review, never as evidenced.
         const event = crypto.randomUUID(), at = new Date(c.now).toISOString();
-        const kept = await record(c, "fact_confirmed", fact?.text ?? id, {
+        const kept = await recordEvent(deps.confirmations ?? deps.events, { user_id: c.userId, at: c.now, kind: "fact_confirmed", subject: fact?.text ?? id, source: "chat", detail: {
           id, kind: fact?.kind ?? null, confirmation_event_id: event, message_sha256: await sha256Hex(c.turn!.message),
-        });
+        } });
         if (kept && fact) Object.assign(fact, { provenance: `owner confirmed in chat (${at})`, confirmation_event_id: event, confirmed_at: at });
         return { fact };
       },

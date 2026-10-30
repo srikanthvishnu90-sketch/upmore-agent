@@ -5,7 +5,8 @@
 // account record, migration 20261026090009). This module does the two things the seam cannot, because they need the
 // handler's stores:
 //   1. Facts the person stated in chat this turn get a fact_confirmed event and an owner provenance
-//      (career_router_evidence.ts evidenceStatedFacts), like a confirmed resume entry.
+//      (career_router_evidence.ts evidenceStatedFacts), like a confirmed resume entry. The event is held and written
+//      with the turn's commit (agent-chat passes `evidence`), never before it.
 //   2. A standing need the router did not understand ("never send me staffing agencies", "remember that I only want
 //      roles in Chicago") is kept as a standing instruction on the account, in the brain's own store (career_watch_kv
 //      'career:standing', _shared/agent/memory.ts, wiped by an erase), under the brain's own rules (addStanding refuses
@@ -44,11 +45,15 @@ export async function accountMemoryAfterTurn(o: {
   message: string; userId: string; threadId: string; now: number; out: MemoryTurnOut;
   // deno-lint-ignore no-explicit-any
   statedBefore: any[]; ctx: any; events: EventStore | null | undefined; standing: MemoryStore | null | undefined;
+  // KNOWN GAPS (2026-10-30): where the stated facts' fact_confirmed events go. agent-chat passes the turn's held store
+  // (heldEvents), so they are written by the turn's own commit (career_host_commit_evidenced, 20261030080000) or not at
+  // all: a refused save leaves no event naming a fact no saved record holds. Absent: `events`, as before.
+  evidence?: EventStore | null;
 }): Promise<MemoryTurnResult> {
   const out = o.out;
   let patch: MemoryPatch | null = null;
   const after = Array.isArray(o.ctx?.statedFacts?.facts) ? o.ctx.statedFacts.facts : [];
-  const stated = await evidenceStatedFacts({ userId: o.userId, threadId: o.threadId, now: o.now, message: o.message, before: o.statedBefore, after, events: o.events });
+  const stated = await evidenceStatedFacts({ userId: o.userId, threadId: o.threadId, now: o.now, message: o.message, before: o.statedBefore, after, events: o.evidence ?? o.events });
   if (stated.untraced || stated.refused) console.error(`career memory: stated facts without an event: ${stated.untraced} not in their words, ${stated.refused} not recorded`);
   let standing: MemoryTurnResult["standing"] = null;
   const ask = o.standing && UNHANDLED.has(String(out.intent)) ? standingAsk(o.message) : null;

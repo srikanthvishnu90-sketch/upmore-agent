@@ -231,6 +231,7 @@ MIGRATIONS=(
   20261030050000_account_erase_r2.sql
   20261030060000_career_resume_confirm_atomic.sql
   20261030070000_proactive_r2.sql
+  20261030080000_career_evidence_every_confirmation.sql
   20261030090000_career_outreach_stop_address.sql
 )
 MIGRATION_MARK=(
@@ -342,6 +343,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'oauth_vault_refresh') and exists (select 1 from pg_proc where proname = 'career_account_gone') and exists (select 1 from pg_proc where proname = 'career_connection_switched') and to_regclass('public.account_deletion_log') is not null"
   "exists (select 1 from pg_proc where proname = 'career_host_commit_evidenced' and prosrc like '%evidence without state%')"
   "exists (select 1 from pg_proc where proname = 'career_alert_enqueue') and exists (select 1 from pg_proc where proname = 'channel_template_claim') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_outbox' and column_name = 'held_at') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_interviews' and column_name = 'cancelled_at')"
+  "exists (select 1 from pg_proc where proname = 'career_host_commit_evidenced' and prosrc like '%or stated fact this commit saves%')"
   "exists (select 1 from pg_proc where proname = 'career_send_stop_address') and exists (select 1 from pg_proc where proname = 'career_provider_candidates' and prosrc like '%as blocked%') and exists (select 1 from pg_proc where proname = 'career_send_complete_one' and prosrc like '%stopped by you%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

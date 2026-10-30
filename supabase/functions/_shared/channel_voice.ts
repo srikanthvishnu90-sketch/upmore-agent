@@ -121,7 +121,7 @@ function parseInline(s: string): Seg[] {
   flush();
   return segs;
 }
-const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+export const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 type Mode = "plain" | "telegram" | "whatsapp";
 function renderSegs(segs: Seg[], mode: Mode): string {
   return segs.map((g) => {

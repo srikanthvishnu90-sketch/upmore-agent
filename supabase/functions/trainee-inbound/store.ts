@@ -29,10 +29,10 @@ export function supabaseInboundStore(admin: any): InboundStore {
     async person(contact) {
       // A WhatsApp sender may be known by its other id (the alias); both values are quoted for PostgREST (ids carry dots).
       const by = contact.startsWith("wa:") && /^wa:[A-Za-z0-9._-]{1,128}$/.test(contact) ? `contact.eq."${contact}",alias.eq."${contact.slice(3)}"` : null;
-      const q = admin.from("channel_contacts").select("contact,user_id,thread_id");
+      const q = admin.from("channel_contacts").select("contact,user_id,thread_id,alias");
       const rows = must<any[]>(await (by ? q.or(by) : q.eq("contact", contact)).limit(2), "read the contact") || [];
-      const r = rows.find((x) => x.user_id) ?? null;
-      return r ? { userId: r.user_id, threadId: r.thread_id ?? null, contact: r.contact } : null;
+      const r = rows.find((x) => x.user_id && x.contact === contact) ?? rows.find((x) => x.user_id) ?? null;
+      return r ? { userId: r.user_id, threadId: r.thread_id ?? null, contact: r.contact, alias: r.alias ?? null } : null;
     },
     async refusedBefore(contact, at) {
       const r = must<any[]>(await admin.from("channel_contacts").upsert({ contact, created_at: iso(at), updated_at: iso(at) }, { onConflict: "contact", ignoreDuplicates: true }).select("contact"), "record the refusal") || [];
@@ -103,6 +103,16 @@ export function supabaseInboundStore(admin: any): InboundStore {
     },
     async unlinkTelegram(userId, at) {
       return Number(must<number>(await admin.rpc("channel_telegram_unlink_as", { p_user: userId, p_now: iso(at) }), "unlink Telegram")) || 0;
+    },
+    // CHANNEL DELIVERY ROUND 2 (2026-10-30): 20261030100000_channel_delivery_r2.sql.
+    async failSent(providerMessageId, at, error, retry) {
+      return Number(must<number>(await admin.rpc("career_outbox_fail_sent", { p_provider_id: providerMessageId, p_at: iso(at), p_error: error, p_retry: retry }), "record a failed message")) || 0;
+    },
+    async releaseContact(contact, at) {
+      must(await admin.rpc("channel_contact_release", { p_contact: contact, p_at: iso(at) }), "let a number go");
+    },
+    async movedNumber(from, to, at) {
+      return must<boolean>(await admin.rpc("channel_wa_number_moved", { p_old: from, p_new: to, p_at: iso(at) }), "move a number") === true;
     },
     async reholdSent(providerMessageId, at, error) {
       return Number(must<number>(await admin.rpc("career_outbox_rehold", { p_provider_id: providerMessageId, p_at: iso(at), p_error: error }), "hold a failed message")) || 0;

@@ -6,6 +6,7 @@ import type { DeliveryStore } from "./channel_store.ts";
 import { type Channel, channelOf } from "./channel_adapters.ts";
 import type { InboundStore, Person, Redeemed } from "./channel_inbound.ts";
 import { LINK_ASK_MS, LINK_NONCE_MS } from "./channel_inbound.ts";
+import { NO_CHANNEL_NOTE } from "./channel.ts";
 
 export interface MemContact { contact: string; userId: string | null; threadId: string | null; optedOut: boolean; phone: string | null; alias: string | null; home: boolean; lastInboundAt: number | null; nudgedAt: number | null; createdAt: number }
 export interface MemOutbox {
@@ -13,6 +14,7 @@ export interface MemOutbox {
   status: "queued" | "sending" | "delivered" | "failed" | "skipped_opt_out" | "held"; attempts: number; retryAt: number | null;
   contact: string | null; providerId: string | null; providerIds: string[] | null; deliveredAt: number | null; error: string | null;
   partOf: string | null; part: number | null;
+  sentParts?: number; // CHANNEL DELIVERY ROUND 2: career_outbox.sent_parts
 }
 const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
 async function sha256(s: string) {
@@ -54,12 +56,32 @@ export function memoryChannelWorld() {
   const partBlocked = (o: MemOutbox, now: number, single: boolean) => o.partOf !== null && outbox.some((e) => e.userId === o.userId && e.partOf === o.partOf && e.part! < o.part!
     && (e.status === "sending" || e.status === "held" || (e.status === "failed" && e.retryAt !== null && e.retryAt > now) || (e.status === "queued" && (single || e.deliverAt > now))));
 
+  const backTo = (providerMessageId: string, at: number, error: string, to: "held" | "failed" | "retry") => {
+    let n = 0;
+    for (const r of outbox) {
+      // Out of order: a row already held or failed by a later message's status goes back to this earlier one too.
+      if ((r.status === "held" || r.status === "failed") && r.providerIds?.includes(providerMessageId)) {
+        const k = r.providerIds.indexOf(providerMessageId);
+        r.sentParts = k; r.providerIds = k ? r.providerIds.slice(0, k) : null; r.providerId = k ? r.providerIds![0] : null;
+        n++;
+        continue;
+      }
+      if (r.status !== "delivered" || !(r.providerId === providerMessageId || r.providerIds?.includes(providerMessageId))) continue;
+      const k = Math.max(0, (r.providerIds ?? []).indexOf(providerMessageId));
+      r.sentParts = k; r.providerIds = k ? r.providerIds!.slice(0, k) : null; r.providerId = k ? r.providerIds![0] : null;
+      r.deliveredAt = null; r.error = error;
+      if (to === "held") { r.status = "held"; r.retryAt = null; }
+      else { r.attempts = Math.min(r.attempts + 1, 10); r.status = "failed"; r.retryAt = to === "retry" && r.attempts < 3 ? at + 60000 : null; }
+      n++;
+    }
+    return n;
+  };
   const inbound: InboundStore & { claimed: Set<string> } = {
     claimed: new Set<string>(),
     async claimMessage(id, _at, provider) { const k = `${provider ?? "loopmessage"}:${id}`; if (inbound.claimed.has(k)) return false; inbound.claimed.add(k); return true; },
     async person(contact) {
       const c = contacts.get(contact) ?? (contact.startsWith("wa:") ? [...contacts.values()].find((x) => x.alias === contact.slice(3)) : undefined);
-      return c?.userId ? { userId: c.userId, threadId: c.threadId, contact: c.contact } : null;
+      return c?.userId ? { userId: c.userId, threadId: c.threadId, contact: c.contact, alias: c.alias } : null;
     },
     async refusedBefore(contact, at) { if (contacts.has(contact)) return true; upsert(contact, at); return false; },
     async createPerson(contact, at, phone): Promise<Person> {
@@ -125,9 +147,30 @@ export function memoryChannelWorld() {
       upsert(contact, at, { userId: row.userId, threadId: contacts.get(contact)?.threadId ?? thread, lastInboundAt: at });
       return { ok: true, userId: row.userId, threadId: thread };
     },
-    async reholdSent(providerMessageId, _at, error) {
+    // CHANNEL DELIVERY ROUND 2 (2026-10-30): as 20261030100000's career_outbox_rehold and career_outbox_fail_sent: the row
+    // keeps what went before the failed message (sent_parts, the ids before it), so it resumes from that message and a late
+    // copy of the same status finds nothing.
+    async reholdSent(providerMessageId, at, error) { return backTo(providerMessageId, at, error, "held"); },
+    async failSent(providerMessageId, at, error, retry) { return backTo(providerMessageId, at, error, retry ? "retry" : "failed"); },
+    async releaseContact(contact, at) {
+      if (contacts.get(contact)?.userId) contacts.delete(contact);
+      void at;
+    },
+    async movedNumber(from, to, at) {
+      const c = contacts.get(from);
+      if (!c?.userId || from === to || !/^wa:[0-9]{6,20}$/.test(to)) return false;
+      const other = contacts.get(to);
+      if (other?.userId && other.userId !== c.userId) return false;
+      const keep = { userId: c.userId, threadId: c.threadId, home: c.home, alias: c.alias, optedOut: c.optedOut, lastInboundAt: c.lastInboundAt };
+      Object.assign(c, { userId: null, threadId: null, home: false, alias: null, nudgedAt: null, optedOut: false });
+      const digits = to.slice(3);
+      upsert(to, at, { ...keep, phone: digits.length >= 8 && digits.length <= 15 ? `+${digits}` : null });
+      return true;
+    },
+    async unlinkTelegram(userId, at) {
       let n = 0;
-      for (const r of outbox) if (r.status === "delivered" && (r.providerId === providerMessageId || r.providerIds?.includes(providerMessageId))) { r.status = "held"; r.deliveredAt = null; r.error = error; n++; }
+      for (const c of ofUser(userId)) if (channelOf(c.contact) === "telegram") { c.userId = null; c.threadId = null; c.home = false; n++; }
+      void at;
       return n;
     },
   };
@@ -149,7 +192,8 @@ export function memoryChannelWorld() {
           o.status = "sending"; o.contact = contact;
           const c = contacts.get(contact)!;
           out.push({ id: o.id, userId: o.userId, contact, key: o.key, text: o.text, deliver_at: o.deliverAt, attempts: o.attempts,
-            ...(channelOf(contact) === "whatsapp" ? { lastInboundAt: c.lastInboundAt, nudgedAt: c.nudgedAt } : {}) });
+            ...(channelOf(contact) === "whatsapp" ? { lastInboundAt: c.lastInboundAt, nudgedAt: c.nudgedAt } : {}),
+            ...(o.sentParts ? { sentParts: o.sentParts, sentIds: [...(o.providerIds ?? [])] } : {}) });
         }
         return out;
       },
@@ -162,16 +206,33 @@ export function memoryChannelWorld() {
         const o = outbox.find((x) => x.id === id);
         if (!o || o.status !== "sending") return;
         o.status = m.status; o.error = m.error ?? null; claimedIds.delete(id); mine.delete(id);
-        if (m.status === "delivered") { o.deliveredAt = m.at; o.providerId = m.providerId ?? null; o.providerIds = m.providerIds ?? (m.providerId ? [m.providerId] : null); o.retryAt = null; }
+        if (m.sentParts !== undefined) { o.sentParts = m.sentParts; o.providerIds = m.providerIds?.length ? m.providerIds.slice(0, 10) : null; }
+        if (m.status === "delivered") { o.deliveredAt = m.at; o.providerId = m.providerId ?? null; o.providerIds = m.providerIds ?? (m.providerId ? [m.providerId] : null); o.retryAt = null; o.sentParts = 0; }
+        else if (m.status === "queued") { o.contact = null; o.retryAt = null; if (m.deliverAt !== undefined) o.deliverAt = m.deliverAt; }
         else if (m.status === "failed") { o.attempts++; o.retryAt = m.retryAt ?? null; }
         else o.retryAt = null;
       },
-      async heldFor(userId) { return outbox.filter((o) => o.userId === userId && o.status === "held").length; },
+      // CHANNEL DELIVERY ROUND 2: what waits for the person on WhatsApp: held, and still to go (a run takes 20 at a time).
+      async heldFor(userId) { return outbox.filter((o) => o.userId === userId && (o.channel === null || o.channel === "whatsapp") && (o.status === "held" || o.status === "queued" || o.status === "sending")).length; },
       async nudgesOn(day) { return [...contacts.values()].filter((c) => channelOf(c.contact) === "whatsapp" && c.nudgedAt !== null && utcDay(c.nudgedAt) === day).length; },
       async setNudged(contact, at) { const c = contacts.get(contact); if (c) c.nudgedAt = at; },
       async release() { let n = 0; for (const [id, prior] of mine) { const o = outbox.find((x) => x.id === id)!; if (o.status === "sending") { o.status = prior as MemOutbox["status"]; o.contact = null; n++; } claimedIds.delete(id); mine.delete(id); } return n; },
       async sweep() { return 0; },
+      // CHANNEL DELIVERY ROUND 2 (2026-10-30): as career_outbox_reroute.
+      async reroute(now) { return reroute(now); },
     };
+  };
+  const reroute = (now: number) => {
+    let n = 0;
+    for (const o of outbox) {
+      if (o.channel === null || !(o.status === "queued" || o.status === "held" || (o.status === "failed" && o.retryAt !== null))) continue;
+      if (target(o.userId, o.channel)) continue;
+      if (ofUser(o.userId).length) { o.channel = null; if (o.status === "held") o.status = "queued"; o.sentParts = 0; o.providerIds = null; o.providerId = null; }
+      else { o.status = "failed"; o.retryAt = null; o.error = NO_CHANNEL_NOTE; }
+      n++;
+    }
+    void now;
+    return n;
   };
 
   return {
@@ -182,5 +243,13 @@ export function memoryChannelWorld() {
     link: (contact: string, userId: string, at: number, patch: Partial<MemContact> = {}) => upsert(contact, at, { userId, ...patch }),
     person: (userId: string) => ofUser(userId),
     newUser: () => `u${++users}`,
+    // CHANNEL DELIVERY ROUND 2 (2026-10-30): the app's home channel (channel_set_home): held rows for the home channel go
+    // back in the queue, so they go out on the new home (or are held again there).
+    setHome: (userId: string, channel: Channel) => {
+      if (!ofUser(userId).some((c) => channelOf(c.contact) === channel)) return false;
+      for (const c of ofUser(userId)) c.home = channelOf(c.contact) === channel;
+      for (const o of outbox) if (o.userId === userId && o.status === "held" && o.channel === null) { o.status = "queued"; o.error = null; }
+      return true;
+    },
   };
 }

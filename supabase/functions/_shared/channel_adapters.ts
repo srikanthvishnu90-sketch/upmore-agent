@@ -39,7 +39,8 @@ export interface InboundMessage {
   provider: Provider; channel: Channel; messageId: string;
   // blocked: the person blocked the bot (Telegram); seen: a non-text message (it still opens WhatsApp's window);
   // callback: FEATURE 16, a tap on a message's button (Telegram callback_query), carried in `callback`
-  kind: "text" | "blocked" | "seen" | "callback";
+  // moved (CHANNEL DELIVERY ROUND 2): WhatsApp's system message that the person changed their number (movedTo: the new wa_id).
+  kind: "text" | "blocked" | "seen" | "callback" | "moved";
   file?: boolean; // WO-106: the non-text message is a file or a photo (a resume sent as a PDF), so it gets an answer
   media?: "photo" | "voice" | "file"; // FEATURE 16 (Telegram): which kind, so the answer says what Trainee can read there
   contact: string; address: string;
@@ -48,6 +49,14 @@ export interface InboundMessage {
   phone?: string | null; // +E.164 when the platform gives it (iMessage, WhatsApp wa_id); Telegram only from the person's own shared contact
   sharedPhone?: "own" | "other"; // Telegram contact share: own (contact.user_id is the sender) or somebody else's card
   text: string;
+  // CHANNEL DELIVERY ROUND 2 (2026-10-30): when the person sent it, as the platform stamps it (WhatsApp messages[].timestamp,
+  // in ms). WhatsApp's 24-hour window runs from then, not from when the webhook reached Trainee (Meta retries a webhook for
+  // hours). Absent: the platform gives none, and the time it arrived stands.
+  sentAt?: number | null;
+  // CHANNEL DELIVERY ROUND 2: it came over SMS (LoopMessage's delivery_type "sms": iMessage was not available), so the
+  // carrier keywords apply (channel.ts channelCommand "sms"). movedTo: the new wa_id of a "moved" message.
+  sms?: boolean;
+  movedTo?: string | null;
   command?: "start" | "stop" | "help" | null; // a platform command (Telegram /start, /stop, /help)
   startPayload?: string | null; // Telegram /start <payload> (a link nonce)
   // SERIAL-1462: the provider's id of the message the person replied to, when the platform says so (Telegram
@@ -70,12 +79,18 @@ export interface Button { text: string; data?: string; loginUrl?: string; url?: 
 export interface SendOptions { buttons?: Button[][]; shareContact?: string; removeKeyboard?: boolean }
 // A WhatsApp status callback: a message we sent failed after Meta accepted it. hold: it failed for the window (131047)
 // or the per-user marketing limit (131049), so it goes back in the queue for the person's next message.
-export interface StatusEvent { providerMessageId: string; code: number | null; hold: boolean; error: string }
+// CHANNEL DELIVERY ROUND 2 (2026-10-30): every failure, not only the window's: retry (Meta's throughput and pair limits,
+// 130429 / 131056 / 80007: nothing of it was delivered) puts the row back to go again from that message; any other code
+// (131026 undeliverable, a LoopMessage message_failed) marks the row failed with the reason, never left "delivered".
+export interface StatusEvent { providerMessageId: string; code: number | null; hold: boolean; error: string; retry?: boolean }
 export type ParseResult = { messages: InboundMessage[]; statuses?: StatusEvent[]; ignored?: string[] } | { response: Response };
 
 export type SendResult =
   | { ok: true; id: string | null; ids?: string[] }
-  | { ok: false; error: string; retryable: boolean; hold?: boolean; optOut?: boolean; retryAfterMs?: number }; // retryAfterMs: the provider's own "wait this long" (Telegram's 429)
+  | { ok: false; error: string; retryable: boolean; hold?: boolean; optOut?: boolean; retryAfterMs?: number; sent?: number; sentIds?: string[] }; // retryAfterMs: the provider's own "wait this long" (Telegram's 429)
+// CHANNEL DELIVERY ROUND 2 (2026-10-30): sent / sentIds on a failure: how many of the bubbles went out before it, and their
+// ids. A retryable (or held) failure after some went out resumes from the first that did not (career_outbox.sent_parts), so
+// nothing is sent twice and the rest is not lost; retryable is set only when nothing of the failing bubble went out.
 export interface ChannelLimits {
   chars: number; // the platform's hard limit per message
   packChars: number; // what one message carries at most (longer text is split on purpose, lines kept together)

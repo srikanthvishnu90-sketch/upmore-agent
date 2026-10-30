@@ -111,8 +111,10 @@ export interface RepliesStore {
   wantingCall(limit: number): Promise<ThreadRow[]>;
   mailboxes(userId: string): Promise<{ provider: Provider; last_error: string | null; last_ok_at: string | null }[]>; // threads that want a call and have no scheduling reply yet, any person
   lastAssistantIntent(chatThreadId: string): Promise<string | null>;
-  // NETWORKING R2 (2026-10-30): which batch a chat last showed ("show outreach approvals"), so a "send all" there answers
-  // exactly that batch, never one drafted after it was shown. A store without these answers the newest batch (as before).
+  // NETWORKING R2 (2026-10-30): which batch a chat last showed (pushed there, or "show outreach approvals"), so a "send all"
+  // there answers exactly that batch, never one drafted after it was shown. markShown: a store that records the batch an
+  // approvals reply showed or answered (the in-memory one); the database store reads it from the chat's last message. A store without shownBatch
+  // answers the newest batch (as before).
   shownBatch?(userId: string, chatThreadId: string): Promise<string | null>;
   markShown?(userId: string, chatThreadId: string, batchId: string): Promise<void>;
   batch?(userId: string, batchId: string): Promise<Action[]>;
@@ -832,10 +834,12 @@ export async function repliesTurn(o: { message: string; userId: string; chatThre
   const latest = await o.store.latestBatch(o.userId);
   if (bound && !shownId) {
     // Nothing on record as shown in this chat: nothing is approved; what is waiting is shown, and the next answer binds to it.
-    if (latest[0]) await o.store.markShown!(o.userId, o.chatThreadId, latest[0].batch_id);
+    if (latest[0] && o.store.markShown) await o.store.markShown(o.userId, o.chatThreadId, latest[0].batch_id);
     return { reply: `Nothing was approved: I can't tell which batch that answers here. ${actionsText(latest, await threadsMap(o.store, o.userId, latest))}`, intent: ACTIONS_INTENT, status: "reshown" };
   }
   const batch = shownId ? await o.store.batch!(o.userId, shownId) : latest;
+  // Every approvals reply in this chat answers this batch: the next answer here binds to it too.
+  if (!show && shownId && o.store.markShown) await o.store.markShown(o.userId, o.chatThreadId, shownId);
   const threads = await threadsMap(o.store, o.userId, batch);
   if (show) {
     if (latest[0] && o.store.markShown) await o.store.markShown(o.userId, o.chatThreadId, latest[0].batch_id);
@@ -1194,20 +1198,20 @@ export function supabaseRepliesStore(admin: any): RepliesStore {
       const rows = must(await admin.from("agent_messages").select("meta").eq("thread_id", id).eq("role", "assistant").order("id", { ascending: false }).limit(1), "read the last reply");
       return rows?.[0]?.meta?.intent ?? null;
     },
-    // The batch a chat showed lives in the person's own key-value row (career_watch_kv), one key per chat.
+    // The batch a chat showed: the one the scheduled run pushed there (its outbox key names it), or, when the chat's last
+    // word is an approvals reply ("show outreach approvals", a partial yes), the newest batch that existed when that reply
+    // was written: a batch drafted after it was never shown there. (An approvals message older than every batch, which
+    // only a hand-set clock makes, reads the newest batch, as before.)
     async shownBatch(u, chat) {
-      const last = must(await admin.from("agent_messages").select("meta").eq("thread_id", chat).eq("role", "assistant").order("id", { ascending: false }).limit(1), "read the last reply");
+      const last = must(await admin.from("agent_messages").select("meta,created_at").eq("thread_id", chat).eq("role", "assistant").order("id", { ascending: false }).limit(1), "read the last reply");
       const meta = last?.[0]?.meta ?? {};
-      // The scheduled run's batch, delivered here as the chat's last word.
       const pushed = /^(?:followup|status):outreach-actions:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?::\d+)?$/.exec(String(meta.outbox_key ?? ""));
       if (meta.proactive && pushed) return pushed[1];
       if (meta.intent !== ACTIONS_INTENT) return null;
-      const rows = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", `outreach:actions-shown:${chat}`).limit(1), "read the batch shown");
-      const b = rows?.[0]?.value?.batch_id;
-      return typeof b === "string" ? b : null;
-    },
-    async markShown(u, chat, b) {
-      must(await admin.from("career_watch_kv").upsert({ user_id: u, key: `outreach:actions-shown:${chat}`, value: { batch_id: b }, updated_at: new Date().toISOString() }, { onConflict: "user_id,key" }), "remember the batch shown");
+      const newest = (q: any) => q.order("created_at", { ascending: false }).limit(1);
+      const before = last?.[0]?.created_at ? must(await newest(admin.from("career_outreach_actions").select("batch_id").eq("user_id", u).lte("created_at", last[0].created_at)), "read the batch shown") : [];
+      if (before?.[0]?.batch_id) return before[0].batch_id;
+      return must(await newest(admin.from("career_outreach_actions").select("batch_id").eq("user_id", u)), "read the batch shown")?.[0]?.batch_id ?? null;
     },
     batch: async (u, b) => must(await admin.from("career_outreach_actions").select(ACOLS).eq("user_id", u).eq("batch_id", b).order("n"), "read the batch") ?? [],
     async stopAddress(u, email) {

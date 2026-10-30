@@ -234,6 +234,7 @@ MIGRATIONS=(
   20261030080000_career_evidence_every_confirmation.sql
   20261030090000_career_outreach_stop_address.sql
   20261030100000_channel_delivery_r2.sql
+  20261030110000_billing_r2.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -347,6 +348,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_host_commit_evidenced' and prosrc like '%or stated fact this commit saves%')"
   "exists (select 1 from pg_proc where proname = 'career_send_stop_address') and exists (select 1 from pg_proc where proname = 'career_provider_candidates' and prosrc like '%as blocked%') and exists (select 1 from pg_proc where proname = 'career_send_complete_one' and prosrc like '%stopped by you%')"
   "exists (select 1 from pg_proc where proname = 'career_outbox_reroute') and exists (select 1 from pg_proc where proname = 'career_outbox_fail_sent') and exists (select 1 from pg_proc where proname = 'channel_wa_number_moved') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_outbox' and column_name = 'sent_parts')"
+  "exists (select 1 from pg_proc where proname = 'billing_sync_subscription' and pronargs = 13) and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'user_subscriptions' and column_name = 'live_subscriptions')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

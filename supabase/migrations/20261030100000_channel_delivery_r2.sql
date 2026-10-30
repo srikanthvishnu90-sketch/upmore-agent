@@ -135,3 +135,9 @@ revoke all on function public.career_outbox_fail_sent(text, timestamptz, text, b
   public.channel_contact_release(text, timestamptz), public.channel_wa_number_moved(text, text, timestamptz) from public, anon, authenticated;
 grant execute on function public.career_outbox_fail_sent(text, timestamptz, text, boolean), public.career_outbox_reroute(timestamptz), public.career_outbox_sent_back(text),
   public.channel_contact_release(text, timestamptz), public.channel_wa_number_moved(text, text, timestamptz) to service_role;
+-- Redefined here (20261021070000 made both): restated in this file, as every definer function must be (career-definer-revoke).
+-- career_outbox_rehold is the service role's (the inbound webhook); channel_set_home is the signed-in person's own (auth.uid()).
+revoke all on function public.career_outbox_rehold(text, timestamptz, text) from public, anon, authenticated;
+grant execute on function public.career_outbox_rehold(text, timestamptz, text) to service_role;
+revoke all on function public.channel_set_home(text) from public, anon;
+grant execute on function public.channel_set_home(text) to authenticated;

@@ -709,11 +709,11 @@ echo "== career_apply_card_confirm.test.sql (the exact hash queued once; a chang
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030020000_billing_webhook_sync.sql"
 echo "== billing_webhook_sync.test.sql (the later read wins; an old subscription never replaces a live one; another person's customer refused; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/billing_webhook_sync.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
-# OUTREACH SCENARIOS (20261030030000): the rail's claim hands over no outreach email whose approval is more than 7 days old
+# OUTREACH SCENARIOS (20261030040000): the rail's claim hands over no outreach email whose approval is more than 7 days old
 # (it lapses), and hands a follow-up over with its sequence's sent emails, read right before it goes. On the claim the send
 # queue migration above built; twice (idempotent), then its test.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030030000_career_send_claim_guards.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030030000_career_send_claim_guards.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030040000_career_send_claim_guards.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030040000_career_send_claim_guards.sql"
 echo "== career_send_claim_guards.test.sql (a lapsed approval is cancelled and its draft lapses; a fresh one goes; a follow-up carries its sequence; an answer stops it; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_send_claim_guards.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left

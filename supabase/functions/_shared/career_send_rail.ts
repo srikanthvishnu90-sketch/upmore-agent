@@ -274,7 +274,7 @@ export interface Claimed {
   // Outreach only: the draft as stored when it was claimed (its row locked), re-hashed before the send.
   draft?: Pick<OutreachDraft, "recipient" | "subject" | "body" | "footer"> | null;
   // A follow-up only: the emails of its sequence already sent from Gmail (the first and earlier steps), whose threads are
-  // read right before it goes (20261030030000 career_send_claim).
+  // read right before it goes (20261030040000 career_send_claim).
   sequence?: SentRow[] | null;
 }
 // One sent email of the rail, as the reply check and a follow-up's last look read it.

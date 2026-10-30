@@ -226,7 +226,7 @@ MIGRATIONS=(
   20261030000000_career_outbox_parts_order.sql
   20261030010000_career_apply_card_confirm.sql
   20261030020000_billing_webhook_sync.sql
-  20261030030000_career_send_claim_guards.sql
+  20261030040000_career_send_claim_guards.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"

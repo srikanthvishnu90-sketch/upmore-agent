@@ -1,4 +1,4 @@
--- OUTREACH SCENARIOS (20261030030000_career_send_claim_guards.sql), in the database alone: an approved outreach email never
+-- OUTREACH SCENARIOS (20261030040000_career_send_claim_guards.sql), in the database alone: an approved outreach email never
 -- tried whose approval is more than 7 days old is not handed to a worker (cancelled; its draft lapses as skipped/'expired',
 -- the state "show lapsed" reads), while one inside its 7 days is; a follow-up is handed over with its sequence's emails
 -- already sent from Gmail (their threads), and the first email alone is handed over with none. Service only. Rolled back.

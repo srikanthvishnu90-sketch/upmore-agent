@@ -339,7 +339,18 @@ Deno.test({
       });
       for (const k of Object.keys(realLog) as (keyof typeof realLog)[]) console[k] = realLog[k];
       console.log(`[flow-telegram-r2] ${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ")}; ${bot.msgs.length} messages, ${bot.answers.length} taps answered; OpenAI chat ${openai.chat}, searches ${openai.responses}; ${failures.length} failures`);
-      if (failures.length) console.log(failures.slice(0, 60).join("\n"));
+      if (failures.length) {
+        // by what broke, and how many people it happened to
+        const tally = new Map<string, Set<string>>();
+        for (const f of failures) {
+          const who = /^person \d+/.exec(f)?.[0] ?? f.split(":")[0];
+          const what = f.replace(/^person \d+ ?/, "").replace(/^[^:]*: /, (x) => x.replace(/\d+/g, "#")).replace(/:? ?(said|\(run|want|for ).*$/, "").replace(/\d{2,}/g, "#").slice(0, 110);
+          if (!tally.has(what)) tally.set(what, new Set());
+          tally.get(what)!.add(who);
+        }
+        console.log([...tally.entries()].sort((a, b) => b[1].size - a[1].size).map(([k, v]) => `  ${v.size} people: ${k}`).join("\n"));
+        console.log(failures.slice(0, 60).join("\n"));
+      }
       assertNode.deepEqual(failures, [], failures.slice(0, 40).join("\n"));
     } finally {
       for (const k of Object.keys(realLog) as (keyof typeof realLog)[]) console[k] = realLog[k];

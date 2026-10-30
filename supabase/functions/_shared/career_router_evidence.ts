@@ -13,7 +13,8 @@
 // Each stamped fact names a persisted fact_confirmed event (this person, now, their own message's hash, the upload's
 // reference and hash, the hash of what was shown) and carries an owner provenance. An event that cannot be recorded stamps
 // nothing: the fact reads as needs-review, never as evidenced (the brain's rule, career_tools.ts confirm_profile_fact).
-// agent-chat passes heldEvents() below, so the events persist with the turn's commit or not at all.
+// agent-chat passes heldEvents() below, so the events persist with the turn's commit or not at all (KNOWN GAPS,
+// 2026-10-30: the stated facts' events below and the brain's confirm_profile_fact are held the same way).
 import { type CareerEvent, type EventStore, recordEvent } from "./agent/timeline.ts";
 
 // RESUME CONFIRM RACE (2026-10-30, migration 20261030060000): the confirmation's events are not written during the turn.
@@ -116,6 +117,12 @@ export function heldReply(r: EvidenceResult): string | null {
     ? `${r.stamped} of your resume entries are confirmed, each as you saw it. ${r.held.length} stay drafts: ${why}.`
     : `Nothing from your resume is confirmed yet: I confirm an entry only when you have seen its words and said yes to them, and ${why}.`;
   return `${head} A draft is never tailored, put on a form or sent.`;
+}
+
+// KNOWN GAPS (2026-10-30): the brain confirmed facts (confirm_profile_fact) but their events could not be written with the
+// turn's save, so they are drafts again; the reply says so in place of the brain's "confirmed".
+export function confirmNotRecordedReply(n: number): string {
+  return `I couldn't record your confirmation just now, so ${n === 1 ? "that fact stays a draft" : `those ${n} facts stay drafts`}: nothing was confirmed, and a draft is never tailored, put on a form or sent. Say yes again in a moment.`;
 }
 
 // FEATURE 9: a fact the person states in chat ("I'm a junior", "I need sponsorship", "my recruiter at Acme is Dana") is

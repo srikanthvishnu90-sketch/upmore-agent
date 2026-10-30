@@ -228,15 +228,17 @@ if [[ $partition == all || $partition == architect ]]; then
     step architect-tests deno test -A --no-check --ignore=tests/architect/pending tests/architect/
     step apply-cli-typecheck deno check scripts/apply.ts
   else
-    # Architect shards (2026-10-29): GATE_ARCHITECT_SHARD=i/n runs shard i of n of the architect files, split by position
-    # in the sorted list (scripts/architect-shards.ts; tests/architect/ci-shard-partition.test.ts proves the shards
-    # partition the suite). Same command and flags as above, only the file list is a slice. The aggregate job
-    # (gate (architect)) fails unless every shard passed. The apply.ts typecheck runs in shard 1 only.
+    # Architect shards (2026-10-29): GATE_ARCHITECT_SHARD=i/n runs shard i of n of the architect files, packed by measured
+    # duration since 2026-10-30 (scripts/architect-shards.ts and its table scripts/architect-shard-durations.json;
+    # tests/architect/ci-shard-partition.test.ts proves the shards partition the suite and stay balanced). Same command
+    # and flags as above, only the file list is a slice. The aggregate job (gate (architect)) fails unless every shard
+    # passed. The apply.ts typecheck runs in shard 1 only.
     shard=${GATE_ARCHITECT_SHARD%/*}
     shard_count=${GATE_ARCHITECT_SHARD#*/}
     deno run -A scripts/architect-shards.ts verify "$shard_count"
     mapfile -t architect_files < <(deno run -A scripts/architect-shards.ts list "$shard" "$shard_count")
     printf 'GATE ARCHITECT SHARD %s: %s files\n' "$GATE_ARCHITECT_SHARD" "${#architect_files[@]}"
+    deno run -A scripts/architect-shards.ts plan "$shard_count" | sed -n "${shard}p"
     step "architect-tests-shard-$shard" deno test -A --no-check "${architect_files[@]}"
     if [[ $shard == 1 ]]; then step apply-cli-typecheck deno check scripts/apply.ts; fi
   fi

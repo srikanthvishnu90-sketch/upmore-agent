@@ -199,10 +199,11 @@ async function checkRuns(s: RunScenario): Promise<{ why: string | null; got: unk
     note(run.now);
     // The first run is clean: everyone whose zone is unknown or not gets exactly what fits their room, whoever else runs.
     if (k === 0) {
+      const after = store.dump().outbox; // read once (a deep copy each call; nothing runs between the people below)
       for (const u of s.people) {
         const eligible = run.postings.filter((p) => matches(p, u) && news(p) && ms(p.first_seen_at) >= ms(u.last_checked_at));
         const want = Math.min(eligible.length, Math.max(0, Math.min(dayCap(u), weekCap(u))));
-        const got = store.dump().outbox.filter((o) => o.userId === u.id && o.kind === "alert").length;
+        const got = after.filter((o) => o.userId === u.id && o.kind === "alert").length;
         if (got !== want) return { why: `${u.id} (zone ${JSON.stringify(u.tz)}) got ${got} alerts in a clean first run, not ${want}`, got: { people: s.people.map((x) => x.tz) } };
       }
     }
@@ -297,8 +298,9 @@ async function checkQuiet(s: QuietScenario): Promise<{ why: string | null; got: 
   // START (and every pause lifted): the next run brings at most a day's cap, one report, each receipt once, one digest.
   const second = await run(s.now + 5 * MIN, new Set());
   if (second.status !== 200) return { why: `the run after START failed: ${second.body.detail}`, got: second.body.errors };
+  const afterStart = store.dump().outbox; // read once (a deep copy each call; nothing runs between the people below)
   for (const u of s.people) {
-    const mine = store.dump().outbox.filter((o) => o.userId === u.id);
+    const mine = afterStart.filter((o) => o.userId === u.id);
     const n = (k: string) => mine.filter((o) => o.kind === k).length;
     if (n("alert") > dayCap(u) || n("report") > 1 || n("digest") > 1 || n("receipt") > u.receipts.length) return { why: `after START ${u.id} got ${n("alert")} alerts, ${n("report")} reports, ${n("digest")} digests, ${n("receipt")} receipts: a backlog`, got: mine.map((o) => o.key) };
     if (u.state !== "awake" && n("receipt") !== u.receipts.length) return { why: `after START a resumed person's receipts from the last day are not said (${n("receipt")} of ${u.receipts.length})`, got: mine.map((o) => o.key) };

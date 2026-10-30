@@ -64,7 +64,7 @@ import { receiptTurn, supabaseReceipts } from "../_shared/career_apply_receipt_r
 import { chatScreenFacts } from "../_shared/career_apply_gate.ts";
 import { screenAnswerTurn, screenMeta, screenTapTurn, TAP_INTENT, TAP_STALE_REPLY } from "../_shared/career_apply_screen_answer.ts";
 import { APPLY_QUEUE_INTENT, applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerTurn, paceReader, paceTurn, supabaseEmployerAskStore } from "../_shared/career_apply_chat.ts";
-import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
+import { evidenceResumeConfirmation, heldEvents, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 // FEATURE 9: account memory (stated-fact provenance, standing needs on the router path).
 import { accountMemoryAfterTurn, statedFactsBefore } from "../_shared/career_account_memory.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
@@ -967,13 +967,16 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // ever use it. Each fact this turn confirmed whose words Trainee showed the person, and that is in their own upload,
       // gets its persisted fact_confirmed event and an owner provenance; anything else stays unevidenced. Saved with the
       // turn below. The thread is read only on the router's resume confirm.
+      // RESUME CONFIRM RACE (2026-10-30): the events are held (confirmEvents) and written by this turn's commit, in the same
+      // transaction as the profile they evidence (career_host_commit_evidenced): a refused save writes none.
+      const confirmEvents = heldEvents();
       if (out.handler !== "agent" && out.intent === "career_resume_ingest" && out.resultStatus === "completed") {
         const recent = await admin.from("agent_messages").select("id,role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(40);
         if (recent.error) {
           // The thread could not be read, so nothing the router confirmed can be evidenced: held, and said.
           console.error("career evidence: the thread was not read", recent.error.message);
           const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.account as any)?.memory?.profile ?? (loaded.snapshot as any)?.stores?.profile ?? null,
-            after: (ctx as any).profile ?? null, out, shown: null, upload: null, events });
+            after: (ctx as any).profile ?? null, out, shown: null, upload: null, events: confirmEvents });
           const held = heldReply(ev);
           if (held) out = { ...out, reply: held, resultStatus: "not_confirmed" };
         } else {
@@ -983,7 +986,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           seen.upload = await fileUploadFor(admin, user.id, seen.upload);
           // END FEATURE 16
           const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.account as any)?.memory?.profile ?? (loaded.snapshot as any)?.stores?.profile ?? null,
-            after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, said: seen.said, events });
+            after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, said: seen.said, events: confirmEvents });
           if (ev.unshown || ev.untraced || ev.refused) console.error(`career evidence: held as drafts: ${ev.unshown} not shown, ${ev.untraced} not in the upload, ${ev.refused} event not recorded`);
           // A confirmation the host could not evidence is not claimed: those facts are drafts again, and the reply says so.
           const held = heldReply(ev);
@@ -1133,7 +1136,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // The same reply as separate messages for a texting channel: the note, each part whole, then the reminders.
       const parts = out.parts ? [...(flowCtx.note ? [flowCtx.note] : []), ...out.parts, ...(artifactNote ? [artifactNote] : []), ...reminderLines] : null;
       const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), ...(artifactsField ? { artifacts: artifactsField } : {}), ...(turnPostings.length ? { postings: turnPostings } : {}), ...(shapeField ? { shape: shapeField } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
-      const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent, batchIntent });
+      const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent, batchIntent, events: confirmEvents.rows() });
       // WO-028: "forget everything" also removes the tailored resumes (they carry the person's name and email); best
       // effort, after the erase is recorded, like the rest of the erase's side effects.
       if (ctx._hostPatch?.erase === true) await supabaseResumeStore(admin).removeAll(user.id).catch((e) => console.error("career erase: resumes", e?.message ?? e));

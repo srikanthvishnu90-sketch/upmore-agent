@@ -121,6 +121,7 @@
     "tests/architect/flow-pg-wire.test.ts": 9,
     "tests/architect/flow-real-person.test.ts": 25,
     "tests/architect/flow-receipt.test.ts": 18,
+    "tests/architect/flow-resume-confirm-race.test.ts": 12,
     "tests/architect/flow-routing-scenarios.test.ts": 24,
     "tests/architect/flow-scenarios-apply-r2.test.ts": 45,
     "tests/architect/flow-scenarios-apply.test.ts": 20,

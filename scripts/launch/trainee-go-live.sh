@@ -229,6 +229,7 @@ MIGRATIONS=(
   20261030030000_career_ingest_bounded.sql
   20261030040000_career_send_claim_guards.sql
   20261030050000_account_erase_r2.sql
+  20261030060000_career_resume_confirm_atomic.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -337,6 +338,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_postings_known') and exists (select 1 from pg_class where relname = 'career_postings_search' and reloptions::text like '%fastupdate=off%') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_ingest_runs' and column_name = 'status') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_board_state' and column_name = 'pass_offset')"
   "exists (select 1 from pg_proc where proname = 'career_send_claim' and prosrc like '%approval lapsed (more than 7 days)%' and prosrc like '%''sequence''%')"
   "exists (select 1 from pg_proc where proname = 'oauth_vault_refresh') and exists (select 1 from pg_proc where proname = 'career_account_gone') and exists (select 1 from pg_proc where proname = 'career_connection_switched') and to_regclass('public.account_deletion_log') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_host_commit_evidenced' and prosrc like '%evidence without state%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

@@ -5,6 +5,7 @@
 // WO-038: or one adapter per channel (channel_adapters.ts): iMessage, WhatsApp, Telegram.
 import { toBubbles } from "./conversation.ts";
 import { addressOf, type Channel, channelOf, type DeliveryAdapter, type SendResult } from "./channel_adapters.ts";
+import { DEFAULT_PREFS, nextAwake, quietAt, zoneOr } from "./career_alerts.ts";
 
 export type ChannelCommand = "stop" | "start" | "help";
 const COMMANDS: Record<string, ChannelCommand> = {
@@ -40,8 +41,12 @@ export interface OutboxRow {
   lastInboundAt?: number | null; nudgedAt?: number | null;
   // FEATURE 16: buttons under this message (the card's Approve and Decline on Telegram), set by the store from the row's card.
   buttons?: { text: string; data?: string; loginUrl?: string; url?: string; webApp?: string }[][] | null;
+  // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): when this row was first held by WhatsApp's window; null: never held;
+  // absent: the store cannot say.
+  heldAt?: number | null;
 }
-export type DeliveryMark = { status: "delivered" | "failed" | "skipped_opt_out" | "held"; at: number; error?: string; providerId?: string; providerIds?: string[]; retryAt?: number };
+// "queued" with deliverAt: put back for a later time (the person's quiet hours on their clock as it is now).
+export type DeliveryMark = { status: "delivered" | "failed" | "skipped_opt_out" | "held" | "queued"; at: number; error?: string; providerId?: string; providerIds?: string[]; retryAt?: number; deliverAt?: number };
 export interface ChannelStore {
   due(now: number, limit: number): Promise<OutboxRow[]>; // undelivered, deliver_at <= now, oldest first
   optedOut(contact: string): Promise<boolean>;
@@ -55,6 +60,21 @@ export interface ChannelStore {
   // A queued job alert or report (key alert:… or report:…) still wanted now: the person's alert settings, the watch behind
   // them and the posting, read at delivery (career_watch_alerts.ts, alertStillWanted). Absent: not checked (memory stores).
   alertWanted?(row: OutboxRow): Promise<boolean>;
+  // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): a queued job alert (alert:…) still within the person's fit floor and daily
+  // cap as they are now (career_watch_alerts.ts alertWithinLimits), `now` the run's time. Absent: not checked.
+  alertWithinLimits?(row: OutboxRow, now: number): Promise<boolean>;
+  // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): of a daily report's links, the postings closed since (career_postings).
+  // Absent: not checked.
+  closedLinks?(urls: string[]): Promise<Set<string>>;
+  // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): the person's zone and quiet hours as they are now (their alert settings),
+  // null when they have none on file. Absent: not checked (the time a row was planned for stands).
+  quietHours?(userId: string): Promise<{ tz: string | null; quiet_start?: number; quiet_end?: number } | null>;
+  // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): one waiting-updates template counted against the day's budget and recorded
+  // for the contact in one step (two delivery runs at once each read the count and both sent past it). true: claimed;
+  // false: the day's budget is spent; null: the store cannot claim (nudgesOn and setNudged are used). unclaimTemplate
+  // gives the slot back when the template was not sent.
+  claimTemplate?(contact: string, day: string, cap: number, at: number): Promise<boolean | null>;
+  unclaimTemplate?(contact: string, at: number): Promise<void>;
   setOptOut(contact: string, out: boolean, at: number): Promise<void>;
   contactsSentOn(day: string, channel?: Channel): Promise<number>; // distinct contacts sent to on a UTC day (on one channel, if named)
   sentTo(contact: string, day: string): Promise<boolean>;
@@ -81,8 +101,17 @@ export const STOPPED_REPLY_NOTE = "not sent: the person texted STOP after the me
 // alert and report of the weeks before went out at once, each still saying "first seen 20 min ago". Past this age, an
 // alert or report is not sent; the dashboard still lists it. Not on a channel with a service window (WhatsApp): there a
 // row held for the window goes out whole when the person next writes, however late (WO-038/W5).
+// PROACTIVE SCENARIOS ROUND 2 (2026-10-30): on WhatsApp too, for a row that was never held by the window. A web-only person
+// who connected WhatsApp days later got the whole backlog the moment they wrote to connect it (the window was open),
+// each alert still "first seen 20 min ago". A row the window held still goes out whole when they write (heldAt set).
 export const ALERT_STALE_MS = 48 * 3600000;
 export const STALE_NOTE = "not sent: a job alert or report more than 48 hours past its time is no longer news";
+// PROACTIVE SCENARIOS ROUND 2 (2026-10-30): what Trainee starts on a schedule waits out the person's quiet hours on their
+// clock as it is at delivery, not only as it was when it was planned: a person who moved zones (or changed their quiet
+// hours) after a row was queued got it in the middle of their night.
+const QUIET_AWARE = /^(alert|report|receipt|status|followup|brief|digest):/;
+export const LIMITS_NOTE = "not sent: under the fit floor the person set, or past the alerts a day they asked for, since it was queued";
+export const CLOSED_SINCE =" (this posting has closed since this report was written)";
 
 // budgetMs: a run that has used its time stops before the next row (a long card is many bubbles, each paced by the
 // provider); what it claimed and did not reach goes back for the next run (the store's release), never half sent.
@@ -119,6 +148,12 @@ export async function deliverDue(o: {
   // Answers keep their order: once one of a person's replies (or one part of a reply in parts) did not go out in this run,
   // their later replies wait for the next run instead of overtaking it.
   const stalled = new Set<string>();
+  // The person's zone and quiet hours now, once per run; undefined: they could not be read.
+  const hoursOf = new Map<string, { tz: string | null; quiet_start?: number; quiet_end?: number } | null | undefined>();
+  const quietHoursOf = async (userId: string) => {
+    if (!hoursOf.has(userId)) hoursOf.set(userId, await o.store.quietHours!(userId).catch((e) => { console.error("deliver: the quiet hours could not be read:", e instanceof Error ? e.message : String(e)); return undefined; }));
+    return hoursOf.get(userId);
+  };
   const quiet = new Map<string, boolean | null>(); // per person, once per run; null: it could not be read
   const isQuiet = async (userId: string) => {
     if (!o.store.quiet) return false;
@@ -159,7 +194,7 @@ export async function deliverDue(o: {
     }
     // A job alert or report queued before the person paused or stopped their alerts by text (their watch, not the
     // account) is checked again now. Not wanted: not sent. A check that cannot be read leaves the row for the next run.
-    if (/^(alert|report):/.test(m.key) && o.now - m.deliver_at > ALERT_STALE_MS && (adapter.limits.windowMs ?? null) === null) {
+    if (/^(alert|report):/.test(m.key) && o.now - m.deliver_at > ALERT_STALE_MS && ((adapter.limits.windowMs ?? null) === null || m.heldAt === null)) {
       await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: STALE_NOTE }); r.skipped_opt_out++; continue;
     }
     if (/^(alert|report):/.test(m.key) && o.store.alertWanted) {
@@ -167,6 +202,40 @@ export async function deliverDue(o: {
       try { wanted = await o.store.alertWanted(m); } catch (e) { console.error("deliver: the job alerts could not be read:", e instanceof Error ? e.message : String(e)); wanted = null; }
       if (wanted === null) { r.deferred++; continue; }
       if (!wanted) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: ALERTS_OFF_NOTE }); r.skipped_opt_out++; continue; }
+    }
+    if (m.key.startsWith("alert:") && o.store.alertWithinLimits) {
+      let within: boolean | null;
+      try { within = await o.store.alertWithinLimits(m, o.now); } catch (e) { console.error("deliver: the alert limits could not be read:", e instanceof Error ? e.message : String(e)); within = null; }
+      if (within === null) { r.deferred++; continue; }
+      if (!within) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: LIMITS_NOTE }); r.skipped_opt_out++; continue; }
+    }
+    // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): quiet hours on the person's clock as it is now. Inside them, the row goes
+    // back in the queue for the first quarter hour after them (after the checks above: a stale or unwanted row is not
+    // kept for the morning); a read that fails leaves it for the next run.
+    if (QUIET_AWARE.test(m.key) && o.store.quietHours) {
+      const q = await quietHoursOf(m.userId);
+      if (q === undefined) { r.deferred++; continue; }
+      if (q) {
+        const tz = zoneOr(q.tz), hours = { quiet_start: q.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: q.quiet_end ?? DEFAULT_PREFS.quiet_end };
+        if (quietAt(o.now, tz, hours)) { await o.store.mark(m.id, { status: "queued", at: o.now, deliverAt: Math.max(o.now + 60000, nextAwake(o.now, tz, hours)) }); r.deferred++; continue; }
+      }
+    }
+    // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): a daily report waits in the outbox (quiet hours, a channel behind) while
+    // postings on it close. Each one closed since it was written is said to be closed, on its own line; a read that fails
+    // leaves the report for the next run.
+    let text = m.text;
+    if (m.key.startsWith("report:") && o.store.closedLinks) {
+      const urls = [...m.text.matchAll(/^ {2}(https:\/\/\S+)$/gm)].map((x) => x[1]);
+      if (urls.length) {
+        let closed: Set<string> | null;
+        try { closed = await o.store.closedLinks(urls); } catch (e) { console.error("deliver: the report's postings could not be read:", e instanceof Error ? e.message : String(e)); closed = null; }
+        if (closed === null) { r.deferred++; continue; }
+        if (closed.size) {
+          const lines = m.text.split("\n");
+          for (let i = 1; i < lines.length; i++) if (closed.has(lines[i].trim()) && lines[i - 1].startsWith("- ") && !lines[i - 1].endsWith(CLOSED_SINCE)) lines[i - 1] += CLOSED_SINCE;
+          text = lines.join("\n");
+        }
+      }
     }
     const window = adapter.limits.windowMs ?? null;
     const stall = () => { if (isReply(m.key)) stalled.add(m.userId); };
@@ -176,7 +245,7 @@ export async function deliverDue(o: {
     const known = await o.store.sentTo(m.contact, day);
     if (!known && cap !== Infinity && await counted(channel) >= cap) { stall(); r.capped++; continue; } // stays queued for tomorrow's allowance
     let res: SendResult;
-    try { res = await adapter.send(addressOf(m.contact), adapter.render(m.text), m.buttons?.length ? { buttons: m.buttons } : undefined); }
+    try { res = await adapter.send(addressOf(m.contact), adapter.render(text), m.buttons?.length ? { buttons: m.buttons } : undefined); }
     catch (e) { res = { ok: false, error: e instanceof Error ? e.message : String(e), retryable: true }; }
     if (res.ok) {
       await o.store.mark(m.id, { status: "delivered", at: o.now, providerId: res.id ?? undefined, ...(res.ids && res.ids.length > 1 ? { providerIds: res.ids } : {}) });
@@ -203,23 +272,38 @@ export async function deliverDue(o: {
   let templates: number | null = null;
   for (const [contact, { row, adapter }] of toNudge) {
     const cap = adapter.limits.dailyTemplates ?? null;
+    // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): the day's budget is claimed in the store, one template at a time, before
+    // it is sent. Each run read the count once and counted on from there, so two delivery runs at once (a run that ran
+    // long, the head start of an inbound message) each sent up to the whole budget. A store that cannot claim keeps the
+    // old count.
+    let claimed = false;
     if (cap !== null) {
-      templates ??= o.store.nudgesOn ? await o.store.nudgesOn(day) : 0;
-      if (templates >= cap) continue; // the held rows wait for the person's next message either way
+      const got = o.store.claimTemplate ? await o.store.claimTemplate(contact, day, cap, o.now).catch((e) => { console.error("deliver: the template budget could not be claimed:", e instanceof Error ? e.message : String(e)); return false; }) : null;
+      if (got === false) continue; // the budget is spent (or unreadable): the held rows wait for the person's next message
+      if (got === true) claimed = true;
+      else {
+        templates ??= o.store.nudgesOn ? await o.store.nudgesOn(day) : 0;
+        if (templates >= cap) continue; // the held rows wait for the person's next message either way
+      }
     }
     const n = o.store.heldFor ? await o.store.heldFor(row.userId) : 1;
     let res: SendResult | null;
     try { res = await adapter.sendTemplate!(addressOf(contact), Math.max(1, n)); }
     catch (e) { res = { ok: false, error: e instanceof Error ? e.message : String(e), retryable: true }; }
-    if (res === null) continue; // no template configured: the messages wait and nothing is said
-    if (res.ok) { await o.store.setNudged?.(contact, o.now); r.nudged++; if (templates !== null) templates++; }
-    else console.error("deliver: the waiting-updates template failed:", res.error);
+    if (res === null || !res.ok) {
+      if (claimed) await o.store.unclaimTemplate?.(contact, o.now).catch(() => {});
+      if (res) console.error("deliver: the waiting-updates template failed:", res.error);
+      continue; // no template configured (null): the messages wait and nothing is said
+    }
+    if (!claimed) await o.store.setNudged?.(contact, o.now);
+    r.nudged++;
+    if (templates !== null) templates++;
   }
   return r;
 }
 
 // ------------------------------------------------------------------------------------------------ memory
-type MemRow = OutboxRow & { status: "queued" | "delivered" | "failed" | "skipped_opt_out" | "held"; retryAt: number | null; sentAt: number | null; error: string | null };
+type MemRow = Omit<OutboxRow, "heldAt"> & { status: "queued" | "delivered" | "failed" | "skipped_opt_out" | "held"; retryAt: number | null; sentAt: number | null; error: string | null; heldAt?: number | null };
 export function memoryChannel(rows: OutboxRow[] = []): ChannelStore & { rows(): MemRow[]; queue(row: OutboxRow): void; optOuts(): string[]; unhold(userId: string): number } {
   const st: MemRow[] = rows.map((x) => ({ ...x, status: "queued", retryAt: null, sentAt: null, error: null }));
   const optOut = new Map<string, boolean>(), optOutAt = new Map<string, number>(), nudged = new Map<string, number>();
@@ -227,7 +311,8 @@ export function memoryChannel(rows: OutboxRow[] = []): ChannelStore & { rows(): 
     async due(now, limit) {
       return st.filter((x) => (x.status === "queued" || (x.status === "failed" && x.retryAt !== null && x.retryAt <= now)) && x.deliver_at <= now)
         .sort((a, b) => a.deliver_at - b.deliver_at).slice(0, limit).map((x) => ({ id: x.id, userId: x.userId, contact: x.contact, key: x.key, text: x.text, deliver_at: x.deliver_at, attempts: x.attempts,
-          ...(x.lastInboundAt !== undefined || nudged.has(x.contact) ? { lastInboundAt: x.lastInboundAt ?? null, nudgedAt: nudged.get(x.contact) ?? null } : {}) }));
+          ...(x.lastInboundAt !== undefined || nudged.has(x.contact) ? { lastInboundAt: x.lastInboundAt ?? null, nudgedAt: nudged.get(x.contact) ?? null } : {}),
+          ...(x.heldAt !== undefined ? { heldAt: x.heldAt } : {}) }));
     },
     async optedOut(c) { return optOut.get(c) === true; },
     async optedOutAt(c) { return optOut.get(c) === true ? optOutAt.get(c) ?? null : null; },
@@ -238,11 +323,19 @@ export function memoryChannel(rows: OutboxRow[] = []): ChannelStore & { rows(): 
       const x = st.find((y) => y.id === id); if (!x) return;
       x.status = m.status; x.error = m.error ?? null;
       if (m.status === "delivered") x.sentAt = m.at;
+      if (m.status === "held") x.heldAt ??= m.at;
+      if (m.status === "queued" && m.deliverAt !== undefined) x.deliver_at = m.deliverAt;
       if (m.status === "failed") { x.attempts++; x.retryAt = m.retryAt ?? null; }
     },
     async heldFor(userId) { return st.filter((x) => x.userId === userId && x.status === "held").length; },
     async nudgesOn(day) { return [...nudged.values()].filter((t) => utcDay(t) === day).length; },
     async setNudged(c, at) { nudged.set(c, at); },
+    async claimTemplate(c, day, cap, at) {
+      if ([...nudged.values()].filter((t) => utcDay(t) === day).length >= cap) return false;
+      nudged.set(c, at);
+      return true;
+    },
+    async unclaimTemplate(c, at) { if (nudged.get(c) === at) nudged.delete(c); },
     rows() { return st.map((x) => ({ ...x })); },
     queue(row) { st.push({ ...row, status: "queued", retryAt: null, sentAt: null, error: null }); },
     optOuts() { return [...optOut].filter(([, v]) => v).map(([k]) => k); },

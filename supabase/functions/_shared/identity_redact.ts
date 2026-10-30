@@ -56,7 +56,22 @@ const NAMED_CODE = String.raw`(?<!\b(?:zip|postal|post|area|country|promo|promot
 const CODE_ANY = new RegExp(String.raw`${NAMED_CODE}\b(code|pin(?: code| number)?)(\s*(?:\bis\b|=|:|#)\s*|\s+)(\d(?:[ -]?\d){3,7})\b(?![-.\/]?\d)`, "gi");
 const CODE_LOOSE = new RegExp(String.raw`${NAMED_CODE}\b(code\b[^.\n\d]{1,40}?\s(?:is|was|=|:)\s*)(\d(?:[ -]?\d){3,7})\b(?![-.\/]?\d)`, "gi");
 const DATE_LIKE = /^(?:19|20)\d\d-\d\d?-\d\d?$/;
-const CVV_LABELED = /\b(cvv2?|cvc2?|csc)(\s*(?:code|number)?\s*(?:is|=|:)?\s*)(\d{3,4})\b/gi;
+const CVV_LABELED = /\b(cvv2?|cvc2?|csc|cvn|cid)(\s*(?:code|number)?\s*(?:is|=|:)?\s*)(\d{3,4})\b/gi;
+// Battery 2026-10-30 (scenarios-billing-cancel.test.ts): a card's security code by its other names ("security code is
+// 123", "the 3 digits on the back are 123"), and an IBAN, were kept word for word.
+const CVV_NAMED = /\b((?:card )?(?:security|verification) code|(?:three|3)[- ]digits? on the back(?: of (?:my|the) card)?)(\s*(?:is|are|=|:)?\s*)(\d{3,4})\b(?![-.\/]?\d)/gi;
+const IBAN = /\b([A-Za-z]{2}\d{2}(?:[ ]?[A-Za-z0-9]{4}){2,7}(?:[ ]?[A-Za-z0-9]{1,4})?)\b/g;
+function ibanOk(raw: string) {
+  const s = raw.replace(/ /g, "").toUpperCase();
+  if (s.length < 15 || s.length > 34 || !/^[A-Z]{2}\d{2}[A-Z0-9]+$/.test(s) || !/\d{6}/.test(s.slice(4).replace(/[A-Z]/g, ""))) return false;
+  const moved = s.slice(4) + s.slice(0, 4);
+  let rem = 0;
+  for (const ch of moved) {
+    const v = /[A-Z]/.test(ch) ? String(ch.charCodeAt(0) - 55) : ch;
+    for (const d of v) rem = (rem * 10 + (d.charCodeAt(0) - 48)) % 97;
+  }
+  return rem === 1;
+}
 
 function luhn(digits: string) {
   let sum = 0, dbl = false;
@@ -115,6 +130,8 @@ export function redactIdentity(input: string, o: { codePending?: boolean } = {})
     removed.add("password"); return `${label}${sp}[password removed]`;
   });
   t = t.replace(CVV_LABELED, (_m, label, sep) => { removed.add("card"); return `${label}${sep}[security code removed]`; });
+  t = t.replace(CVV_NAMED, (_m, label, sep) => { removed.add("card"); return `${label}${sep}[security code removed]`; });
+  t = t.replace(IBAN, (m) => { if (!ibanOk(m)) return m; removed.add("account"); return "[number removed]"; });
   if (o.codePending) t = t.replace(BARE_CODE, () => { removed.add("code"); return "[code removed]"; });
   return { text: t, removed: [...removed] };
 }

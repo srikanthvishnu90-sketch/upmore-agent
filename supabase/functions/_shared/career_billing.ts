@@ -10,8 +10,12 @@ import { approvalWords } from "./approval_words.ts";
 
 export const BILLING_INTENT = "career_billing";
 export const BILLING_CANCEL_INTENT = "career_billing_cancel_ask";
+// Undoing a cancel before the period ends (battery 2026-10-30): the same one approved step as the cancel, the other way.
+export const BILLING_RESUME_INTENT = "career_billing_resume_ask";
 // The plan's price for someone with no row (the $10/month the checkout and the webhook charge).
 export const PLAN_PRICE_CENTS = 1000;
+// Said after card or bank details were removed from a chat message: paying happens only on Stripe's checkout.
+export const PAY_BY_CHECKOUT = "To pay for Trainee, use the Subscribe button, which opens Stripe's secure checkout. Never send card or bank details in chat.";
 
 export interface Subscription {
   status: string;
@@ -27,6 +31,8 @@ export interface Invoice { id: string; created: number; amount_paid: number; cur
 export interface CancelResult { cancel_at_period_end: boolean; cancel_at?: number | null; current_period_end?: number | null }
 export interface StripeBilling {
   cancelAtPeriodEnd(subscriptionId: string, idempotencyKey: string): Promise<CancelResult>;
+  // Undo a cancel before the period ends (cancel_at_period_end=false). Optional only for older fakes.
+  keepPlan?(subscriptionId: string, idempotencyKey: string): Promise<CancelResult>;
   listInvoices(customerId: string): Promise<Invoice[]>;
 }
 export interface BillingStore {
@@ -35,9 +41,11 @@ export interface BillingStore {
   lastMeta(threadId: string): Promise<Record<string, unknown> | null>;
   // After Stripe accepted the cancel: the row says so until the webhook writes the same.
   markCancelling(userId: string, subscriptionId: string): Promise<void>;
+  // After Stripe accepted the undo: the row says the plan renews again. Optional only for older fakes.
+  markKept?(userId: string, subscriptionId: string): Promise<void>;
 }
 export interface PendingCancel { subscription_id: string; period_end: string | null; hash: string }
-export interface BillingTurn { reply: string; intent: string; status: string; meta?: { billing_cancel: PendingCancel } }
+export interface BillingTurn { reply: string; intent: string; status: string; meta?: { billing_cancel: PendingCancel } | { billing_resume: PendingCancel } }
 
 // ------------------------------------------------------------------------------------------------ the asks
 const plain = (s: string) => String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/[?!.]+\s*$/, "").replace(/\s+/g, " ").trim()
@@ -66,12 +74,27 @@ const PRICE: RegExp[] = [
   /^when (?:will|do|am) i (?:be |get )?(?:charged|billed)(?: next| again)?$/,
   /^when does (?:my )?(?:plan|subscription|trainee) renew$/,
   /^is trainee free$/,
+  // The plan's state (battery 2026-10-30): answered from the row like the price, never by the model.
+  /^when (?:does|will) (?:my )?(?:plan|subscription|membership|access|trainee access) (?:end|expire|run out|stop)$/,
+  /^am i (?:still )?(?:subscribed|paying|being charged|a subscriber)(?: to trainee)?$/,
+  /^is my (?:plan|subscription|membership) (?:still )?(?:active|on|cancell?ed|ending|going to renew|renewing)$/,
+  /^(?:did|has) my (?:cancel|cancellation|cancelation)(?: request)? (?:go through|gone through|work|worked)$/,
+  /^(?:what'?s|what is) (?:my |the )?(?:plan|subscription|billing) status$/,
+  /^(?:what'?s|what is) the (?:price|cost) of (?:trainee|my plan|my subscription|the plan|the subscription)$/,
 ];
+const ASKER = "(?:i want to |i'?d like to |i wanna |i need to |can you |can i |could you |how do i |how can i |help me |please )?";
 const CANCEL: RegExp[] = [
   /^(?:i want to |i'?d like to |i wanna |can you |can i |could you |how do i |how can i |help me )?(?:cancel|end|stop) (?:my |the )?(?:trainee )?(?:plan|subscription|membership)(?: now)?$/,
   /^(?:(?:i want to|i'?d like to|how do i|how can i|can you|help me) )?cancel trainee$/,
   /^(?:stop|quit) (?:charging|billing) (?:me|my card)$/,
   /^don'?t charge me (?:again|anymore|any more)$/,
+  // Battery 2026-10-30: clear cancel asks that used to fall through to the model.
+  new RegExp(`^${ASKER}(?:cancel|end|stop|terminate|delete) (?:my |the )?(?:trainee )?(?:sub|subscription|plan|membership)(?: (?:to|with|for|on) trainee)?$`),
+  new RegExp(`^${ASKER}(?:cancel|turn off|stop|disable) (?:my |the )?(?:auto[- ]?renew(?:al)?|automatic renewal|renewal)(?: (?:for|on|of) (?:my |the )?(?:trainee )?(?:plan|subscription|membership))?$`),
+  /^(?:please )?(?:don'?t|do not) renew (?:my |the )?(?:trainee )?(?:plan|subscription|membership)$/,
+  new RegExp(`^${ASKER}unsubscribe(?: me)? from trainee$`),
+  new RegExp(`^${ASKER}(?:end|quit|cancel) (?:my )?trainee (?:billing|payments?)$`),
+  new RegExp(`^${ASKER}(?:cancel|stop) (?:my )?(?:trainee )?billing$`),
 ];
 const RECEIPTS: RegExp[] = [
   /^(?:(?:show|send|give|get)(?: me)? |can i (?:see|get) |where are |list )?(?:my )?(?:billing|payment|trainee|subscription) (?:receipts?|invoices?|history)$/,
@@ -80,13 +103,18 @@ const RECEIPTS: RegExp[] = [
   /^what (?:was|have) i (?:been )?(?:charged|billed)(?: for)?(?: so far)?$/,
   /^(?:what|how much) did (?:you|trainee) charge me$/,
 ];
-// Undoing a cancel (decided 2026-10-29, scenarios): there is no text path that restarts billing, so the ask is answered
-// from the row and nothing is changed or promised; Stripe is never called.
+// Undoing a cancel: before the period ends, one approved step like the cancel (askResume, battery 2026-10-30); a plan
+// already ended, or never cancelled, is answered from the row and nothing is changed. A plan that ended is never
+// restarted by text.
 const RESUME: RegExp[] = [
   /^(?:i want to |i'?d like to |can you |can i |could you |how do i |how can i )?(?:resume|restart|reactivate|re-activate|renew|un-?cancel|undo cancel(?:ling)?) (?:my |the )?(?:trainee )?(?:plan|subscription|membership)$/,
   /^(?:undo|reverse|take back) (?:the |my )?(?:cancel|cancellation|cancelation)(?: of my (?:plan|subscription))?$/,
   /^(?:un-?cancel)(?: it| trainee)?$/,
   /^(?:i changed my mind,? )?(?:keep|continue) my (?:plan|subscription) (?:going|active|after all)$/,
+  // Battery 2026-10-30.
+  /^(?:i want to |i'?d like to |can i |can you |please )?re-?subscribe(?: to trainee)?$/,
+  /^(?:cancel|undo|stop|reverse) (?:my |the )?(?:cancel|cancellation|cancelation)$/,
+  /^(?:i changed my mind,? |actually,? )(?:keep|continue) my (?:plan|subscription)$/,
 ];
 // A refund is never promised or issued by text (owner: no promises Trainee cannot keep); the person is told so plainly.
 const REFUND: RegExp[] = [
@@ -127,7 +155,15 @@ export function cancelAnswer(message: string): "yes" | "no" | "unsure" | null {
 
 // ------------------------------------------------------------------------------------------------ the facts
 export async function cancelHash(subscriptionId: string, periodEnd: string | null): Promise<string> {
-  const bytes = new TextEncoder().encode(`trainee-billing-cancel\n${subscriptionId}\n${periodEnd ?? ""}`);
+  return await payloadHash("cancel", subscriptionId, periodEnd);
+}
+// The undo's payload: the same subscription and period end, a different action, so a cancel's yes never approves an
+// undo or the other way round.
+export async function resumeHash(subscriptionId: string, periodEnd: string | null): Promise<string> {
+  return await payloadHash("resume", subscriptionId, periodEnd);
+}
+async function payloadHash(action: "cancel" | "resume", subscriptionId: string, periodEnd: string | null): Promise<string> {
+  const bytes = new TextEncoder().encode(`trainee-billing-${action}\n${subscriptionId}\n${periodEnd ?? ""}`);
   const d = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
   return Array.from(d, (b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -151,24 +187,40 @@ const price = (s: Subscription) => {
   const n = s.price_cents % 100 ? (s.price_cents / 100).toFixed(2) : String(s.price_cents / 100);
   return `$${n}${s.plan === "monthly" || !s.plan ? "/month" : ` (${s.plan})`}`;
 };
+// A date the reply states as still ahead ("next charge", "access until") only when it is after now; a period end already
+// past is never promised as the future (battery 2026-10-30: "Next charge: Oct 1" said on Oct 29 from a stale row).
+const ahead = (iso: string | null | undefined, now: number) => {
+  const t = Date.parse(String(iso ?? ""));
+  return Number.isFinite(t) && t > now ? day(t) : null;
+};
+const passed = (iso: string | null | undefined, now: number) => {
+  const t = Date.parse(String(iso ?? ""));
+  return Number.isFinite(t) && t <= now ? day(t) : null;
+};
 const NOT_SUBSCRIBED = `You're not subscribed, so you're not paying anything. Trainee is $${PLAN_PRICE_CENTS / 100}/month.`;
 const LIVE = new Set(["active", "trialing", "past_due", "unpaid"]);
 const ending = (s: Subscription) => s.cancel_at_period_end === true && LIVE.has(s.status);
 
-function priceReply(s: Subscription | null): string {
+function priceReply(s: Subscription | null, now: number): string {
   if (!s || ["incomplete", "incomplete_expired"].includes(s.status)) {
     return s ? `Your checkout never finished, so you're not being charged. Trainee is $${PLAN_PRICE_CENTS / 100}/month.` : NOT_SUBSCRIBED;
   }
   const p = price(s) ?? "a price I don't have on file";
-  const end = day(s.current_period_end);
+  const end = ahead(s.current_period_end, now), gone = passed(s.current_period_end, now);
   if (s.status === "canceled") return `Your plan is cancelled; you're not paying anything.`;
-  if (ending(s)) return `Your plan (${p}) is cancelled: no more charges. You keep access until ${end ?? "the end of the period you paid for"}.`;
+  if (ending(s)) {
+    // Access ends exactly at the period end: after it, the plan is over even before Stripe's last event arrives.
+    if (gone) return `Your plan (${p}) ended on ${gone}: no more charges.`;
+    return `Your plan (${p}) is cancelled: no more charges. You keep access until ${end ?? "the end of the period you paid for"}. Say "resume my plan" before then to keep it.`;
+  }
   const state = s.status === "trialing" ? "on a trial" : s.status === "active" ? "active" : `${s.status.replace("_", " ")} (your last payment didn't go through)`;
   return `You're paying ${p}, ${state}. ${end ? `Next charge: ${end}.` : "I don't have your next charge date on file."}`;
 }
 const effect = (end: string | null) => end
   ? `Cancelling means no charge after ${end}. You keep access until then, and nothing else changes.`
   : "Cancelling means no further charges; you keep access to the end of the period you paid for, and nothing else changes.";
+// What is being cancelled, named from the row (never a price it does not hold).
+const what = (s: Subscription) => { const p = price(s); return `This cancels your Trainee plan${p ? ` (${p})` : ""} at the end of the current billing period.`; };
 
 // ------------------------------------------------------------------------------------------------ the turn
 const CANT_REACH = "I can't reach billing right now";
@@ -179,9 +231,11 @@ export async function billingTurn(o: { message: string; userId: string; threadId
     // Only a short answer could answer a waiting cancel; nothing else reads the thread.
     if (String(o.message ?? "").length > 120 || cancelAnswer(o.message) === null) return null;
     const last = await o.store.lastMeta(o.threadId).catch((e) => { console.error("billing: read the last reply:", safe(e)); return null; });
-    const p = last?.intent === BILLING_CANCEL_INTENT ? last.billing_cancel as PendingCancel | undefined : undefined;
+    const p = last?.intent === BILLING_CANCEL_INTENT ? last.billing_cancel as PendingCancel | undefined
+      : last?.intent === BILLING_RESUME_INTENT ? last.billing_resume as PendingCancel | undefined : undefined;
     if (!p || typeof p.hash !== "string" || typeof p.subscription_id !== "string") return null;
     pending = p;
+    if (last?.intent === BILLING_RESUME_INTENT) return await answerResume(o, p);
   }
   let sub: Subscription | null;
   try {
@@ -190,10 +244,10 @@ export async function billingTurn(o: { message: string; userId: string; threadId
     console.error("billing: read the subscription:", safe(e));
     return { reply: "I can't read your billing right now, so I won't guess. Nothing changed; ask me again in a minute.", intent: BILLING_INTENT, status: "unreadable" };
   }
-  if (ask?.kind === "price") return { reply: priceReply(sub), intent: BILLING_INTENT, status: sub ? sub.status : "none" };
+  if (ask?.kind === "price") return { reply: priceReply(sub, o.now), intent: BILLING_INTENT, status: sub ? sub.status : "none" };
   if (ask?.kind === "receipts") return await receipts(sub, o.stripe);
-  if (ask?.kind === "cancel") return await askCancel(sub);
-  if (ask?.kind === "resume") return { reply: resumeReply(sub), intent: BILLING_INTENT, status: "resume_unavailable" };
+  if (ask?.kind === "cancel") return await askCancel(sub, o.now);
+  if (ask?.kind === "resume") return await askResume(sub, o.now);
   if (ask?.kind === "cancel_help") {
     return { reply: `To cancel your Trainee plan, text "cancel my plan": I'll say exactly what changes and cancel only after you say yes. To withdraw an application, say "cancel my application to" and the company.`, intent: BILLING_INTENT, status: "cancel_help" };
   }
@@ -204,16 +258,16 @@ export async function billingTurn(o: { message: string; userId: string; threadId
   // A waiting cancel: only an exact yes approves it.
   const answer = cancelAnswer(o.message);
   if (answer === null) return null;
-  const end = day(pending!.period_end);
+  const end = ahead(pending!.period_end, o.now);
   if (answer === "no") return { reply: "OK, nothing is cancelled. Your plan stays as it is.", intent: BILLING_INTENT, status: "kept" };
   if (answer === "unsure") {
     return { reply: `Nothing is cancelled. ${effect(end)} Say "yes" to cancel, or "no" to keep your plan.`, intent: BILLING_CANCEL_INTENT, status: "waiting", meta: { billing_cancel: pending! } };
   }
   if (!sub?.stripe_subscription_id) return { reply: NOT_SUBSCRIBED.replace("so you're not paying anything", "so there's nothing to cancel"), intent: BILLING_INTENT, status: "none" };
-  if (sub.status === "canceled" || ending(sub)) return { reply: already(sub), intent: BILLING_INTENT, status: "already" };
+  if (sub.status === "canceled" || ending(sub)) return { reply: already(sub, o.now), intent: BILLING_INTENT, status: "already" };
   const hash = await cancelHash(sub.stripe_subscription_id, sub.current_period_end);
   if (hash !== pending!.hash || sub.stripe_subscription_id !== pending!.subscription_id) {
-    const again = await askCancel(sub);
+    const again = await askCancel(sub, o.now);
     return { ...again, reply: `Your plan changed since I asked, so I didn't cancel anything. ${again.reply}` };
   }
   if (!o.stripe) {
@@ -241,30 +295,84 @@ export async function billingTurn(o: { message: string; userId: string; threadId
   return { reply: `Done, your plan is cancelled. ${at ? `No charge after ${at}; you keep access until then.` : "No further charges; you keep access to the end of the period you paid for."}`, intent: BILLING_INTENT, status: "cancelled" };
 }
 
-function resumeReply(s: Subscription | null): string {
+// Undo a cancel before the period ends (battery 2026-10-30: "resume my plan" on a plan ending at period end used to be
+// "I can't undo a cancel by text", leaving the person to be cut off). One approved step, like the cancel: the reply says
+// exactly what changes (the plan renews at the period end at the row's price) and binds the payload's hash; only an
+// exact yes to it calls Stripe (cancel_at_period_end=false), with the hash as the idempotency key.
+async function askResume(s: Subscription | null, now: number): Promise<BillingTurn> {
+  const none = { intent: BILLING_INTENT, status: "resume_unavailable" };
   if (!s || !s.stripe_subscription_id || ["incomplete", "incomplete_expired"].includes(s.status)) {
-    return `You're not subscribed, so there's no plan to resume. Trainee is $${PLAN_PRICE_CENTS / 100}/month.`;
+    return { ...none, reply: `You're not subscribed, so there's no plan to resume. Trainee is $${PLAN_PRICE_CENTS / 100}/month.` };
   }
-  if (s.status === "canceled") return "Your plan is cancelled, and I can't restart it by text, so nothing changed.";
-  if (ending(s)) {
-    const end = day(s.current_period_end);
-    return `Your plan is set to end ${end ? `on ${end}` : "at the end of the period you paid for"}, with no more charges. I can't undo a cancel by text yet, so nothing changed.`;
+  if (s.status === "canceled") return { ...none, reply: "Your plan is cancelled, and I can't restart it by text, so nothing changed." };
+  if (!ending(s)) return { ...none, reply: "Your plan isn't cancelled, so there's nothing to resume. Nothing changed." };
+  const gone = passed(s.current_period_end, now);
+  if (gone) return { ...none, reply: `Your plan ended on ${gone}, so it can't be resumed by text. Nothing changed.` };
+  const end = ahead(s.current_period_end, now), p = price(s);
+  const hash = await resumeHash(s.stripe_subscription_id, s.current_period_end);
+  return {
+    reply: `Your plan is set to end ${end ? `on ${end}` : "at the end of the period you paid for"}. Keeping it means it renews${end ? ` on ${end}` : ""}${p ? ` at ${p}` : ""} and you're charged then. Nothing changed yet. Reply "yes" to keep your plan.`,
+    intent: BILLING_RESUME_INTENT, status: "asked_resume",
+    meta: { billing_resume: { subscription_id: s.stripe_subscription_id, period_end: s.current_period_end, hash } },
+  };
+}
+async function answerResume(o: { message: string; userId: string; now: number; store: BillingStore; stripe: StripeBilling | null }, pending: PendingCancel): Promise<BillingTurn | null> {
+  const answer = cancelAnswer(o.message);
+  if (answer === null) return null;
+  if (answer === "no") return { reply: "OK, nothing changed. Your plan still ends as planned.", intent: BILLING_INTENT, status: "kept_ending" };
+  if (answer === "unsure") {
+    return { reply: `Nothing changed. Say "yes" to keep your plan, or "no" to let it end.`, intent: BILLING_RESUME_INTENT, status: "waiting", meta: { billing_resume: pending } };
   }
-  return "Your plan isn't cancelled, so there's nothing to resume. Nothing changed.";
+  let sub: Subscription | null;
+  try {
+    sub = await o.store.subscription(o.userId);
+  } catch (e) {
+    console.error("billing: read the subscription:", safe(e));
+    return { reply: "I can't read your billing right now, so I won't guess. Nothing changed; ask me again in a minute.", intent: BILLING_INTENT, status: "unreadable" };
+  }
+  const hash = sub?.stripe_subscription_id ? await resumeHash(sub.stripe_subscription_id, sub.current_period_end) : null;
+  if (!sub || hash === null || sub.status === "canceled" || !ending(sub) || passed(sub.current_period_end, o.now)) return await askResume(sub, o.now);
+  if (hash !== pending.hash || sub.stripe_subscription_id !== pending.subscription_id) {
+    const again = await askResume(sub, o.now);
+    return { ...again, reply: `Your plan changed since I asked, so I didn't change anything. ${again.reply}` };
+  }
+  if (!o.stripe?.keepPlan) {
+    return { reply: `${CANT_REACH}, so nothing changed: your plan still ends as planned. Say "yes" again later to keep it.`, intent: BILLING_RESUME_INTENT, status: "unavailable", meta: { billing_resume: pending } };
+  }
+  let done: CancelResult;
+  try {
+    done = await o.stripe.keepPlan(sub.stripe_subscription_id!, hash);
+  } catch (e) {
+    console.error("billing: keep:", safe(e));
+    const refused = e instanceof StripeError && e.status !== null && e.status >= 400 && e.status < 500;
+    return {
+      reply: refused ? `Billing refused the request, so nothing changed: your plan still ends as planned. Say "yes" again to retry.`
+        : `I couldn't get a clear answer from billing just now, so I can't confirm your plan is kept. Say "yes" again to retry; it can't be applied twice.`,
+      intent: BILLING_RESUME_INTENT, status: "failed", meta: { billing_resume: pending },
+    };
+  }
+  if (done.cancel_at_period_end !== false) {
+    return { reply: "Billing didn't confirm it, so I can't say your plan is kept. Nothing else changed; ask me again in a minute.", intent: BILLING_INTENT, status: "unconfirmed" };
+  }
+  await o.store.markKept?.(o.userId, sub.stripe_subscription_id!).catch((e) => console.error("billing: mark the row:", safe(e)));
+  const end = ahead(pending.period_end, o.now), p = price(sub);
+  return { reply: `Done, your plan is kept. It renews${end ? ` on ${end}` : " at the end of this period"}${p ? ` at ${p}` : ""}.`, intent: BILLING_INTENT, status: "kept_plan" };
 }
-function already(s: Subscription): string {
-  const end = day(s.current_period_end);
-  return s.status === "canceled" ? "Your plan is already cancelled. You're not being charged."
-    : `Your plan is already cancelled: no charge after ${end ?? "the current period"}, and you keep access until then.`;
+function already(s: Subscription, now: number): string {
+  if (s.status === "canceled") return "Your plan is already cancelled. You're not being charged.";
+  const gone = passed(s.current_period_end, now);
+  if (gone) return `Your plan is already cancelled and ended on ${gone}. You're not being charged.`;
+  const end = ahead(s.current_period_end, now);
+  return `Your plan is already cancelled: no charge after ${end ?? "the current period"}, and you keep access until then. Say "resume my plan" to keep it.`;
 }
-async function askCancel(sub: Subscription | null): Promise<BillingTurn> {
+async function askCancel(sub: Subscription | null, now: number): Promise<BillingTurn> {
   if (!sub?.stripe_subscription_id || ["incomplete", "incomplete_expired"].includes(sub.status)) {
     return { reply: "You're not subscribed, so there's nothing to cancel.", intent: BILLING_INTENT, status: "none" };
   }
-  if (sub.status === "canceled" || ending(sub)) return { reply: already(sub), intent: BILLING_INTENT, status: "already" };
+  if (sub.status === "canceled" || ending(sub)) return { reply: already(sub, now), intent: BILLING_INTENT, status: "already" };
   const hash = await cancelHash(sub.stripe_subscription_id, sub.current_period_end);
   return {
-    reply: `${effect(day(sub.current_period_end))} Reply "yes" to cancel.`,
+    reply: `${what(sub)} ${effect(ahead(sub.current_period_end, now))} Reply "yes" to cancel.`,
     intent: BILLING_CANCEL_INTENT, status: "asked",
     meta: { billing_cancel: { subscription_id: sub.stripe_subscription_id, period_end: sub.current_period_end, hash } },
   };
@@ -309,7 +417,7 @@ export function stripeFromEnv(fetchFn: typeof fetch, key: string | undefined | n
   const k = String(key ?? "").trim();
   if (!k) return null;
   const base = "https://api.stripe.com/v1";
-  const call = async (path: string, init: RequestInit = {}) => {
+  const call = async (path: string, init: RequestInit = {}, seen?: (r: Response) => void) => {
     const where = `stripe ${path.split("?")[0].replace(/\/[a-z]+_[A-Za-z0-9]+/g, "/{id}")}`;
     let r: Response;
     try {
@@ -321,17 +429,34 @@ export function stripeFromEnv(fetchFn: typeof fetch, key: string | undefined | n
       throw new StripeError(`${where} did not answer (${e instanceof Error && /^[A-Za-z]+$/.test(e.name) ? e.name : "error"})`, null);
     }
     if (!r.ok) { await r.body?.cancel().catch(() => {}); throw new StripeError(`${where} answered ${r.status}`, r.status); }
+    seen?.(r);
     try { return await r.json(); } catch { throw new StripeError(`${where} answered ${r.status} with a body that is not JSON`, null); }
   };
+  const result = (j: any): CancelResult => ({ cancel_at_period_end: j?.cancel_at_period_end === true ? true : j?.cancel_at_period_end === false ? false : (undefined as unknown as boolean),
+    cancel_at: typeof j?.cancel_at === "number" ? j.cancel_at : null, current_period_end: typeof j?.current_period_end === "number" ? j.current_period_end : null });
+  // Set cancel_at_period_end. The key is the payload's hash, so a retried yes cannot apply twice. But Stripe keeps a key
+  // for a day and answers a reused one with the FIRST answer, without applying anything (header Idempotent-Replayed):
+  // after a cancel, an undo and a second cancel of the same period, the second cancel's key is the first's, and "Done"
+  // was said while the plan still renewed (battery 2026-10-30). A replayed answer is therefore checked against the
+  // subscription as it is now; if it is not what was asked, the change is sent once more under a fresh key (setting the
+  // flag is the same effect however often it is sent).
+  const set = async (id: string, value: boolean, idempotencyKey: string) => {
+    const path = `/subscriptions/${encodeURIComponent(id)}`;
+    const post = async (key: string) => {
+      const headers = new Headers({ "content-type": "application/x-www-form-urlencoded", "idempotency-key": key });
+      let replayed = false;
+      const j = await call(path, { method: "POST", body: `cancel_at_period_end=${value}`, headers }, (r) => { replayed = r.headers.get("idempotent-replayed") === "true"; });
+      return { j, replayed };
+    };
+    const first = await post(idempotencyKey);
+    if (!first.replayed) return result(first.j);
+    const now = await call(path);
+    if (now?.cancel_at_period_end === value) return result(now);
+    return result((await post(`${idempotencyKey}-${crypto.randomUUID()}`)).j);
+  };
   return {
-    async cancelAtPeriodEnd(id, idempotencyKey) {
-      const j = await call(`/subscriptions/${encodeURIComponent(id)}`, {
-        method: "POST", body: "cancel_at_period_end=true",
-        headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": idempotencyKey },
-      });
-      return { cancel_at_period_end: j?.cancel_at_period_end === true, cancel_at: typeof j?.cancel_at === "number" ? j.cancel_at : null,
-        current_period_end: typeof j?.current_period_end === "number" ? j.current_period_end : null };
-    },
+    async cancelAtPeriodEnd(id, idempotencyKey) { return await set(id, true, idempotencyKey); },
+    async keepPlan(id, idempotencyKey) { return await set(id, false, idempotencyKey); },
     async listInvoices(customerId) {
       const q = new URLSearchParams({ customer: customerId, status: "paid", limit: "5" });
       const j = await call(`/invoices?${q}`);
@@ -357,6 +482,11 @@ export function supabaseBillingStore(admin: any): BillingStore {
     },
     async markCancelling(userId, subscriptionId) {
       const r = await admin.from("user_subscriptions").update({ cancel_at_period_end: true, updated_at: new Date().toISOString() })
+        .eq("user_id", userId).eq("stripe_subscription_id", subscriptionId);
+      if (r.error) throw new Error(`mark the subscription: ${r.error.message}`);
+    },
+    async markKept(userId, subscriptionId) {
+      const r = await admin.from("user_subscriptions").update({ cancel_at_period_end: false, updated_at: new Date().toISOString() })
         .eq("user_id", userId).eq("stripe_subscription_id", subscriptionId);
       if (r.error) throw new Error(`mark the subscription: ${r.error.message}`);
     },

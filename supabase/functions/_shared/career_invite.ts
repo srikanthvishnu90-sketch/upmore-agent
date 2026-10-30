@@ -137,7 +137,9 @@ const MORE = new RegExp(String.raw`^(?:\s*,\s*(?:and\s+)?|\s+and\s+|\s*;\s*)${NA
 const PAREN_TITLE = /^\s*\(([^)]{2,60})\)/;
 const COMMA_TITLE = /^,\s+(?:(?:our|the|a|an)\s+)?([A-Z][A-Za-z&/-]*(?:\s+(?:[A-Z][A-Za-z&/-]*|of|for|the|&)){0,6})/;
 // "an interview at Acme Robotics on October 22": the employer the invite's words place the interview at.
-const AT_COMPANY = /\b(?:interview|interviews|interviewing|onsite|on-site|superday|phone screen|call|chat)\b[^.\n]{0,60}?\bat\s+([A-Z][A-Za-z0-9&'’-]*(?:\s+(?:[A-Z][A-Za-z0-9&'’-]*|&|of)){0,3})(?=\s+(?:on|for|in|next|this|at|from)\b|[.,!;:\n]|\s*$)/;
+const SUBJECT_DASH = /^(?:(?:re|fwd?|fw):\s*)*(?:your\s+)?(?:interview(?:\s+(?:invitation|invite|request|confirmation|scheduling|schedule|details))?|invitation to (?:an\s+)?interview|interview with us)\s*[-–—|:]\s*((?:[A-Z]\.\s?){0,3}[A-Z][A-Za-z0-9&.'’-]*(?:\s+(?:[A-Z][A-Za-z0-9&.'’-]*|&|of)){0,3})\s*$/i;
+const SUBJECT_DASH_FIRST = /^(?:(?:re|fwd?|fw):\s*)*((?:[A-Z]\.\s?){0,3}[A-Z][A-Za-z0-9&.'’-]*(?:\s+(?:[A-Z][A-Za-z0-9&.'’-]*|&|of)){0,3})\s*[-–—|:]\s*(?:your\s+)?interview(?:\s+(?:invitation|invite|request|confirmation|scheduling|schedule|details))?\s*$/i;
+const AT_COMPANY = /\b(?:interview|interviews|interviewing|onsite|on-site|superday|phone screen|call|chat)\b[^.\n]{0,60}?\bat\s+((?:[A-Z]\.\s?){0,3}[A-Z][A-Za-z0-9&'’-]*(?:\s+(?:[A-Z][A-Za-z0-9&'’-]*|&|of)){0,3})(?=\s+(?:on|for|in|next|this|at|from)\b|[.,!;:\n]|\s*$)/;
 const ROLE_WORD = /\b(manager|director|engineer|engineering|recruiter|recruiting|lead|partner|analyst|associate|vp|vice president|president|head|officer|coordinator|specialist|scientist|designer|founder|co-founder|ceo|cto|cfo|coo|principal|managing director|staff|developer|architect|consultant|product|talent|banker|trader|researcher)\b/i;
 // Words that make a capitalized pair something other than a person: a tool, a team, a time, a place, a month.
 const NOT_PERSON = /\b(google|meet|microsoft|teams?|zoom|webex|hirevue|hiring|recruiting|recruitment|talent|acquisition|human|resources|interview|interviews|eastern|central|mountain|pacific|standard|daylight|time|january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|saturday|sunday|street|avenue|road|floor|suite|building|office|campus|round|panel|superday|online|assessment|calendar|invite|invitation|link|the|our|your|this|next|first|second|final|virtual|video|phone|call)\b/i;
@@ -204,6 +206,9 @@ export function extractInvite(o: { text: string; subject?: string | null; from?:
   // The words, line by line (a pasted subject line and the greeting under it are not one name).
   const lines = `${subject}\n${parts.body}`;
   if (!company) company = companyFromText(lines) ?? AT_COMPANY.exec(lines)?.[1] ?? null;
+  // RESEARCH ROUND 2 (2026-10-30): the subject's own employer, set off by a dash or bar ("Interview invitation - Stripe",
+  // "Goldman Sachs | Interview request"): the brief said "the invite does not name the company" for the commonest subject.
+  if (!company) { const m = SUBJECT_DASH.exec(subject) ?? SUBJECT_DASH_FIRST.exec(subject); if (m && !/^(?:the|our|your|a|an|next|round|first|second|final|video|phone|onsite|technical|new|re|fwd?)$/i.test(m[1].split(/\s+/)[0])) company = m[1]; }
   const role = clean(o.role) || roleOf(subject, body) || null;
 
   // Dates: every one stated, resolved without guessing; one distinct day or none.

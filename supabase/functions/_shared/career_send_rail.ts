@@ -144,7 +144,12 @@ export async function queueApprovedOutreach(d: OutreachDeps, userId: string, ite
     if (r.status !== "approved" || r.approved_hash !== x.approvalHash || r.hash !== x.approvalHash) { out[i] = { sourceId: x.draftId, status: "refused", reason: r.status === "approved" ? "changed" : "not_approved" }; continue; }
     const m = messageOf(r);
     const rec = r.recipient as unknown as Record<string, unknown>;
-    const addressType = (rec.address_type ?? x.addressType ?? null) as AddressType | null;
+    // OUTREACH SCENARIOS (2026-10-30): the drafting lanes label a found address on the recipient as `address` ("published"
+    // / "inferred", career_networking.ts recipientOf); only `address_type` was read here, so an inferred address went on
+    // the rail unlabeled (the queue row said nothing of how it was found, and a bounce never reached the format learner
+    // as inferred).
+    const label = [rec.address_type, rec.address].find((v) => typeof v === "string" && (ADDRESS_TYPES as readonly string[]).includes(v));
+    const addressType = (label ?? x.addressType ?? null) as AddressType | null;
     const addressFormat = (rec.address_format ?? x.addressFormat ?? null) as string | null;
     send.push({ kind: "outreach", sourceId: r.id, approvalHash: x.approvalHash, to: m.to, subject: m.subject, text: m.text, addressType, addressFormat });
     at.push(i);
@@ -224,7 +229,10 @@ export type GmailAnswer =
   | { kind: "retry"; detail: string }
   | { kind: "policy"; detail: string }
   | { kind: "failed"; detail: string };
-const RATE = /rateLimitExceeded|userRateLimitExceeded|dailyLimitExceeded|quotaExceeded|sending limit|rate limit/i;
+// OUTREACH SCENARIOS (2026-10-30): Gmail's own words for its sending quota ("Daily user sending quota exceeded.", "Too many
+// concurrent requests for user") without a reason code fell through to "reconnect": the account stopped until the person
+// reconnected (told their connection no longer allowed sending) instead of backing off and resuming by itself.
+const RATE = /rateLimitExceeded|userRateLimitExceeded|dailyLimitExceeded|quotaExceeded|quota exceeded|sending (?:limit|quota)|rate[- ]limit|too many (?:concurrent )?requests/i;
 // Gmail refusing a message as spam, abuse or against its policy: the account pauses until the person says so.
 const POLICY = /spam|abus|policy|blocked|suspend|message rejected|reputation|phishing/i;
 // How long Gmail asked us to wait: Retry-After (seconds or a date), else "Retry after <ISO time>" in its message, else a
@@ -265,7 +273,12 @@ export interface Claimed {
   from_email?: string | null; // the person's own address, for List-Unsubscribe
   // Outreach only: the draft as stored when it was claimed (its row locked), re-hashed before the send.
   draft?: Pick<OutreachDraft, "recipient" | "subject" | "body" | "footer"> | null;
+  // A follow-up only: the emails of its sequence already sent from Gmail (the first and earlier steps), whose threads are
+  // read right before it goes (20261030030000 career_send_claim).
+  sequence?: SentRow[] | null;
 }
+// One sent email of the rail, as the reply check and a follow-up's last look read it.
+export interface SentRow { id: string; recipient_email: string; gmail_id: string; gmail_thread: string; sent_at: string; address_type?: AddressType | null; address_format?: string | null; user_id?: string }
 export interface WorkerDeps extends Rpc {
   fetch: typeof fetch;
   token: (userId: string, scope: string) => Promise<string | null>;
@@ -289,8 +302,10 @@ export interface MailProviderLike {
 }
 export type RecordBounce = (domain: string, localPartFormat: string | null, o: { addressType: AddressType | null }) => Promise<void>;
 export interface WorkerOpts { worker: string; accounts?: number; perAccount?: number; leaseSeconds?: number; deadlineMs?: number; idleStop?: boolean }
-export interface WorkerStats { claims: number; sent: number; already_sent: number; retry: number; quota: number; reconnect: number; policy: number; refused: number; failed: number; stale: number; errors: number; error: string | null }
+export interface WorkerStats { claims: number; sent: number; already_sent: number; retry: number; quota: number; reconnect: number; policy: number; refused: number; failed: number; stale: number; answered: number; errors: number; error: string | null }
 
+// Every address in a To header ("Jane <j@x.com>, k@y.com", a quoted "Doe, Jane" name included), lowercase.
+export const addressesIn = (header: string) => [...String(header ?? "").matchAll(/[^\s<>,;:"()]+@[^\s<>,;:"()]+/g)].map((m) => m[0].toLowerCase().replace(/\.+$/, ""));
 // Was this exact message already sent (an earlier try that reached Gmail before the worker stopped)? Looks in the
 // person's Sent mail for this recipient since the first claim, comparing the subject exactly. null: could not look.
 async function inSent(d: WorkerDeps, userId: string, it: Claimed): Promise<{ id: string; threadId: string } | false | null> {
@@ -306,8 +321,11 @@ async function inSent(d: WorkerDeps, userId: string, it: Claimed): Promise<{ id:
     if (!r || !r.ok) return null;
     const msg: any = await r.json().catch(() => null);
     const h = (n: string) => String((msg?.payload?.headers ?? []).find((x: any) => String(x?.name ?? "").toLowerCase() === n)?.value ?? "");
-    const subj = h("subject"), to = h("to").toLowerCase();
-    if ((subj === it.subject || subj === encodedWord(it.subject)) && to.includes(it.to)) return { id: String(msg?.id ?? id), threadId: String(msg?.threadId ?? "") };
+    const subj = h("subject");
+    // OUTREACH SCENARIOS (2026-10-30): the recipient compared as a whole address, never as a substring: a message with the
+    // same subject to jan@acme.com read as "already sent" to an@acme.com, and an@acme.com was never emailed.
+    const tos = addressesIn(h("to"));
+    if ((subj === it.subject || subj === encodedWord(it.subject)) && tos.includes(it.to.toLowerCase())) return { id: String(msg?.id ?? id), threadId: String(msg?.threadId ?? "") };
   }
   return false;
 }
@@ -345,6 +363,16 @@ async function sendOne(d: WorkerDeps, it: Claimed, stats: WorkerStats, worker: s
     const seen = await inSent(d, it.user_id, it);
     if (seen === null) { stats.retry++; return out("retry", { detail: "could not check Sent before a second try", retry_at: new Date(now() + 60_000).toISOString() }); }
     if (seen) { stats.already_sent++; return out("already_sent", { gmail_id: seen.id, thread_id: seen.threadId }); }
+  }
+  // OUTREACH SCENARIOS (2026-10-30): a follow-up goes only while nobody has answered. The reply check reads each thread
+  // every 15 minutes, so an answer that landed since its last look (a reply, a "stop", a bounce) did not stop a follow-up
+  // due in between: it went to someone who had already replied. Now the sequence's threads are read right before it
+  // goes; an answer is recorded there (the whole sequence stops, as the reply check would) and this email is handed back
+  // untried, so the claim cancels it ("sequence stopped"). A thread that cannot be read holds the follow-up for a minute.
+  if (it.follow_up_of && it.provider !== "outlook" && (it.sequence ?? []).length) {
+    const ans = await answeredBefore(d, it);
+    if (ans === null) { stats.retry++; return out("retry", { untried: true, detail: "could not read the thread before a follow-up", retry_at: new Date(now() + 60_000).toISOString() }); }
+    if (ans) { stats.answered++; return out("retry", { untried: true, detail: `not sent: ${ans} on the thread before the follow-up went`, retry_at: new Date(now()).toISOString() }); }
   }
   if (it.provider === "outlook") return (await mayGo(d, it, worker, stats, out)) ?? await viaProvider(d, it, m, stats, out);
   const token = await d.token(it.user_id, GMAIL_SEND_SCOPE).catch(() => null);
@@ -405,7 +433,7 @@ export const RECORD_EVERY = 10;
 // emails straight back (they wait with the account). A failure on one account is counted; the others carry on.
 export async function runSendWorker(d: WorkerDeps, o: WorkerOpts): Promise<WorkerStats> {
   const now = d.now ?? Date.now;
-  const stats: WorkerStats = { claims: 0, sent: 0, already_sent: 0, retry: 0, quota: 0, reconnect: 0, policy: 0, refused: 0, failed: 0, stale: 0, errors: 0, error: null };
+  const stats: WorkerStats = { claims: 0, sent: 0, already_sent: 0, retry: 0, quota: 0, reconnect: 0, policy: 0, refused: 0, failed: 0, stale: 0, answered: 0, errors: 0, error: null };
   const end = now() + (o.deadlineMs ?? 100_000);
   while (now() < end) {
     const got = await call(d, "career_send_claim", { worker: o.worker, accounts: o.accounts ?? 20, per_account: o.perAccount ?? 25, lease_seconds: o.leaseSeconds ?? 120, now: new Date(now()).toISOString() });
@@ -544,28 +572,52 @@ export function classifyIncoming(m: ThreadMail, recipient: string): "bounce" | "
 // pause: mailbox protection after a bounce (career_send_record): the account's last `window` sends, at least `bounces`
 // bounced and at least `rate` of them. Defaults 50, 5, 0.1; CAREER_SEND_BOUNCE_WINDOW / _COUNT / _RATE in career-send.
 export interface PauseRule { window?: number; bounces?: number; rate?: number }
+// What came back on one sent email's thread: bounce, stop or reply (the strongest), null for nothing yet (or only a delay
+// warning, a read receipt, an out-of-office), or the reason the thread could not be read.
+export type Answer = "bounce" | "stop" | "reply";
+export async function threadAnswer(d: Pick<WorkerDeps, "fetch">, token: string, row: SentRow): Promise<{ kind: Answer | null } | { error: string }> {
+  const r = await d.fetch(`${GMAIL_API}/threads/${encodeURIComponent(row.gmail_thread)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!r.ok) return { error: `read a thread: HTTP ${r.status}` };
+  const j: any = await r.json().catch(() => ({}));
+  const h = (m: any, n: string) => String((m?.payload?.headers ?? []).find((x: any) => String(x?.name ?? "").toLowerCase() === n)?.value ?? "");
+  const kinds: string[] = (j?.messages ?? []).filter((m: any) => m?.id !== row.gmail_id && !(m?.labelIds ?? []).includes("SENT"))
+    .map((m: any) => classifyIncoming({ from: h(m, "from"), subject: h(m, "subject"), snippet: String(m?.snippet ?? "") }, row.recipient_email));
+  // The List-Unsubscribe mailto arrives as a new email from the recipient (subject "unsubscribe"), outside the thread.
+  if (!kinds.includes("stop") && !kinds.includes("bounce")) {
+    const since = Math.floor(Date.parse(row.sent_at) / 1000) - 60;
+    const u = await d.fetch(`${GMAIL_API}/messages?q=${encodeURIComponent(`from:${row.recipient_email} subject:unsubscribe after:${since}`)}&maxResults=5`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+    if (u?.ok && ((await u.json().catch(() => ({})))?.messages ?? []).length) kinds.push("stop");
+  }
+  return { kind: kinds.includes("bounce") ? "bounce" : kinds.includes("stop") ? "stop" : kinds.includes("reply") ? "reply" : null };
+}
+// A follow-up's last look: the threads of its sequence's sent emails. The first answer found is recorded on the email it
+// answered (career_send_record: the sequence stops, an opt-out or a bounce holds for everyone); null when a thread could
+// not be read, false when nobody has answered.
+async function answeredBefore(d: WorkerDeps, it: Claimed): Promise<Answer | false | null> {
+  const token = await d.token(it.user_id, GMAIL_READ_SCOPE).catch(() => null);
+  if (!token) return null;
+  for (const row of it.sequence ?? []) {
+    if (!row?.gmail_thread) continue;
+    const a = await threadAnswer(d, token, row).catch((e) => ({ error: String(e) }));
+    if ("error" in a) return null;
+    if (a.kind) {
+      await call(d, "career_send_record", { id: row.id, kind: a.kind });
+      return a.kind;
+    }
+  }
+  return false;
+}
 export async function runReplyCheck(d: WorkerDeps, o: { limit?: number; recheckSeconds?: number; pause?: PauseRule } = {}) {
   const stats = { checked: 0, bounces: 0, stops: 0, replies: 0, not_wired: 0, errors: 0, error: null as string | null };
-  const due: { id: string; user_id: string; recipient_email: string; gmail_id: string; gmail_thread: string; address_type: AddressType | null; address_format: string | null; sent_at: string }[] =
-    await call(d, "career_send_replies_due", { limit: o.limit ?? 200, recheck_seconds: o.recheckSeconds ?? 900 });
+  const due: (SentRow & { user_id: string })[] = await call(d, "career_send_replies_due", { limit: o.limit ?? 200, recheck_seconds: o.recheckSeconds ?? 900 });
   for (const row of due) {
     try {
       const token = await d.token(row.user_id, GMAIL_READ_SCOPE).catch(() => null);
       if (!token) { stats.not_wired++; continue; }
-      const r = await d.fetch(`${GMAIL_API}/threads/${encodeURIComponent(row.gmail_thread)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!r.ok) { stats.errors++; stats.error ??= `read a thread: HTTP ${r.status}`; continue; }
+      const a = await threadAnswer(d, token, row);
+      if ("error" in a) { stats.errors++; stats.error ??= a.error; continue; }
       stats.checked++;
-      const j: any = await r.json().catch(() => ({}));
-      const h = (m: any, n: string) => String((m?.payload?.headers ?? []).find((x: any) => String(x?.name ?? "").toLowerCase() === n)?.value ?? "");
-      const kinds: string[] = (j?.messages ?? []).filter((m: any) => m?.id !== row.gmail_id && !(m?.labelIds ?? []).includes("SENT"))
-        .map((m: any) => classifyIncoming({ from: h(m, "from"), subject: h(m, "subject"), snippet: String(m?.snippet ?? "") }, row.recipient_email));
-      // The List-Unsubscribe mailto arrives as a new email from the recipient (subject "unsubscribe"), outside the thread.
-      if (!kinds.includes("stop") && !kinds.includes("bounce")) {
-        const since = Math.floor(Date.parse(row.sent_at) / 1000) - 60;
-        const u = await d.fetch(`${GMAIL_API}/messages?q=${encodeURIComponent(`from:${row.recipient_email} subject:unsubscribe after:${since}`)}&maxResults=5`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
-        if (u?.ok && ((await u.json().catch(() => ({})))?.messages ?? []).length) kinds.push("stop");
-      }
-      const k = kinds.includes("bounce") ? "bounce" : kinds.includes("stop") ? "stop" : kinds.includes("reply") ? "reply" : null;
+      const k = a.kind;
       if (!k) continue;
       await call(d, "career_send_record", { id: row.id, kind: k, ...(o.pause ? { pause: o.pause } : {}) });
       if (k === "bounce") stats.bounces++; else if (k === "stop") stats.stops++; else stats.replies++;

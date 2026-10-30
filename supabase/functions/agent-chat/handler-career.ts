@@ -109,6 +109,7 @@ import { applyHereTurn } from "../_shared/apply_here.ts"; // APPLY HERE: a paste
 import { supabaseFileStore } from "../trainee-file/store.ts";
 import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts"; // FILE KINDS
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
+import { vaultRefreshWrite } from "../_shared/oauth_vault_refresh.ts";
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -511,10 +512,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (error) throw new Error("read the career grant's vault entry");
           return data ? String(data) : null;
         },
-        writeVault: async (name, secret) => {
-          const { error } = await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret });
-          if (error) throw new Error("save the refreshed career grant");
-        },
+        writeVault: (name, secret) => vaultRefreshWrite(admin, name, secret, "save the refreshed career grant"),
       }, CAREER_SEND_SCOPE);
       // The resume attached is WO-028's, tailored to the posting from confirmed facts, else the person's own file.
       const resumes = supabaseResumes(admin, { profile: () => ((ctx as any).profile ?? {}), tailor: { render: edgeRenderer(), resumes: supabaseResumeStore(admin) } });

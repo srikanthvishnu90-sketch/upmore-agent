@@ -50,6 +50,8 @@ export interface ChannelStore {
   optedOutAt?(contact: string): Promise<number | null>;
   // WO-091c: the person's account is paused, opted out or erased (career_user_quiet). Absent: only STOP holds a row.
   quiet?(userId: string): Promise<boolean>;
+  // ERASE SCENARIOS ROUND 2 (2026-10-30): the person's account no longer exists (career_account_gone). Absent: not checked.
+  gone?(userId: string): Promise<boolean>;
   // A queued job alert or report (key alert:… or report:…) still wanted now: the person's alert settings, the watch behind
   // them and the posting, read at delivery (career_watch_alerts.ts, alertStillWanted). Absent: not checked (memory stores).
   alertWanted?(row: OutboxRow): Promise<boolean>;
@@ -72,6 +74,7 @@ const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
 export const HELD_NOTE = "held: outside WhatsApp's 24-hour window; it goes out whole when the person next writes";
 export const PAUSED_NOTE = "not sent: the person paused Trainee (or stopped or erased it) after this was queued";
 export const ALERTS_OFF_NOTE = "not sent: the person's job alerts no longer ask for this (paused, stopped or changed after it was queued)";
+export const GONE_NOTE = "not sent: the person deleted their account after this was queued";
 export const STOPPED_REPLY_NOTE = "not sent: the person texted STOP after the message this answers; only a message sent after STOP is answered";
 // PROACTIVE SCENARIOS (2026-10-29): a job alert or daily report is news on its day, not later. Rows wait in the outbox while
 // the person has no texting channel (the dashboard's matches feed reads them there), and when they connected one, every
@@ -137,6 +140,15 @@ export async function deliverDue(o: {
     if (isReply(m.key) && out && o.store.optedOutAt) {
       const since = await o.store.optedOutAt(m.contact);
       if (since !== null && m.deliver_at < since) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: STOPPED_REPLY_NOTE }); r.skipped_opt_out++; continue; }
+    }
+    // ERASE SCENARIOS ROUND 2 (2026-10-30): an answer a run had claimed went out after the person's account was deleted
+    // (a pause does not hold an answer, and the account's pause was gone with it). A deleted account gets nothing; a check
+    // that cannot be read leaves the row claimed and untouched, never sent on a guess.
+    if (isReply(m.key) && o.store.gone) {
+      let g: boolean | null;
+      try { g = await o.store.gone(m.userId); } catch (e) { console.error("deliver: the account could not be read:", e instanceof Error ? e.message : String(e)); g = null; }
+      if (g === null) { r.deferred++; continue; }
+      if (g) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: GONE_NOTE }); r.skipped_opt_out++; continue; }
     }
     // WO-091c: the same for a pause or an erase that came after the row was queued, checked now, at delivery. A pause that
     // cannot be read leaves the row claimed and untouched (the run's release puts it back), never sent on a guess.

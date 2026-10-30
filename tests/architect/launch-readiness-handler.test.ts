@@ -323,18 +323,22 @@ Deno.test({ name: "launch readiness at the real handler: spend ceiling, turn ord
     });
 
     await t.step("X3: the postings pool is read only on a turn that uses it", async () => {
-      const scans = async () => Number(await pg.sql(`select coalesce(seq_scan, 0) + coalesce(idx_scan, 0) from pg_stat_user_tables where relname = 'career_kb_postings'`));
-      const settle = async () => { await new Promise((r) => setTimeout(r, 700)); return await scans(); };
+      // Counted on the wire to the database (every request the handler made, in order), not from pg_stat_user_tables after
+      // a fixed 700 ms wait: a backend's table statistics reach that view only when it flushes them (at most once a second
+      // while it runs, and at its exit), so a late flush of an earlier step's read could land in a "not read" window, and a
+      // slow one could hide the search's read (2026-10-30). The table is read only through PostgREST (agent-chat's pool
+      // loader, admin.from("career_kb_postings")); no database function reads it.
       const chat = handler!.chat("tok-lr9");
-      let s0 = await settle();
+      const reads = () => chat.double.log.filter((r) => r.path.startsWith("/rest/v1/career_kb_postings")).length;
+      let s0 = reads();
       await say(chat, "hi");
-      eq(await settle() - s0, 0, "\"hi\": career_kb_postings was not read");
-      s0 = await settle();
+      eq(reads() - s0, 0, "\"hi\": career_kb_postings was not read");
+      s0 = reads();
       await say(chat, "where are my applications");
-      eq(await settle() - s0, 0, "a code-first turn: career_kb_postings was not read");
-      s0 = await settle();
+      eq(reads() - s0, 0, "a code-first turn: career_kb_postings was not read");
+      s0 = reads();
       const found = await say(chat, "find me data analyst jobs in chicago");
-      assert(await settle() - s0 >= 1, "a job search reads the pool");
+      assert(reads() - s0 >= 1, "a job search reads the pool");
       assert(/TEST KB Co/.test(found.reply), `the search lists postings from the pool it read: ${found.reply.slice(0, 300)}`);
     });
 

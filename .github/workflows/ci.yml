@@ -167,10 +167,12 @@ jobs:
     # Postgres 16 from the runner image), so its setup is the same as the other gate jobs'.
     # Sharded 2026-10-29: the single job ran `deno test` over all 200+ architect files serially, 1,323 s in the
     # Career gate step of a green run (run 40790880196; setup took ~25 s) and past the 30-minute cap on others
-    # (runs 40788526016, 40787919188 cancelled), which blocked every PR. Six shards by sorted-file index
-    # (scripts/architect-shards.ts; tests/architect/ci-shard-partition.test.ts proves each file runs in exactly one),
-    # so ~220 s of tests per shard plus setup. The 45-minute cap is a backstop, not a target. The required check
-    # name `gate (architect)` is the aggregate job below.
+    # (runs 40788526016, 40787919188 cancelled), which blocked every PR. Six shards (scripts/architect-shards.ts;
+    # tests/architect/ci-shard-partition.test.ts proves each file runs in exactly one). Since 2026-10-30 the shards are
+    # packed by measured duration (scripts/architect-shard-durations.json, longest file first to the least-loaded shard)
+    # instead of by sorted-file index, which had left them at 354-651 s of tests on trunk; each shard reports its files'
+    # durations as a notice so the table can be refreshed (`architect-shards.ts update`). The 45-minute cap is a
+    # backstop, not a target. The required check name `gate (architect)` is the aggregate job below.
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -228,6 +230,9 @@ jobs:
           [ -n "$failed" ] && echo "::error title=gate failing tests::$(printf '%s' "$failed" | cut -c1-180 | sed ':a;N;$!ba;s/\n/%0A/g')"
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
+          # This shard's files and their seconds (JSON lines for `deno run -A scripts/architect-shards.ts update`).
+          durations=$(deno run -A scripts/architect-shards.ts durations "$RUNNER_TEMP/gate.log" 2>/dev/null | head -150)
+          [ -n "$durations" ] && echo "::notice title=architect file durations::$(printf '%s' "$durations" | sed ':a;N;$!ba;s/\n/%0A/g')"
           exit 0
   gate-architect:
     name: gate (architect)

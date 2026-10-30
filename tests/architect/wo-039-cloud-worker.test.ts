@@ -133,9 +133,16 @@ Deno.test("WO-039/3 parallel contexts: one engine process per job, never more th
   const jobs = [await job("A", 4), await job("B", 5), await job("A", 6), await job("C", 7), await job("B", 8)];
   const { q, finished } = memQueue(jobs), seen: any[] = [];
   let now = 0, peak = 0;
+  // "In parallel" is forced, not left to timing (2026-10-30): the first engine run waits (up to 10 s) for a second to be
+  // running beside it, so a loaded machine cannot make 20 ms runs look sequential; a loop that never runs two at once
+  // waits it out and fails the peak check.
+  let second!: () => void;
+  const two = new Promise<void>((r) => { second = r; });
   const engine = fakeEngine(async () => {
     now++;
     peak = Math.max(peak, now);
+    if (now >= 2) second();
+    else { let t: ReturnType<typeof setTimeout> | undefined; await Promise.race([two, new Promise<void>((r) => { t = setTimeout(r, 10_000); })]); clearTimeout(t); }
     await new Promise((r) => setTimeout(r, 20));
     now--;
     return sent;

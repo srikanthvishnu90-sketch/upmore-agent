@@ -17,6 +17,9 @@ export interface BoardState {
   last_attempt_at: string | null; last_ok_at: string | null; last_status: string | null;
   etag: string | null; last_modified: string | null; fail_count: number;
   body_sha?: string | null; // Feature 6: the SHA-256 of the last full read's body (20261026060106_career_ingest_runs.sql)
+  // 2026-10-30 (20261030030000_career_ingest_bounded.sql): a board read in parts over several runs: where the next part
+  // starts (0: from the top) and when the pass began.
+  pass_offset?: number; pass_started_at?: string | null;
 }
 export interface BoardStateDb {
   count(): Promise<number>;
@@ -105,10 +108,14 @@ export function memoryBoardState(): BoardStateDb & { rows: Map<string, BoardStat
 }
 
 const COLS = "provider,board,bucket,last_attempt_at,last_ok_at,last_status,etag,last_modified,fail_count,body_sha";
+const PASS_COLS = ",pass_offset,pass_started_at";
 // deno-lint-ignore no-explicit-any
 export function supabaseBoardState(admin: any): BoardStateDb {
   const T = "career_board_state";
   const must = <X>(r: { data: X | null; error: { message: string } | null }, what: string): X => { if (r.error) throw new Error(`${what}: ${r.error.message}`); return r.data as X; };
+  // Before 20261030030000 the table has no pass columns: read and write without them (a board is then read from the top).
+  let pass = true;
+  const strip = (s: BoardState) => { if (pass) return s; const { pass_offset: _o, pass_started_at: _p, ...rest } = s; return rest; };
   return {
     async count() { const r = await admin.from(T).select("provider", { count: "exact", head: true }); if (r.error) throw new Error(`count board state: ${r.error.message}`); return r.count ?? 0; },
     async seed(boards) {
@@ -118,12 +125,15 @@ export function supabaseBoardState(admin: any): BoardStateDb {
       }
     },
     async due(buckets, limit) {
-      return must<BoardState[]>(await admin.from(T).select(COLS).in("bucket", buckets).order("last_attempt_at", { ascending: true, nullsFirst: true })
-        .order("provider").order("board").limit(limit), "read due boards") || [];
+      const q = () => admin.from(T).select(COLS + (pass ? PASS_COLS : "")).in("bucket", buckets).order("last_attempt_at", { ascending: true, nullsFirst: true })
+        .order("provider").order("board").limit(limit);
+      let r = await q();
+      if (r.error && pass && /pass_offset|pass_started_at/.test(r.error.message)) { pass = false; r = await q(); }
+      return must<BoardState[]>(r, "read due boards") || [];
     },
     async record(list) {
       for (let i = 0; i < list.length; i += 500) {
-        must(await admin.from(T).upsert(list.slice(i, i + 500).map((s) => ({ ...s, updated_at: new Date().toISOString() })), { onConflict: "provider,board" }), "record board state");
+        must(await admin.from(T).upsert(list.slice(i, i + 500).map((s) => ({ ...strip(s), updated_at: new Date().toISOString() })), { onConflict: "provider,board" }), "record board state");
       }
     },
     // Two head-only counts (no rows come back): the index on (bucket, last_attempt_at) serves the bucket filter.

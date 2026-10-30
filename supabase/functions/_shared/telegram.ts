@@ -59,7 +59,11 @@ export function telegramDeepLink(botUsername: string, nonce: string): string {
 
 // A Telegram update as zero or one inbound message. Exported for tests and the smoke check.
 // deno-lint-ignore no-explicit-any
-export function parseTelegramUpdate(u: any): { message: InboundMessage | null; ignored?: string } {
+// KNOWN GAPS (2026-10-30, #311): a tap on a button in a group (a card forwarded there) was ignored without an answer, so the
+// button spun until Telegram gave up. It is still never read (no account, no card, no data), but its callback is answered
+// with this line, which carries nothing of the person's.
+export const GROUP_TAP_ANSWER = "This button works in your private chat with me.";
+export function parseTelegramUpdate(u: any): { message: InboundMessage | null; ignored?: string; answerTap?: string } {
   if (!u || typeof u !== "object" || !Number.isSafeInteger(u.update_id)) return { message: null, ignored: "not a Telegram update" };
   const messageId = String(u.update_id);
   const member = u.my_chat_member;
@@ -81,7 +85,7 @@ export function parseTelegramUpdate(u: any): { message: InboundMessage | null; i
     if (cb.from?.is_bot) return { message: null, ignored: "from a bot" };
     const chat = cb.message?.chat;
     const chatId = chat ? (chat.type === "private" ? chat.id : null) : cb.from?.id;
-    if (!Number.isSafeInteger(chatId) || chatId <= 0) return { message: null, ignored: "not a private chat" };
+    if (!Number.isSafeInteger(chatId) || chatId <= 0) return { message: null, ignored: "not a private chat", answerTap: String(cb.id).slice(0, 100) };
     const data = typeof cb.data === "string" && cb.data.length <= 64 ? cb.data : "";
     return { message: { provider: "telegram", channel: "telegram", messageId, kind: "callback", contact: `tg:${chatId}`, address: String(chatId), text: "",
       callback: { id: String(cb.id).slice(0, 100), data, messageId: Number.isSafeInteger(cb.message?.message_id) ? String(cb.message.message_id) : null } } };
@@ -166,6 +170,9 @@ export function telegramAdapter(o: {
     limits: { chars: TELEGRAM_CHARS, packChars: PACK, perChatGapMs: 1000, overallPerSecond: 30, windowMs: null, dailyContacts: null, dailyTemplates: null },
     capabilities: { buttons: true, documents: true, previews: true, templates: false },
     render: o.native ? nativeRender("telegram", PACK) : (text) => packMessages(text, PACK),
+    // KNOWN GAPS (2026-10-30, #311): with the texting voice on, send() goes with parse_mode HTML, so text that did not come
+    // through render (a job card's text) must be escaped by its sender (htmlText).
+    ...(o.native ? { htmlText: true } : {}),
     typingEveryMs: 4000,
     async typing(address): Promise<boolean> {
       const r = await call("sendChatAction", { chat_id: Number(address), action: "typing" });
@@ -178,6 +185,11 @@ export function telegramAdapter(o: {
       if (!equalSecret(req.headers.get("x-telegram-bot-api-secret-token") || "", secret)) return { response: json({ error: "forbidden" }, 403) };
       if (!o.token) return { response: json({ error: "NOT_WIRED: TELEGRAM_BOT_TOKEN is not set; no turn was run" }, 503) };
       const r = parseTelegramUpdate(await req.json().catch(() => null));
+      // KNOWN GAPS (#311): a tap outside a private chat is answered (never left spinning), and nothing else is done with it.
+      if (r.answerTap) {
+        const a = await call("answerCallbackQuery", { callback_query_id: r.answerTap, text: GROUP_TAP_ANSWER });
+        if ("error" in a || a.status !== 200) console.error("telegram: a tap outside a private chat was not answered:", "error" in a ? redact(String(a.error)).slice(0, 120) : `HTTP ${a.status}`);
+      }
       return { messages: r.message ? [r.message] : [], ignored: r.ignored ? [r.ignored] : [] };
     },
     // FEATURE 16: getFile names the file's path and its size, and the file is downloaded from /file/bot<token>/<file_path>

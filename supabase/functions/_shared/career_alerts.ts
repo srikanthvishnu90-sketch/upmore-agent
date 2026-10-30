@@ -115,8 +115,17 @@ export function zoneOr(tz: unknown, fallback = DEFAULT_ZONE): string {
 // The person's local date (YYYY-MM-DD) at an instant, in their zone (zoneOr).
 export const localDay = (at: number, tz: unknown) => local(at, zoneOr(tz)).date;
 // The person's local date, hour and minute at an instant.
+// One formatter per zone, kept (2026-10-30): building an Intl.DateTimeFormat is the expensive part (ICU loads the zone's
+// rules), and nextAwake asks the clock up to ~100 times per person per run; the answer is the same either way.
+const localFmt = new Map<string, Intl.DateTimeFormat>();
 function local(at: number, tz: string): { date: string; hour: number; minute: number } {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: zoneOr(tz), year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(at));
+  const zone = zoneOr(tz);
+  let fmt = localFmt.get(zone);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+    if (localFmt.size < 1000) localFmt.set(zone, fmt);
+  }
+  const parts = fmt.formatToParts(new Date(at));
   const g = (t: string) => parts.find((x) => x.type === t)?.value ?? "0";
   return { date: `${g("year")}-${g("month")}-${g("day")}`, hour: Number(g("hour")) % 24, minute: Number(g("minute")) };
 }

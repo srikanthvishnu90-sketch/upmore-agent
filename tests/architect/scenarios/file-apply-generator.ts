@@ -1,6 +1,6 @@
 // The jobs page and its Apply flow at scale (owner, 2026-10-29: "open the postings with company logos, roles and details, log in with
 // my phone number, then click Apply and have it apply for me"): a deterministic, seeded generator of signed-in jobs lists and of what
-// the person (and the world) does to them. The runner and the invariants are in tests/architect/scenarios-file-apply.test.ts.
+// the person (and the world) does to them. The runner and the invariants are in tests/architect/scenarios-file-apply-battery.ts.
 //
 // A scenario is a list of 1-30 postings, each with its own truth (who the employer is and which domain is theirs, where the link
 // points, what the stored posting says and what only the search result said, whether it is open, stale, scam-looking or a knock-out

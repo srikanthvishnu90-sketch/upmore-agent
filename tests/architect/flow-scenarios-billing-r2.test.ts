@@ -1,6 +1,6 @@
 // Billing and cancel-by-text ROUND 2 end to end (battery 2026-10-30), sampled from the generated scenarios
 // (tests/architect/scenarios/billing-r2-generator.ts; the full 10,000 run pure in tests/architect/scenarios-billing-r2.test.ts),
-// on real Postgres 16 with every migration (20261030110000_billing_r2.sql included).
+// on real Postgres 16 with every migration (20261030130000_billing_r2.sql included).
 //
 // A. TEXT through the REAL production chat handler (agent-chat handler-career.ts handleChat; harness tests/flow/handler.ts),
 //    the web channel and Telegram's: each scenario is a fresh person whose user_subscriptions row (currency, discount, live

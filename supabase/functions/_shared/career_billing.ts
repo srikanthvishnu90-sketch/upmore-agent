@@ -26,7 +26,7 @@ export interface Subscription {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   cancel_at_period_end?: boolean | null;
-  // Billing round 2 (20261030110000; written by stripe-webhook from Stripe's own subscription): the price's currency (null:
+  // Billing round 2 (20261030130000; written by stripe-webhook from Stripe's own subscription): the price's currency (null:
   // usd, the rows written before), whether a coupon or discount applies (the price is then not what is charged), and how many
   // live Trainee subscriptions Stripe holds for the person (a double checkout: the row shows the newest live one).
   currency?: string | null;

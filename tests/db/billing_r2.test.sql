@@ -1,4 +1,4 @@
--- Billing round 2 (20261030110000_billing_r2.sql): billing_sync_subscription's 13-argument form writes the price's currency,
+-- Billing round 2 (20261030130000_billing_r2.sql): billing_sync_subscription's 13-argument form writes the price's currency,
 -- a discount and how many of the person's subscriptions are live, under the same rules as before (the later read wins, an
 -- old subscription's end never replaces a different live one, another person's customer refused, a missing person refused);
 -- a bad currency or a negative count is refused; the 10-argument form still writes (usd, no discount, count unknown); only

@@ -19,7 +19,7 @@
 // lane); outcomes are recorded 20 at a time; a board larger than the posting budget is read in parts over several runs.
 import { equalSecret } from "../_shared/message_service.ts";
 import { ingestBoards, type Board, type BoardOutcome, type FetchFeed, type IngestRunRow, type IngestStats, type PostingsDb } from "../_shared/career_ingest.ts";
-import { boardKey, type BoardState, type BoardStateDb, bucketOf, capacityPer, laneBuckets } from "../_shared/career_shards.ts";
+import { backedOff, boardKey, type BoardState, type BoardStateDb, bucketOf, capacityPer, goneReadsOf, inFlight, laneBuckets } from "../_shared/career_shards.ts";
 import { runReport } from "../_shared/career_ingest_lanes.mjs";
 
 export interface IngestDeps {
@@ -55,7 +55,7 @@ export async function handleIngest(req: Request, d: IngestDeps): Promise<Respons
   const q = new URL(req.url).searchParams;
   // 2026-10-30: what a failed run must still leave behind: its log row (started at the run's start, so a run the platform
   // stops shows too), and the boards it claimed but never reached handed back to the queue.
-  let laneCtx: { at: string; lane: number; lanes: number; window_min: number } | null = null, runId: number | null = null, dueCount = 0;
+  let laneCtx: { at: string; lane: number; lanes: number; window_min: number } | null = null, runId: number | null = null, dueCount = 0, leftClosed = 0;
   let unclaim: (() => Promise<void>) | null = null;
   try {
     const common = { db, now: started, fetchFeed: d.fetchFeed(`Trainee job alerts (contact: ${contact})`),
@@ -78,36 +78,64 @@ export async function handleIngest(req: Request, d: IngestDeps): Promise<Respons
       for (const b of buckets) if (mine.has(b)) laneBoards++;
       const cap = Math.min(int(d.env.get("INGEST_MAX_BOARDS"), 400, 1, 2000),
         Math.max(capacityPer({ boards: d.boards.length, windowMs, intervalMs, lanes }), capacityPer({ boards: laneBoards, windowMs, intervalMs, lanes: 1 })));
-      if ((await st.count()) < d.boards.length) await st.seed(d.boards);
-      const due = (await st.due(laneList, cap)).filter((s) => byKey.has(boardKey(s))); // a board left the directory: skip it
-      dueCount = due.length;
-      const was = new Map(due.map((s) => [boardKey(s), s]));
+      // 2026-10-30 (round 2): seeded whenever the store's count is not the directory's (a board renamed in the directory
+      // left the count equal, so the new name was never seeded and never read).
+      if ((await st.count()) !== d.boards.length) await st.seed(d.boards);
       // 2026-10-30: the run claims its boards before reading any (attempted now, status "reading"). A run the platform stops
       // (memory, CPU) used to leave them oldest, so every later run of the lane took the same boards and was stopped the
       // same way; now they wait their turn, and one that stays "reading" names the board a stopped run was on.
-      await st.record(due.map((s) => ({ ...s, last_attempt_at: at, last_status: "reading" })));
+      // Round 2: the claim is one step in the store (two runs of a lane used to both read the same due list and both
+      // claim it), and a board in its failure backoff (career_shards.ts retryAfterMs) is not taken.
+      const nowMs = Date.parse(at);
+      let claimed = st.claim ? await st.claim(laneList, cap, at) : null;
+      if (claimed === null) {
+        claimed = (await st.due(laneList, cap * 2)).filter((s) => !backedOff(s, nowMs) && !inFlight(s, nowMs)).slice(0, cap);
+        await st.record(claimed.filter((s) => byKey.has(boardKey(s))).map((s) => ({ ...s, last_attempt_at: at, last_status: "reading" })));
+      }
+      // A board that left the directory (removed, or renamed): its open postings are no longer read, so they are closed,
+      // and its row is forgotten (it used to be skipped, never recorded, and so taken first, and skipped, every run).
+      const due = claimed.filter((s) => byKey.has(boardKey(s)));
+      dueCount = due.length;
+      const was = new Map(due.map((s) => [boardKey(s), s]));
       const done = new Set<string>();
       unclaim = async () => { const back = due.filter((s) => !done.has(boardKey(s))); if (back.length) await st.record(back); };
+      const left = claimed.filter((s) => !byKey.has(boardKey(s)));
+      for (const s of left) {
+        const open = (await db.openForBoard({ company: s.board, provider: s.provider, board: s.board })).map((p) => p.job_id);
+        if (open.length) { await db.close(open, at); leftClosed += open.length; }
+      }
+      if (left.length) {
+        if (st.forget) await st.forget(left);
+        else await st.record(left.map((s) => ({ ...s, last_attempt_at: at, last_status: "left the directory" })));
+        await st.seed(d.boards); // a renamed board's new name is read from the next run
+      }
       // Each board's outcome is recorded as the run goes, 20 at a time: what a stopped run finished is kept.
       const pending: BoardState[] = [];
       const flush = async () => { if (pending.length) await st.record(pending.splice(0)); };
       const rowOf = (s: BoardState, r: BoardOutcome): BoardState => {
         const ok = r.status !== "failed";
         return { ...s, last_attempt_at: at, last_ok_at: ok ? at : s.last_ok_at,
-          last_status: r.status === "failed" ? `failed: ${String(r.error).slice(0, 120)}` : r.status === "partial" && r.next_offset ? `partial: next part from ${r.next_offset}` : r.status,
+          // Round 2: a read that answered 404 / 410 says how many in a row ("[gone x2]"; the count the next read goes on from)
+          // and, once the board is taken as gone, how many open postings that closed.
+          last_status: r.status === "failed" ? `failed: ${String(r.error).slice(0, 120)}${r.gone_reads ? ` [gone x${r.gone_reads}]` : ""}${r.gone_closed ? `; ${r.gone_closed} open postings closed` : ""}`
+            : r.status === "partial" && r.next_offset ? `partial: next part from ${r.next_offset}` : r.status,
           etag: r.status === "not_modified" ? s.etag : ok ? r.etag ?? null : s.etag, last_modified: r.status === "not_modified" ? s.last_modified : ok ? r.last_modified ?? null : s.last_modified,
           fail_count: ok ? 0 : s.fail_count + 1,
           // Feature 6: the body a full read answered (a partial read's body proves nothing: not kept).
           body_sha: r.status === "ok" ? r.body_sha ?? null : r.status === "not_modified" ? r.body_sha ?? s.body_sha ?? null : r.status === "partial" ? null : s.body_sha ?? null,
           // 2026-10-30: a board read in parts: where its next part starts; a failed read leaves the pass where it was.
           pass_offset: ok ? r.next_offset ?? 0 : s.pass_offset ?? 0,
-          pass_started_at: ok ? (r.next_offset ? r.pass_started_at ?? at : null) : s.pass_started_at ?? null };
+          pass_started_at: ok ? (r.next_offset ? r.pass_started_at ?? at : null) : s.pass_started_at ?? null,
+          // Round 2: a board taken as gone had its postings closed: the validators of its last full read no longer describe
+          // the table, so they go (the same body coming back used to read as "not modified" and its postings stayed closed).
+          ...(r.gone_closed !== undefined ? { etag: null, last_modified: null, body_sha: null } : {}) };
       };
       // Feature 6: the run's CPU bound, as postings parsed (?posting_budget= from the schedule, or INGEST_POSTING_BUDGET).
       const postingBudget = int(q.get("posting_budget"), int(d.env.get("INGEST_POSTING_BUDGET"), 0, 0, 1000000), 0, 1000000) || undefined;
       stats = await ingestBoards({ ...common, useCursor: false, maxBoards: due.length, postingBudget,
-        boards: due.map((s) => ({ ...byKey.get(boardKey(s))!, etag: s.etag, last_modified: s.last_modified, body_sha: s.body_sha ?? null, offset: s.pass_offset ?? 0, pass_started_at: s.pass_started_at ?? null })),
+        boards: due.map((s) => ({ ...byKey.get(boardKey(s))!, etag: s.etag, last_modified: s.last_modified, body_sha: s.body_sha ?? null, offset: s.pass_offset ?? 0, pass_started_at: s.pass_started_at ?? null, gone_reads: goneReadsOf(s) })),
         onBoard: async (b, r) => { const k = boardKey(b); done.add(k); pending.push(rowOf(was.get(k)!, r)); if (pending.length >= 20) await flush(); } });
+      if (leftClosed) { stats.closed += leftClosed; stats.boards_left_directory = left.length; }
       await flush();
       await unclaim(); // boards the run did not reach (the deadline, the posting budget) keep their place in the queue
       unclaim = null;

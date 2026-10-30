@@ -187,6 +187,9 @@ export const FEEDS: Record<MoreProvider, FeedSpec> = {
     request: (b) => get(`https://${b}.jobs.personio.de/xml`, "application/xml, text/xml"),
     parse: (text) => {
       if (!isRoot(text, "workzag-jobs")) return undefined;
+      // 2026-10-30 (ingest round 2): a feed cut off before its end is not the list (its whole positions used to be read
+      // as the complete board, and every position past the cut closed).
+      if (!/<\/workzag-jobs>\s*$/.test(text)) return undefined;
       return { positions: xmlBlocks(text, "position").map((p) => ({
         id: xmlField(p, "id"), name: xmlField(p, "name"), office: xmlField(p, "office"), subcompany: xmlField(p, "subcompany"),
         department: xmlField(p, "department"), createdAt: xmlField(p, "createdAt"), schedule: xmlField(p, "schedule"),

@@ -73,6 +73,14 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
     async quiet(userId) {
       return must<boolean>(await admin.rpc("career_user_quiet", { p_user: userId }), "read the pause") === true;
     },
+    // ERASE SCENARIOS ROUND 2 (2026-10-30): the account was deleted (career_account_gone, 20261030050000). On a project
+    // without that migration the check is skipped (false), as before it existed.
+    async gone(userId) {
+      const r = await admin.rpc("career_account_gone", { p_user: userId });
+      const said = `${(r.error as any)?.code ?? ""} ${r.error?.message ?? ""}`;
+      if (r.error && /career_account_gone|PGRST202/i.test(said) && /exist|find|no function|PGRST202/i.test(said)) return false;
+      return must<boolean>(r, "read whether the account exists") === true;
+    },
     // A queued job alert or report, checked at delivery against the person's alert settings, the watch record behind them
     // (career_watch_kv) and the posting (career_postings). A read that fails throws: the row waits, never sent on a guess.
     async alertWanted(m) {

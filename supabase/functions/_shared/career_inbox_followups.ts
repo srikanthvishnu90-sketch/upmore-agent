@@ -25,6 +25,7 @@ import { type Admit, dayStartOf, type Message, messageOf, type OutreachDraft, ty
 import { ONE_ADDRESS } from "./career_outreach_gmail.ts";
 import { runMail } from "./career_proactive_run.ts";
 import { type DraftRow, type ReadStanding, standingFrom } from "./career_standing.ts";
+import { vaultRefreshWrite } from "./oauth_vault_refresh.ts";
 
 export const CHECK_INTENT = "career_inbox_check";
 export const FOLLOWUP_CARD_INTENT = "career_followup_card";
@@ -379,10 +380,7 @@ export function careerGrant(admin: any, env: { get(k: string): string | undefine
       if (error) throw new Error("read the career grant's vault entry");
       return data ? String(data) : null;
     },
-    writeVault: async (name, secret) => {
-      const { error } = await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret });
-      if (error) throw new Error("save the refreshed career grant");
-    },
+    writeVault: (name, secret) => vaultRefreshWrite(admin, name, secret, "save the refreshed career grant"),
   };
 }
 // The person's mail, read now with the career grant's gmail.readonly, through the scheduled run's reader.

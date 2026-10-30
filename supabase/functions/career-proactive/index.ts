@@ -16,6 +16,7 @@ import { gmailSender, gmailThreadReader } from "../_shared/career_outreach_gmail
 import { runOutreachFollowupsGated } from "../_shared/career_outreach_track.ts";
 import { runRepliesLane } from "../_shared/career_outreach_replies.ts";
 import { callModel, modelConfig } from "../_shared/model_gateway.ts";
+import { vaultRefreshWrite } from "../_shared/oauth_vault_refresh.ts";
 
 // The career Google grant (vault oauth_google_career_<uid>), read the same way by mail tracking and outreach.
 const grant = (admin: any): TokenDeps => ({
@@ -30,10 +31,7 @@ const grant = (admin: any): TokenDeps => ({
     if (error) throw new Error("read the career grant's vault entry");
     return data ? String(data) : null;
   },
-  writeVault: async (name, secret) => {
-    const { error } = await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret });
-    if (error) throw new Error("save the refreshed career grant");
-  },
+  writeVault: (name, secret) => vaultRefreshWrite(admin, name, secret, "save the refreshed career grant"),
 });
 
 serve((req) => {

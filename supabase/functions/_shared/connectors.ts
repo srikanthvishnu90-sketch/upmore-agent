@@ -25,6 +25,7 @@ import { askWords, disconnectOf, gmailConnectOf, whatsConnectedOf } from "./conn
 import { consentNotice, GMAIL_READONLY, GMAIL_SEND, requestableScopes } from "./google_scopes.ts";
 import { channelOf, disconnectOutlook, disconnectWords, linkBase as outlookLinkBase, MICROSOFT_NOTE, outlookFor, RECONNECT_REPLY, TELEGRAM_BROWSER, tokenDeps as msTokenDeps } from "./outlook_connector.ts";
 import { ENV as MS_ENV, hasScope, outlookToken, PROVIDER as MS_PROVIDER } from "./outlook_graph.ts";
+import { vaultRefreshWrite } from "./oauth_vault_refresh.ts";
 
 type Admin = any;
 export interface Env { get(k: string): string | undefined }
@@ -109,7 +110,7 @@ const gmail: Connector = {
       const tok = await careerTokenFor({
         fetch: d.fetch, env: d.env, now: d.now, connection: async () => conn,
         readVault: async (n) => { const v = must(await d.admin.rpc("oauth_vault_read", { p_name: n }), "read the Gmail access"); return v ? String(v) : null; },
-        writeVault: async (n, s) => { must(await d.admin.rpc("oauth_vault_store", { p_name: n, p_secret: s }), "save the refreshed Gmail access"); },
+        writeVault: (n, s) => vaultRefreshWrite(d.admin, n, s, "save the refreshed Gmail access"),
       }, scope)(userId);
       return tok ? { status: "ok", token: tok } : { status: "needs_reconnect" };
     } catch (e) { return { status: "error", detail: String((e as Error)?.message ?? e).slice(0, 120) }; }

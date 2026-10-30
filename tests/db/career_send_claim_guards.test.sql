@@ -67,4 +67,28 @@ begin
   if n <> 0 then raise exception 'FAIL career_send_claim is the service role''s only'; end if;
   raise notice 'PASS career_send_claim_guards: a lapsed approval is cancelled and lapses; a follow-up carries its sequence; an answer recorded stops it';
 end $$;
+
+-- A worker's clock is in milliseconds; next_at is in microseconds. An email whose next_at falls later in the same
+-- millisecond as the worker's time is due (CI found one left unclaimed, the worker then stopping with work queued).
+do $$
+declare
+  a uuid := '00000000-0000-4000-8000-0000000cf101';
+  q uuid; r jsonb; c jsonb; ms timestamptz;
+begin
+  insert into auth.users(id, email) values (a, 'cf-ms@example.test');
+  insert into public.profiles(id) values (a);
+  insert into public.user_oauth_connections(user_id, provider, vault_name, scopes) values (a, 'google_career', 'oauth_google_career_' || a, 'openid email');
+  r := public.career_send_enqueue(jsonb_build_object('user', a, 'items', jsonb_build_array(
+    jsonb_build_object('kind', 'general', 'source_id', gen_random_uuid(), 'approval_hash', repeat('c', 64), 'to', 'ms@example.test', 'subject', 'S', 'body', 'B'))));
+  if r->0->>'status' <> 'queued' then raise exception 'FAIL setup: %', r; end if;
+  q := (r->0->>'id')::uuid;
+  ms := date_trunc('milliseconds', clock_timestamp()) - interval '1 second';
+  update public.career_send_queue set next_at = ms + interval '467 microseconds' where id = q;
+  c := public.career_send_claim(jsonb_build_object('worker', 'w-ms', 'accounts', 50, 'per_account', 50, 'lease_seconds', 60,
+    'now', to_char(ms at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')));
+  if not exists (select 1 from jsonb_array_elements(c->'accounts') x, jsonb_array_elements(x->'items') i where (i->>'id')::uuid = q) then
+    raise exception 'FAIL an email due earlier in the same millisecond was not claimed: %', c;
+  end if;
+  raise notice 'ok   an email due within the worker''s millisecond is claimed';
+end $$;
 rollback;

@@ -18,6 +18,9 @@ declare
   w text := p->>'worker'; n_acc int := coalesce((p->>'accounts')::int, 20); per int := coalesce((p->>'per_account')::int, 25);
   lease interval := make_interval(secs => coalesce((p->>'lease_seconds')::int, 120));
   t timestamptz := coalesce((p->>'now')::timestamptz, now());
+  -- A worker's clock has millisecond precision; next_at is stamped in microseconds. An email queued earlier in the same
+  -- millisecond as the claim is due: the caller's time covers its whole millisecond (CI found an email left unclaimed).
+  due timestamptz := case when p ? 'now' then date_trunc('milliseconds', (p->>'now')::timestamptz) + interval '999 microseconds' else now() end;
   a public.career_send_accounts; q public.career_send_queue; d public.career_outreach_drafts;
   items jsonb; out jsonb := '[]'::jsonb; bad text; me text; root text;
 begin
@@ -50,7 +53,7 @@ begin
     me := (select lower(c.email) from public.user_oauth_connections c where c.user_id = a.user_id and c.provider = 'google_career');
     for q in
       select * from public.career_send_queue
-      where user_id = a.user_id and provider = a.provider and state = 'queued' and next_at <= t
+      where user_id = a.user_id and provider = a.provider and state = 'queued' and next_at <= due
       order by next_at, created_at
       limit per
       for update skip locked

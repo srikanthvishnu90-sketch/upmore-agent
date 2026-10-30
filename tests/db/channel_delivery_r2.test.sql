@@ -22,11 +22,11 @@ set role service_role;
 
 -- sent_parts: a column from 0, never negative.
 select t.ok((select column_default = '0' and is_nullable = 'NO' from information_schema.columns where table_name = 'career_outbox' and column_name = 'sent_parts'),'sent_parts is a count from 0');
-select t.must_fail($$update career_outbox set sent_parts = -1 where false or true$$,'career_outbox_sent_parts','sent_parts is never negative');
 
 -- A three-message row delivered; Meta's "failed" for message 3 arrives first, then message 2's (out of order).
 insert into career_outbox(user_id,key,kind,text,deliver_at,channel,status,delivered_at,provider_id,provider_ids) values
  ('00000000-0000-4000-8000-00000000d201','reply:wa:r1','reply','a\n\nb\n\nc',now() - interval '5 minutes','whatsapp','delivered',now(),'wamid.1',array['wamid.1','wamid.2','wamid.3']);
+select t.must_fail($$update career_outbox set sent_parts = -1 where key = 'reply:wa:r1'$$,'career_outbox_sent_parts','sent_parts is never negative');
 select t.ok(career_outbox_rehold('wamid.3', now(), 'WhatsApp 131047: closed') = 1,'a window failure on message 3 holds the row');
 select t.ok((select status = 'held' and sent_parts = 2 and provider_ids = array['wamid.1','wamid.2'] and delivered_at is null from career_outbox where key = 'reply:wa:r1'),'it resumes from message 3: two went, their ids kept');
 select t.ok(career_outbox_rehold('wamid.2', now(), 'WhatsApp 131047: closed') = 1,'message 2''s failure, arriving after, still counts');
@@ -39,7 +39,7 @@ select t.ok(career_outbox_rehold('wamid.2', now(), 'late') = 0 and career_outbox
 
 -- Any other failure: failed with the reason, from the message that failed; a throughput refusal retried within the cap.
 insert into career_outbox(user_id,key,kind,text,deliver_at,channel,status,delivered_at,provider_id,provider_ids,attempts) values
- ('00000000-0000-4000-8000-00000000d201','reply:wa:r2','reply','x',now() - interval '5 minutes','whatsapp','delivered',now(),'wamid.20',array['wamid.20']),
+ ('00000000-0000-4000-8000-00000000d201','reply:wa:r2','reply','x',now() - interval '5 minutes','whatsapp','delivered',now(),'wamid.20',array['wamid.20'],0),
  ('00000000-0000-4000-8000-00000000d201','reply:wa:r3','reply','x\n\ny',now() - interval '5 minutes','whatsapp','delivered',now(),'wamid.30',array['wamid.30','wamid.31'],0),
  ('00000000-0000-4000-8000-00000000d201','reply:wa:r4','reply','x',now() - interval '5 minutes','whatsapp','delivered',now(),'wamid.40',null,2);
 select t.ok(career_outbox_fail_sent('wamid.20', now(), 'WhatsApp 131026: undeliverable', false) = 1,'131026 marks the row');

@@ -46,7 +46,8 @@ export function loopSend(o: { apiKey: string; fetch?: typeof fetch; pauseMs?: nu
       const got = body?.message_id ?? body?.id;
       if (typeof got === "string" || typeof got === "number") { if (id === null) id = String(got); ids.push(String(got).slice(0, 200)); }
     }
-    return { ok: true, id, ids };
+    // Every bubble's id when they differ (a single id is `id`).
+    return new Set(ids).size > 1 ? { ok: true, id, ids } : { ok: true, id };
   };
 }
 

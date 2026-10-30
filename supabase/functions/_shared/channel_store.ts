@@ -62,7 +62,8 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
       // (Any claimed row: a row held part way goes back to "queued" when the person writes.)
       const again = out.map((r) => r.id);
       if (again.length) {
-        const sp = await admin.from("career_outbox").select("id,sent_parts,provider_ids").in("id", again).gt("sent_parts", 0);
+        const sp = await Promise.resolve().then(() => admin.from("career_outbox").select("id,sent_parts,provider_ids").in("id", again).gt("sent_parts", 0))
+          .catch((e: unknown) => ({ data: null, error: { message: e instanceof Error ? e.message : String(e) } }));
         if (!sp.error) for (const x of sp.data ?? []) {
           const r = out.find((y) => y.id === String(x.id));
           if (r && Number(x.sent_parts) > 0) { r.sentParts = Number(x.sent_parts); r.sentIds = Array.isArray(x.provider_ids) ? x.provider_ids.map(String) : []; const c = claimed.get(r.id); if (c) c.parts = r.sentParts; }

@@ -16,6 +16,8 @@ import { fitOutbox as fitReply, normalizeContact, OUTBOX_CHARS } from "./convers
 import { type Channel, CHANNEL_NAME, channelOf, type ChannelAdapter, type InboundMessage, packMessages, type Provider, type SendOptions, type StatusEvent } from "./channel_adapters.ts";
 import { telegramDeepLink } from "./telegram.ts";
 import { deliverShaped, type ShapedFile } from "./channel_shape.ts";
+import { safeCut } from "./channel_text.ts";
+import { redactIdentity } from "./identity_redact.ts";
 
 export const SIGNUP_CLOSED_REPLY = "Trainee is invite-only right now, so I can't set you up yet. Nothing about you was saved except that you texted.";
 // PHONE LOGIN (owner, 2026-10-28): Telegram's own verified number, shared with one tap. Trainee never asks for a password or a
@@ -41,6 +43,33 @@ export const FILE_NOT_READ_REPLY = "I can't open files sent here yet, so I haven
 // FEATURE 16 (Telegram, where a PDF or Word file is read): what a photo or a voice message is told instead.
 export const PHOTO_NOT_READ_REPLY = "I can't read photos, so I haven't read that one. Send your resume as a PDF or Word file, or paste the text here.";
 export const VOICE_NOT_READ_REPLY = "I can't listen to voice, audio or video messages here, so I haven't heard that one. Type it as a message and I'll answer.";
+// TELEGRAM ROUND 2 (2026-10-30): the words sent with a photo, a video or a GIF are read; the picture itself is not, and the
+// answer says so first.
+export const MEDIA_CAPTION_NOTE = "I can't see or play what you attached, so I read only the words sent with it.";
+// TELEGRAM ROUND 2: agent-chat reads at most 4,000 characters of one message; Telegram sends up to 4,096 (and a long paste
+// arrives as messages of 4,096). The rest was dropped without a word (and a cut inside an emoji left half a character, which
+// the database refuses). The message is cut on a whole word, and the answer says where reading stopped.
+export const CHAT_MAX = 4000;
+export function cutForChat(text: string, max = CHAT_MAX): { text: string; cut: boolean } {
+  const t = String(text ?? "");
+  if (t.length <= max) return { text: t, cut: false };
+  const at = safeCut(t, max), nl = t.lastIndexOf("\n", at), sp = t.lastIndexOf(" ", at);
+  const end = nl >= max * 0.75 ? nl : sp >= max * 0.75 ? sp : at;
+  return { text: t.slice(0, end).trimEnd(), cut: true };
+}
+export function longCutNote(read: string): string {
+  const words = redactIdentity(String(read ?? "")).text.trim().split(/\s+/).slice(-6).join(" ");
+  let tail = words;
+  if (tail.length > 60) { let i = tail.length - 60; const c = tail.charCodeAt(i); if (c >= 0xdc00 && c <= 0xdfff) i++; tail = tail.slice(i).trim(); }
+  return `That message was longer than the 4,000 characters I can read at once, so I read it up to "${tail}". Send the rest as a new message and I'll read it too.`;
+}
+// TELEGRAM ROUND 2: a forwarded message is someone else's words: the brain reads who it came from, and the words in quotes
+// (quoted speech is never taken as the person's own statement of a fact about themselves).
+export function forwardedMessage(from: string, text: string, max = CHAT_MAX): { text: string; cut: boolean } {
+  const head = `Forwarded from ${String(from ?? "").replace(/["\u201c\u201d]/g, "'").trim() || "someone"}:\n\u201c`;
+  const body = cutForChat(String(text ?? "").replace(/["\u201c\u201d]/g, "'"), max - head.length - 1);
+  return { text: `${head}${body.text}\u201d`, cut: body.cut };
+}
 export const DOC_NOT_SENT_REPLY = "I couldn't attach the file here just now, so it wasn't sent. Ask me to send it again.";
 // FEATURE 16 (owner decision 2026-10-26): Telegram's own login links a chat to an account (TELEGRAM_LOGIN_URL: the web
 // page, telegram-link.html, on the domain set with BotFather /setdomain).
@@ -52,7 +81,8 @@ const LINK_ASK = /^(link|connect) (my (trainee )?account|telegram|this chat)[.!]
 export const LINK_NONCE_MS = 10 * 60000;
 export const LINK_ASK_MS = 60 * 60000; // a yes counts for an hour after the question
 
-export interface Person { userId: string; threadId: string | null; contact?: string }
+// alias (CHANNEL DELIVERY ROUND 2): the WhatsApp business-scoped id recorded for the contact, when there is one.
+export interface Person { userId: string; threadId: string | null; contact?: string; alias?: string | null }
 export type Redeemed = { ok: true; userId: string; threadId: string | null } | { ok: false; why: "invalid" | "linked_elsewhere" };
 export interface InboundStore {
   claimMessage(id: string, at: number, provider?: Provider): Promise<boolean>; // false: this provider's message id was handled before
@@ -71,6 +101,15 @@ export interface InboundStore {
   redeemLinkNonce?(nonce: string, contact: string, at: number): Promise<Redeemed>;
   reholdSent?(providerMessageId: string, at: number, error: string): Promise<number>; // a sent message that failed for the window
   unlinkTelegram?(userId: string, at: number): Promise<number>; // FEATURE 16: "unlink telegram"; how many contacts let go
+  // CHANNEL DELIVERY ROUND 2 (2026-10-30), optional:
+  // failSent: a sent message the provider later reported not delivered (WhatsApp 131026 and the like, a LoopMessage
+  //   message_failed): its row is marked failed with the reason (retry: put back to go again from that message); how many.
+  // releaseContact: the WhatsApp number now belongs to someone else (another business-scoped id wrote from it): the contact
+  //   is let go from the account it was linked to.
+  // movedNumber: the person changed their WhatsApp number: their account moves to the new one; false when it cannot.
+  failSent?(providerMessageId: string, at: number, error: string, retry: boolean): Promise<number>;
+  releaseContact?(contact: string, at: number): Promise<void>;
+  movedNumber?(from: string, to: string, at: number): Promise<boolean>;
 }
 export interface CoreDeps {
   env: { get(k: string): string | undefined };
@@ -152,13 +191,38 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
   const now = d.now(), store = d.store;
   if (!(await store.claimMessage(msg.messageId, now, msg.provider))) return ok({ ignored: "duplicate webhook" });
   let contact = msg.contact;
+  // TELEGRAM ROUND 2 (2026-10-30): a fixed answer sent straight back (not through the outbox) that Telegram refused because
+  // the person blocked the bot or deleted their account (403) is that person's STOP, as it is on the outbox's sends.
+  const say = async (to: string, bubbles: string[], opts?: SendOptions): Promise<{ ok: boolean }> => {
+    const r = await d.reply(to, bubbles, opts);
+    if ((r as { optOut?: boolean }).optOut) await store.setOptOut(to, true, now).catch(() => {});
+    return r;
+  };
+  // A forwarded message, and the words sent with a photo or a video, are never the person's command, yes or link request.
+  const passedOn = !!(msg.forwardedFrom || msg.caption);
   // The message id is claimed, so a failure past this point is never retried by the provider: say so to the person once
   // (best effort) rather than leave them with silence.
   try {
     let person = await store.person(contact);
+    // CHANNEL DELIVERY ROUND 2 (2026-10-30): a WhatsApp number given to someone else. Meta's business-scoped id is the
+    // account's, not the number's: a message from the number with another id is another person. It ran as the number's old
+    // owner (their thread, their account) and opened the window for their queued messages, which then went to the new owner.
+    // The contact is let go from the old account first; the new owner is a stranger, as anyone new is.
+    if (person && msg.channel === "whatsapp" && msg.alias && person.alias && person.alias !== msg.alias && person.contact === msg.contact && store.releaseContact) {
+      await store.releaseContact(msg.contact, now);
+      person = null;
+    }
     for (const alias of msg.aliases ?? []) { if (person) break; person = await store.person(alias); }
     if (person?.contact) contact = person.contact;
-    if (store.sawInbound) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
+    // The person changed their WhatsApp number: their account follows them (the old number is let go).
+    if (msg.kind === "moved") {
+      const moved = !!(person && msg.movedTo && store.movedNumber && await store.movedNumber(contact, `wa:${msg.movedTo}`, now));
+      return ok({ moved, ...(moved ? {} : { ignored: "a number change for no account" }) });
+    }
+    // CHANNEL DELIVERY ROUND 2: WhatsApp's window runs from when the person sent the message (its timestamp), not from when
+    // a retried webhook reached Trainee; never later than now (a phone's clock ahead of ours).
+    const seenAt = typeof msg.sentAt === "number" && Number.isFinite(msg.sentAt) && msg.sentAt < now && msg.sentAt > now - 7 * 86400000 ? msg.sentAt : now;
+    if (store.sawInbound) await store.sawInbound(contact, seenAt, { alias: msg.alias ?? null, phone: msg.phone ?? null });
     if (msg.kind === "blocked") { await store.setOptOut(contact, true, now); return ok({ command: "stop", blocked: true }); }
     // FEATURE 16: a button tap from a chat that is no one's account approves nothing; the button is answered and that is all.
     if (msg.kind === "callback" && !person) {
@@ -170,7 +234,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       // what to do instead; a sticker or reaction is still left alone.
       if ((msg.file || msg.media) && person) {
         const text = msg.media === "voice" ? VOICE_NOT_READ_REPLY : msg.media === "photo" && d.resumeFile ? PHOTO_NOT_READ_REPLY : FILE_NOT_READ_REPLY;
-        const r = await d.reply(contact, d.render(text));
+        const r = await say(contact, d.render(text));
         return ok({ ignored: `${msg.media ?? "a file"} (not read); told what to send`, sent: r.ok });
       }
       return ok({ ignored: "no text (attachments are not read yet)" });
@@ -178,32 +242,34 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
 
     // PHONE LOGIN: a contact card that is not the sender's own proves nothing and links nothing.
     if (msg.sharedPhone === "other") {
-      const r = await d.reply(contact, d.render(PHONE_NOT_YOURS_REPLY), { shareContact: SHARE_PHONE_BUTTON });
+      const r = await say(contact, d.render(PHONE_NOT_YOURS_REPLY), { shareContact: SHARE_PHONE_BUTTON });
       return ok({ phone: "not_own", sent: r.ok });
     }
     // A chat that is already someone's account keeps it: sharing a number changes nothing.
     if (msg.sharedPhone === "own" && person) {
-      const r = await d.reply(contact, d.render(PHONE_ALREADY_REPLY), { removeKeyboard: true });
+      const r = await say(contact, d.render(PHONE_ALREADY_REPLY), { removeKeyboard: true });
       return ok({ phone: "already_linked", sent: r.ok });
     }
     if (msg.startPayload && store.redeemLinkNonce) {
       const r = await store.redeemLinkNonce(msg.startPayload, contact, now);
       const text = r.ok ? TELEGRAM_LINKED_REPLY : r.why === "linked_elsewhere" ? TELEGRAM_LINKED_ELSEWHERE_REPLY : TELEGRAM_LINK_INVALID_REPLY;
-      const s = await d.reply(contact, d.render(text));
+      const s = await say(contact, d.render(text));
       return ok({ link: r.ok ? "linked" : r.why, sent: s.ok });
     }
-    const command = msg.command ?? channelCommand(msg.text, msg.channel);
+    // CHANNEL DELIVERY ROUND 2: a LoopMessage text that came over SMS reads the carrier keywords (CANCEL, REVOKE, ARRET...).
+    const command = passedOn ? null : msg.command ?? channelCommand(msg.text, msg.sms ? "sms" : msg.channel);
     // Telegram's Start from a chat Trainee has never seen is the person's first message, not a START: it goes through
     // sign-up like any first text.
     const firstStart = command === "start" && !!msg.command && !person;
     // WO-106 (live 2026-10-21): on a chat channel a known person's HELP (or /help) and Telegram's /start are also a turn for
     // the brain, which knows their goal and what is in flight, so the reply ends in their next step; /start's "you're back
     // on" line goes first. STOP, the word START (a re-subscribe after STOP) and every command on SMS keep their fixed reply.
-    const toBrain = !!msg.channel && !!person && (command === "help" || (command === "start" && !!msg.command));
+    // CHANNEL DELIVERY ROUND 2: a HELP that came over SMS gets the carrier's fixed answer, as every command on SMS does.
+    const toBrain = !!msg.channel && !msg.sms && !!person && (command === "help" || (command === "start" && !!msg.command));
     if (command && !firstStart) {
       if (command !== "help") await store.setOptOut(contact, command === "stop", now);
       if (!toBrain) {
-        const r = await d.reply(contact, d.render(CHANNEL_REPLIES[command]));
+        const r = await say(contact, d.render(CHANNEL_REPLIES[command]));
         return ok({ command, sent: r.ok });
       }
     }
@@ -218,36 +284,36 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
           // the person's own tap, so they are told again where the yes goes (no second question is asked). A WhatsApp
           // message carries the number on every text, and those stay quiet until the yes (WO-038).
           if (!key && msg.sharedPhone === "own") {
-            const r = await d.reply(contact, d.render(linkPendingReply(channelOf(found.contact))), { removeKeyboard: true });
+            const r = await say(contact, d.render(linkPendingReply(channelOf(found.contact))), { removeKeyboard: true });
             return ok({ link: "asked already", sent: r.ok });
           }
           if (!key) return ok({ ignored: "link asked already" });
           try { await d.deliver({ userId: found.userId, key, now }); } catch (e) { console.error("inbound: the link question waits in the outbox:", e instanceof Error ? e.message : String(e)); }
-          const r = await d.reply(contact, d.render(linkPendingReply(channelOf(found.contact))));
+          const r = await say(contact, d.render(linkPendingReply(channelOf(found.contact))));
           return ok({ link: "asked", sent: r.ok });
         }
       }
       if (!signupAllows(d.env, contact, msg.phone)) {
         if (msg.sharedPhone === "own") {
           const loginUrl = (d.env.get("TELEGRAM_LOGIN_URL") || "").trim();
-          const r = await d.reply(contact, d.render(PHONE_NO_ACCOUNT_REPLY), { removeKeyboard: true });
-          if (/^https:\/\//.test(loginUrl)) await d.reply(contact, d.render(TELEGRAM_LINK_REPLY), { buttons: [[{ text: LINK_BUTTON, loginUrl }]] });
+          const r = await say(contact, d.render(PHONE_NO_ACCOUNT_REPLY), { removeKeyboard: true });
+          if (/^https:\/\//.test(loginUrl)) await say(contact, d.render(TELEGRAM_LINK_REPLY), { buttons: [[{ text: LINK_BUTTON, loginUrl }]] });
           return ok({ phone: "no_account", sent: r.ok });
         }
         // FEATURE 16: on Telegram, with the login page configured, the person links their existing account instead.
         const loginUrl = (d.env.get("TELEGRAM_LOGIN_URL") || "").trim();
         if (msg.channel === "telegram" && /^https:\/\//.test(loginUrl)) {
           if (await store.refusedBefore(contact, now) && msg.command !== "start") return ok({ ignored: "not linked (already told)" });
-          await d.reply(contact, d.render(SHARE_PHONE_ASK), { shareContact: SHARE_PHONE_BUTTON }).catch(() => ({ ok: false }));
-          const r = await d.reply(contact, d.render(TELEGRAM_LINK_REPLY), { buttons: [[{ text: LINK_BUTTON, loginUrl }]] });
+          await say(contact, d.render(SHARE_PHONE_ASK), { shareContact: SHARE_PHONE_BUTTON }).catch(() => ({ ok: false }));
+          const r = await say(contact, d.render(TELEGRAM_LINK_REPLY), { buttons: [[{ text: LINK_BUTTON, loginUrl }]] });
           return ok({ link: "offered", sent: r.ok });
         }
         if (await store.refusedBefore(contact, now)) return ok({ ignored: "signup closed (already told)" });
-        const r = await d.reply(contact, d.render(SIGNUP_CLOSED_REPLY));
+        const r = await say(contact, d.render(SIGNUP_CLOSED_REPLY));
         return ok({ refused: "signup closed", sent: r.ok });
       }
       person = await store.createPerson(contact, now, msg.phone ?? null);
-      if (store.sawInbound) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
+      if (store.sawInbound) await store.sawInbound(contact, seenAt, { alias: msg.alias ?? null, phone: msg.phone ?? null });
       // A first Start is the person's first message: the brain welcomes them with what to send first (WO-106).
     }
 
@@ -309,7 +375,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       fileMessage = got.message;
     }
     // A yes to "Reply yes to link it", within the hour, on the channel that was asked.
-    if (!tapped && YES.test(msg.text.trim()) && store.confirmLink) {
+    if (!tapped && !passedOn && YES.test(msg.text.trim()) && store.confirmLink) {
       const linked = await store.confirmLink({ userId: person.userId, askedOn: contact, at: now, notice: LINKED_HERE_REPLY });
       if (linked) {
         if (linked.key) { try { await d.deliver({ userId: person.userId, key: linked.key, now }); } catch { /* the outbox has it */ } }
@@ -317,19 +383,19 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       }
     }
     // FEATURE 16: on Telegram, "link my account" offers Telegram's login; "unlink telegram" lets this chat go.
-    if (msg.channel === "telegram" && !fileMessage) {
+    if (msg.channel === "telegram" && !fileMessage && !passedOn) {
       const loginUrl = (d.env.get("TELEGRAM_LOGIN_URL") || "").trim();
       if (LINK_ASK.test(msg.text.trim()) && /^https:\/\//.test(loginUrl)) {
-        const r = await d.reply(contact, d.render(TELEGRAM_LINK_REPLY), { buttons: [[{ text: LINK_BUTTON, loginUrl }]] });
+        const r = await say(contact, d.render(TELEGRAM_LINK_REPLY), { buttons: [[{ text: LINK_BUTTON, loginUrl }]] });
         return ok({ link: "offered", sent: r.ok });
       }
       if (UNLINK_ASK.test(msg.text.trim()) && store.unlinkTelegram) {
         const n = await store.unlinkTelegram(person.userId, now);
-        const r = await d.reply(contact, d.render(n < 0 ? TELEGRAM_CHANNEL_ONLY_REPLY : n ? TELEGRAM_UNLINKED_REPLY : "This chat isn't linked to a Trainee account, so there was nothing to unlink."));
+        const r = await say(contact, d.render(n < 0 ? TELEGRAM_CHANNEL_ONLY_REPLY : n ? TELEGRAM_UNLINKED_REPLY : "This chat isn't linked to a Trainee account, so there was nothing to unlink."));
         return ok({ unlinked: n, sent: r.ok });
       }
     }
-    if (CONNECT_TELEGRAM.test(msg.text.trim()) && store.issueLinkNonce) {
+    if (!passedOn && CONNECT_TELEGRAM.test(msg.text.trim()) && store.issueLinkNonce) {
       const bot = (d.env.get("TELEGRAM_BOT_USERNAME") || "").trim();
       const text = msg.channel === "telegram" ? ALREADY_TELEGRAM_REPLY
         : bot && d.env.get("TELEGRAM_BOT_TOKEN") ? connectTelegramReply(telegramDeepLink(bot, await store.issueLinkNonce(person.userId, now)))
@@ -338,6 +404,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     }
 
     let postings: unknown[] = [], cardsShown = 0, screenQidOut: string | null = null, shape: { attachments: ShapedFile[]; links: string[]; more?: string[] } | null = null;
+    const notes: string[] = [];
     let reply: string, parts: string[] | null = null, artifacts: { ref: string; filename: string; mime: string }[] = [], turnThread: string | null = person.threadId;
     try {
       const turnKey = await turnKeyFor(msg.provider === "loopmessage" ? msg.messageId : `${msg.provider}:${msg.messageId}`);
@@ -346,8 +413,14 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       // words at all; the turn ran with an empty message, agent-chat refused it, and the person read "I couldn't answer that
       // just now" for their first tap. It is their first message, as a first /start is.
       const said = fileMessage ?? (msg.text || (command ? `/${command}` : msg.sharedPhone === "own" ? "/start" : ""));
+      // TELEGRAM ROUND 2: a forwarded message is framed as someone else's words; a message over agent-chat's 4,000 characters
+      // is cut on a whole word and the answer says where reading stopped; the words sent with a photo or a video are read,
+      // and the answer says the picture was not.
+      const fitted = !fileMessage && msg.forwardedFrom ? forwardedMessage(msg.forwardedFrom, said) : cutForChat(said);
+      if (fitted.cut) notes.push(longCutNote(msg.forwardedFrom ? fitted.text.slice(0, -1) : fitted.text));
+      if (msg.caption && msg.media && !fileMessage) notes.unshift(MEDIA_CAPTION_NOTE);
       // The brain gets the person, the thread, the words and a turn key, and the reply-to id only when the platform gave one.
-      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}), ...(screenTap ? { screenTap } : {}) });
+      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: fitted.text, turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}), ...(screenTap ? { screenTap } : {}) });
       reply = out.reply.trim() || CHAT_DOWN_REPLY;
       // SERIAL-1480: a card's yes with no usable reply id is told how in this channel's own terms: where this
       // integration has a verified reply-id path (Telegram, WhatsApp Cloud) "reply directly to the card, or tap"; on
@@ -363,6 +436,10 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       if (toBrain && command === "start") {
         reply = `${CHANNEL_REPLIES.start}\n\n${reply}`;
         if (parts) parts = [`${CHANNEL_REPLIES.start}\n\n${parts[0]}`, ...parts.slice(1)];
+      }
+      if (notes.length) {
+        reply = [...notes, reply].join("\n\n");
+        if (parts) parts = [[...notes, parts[0]].join("\n\n"), ...parts.slice(1)];
       }
       if (out.threadId && out.threadId !== person.threadId) await store.setThread(contact, out.threadId, person.userId);
     } catch (e) {
@@ -393,7 +470,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     if (screenQidOut) {
       const buttons = msg.channel === "telegram" ? screenButtons(screenQidOut) : undefined;
       const already = /reply yes or no/i.test(reply) || (parts ?? []).some((p) => /reply yes or no/i.test(p));
-      if (buttons || !already) await d.reply(contact, d.render(buttons ? "Yes or no?" : SCREEN_REPLY_YES_NO), buttons ? { buttons } : undefined).catch(() => ({ ok: false }));
+      if (buttons || !already) await say(contact, d.render(buttons ? "Yes or no?" : SCREEN_REPLY_YES_NO), buttons ? { buttons } : undefined).catch(() => ({ ok: false }));
     }
     // JOB CARDS: the postings this turn found, each as its own card after the reply that introduces them. A failure here never
     // changes what was already said; the reply's own words stand.
@@ -405,31 +482,31 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     let docs: { sent: number; failed: number } | null = null;
     if (artifacts.length && d.sendArtifacts) {
       docs = await d.sendArtifacts({ userId: person.userId, threadId: turnThread, contact, artifacts }).catch(() => ({ sent: 0, failed: artifacts.length }));
-      if (docs.failed) await d.reply(contact, d.render(DOC_NOT_SENT_REPLY)).catch(() => ({ ok: false }));
+      if (docs.failed) await say(contact, d.render(DOC_NOT_SENT_REPLY)).catch(() => ({ ok: false }));
     }
     // REPLY SHAPE: the answer went first; now each file, then each link, one message each, in that order. A step that fails is said.
     let shaped: { files: number; links: number } | null = null;
     if (more && headWent) {
       const bubbles = d.render(more), one = bubbles.join("\n\n");
-      await d.reply(contact, bubbles.length > 1 && one.length <= MORE_ONE_MESSAGE ? [one] : bubbles).catch(() => ({ ok: false }));
+      await say(contact, bubbles.length > 1 && one.length <= MORE_ONE_MESSAGE ? [one] : bubbles).catch(() => ({ ok: false }));
     } else if (more) {
       // The head did not go out now: the rest and the answer's links wait behind it in the outbox, in order (a link sent now
       // arrived before the answer it belongs to).
       await store.enqueueReply(person.userId, `${key}:2`, fitReply(more), now, msg.channel, { of: key, n: 2 }, null);
       let n = 2;
       for (const url of shape?.links ?? []) { n++; await store.enqueueReply(person.userId, `${key}:${n}`, url, now, msg.channel, { of: key, n }, null); }
-    } else if (shape?.more?.length) for (const m of shape.more.slice(0, 1)) await d.reply(contact, d.render(m)).catch(() => ({ ok: false }));
+    } else if (shape?.more?.length) for (const m of shape.more.slice(0, 1)) await say(contact, d.render(m)).catch(() => ({ ok: false }));
     if (shape && (d.sendFile || d.sendLink)) {
       const sf = d.sendFile, sl = d.sendLink;
       const r = await deliverShaped({ answer: "", attachments: shape.attachments, links: more && !headWent ? [] : shape.links, notes: [] }, {
         document: async (f) => sf ? await sf({ contact, ...f }) : { ok: false }, link: async (url) => sl ? await sl({ contact, url }) : { ok: false } }, { includeAnswer: false });
       shaped = { files: r.files, links: r.links };
-      if (r.files < shape.attachments.length) await d.reply(contact, d.render(DOC_NOT_SENT_REPLY)).catch(() => ({ ok: false }));
+      if (r.files < shape.attachments.length) await say(contact, d.render(DOC_NOT_SENT_REPLY)).catch(() => ({ ok: false }));
     }
     return ok({ replied: true, ...(shaped ? { shaped } : {}), ...(cardsShown ? { cards: cardsShown } : {}), ...(parts ? { parts: parts.length } : {}), ...(docs ? { documents: docs } : {}) });
   } catch (e) {
     console.error("inbound failed:", e instanceof Error ? e.message : String(e));
-    try { await d.reply(contact, d.render(CHAT_DOWN_REPLY)); } catch { /* already logged */ }
+    try { await say(contact, d.render(CHAT_DOWN_REPLY)); } catch { /* already logged */ }
     return { status: 500, body: { ok: false, error: "internal" } };
   }
 }
@@ -442,15 +519,22 @@ export async function handleChannelWebhook(req: Request, adapter: ChannelAdapter
   if ("response" in parsed) return parsed.response;
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
   let reheld = 0;
+  let failed = 0;
   for (const s of parsed.statuses ?? [] as StatusEvent[]) {
     if (s.hold && d.store.reholdSent) reheld += await d.store.reholdSent(s.providerMessageId, d.now(), s.error);
-    else if (!s.hold) console.error(`${adapter.provider}: a sent message failed after it was accepted: ${s.error}`);
+    else if (!s.hold) {
+      console.error(`${adapter.provider}: a sent message failed after it was accepted: ${s.error}`);
+      // CHANNEL DELIVERY ROUND 2 (2026-10-30): the row said "delivered" while the provider said it was not (131026
+      // undeliverable, 130429 throughput...). Now it is failed with the reason; a throughput refusal goes again from that
+      // message.
+      if (d.store.failSent) failed += await d.store.failSent(s.providerMessageId, d.now(), s.error, s.retry === true);
+    }
   }
-  if (!parsed.messages.length) return json({ ok: true, ...(reheld ? { reheld } : {}), ignored: (parsed.ignored ?? [])[0] ?? "nothing to read" });
+  if (!parsed.messages.length) return json({ ok: true, ...(reheld ? { reheld } : {}), ...(failed ? { failed } : {}), ignored: (parsed.ignored ?? [])[0] ?? "nothing to read" });
   const results: Record<string, unknown>[] = [];
   for (const m of parsed.messages) {
     const r = await runInbound(m, d);
     results.push(r.body);
   }
-  return json({ ok: true, ...(reheld ? { reheld } : {}), results });
+  return json({ ok: true, ...(reheld ? { reheld } : {}), ...(failed ? { failed } : {}), results });
 }

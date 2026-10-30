@@ -97,15 +97,23 @@ export function parseTelegramUpdate(u: any): { message: InboundMessage | null; i
   // SERIAL-1462: a reply in Telegram carries the replied-to message as message.reply_to_message (Bot API); its message_id
   // is the id sendMessage returned when that message went out.
   const repliedTo = m.reply_to_message && typeof m.reply_to_message === "object" && Number.isSafeInteger(m.reply_to_message.message_id) ? String(m.reply_to_message.message_id) : null;
-  const base = { provider: "telegram" as const, channel: "telegram" as const, messageId, contact: `tg:${m.chat.id}`, address: String(m.chat.id), replyToMessageId: repliedTo };
+  // TELEGRAM ROUND 2 (2026-10-30): a forwarded message (forward_origin; the older forward_from / forward_from_chat /
+  // forward_sender_name) is someone else's words the person passed on: never their command, their yes, a link nonce or
+  // their own contact card.
+  const forwardedFrom = forwardOrigin(m);
+  const base = { provider: "telegram" as const, channel: "telegram" as const, messageId, contact: `tg:${m.chat.id}`, address: String(m.chat.id), replyToMessageId: repliedTo,
+    ...(forwardedFrom ? { forwardedFrom } : {}) };
   // FEATURE 16: a document (a resume as a PDF or Word file) is read: getFile, then the file itself (channel_inbound.ts).
   // message.document: file_id (to download), file_unique_id (stable across bots and time), file_name, mime_type,
   // file_size (https://core.telegram.org/bots/api#document, ASSUMED field names). Its caption is the message text.
-  const d = m.document;
+  // TELEGRAM ROUND 2: a GIF (message.animation) carries message.document too, for old clients; it is a GIF, not a file, and
+  // was read as a resume ("That file is neither a PDF nor a Word file"). It is left alone, as a sticker is (or its caption
+  // read). Every cut is on a whole character (a name cut inside an emoji was refused by the database when it was stored).
+  const d = m.animation ? null : m.document;
   if (d && typeof d === "object" && typeof d.file_id === "string" && d.file_id && typeof d.file_unique_id === "string" && d.file_unique_id) {
-    return { message: { ...base, kind: "text", text: typeof m.caption === "string" ? m.caption.slice(0, 1000) : "",
-      document: { fileId: d.file_id.slice(0, 300), uniqueId: d.file_unique_id.slice(0, 120), name: String(d.file_name ?? "resume").slice(0, 200) || "resume",
-        mime: String(d.mime_type ?? "").slice(0, 120), size: Number.isSafeInteger(d.file_size) ? d.file_size : null } } };
+    return { message: { ...base, kind: "text", text: typeof m.caption === "string" ? safeSlice(withLinks(m.caption, m.caption_entities), 1000) : "",
+      document: { fileId: safeSlice(d.file_id, 300), uniqueId: safeSlice(d.file_unique_id, 120), name: safeSlice(String(d.file_name ?? "resume"), 200) || "resume",
+        mime: safeSlice(String(d.mime_type ?? ""), 120), size: Number.isSafeInteger(d.file_size) ? d.file_size : null } } };
   }
   // PHONE LOGIN (owner, 2026-10-28): the "Share my phone number" button (request_contact) comes back as message.contact
   // {phone_number, user_id} (https://core.telegram.org/bots/api#contact, ASSUMED field names). It is the sender's own number
@@ -113,22 +121,71 @@ export function parseTelegramUpdate(u: any): { message: InboundMessage | null; i
   const sc = m.contact;
   if (sc && typeof sc === "object") {
     const digits = String(sc.phone_number ?? "").replace(/[^0-9]/g, "");
-    const own = Number.isSafeInteger(sc.user_id) && sc.user_id === m.from?.id && digits.length >= 8 && digits.length <= 15;
+    const own = !forwardedFrom && Number.isSafeInteger(sc.user_id) && sc.user_id === m.from?.id && digits.length >= 8 && digits.length <= 15;
     return { message: { ...base, kind: "text", text: "", sharedPhone: own ? "own" : "other", ...(own ? { phone: `+${digits}` } : {}) } };
   }
   // FEATURE 16: a photo or a file Trainee can't read, and a voice, audio or video message, each get a plain answer (never
   // silence); a sticker is still left alone.
+  const media = m.voice || m.audio || m.video || m.video_note ? "voice" : m.photo || m.animation ? "photo" : m.document ? "file" : null;
   if (typeof m.text !== "string" || !m.text.trim()) {
-    const media = m.voice || m.audio || m.video || m.video_note ? "voice" : m.photo ? "photo" : m.document ? "file" : null;
+    // TELEGRAM ROUND 2: the words sent WITH a photo, a video or a GIF (its caption) were dropped: a job post forwarded from a
+    // channel (the flyer, with the role, the pay and its "Apply here" link as the caption) got "I can't read photos". The
+    // caption is now read as the message (never as a command); the person is told the picture itself was not seen.
+    const caption = typeof m.caption === "string" && m.caption.trim() && (media === "photo" || media === "voice") ? withLinks(m.caption, m.caption_entities) : "";
+    if (caption) return { message: { ...base, kind: "text", text: caption, media: media as "photo" | "voice", caption: true } };
+    if (m.animation) return { message: null, ignored: "a GIF (left alone, as a sticker is)" };
     return { message: { ...base, kind: "seen", text: "", file: !!(m.document || m.photo), ...(media ? { media } : {}) }, ignored: "no text (attachments are not read yet)" };
   }
-  const cmd = /^\/(start|stop|help)(?:@[A-Za-z0-9_]{1,64})?(?:\s+(\S+))?\s*$/i.exec(m.text.trim());
+  const cmd = forwardedFrom ? null : /^\/(start|stop|help)(?:@[A-Za-z0-9_]{1,64})?(?:\s+(\S+))?\s*$/i.exec(m.text.trim());
   if (cmd) {
     const command = cmd[1].toLowerCase() as "start" | "stop" | "help";
     const payload = command === "start" && cmd[2] && /^[A-Za-z0-9_-]{1,64}$/.test(cmd[2]) ? cmd[2] : null;
     return { message: { ...base, kind: "text", text: m.text, command, startPayload: payload } };
   }
-  return { message: { ...base, kind: "text", text: m.text } };
+  // TELEGRAM ROUND 2: "Apply here" as a link (a text_link entity: the words show, the URL rides beside them) reached the
+  // brain as the bare words, the URL lost. Each such link is written after its words.
+  return { message: { ...base, kind: "text", text: withLinks(m.text, m.entities) } };
+}
+// TELEGRAM ROUND 2: who a forwarded message came from, as Telegram names it (forward_origin: user, hidden_user, chat,
+// channel; https://core.telegram.org/bots/api#messageorigin, ASSUMED; the fields before Bot API 7.0 as a fallback).
+// deno-lint-ignore no-explicit-any
+export function forwardOrigin(m: any): string | null {
+  // deno-lint-ignore no-explicit-any
+  const nameOf = (x: any) => safeSlice([x?.first_name, x?.last_name].filter((v) => typeof v === "string" && v.trim()).join(" ").trim(), 80);
+  // deno-lint-ignore no-explicit-any
+  const chatName = (c: any) => safeSlice(String(c?.title ?? (c?.username ? `@${c.username}` : "")), 80);
+  const o = m?.forward_origin;
+  if (o && typeof o === "object") {
+    const n = o.type === "user" ? nameOf(o.sender_user) : o.type === "hidden_user" ? safeSlice(String(o.sender_user_name ?? ""), 80)
+      : o.type === "chat" ? chatName(o.sender_chat) : o.type === "channel" ? chatName(o.chat) : "";
+    return n.trim() || "someone";
+  }
+  if (m?.forward_from_chat) return chatName(m.forward_from_chat).trim() || "someone";
+  if (m?.forward_from) return nameOf(m.forward_from).trim() || "someone";
+  if (typeof m?.forward_sender_name === "string" || Number.isSafeInteger(m?.forward_date)) return safeSlice(String(m.forward_sender_name ?? ""), 80).trim() || "someone";
+  return null;
+}
+// TELEGRAM ROUND 2: a text_link entity's URL written after its words ("Apply here (https://...)"). Offsets are UTF-16 code
+// units, as JavaScript strings index them (https://core.telegram.org/bots/api#messageentity). Only http(s) links; words that
+// already are the URL, or a URL already in the text, are left as they are.
+// deno-lint-ignore no-explicit-any
+export function withLinks(text: string, entities: any): string {
+  const s = String(text ?? "");
+  if (!Array.isArray(entities)) return s;
+  // deno-lint-ignore no-explicit-any
+  const links = entities.filter((e: any) => e && e.type === "text_link" && typeof e.url === "string" && /^https?:\/\/\S+$/i.test(e.url) && e.url.length <= 2048
+    && Number.isSafeInteger(e.offset) && Number.isSafeInteger(e.length) && e.offset >= 0 && e.length > 0 && e.offset + e.length <= s.length)
+    // deno-lint-ignore no-explicit-any
+    .sort((a: any, b: any) => b.offset - a.offset);
+  let out = s, floor = Infinity;
+  for (const e of links) {
+    const end = e.offset + e.length;
+    if (end > floor) continue; // overlapping entities: the later-starting one stands
+    floor = e.offset;
+    if (s.includes(e.url)) continue;
+    out = `${out.slice(0, end)} (${e.url})${out.slice(end)}`;
+  }
+  return out;
 }
 
 // V1 TEXTING VOICE (CAREER_TEXTING_NATIVE=on, `native`): messages split on the reply's own words (channel_voice.ts), light
@@ -202,6 +259,10 @@ export function telegramAdapter(o: {
       const r = await call("getFile", { file_id: fileId });
       if ("error" in r) return { ok: false, error: redact(`Telegram unreachable: ${r.error instanceof Error ? r.error.message : String(r.error)}`).slice(0, 200) };
       const path = r.body?.result?.file_path, size = r.body?.result?.file_size;
+      // TELEGRAM ROUND 2: a file over the 20 MB a bot may download is refused by getFile itself (400 "file is too big") when the
+      // message did not state its size; that read "I couldn't download that file just now. Send it again in a minute", which
+      // never works. It is too large, and said so.
+      if (r.status === 400 && /too big|too large/i.test(String(r.body?.description ?? ""))) return { ok: false, error: "too_large" };
       if (r.status !== 200 || r.body?.ok !== true || typeof path !== "string" || !path) return { ok: false, error: `Telegram getFile HTTP ${r.status}: ${redact(String(r.body?.description ?? "no file path")).slice(0, 120)}` };
       if (!Number.isSafeInteger(size) || size < 1) return { ok: false, error: "Telegram getFile gave no file size" };
       if (size > cap) return { ok: false, error: "too_large" };
@@ -277,6 +338,9 @@ export function telegramAdapter(o: {
     async send(address, bubbles, opts): Promise<SendResult> {
       if (!bubbles.length) return { ok: false, error: "nothing to send: the message has no text", retryable: false };
       const ids: string[] = [];
+      // retryAfterMs counts from when send began (the outbox adds it to the run's time): a 429 on a later message comes
+      // after the pacing of the earlier ones.
+      const now = o.clock ?? Date.now, t0 = now();
       for (let i = 0; i < bubbles.length; i++) {
         await pace(address);
         const after = i ? ` after ${i} of ${bubbles.length} messages went out` : "";
@@ -289,21 +353,32 @@ export function telegramAdapter(o: {
           : last && opts?.removeKeyboard ? { reply_markup: { remove_keyboard: true } }
           : last && keyboardOf(opts?.buttons) ? { reply_markup: keyboardOf(opts?.buttons) } : {};
         const wait = i ? WAIT_MID_REPLY_S : WAIT_IN_PLACE_S;
-        let r = await call("sendMessage", { chat_id: Number(address), text: safeSlice(bubbles[i], TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...(o.native ? { parse_mode: "HTML" } : {}), ...keyboard }, wait);
+        // TELEGRAM ROUND 2 (2026-10-30): HTML longer than 4,096 (a job page of 3,600-3,800 characters whose "&" and "<" were
+        // escaped: "R&D" is "R&amp;D") was cut at 4,096: inside an entity (Telegram refuses it: a 400, then the plain resend)
+        // or silently, its last lines lost; on the Apply page that was the end of the payload Confirm approves. Such a message
+        // goes as its plain text, which fits whole.
+        const html = !!o.native && !(bubbles[i].length > TELEGRAM_CHARS && telegramPlain(bubbles[i]).length <= TELEGRAM_CHARS);
+        const text = html || !o.native ? bubbles[i] : telegramPlain(bubbles[i]);
+        let r = await call("sendMessage", { chat_id: Number(address), text: safeSlice(text, TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...(html ? { parse_mode: "HTML" } : {}), ...keyboard }, wait);
         // V1: Telegram refused the markup, so nothing went out; the same words go again as plain text.
-        if (o.native && !("error" in r) && r.status === 400 && /parse entities|can't find end|unsupported start tag/i.test(String(r.body?.description ?? ""))) {
+        if (html && !("error" in r) && r.status === 400 && /parse entities|can't find end|unsupported start tag/i.test(String(r.body?.description ?? ""))) {
           r = await call("sendMessage", { chat_id: Number(address), text: safeSlice(telegramPlain(bubbles[i]), TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...keyboard }, wait);
         }
+        // CHANNEL DELIVERY ROUND 2 (2026-10-30): what went out before a failure is reported (sent, sentIds), so a failure on
+        // the 2nd+ message that certainly sent nothing (a 429 asking for more than WAIT_MID_REPLY_S, 502, 503, a connection
+        // that never opened) is retried from that message (career_outbox.sent_parts): the rest is no longer lost ("after 1 of
+        // 3 messages went out") and nothing already sent goes again.
+        const partial = i ? { sent: i, sentIds: [...ids] } : {};
         if ("error" in r) {
           const e = r.error, timedOut = e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError");
-          return timedOut ? { ok: false, error: `Telegram timed out (it may have been delivered)${after}`, retryable: false }
-            : { ok: false, error: redact(`Telegram unreachable: ${e instanceof Error ? e.message : String(e)}`).slice(0, 200) + after, retryable: i === 0 };
+          return timedOut ? { ok: false, error: `Telegram timed out (it may have been delivered)${after}`, retryable: false, ...partial }
+            : { ok: false, error: redact(`Telegram unreachable: ${e instanceof Error ? e.message : String(e)}`).slice(0, 200) + after, retryable: true, ...partial };
         }
         if (r.status === 200 && r.body?.ok === true) { const id = r.body?.result?.message_id; if (id !== undefined && id !== null) ids.push(String(id)); continue; }
         const desc = redact(String(r.body?.description ?? "")).slice(0, 120);
-        if (r.status === 403 && /blocked|deactivated/i.test(desc)) return { ok: false, error: `Telegram 403: ${desc}${after}`, retryable: false, optOut: true };
+        if (r.status === 403 && /blocked|deactivated/i.test(desc)) return { ok: false, error: `Telegram 403: ${desc}${after}`, retryable: false, optOut: true, ...partial };
         const ra = r.status === 429 ? retryAfterOf(r.body) : null;
-        return { ok: false, error: `Telegram HTTP ${r.status}${desc ? `: ${desc}` : ""}${after}`, retryable: i === 0 && (r.status === 429 || r.status === 502 || r.status === 503), ...(ra !== null ? { retryAfterMs: ra * 1000 } : {}) };
+        return { ok: false, error: `Telegram HTTP ${r.status}${desc ? `: ${desc}` : ""}${after}`, retryable: r.status === 429 || r.status === 502 || r.status === 503, ...(ra !== null ? { retryAfterMs: ra * 1000 + Math.max(0, now() - t0) } : {}), ...partial };
       }
       return { ok: true, id: ids[0] ?? null, ids };
     },

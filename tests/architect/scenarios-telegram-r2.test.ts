@@ -309,10 +309,10 @@ async function runStep(w: World, p: Who, s: Step, i: number, r: ReturnType<typeo
     case "cmd": {
       update = m({ text: s.cmd });
       const stop = ["/stop", "STOP", "stop", "Stop."].includes(s.cmd);
-      // A stranger's STOP or START records their chat (channel_contacts): a later message from them reads as "told already"
-      // (refusedBefore), as the deployed store does.
-      if (stop) { p.out = true; if (!p.account) p.refused = true; want = { turn: null, fixed: [CHANNEL_REPLIES.stop] }; }
-      else if (s.cmd === "START") { p.out = false; if (!p.account) p.refused = true; want = { turn: null, fixed: [CHANNEL_REPLIES.start] }; }
+      // A stranger's STOP or START records their chat (channel_contacts), but is not the sign-up refusal: IDENTITY SCENARIOS
+      // (20261030120000_channel_identity.sql, refused_at) record the refusal itself, so their next message is told once.
+      if (stop) { p.out = true; want = { turn: null, fixed: [CHANNEL_REPLIES.stop] }; }
+      else if (s.cmd === "START") { p.out = false; want = { turn: null, fixed: [CHANNEL_REPLIES.start] }; }
       else if (s.cmd === "/help") want = p.account ? { turn: "/help", fixed: null } : { turn: null, fixed: [CHANNEL_REPLIES.help] };
       else { // /start
         if (p.account) { p.out = false; want = { turn: "/start", fixed: null, firstStartsWith: CHANNEL_REPLIES.start }; }

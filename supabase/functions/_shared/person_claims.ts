@@ -57,7 +57,10 @@ function sentenceBefore(t: string, at: number): string {
 const FILL = "(?:(?!(?:to|with|for|from|by|under|of|about|and|or|on|at|in|who|that|which)\\b)[a-z-]+\\s+){0,2}";
 const POSSESSIVE_BEFORE = /\s(?:my|our|your|his|her|their|whose|[a-z]+'s)\s+(?:[a-z-]+\s+){0,2}$/;
 const SELF_POSSESSIVE = /\s(?:i am|i'm|i was|i've been|i have been|i became|became|served as|worked as|acted as|serving as|working as)\s+(?:my|our|their|his|her)\s+(?:[a-z-]+\s+){0,2}$/;
-const CLAIMED_BEFORE = new RegExp(`\\s(?:i am|i'm|im|i was|i've been|i have been|i had been|i became|i served|i acted|i stepped in|as|became|serving as|served as|worked as|working as|work as|acting as|acted as|stepped in as|promoted to|hired as|joined as|role as|title of|title as|title is|title was|position as|being)\\s+(?:(?:a|an|the|their|its|our)\\s+)?${FILL}$`);
+// A role said of "you" is a claim too: in a reply "you" is the person, in an outreach draft the recipient (whose title is
+// only from their row), never "someone else" (TAILORING R2 fix: "I see you're a data scientist at Stripe" read as "a ...",
+// someone else's role, and an invented recipient title passed the outreach fact-lock).
+const CLAIMED_BEFORE = new RegExp(`\\s(?:you are|you're|youre|you were|you've been|you have been|you had been|you became|i am|i'm|im|i was|i've been|i have been|i had been|i became|i served|i acted|i stepped in|as|became|serving as|served as|worked as|working as|work as|acting as|acted as|stepped in as|promoted to|hired as|joined as|role as|title of|title as|title is|title was|position as|being)\\s+(?:(?:a|an|the|their|its|our)\\s+)?${FILL}$`);
 const OTHER_BEFORE = /\s(?:a|an|the|this|that|these|those|each|every|another|other|some|any|our|my|your|his|her|their|its|whose|to|with|for|from|by|under|alongside|among|like|than|about|and|or|whom|of)\s+(?:[a-z-]+\s+){0,2}$/;
 // A role word ("manager", "director", "head of", "lead", "veteran") is a claim about the person when it is said of them
 // ("I was the manager", "as a team lead", "my role as director"); not when it names someone else ("my manager said", "a

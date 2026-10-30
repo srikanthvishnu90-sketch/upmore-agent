@@ -61,7 +61,7 @@ export async function* chunksOf(b: BodyRead): AsyncGenerator<string> {
 // array is the value of `key` in the root object. Elements that are not objects are not counted (the readers drop them).
 // `skip`: object elements counted and passed over without being kept or parsed. `found` reports whether the array was
 // there at all (false: not this provider's body shape); `root` the root object's string fields (each up to 1,000 chars).
-export interface ArrayScan { found: boolean; done: boolean; root: Record<string, string>; counted: number }
+export interface ArrayScan { found: boolean; done: boolean; root: Record<string, string>; counted: number; invalid?: boolean } // invalid: not one JSON value (round 2)
 export async function* jsonArrayElements(chunks: AsyncIterable<string>, key: string | null, skip = 0, scan: ArrayScan = { found: false, done: false, root: {}, counted: 0 }): AsyncGenerator<string> {
   let depth = 0, inStr = false, esc = false, rootKind = 0; // rootKind: 1 object, 2 array
   let arrayDepth = -1; // the depth inside the target array (elements start at this depth)
@@ -79,6 +79,11 @@ export async function* jsonArrayElements(chunks: AsyncIterable<string>, key: str
           if (strBuf) { if (strFrom >= 0) strBuf.push(chunk.slice(strFrom, i)); pendingStr = strBuf.join(""); strBuf = null; strFrom = -1; }
         }
         continue;
+      }
+      // 2026-10-30 (round 2): outside the root nothing but white space. Leading bytes that are not JSON (a body still gzip
+      // encoded, an HTML page) used to be skipped until a "[" turned up, and the garbage read as an empty board.
+      if (depth === 0 && c !== 32 && c !== 9 && c !== 10 && c !== 13 && c !== 0xfeff && (rootKind !== 0 || (c !== 123 && c !== 91))) {
+        scan.found = false; scan.invalid = true; return;
       }
       if (c === 34) { // opening quote
         inStr = true;
@@ -150,4 +155,25 @@ export function idChunks(ids: string[], o: { maxUrl?: number; base?: number; max
 export function transientStorageError(e: unknown): boolean {
   const m = e instanceof Error ? e.message : String(e);
   return /statement timeout|canceling statement|lock timeout|error sending request|fetch failed|connection (reset|refused|closed)|network|timed? ?out|ECONNRESET|HTTP 5\d\d|\b50[234]\b|upstream|deadlock/i.test(m);
+}
+
+// 2026-10-30 (ingest round 2): one posting's text that Postgres refuses fails the write it is in. Postgres text holds no
+// NUL character, and JSON with a lone UTF-16 surrogate (an emoji cut in half by a length limit, or a broken one in the
+// board's own JSON) is refused as invalid input; either used to fail the whole lane run on every tick, since the board
+// was handed back and taken first again. `storable` drops NUL and the other control characters but tab and line breaks,
+// and puts U+FFFD in place of a lone surrogate; `cut` is a length limit that never ends inside a surrogate pair.
+export function storable(v: unknown): string {
+  return String(v ?? "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
+    .replace(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g, "�");
+}
+export function cut(s: string, n: number): string {
+  if (s.length <= n) return s;
+  const c = s.charCodeAt(n - 1);
+  return c >= 0xd800 && c <= 0xdbff ? s.slice(0, n - 1) : s.slice(0, n);
+}
+// A write refused for what one row holds (a value Postgres will not take, a row outside a table check): that board's
+// read fails with the reason and the lane goes on (never the whole run, which would fail the same way every tick).
+export function rowContentError(e: unknown): boolean {
+  const m = e instanceof Error ? e.message : String(e);
+  return /invalid input syntax|unsupported Unicode escape|Unicode low surrogate|invalid byte sequence|untranslatable character|violates check constraint|value too long|null value in column|out of range/i.test(m);
 }

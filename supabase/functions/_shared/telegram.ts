@@ -47,6 +47,9 @@ const keyboardOf = (rows: KeyButton[][] | undefined) => {
 };
 export const TELEGRAM_FILE_MAX = 20 * 1024 * 1024; // what a bot may download (getFile)
 const PACK = 1500; // the texting rule: one message carries at most 1,500 characters, longer text is split on purpose
+// A 429's retry_after waited in place: up to 5 s for a reply's first message (a longer wait goes back to the outbox, nothing
+// having gone out), up to 30 s once part of the reply went out (the rest would otherwise be lost: it cannot be sent alone).
+export const WAIT_IN_PLACE_S = 5, WAIT_MID_REPLY_S = 30;
 const SECRET_RE = /^[A-Za-z0-9_-]{32,256}$/;
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
@@ -137,13 +140,26 @@ export function telegramAdapter(o: {
 }): ChannelAdapter {
   const f = o.fetch ?? fetch, timeout = o.timeoutMs ?? 15000;
   const pace = pacer({ perChatMs: 1000, overallPerSecond: 30, clock: o.clock, sleep: o.sleep });
+  const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   // The token rides in the URL; nothing that may be logged carries it.
   const redact = (s: string) => (o.token ? s.split(o.token).join("***") : s);
-  const call = async (method: string, body: unknown): Promise<{ status: number; body: any } | { error: unknown }> => {
-    try {
-      const res = await f(`${TELEGRAM_API}/bot${o.token}/${method}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(timeout) });
-      return { status: res.status, body: await res.json().catch(() => null) };
-    } catch (e) { return { error: e }; }
+  // TELEGRAM SCENARIOS (2026-10-30): a 429 says how long to wait (parameters.retry_after, seconds). It was never read: the row
+  // went back for the fixed backoff (a minute, then five), early whenever Telegram asked for longer, and a 429 on the second
+  // message of a reply ended the reply there ("after 1 of 3 messages went out"), the rest never sent. Now a short wait is
+  // waited here, before the same call is made again (nothing went out with a 429, so nothing is sent twice); a longer one is
+  // handed back (retryAfterMs) for the outbox to wait at least that long.
+  const retryAfterOf = (b: any): number | null => { const n = Number(b?.parameters?.retry_after); return Number.isFinite(n) && n >= 0 ? Math.ceil(n) : null; };
+  const call = async (method: string, body: unknown, waitUpToS = WAIT_IN_PLACE_S): Promise<{ status: number; body: any } | { error: unknown }> => {
+    for (let tries = 0; ; tries++) {
+      let out: { status: number; body: any };
+      try {
+        const res = await f(`${TELEGRAM_API}/bot${o.token}/${method}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(timeout) });
+        out = { status: res.status, body: await res.json().catch(() => null) };
+      } catch (e) { return { error: e }; }
+      const ra = out.status === 429 ? retryAfterOf(out.body) : null;
+      if (ra === null || ra > waitUpToS || tries >= 2) return out;
+      await sleep(ra * 1000 + 50);
+    }
   };
   return {
     channel: "telegram", provider: "telegram",
@@ -260,10 +276,11 @@ export function telegramAdapter(o: {
           ? { reply_markup: { keyboard: [[{ text: opts.shareContact.slice(0, 64), request_contact: true }]], resize_keyboard: true, one_time_keyboard: true } }
           : last && opts?.removeKeyboard ? { reply_markup: { remove_keyboard: true } }
           : last && keyboardOf(opts?.buttons) ? { reply_markup: keyboardOf(opts?.buttons) } : {};
-        let r = await call("sendMessage", { chat_id: Number(address), text: safeSlice(bubbles[i], TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...(o.native ? { parse_mode: "HTML" } : {}), ...keyboard });
+        const wait = i ? WAIT_MID_REPLY_S : WAIT_IN_PLACE_S;
+        let r = await call("sendMessage", { chat_id: Number(address), text: safeSlice(bubbles[i], TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...(o.native ? { parse_mode: "HTML" } : {}), ...keyboard }, wait);
         // V1: Telegram refused the markup, so nothing went out; the same words go again as plain text.
         if (o.native && !("error" in r) && r.status === 400 && /parse entities|can't find end|unsupported start tag/i.test(String(r.body?.description ?? ""))) {
-          r = await call("sendMessage", { chat_id: Number(address), text: safeSlice(telegramPlain(bubbles[i]), TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...keyboard });
+          r = await call("sendMessage", { chat_id: Number(address), text: safeSlice(telegramPlain(bubbles[i]), TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...keyboard }, wait);
         }
         if ("error" in r) {
           const e = r.error, timedOut = e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError");
@@ -273,7 +290,8 @@ export function telegramAdapter(o: {
         if (r.status === 200 && r.body?.ok === true) { const id = r.body?.result?.message_id; if (id !== undefined && id !== null) ids.push(String(id)); continue; }
         const desc = redact(String(r.body?.description ?? "")).slice(0, 120);
         if (r.status === 403 && /blocked|deactivated/i.test(desc)) return { ok: false, error: `Telegram 403: ${desc}${after}`, retryable: false, optOut: true };
-        return { ok: false, error: `Telegram HTTP ${r.status}${desc ? `: ${desc}` : ""}${after}`, retryable: i === 0 && (r.status === 429 || r.status === 502 || r.status === 503) };
+        const ra = r.status === 429 ? retryAfterOf(r.body) : null;
+        return { ok: false, error: `Telegram HTTP ${r.status}${desc ? `: ${desc}` : ""}${after}`, retryable: i === 0 && (r.status === 429 || r.status === 502 || r.status === 503), ...(ra !== null ? { retryAfterMs: ra * 1000 } : {}) };
       }
       return { ok: true, id: ids[0] ?? null, ids };
     },

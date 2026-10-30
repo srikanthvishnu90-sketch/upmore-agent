@@ -183,7 +183,8 @@ export async function deliverDue(o: {
       continue;
     }
     const attempt = m.attempts + 1;
-    if (res.retryable && attempt < MAX_ATTEMPTS) { await o.store.mark(m.id, { status: "failed", at: o.now, error: res.error, retryAt: o.now + BACKOFF_MS[attempt - 1] }); r.retried++; }
+    // TELEGRAM SCENARIOS (2026-10-30): never sooner than the provider asked (Telegram's 429 retry_after).
+    if (res.retryable && attempt < MAX_ATTEMPTS) { await o.store.mark(m.id, { status: "failed", at: o.now, error: res.error, retryAt: o.now + Math.max(BACKOFF_MS[attempt - 1], res.retryAfterMs ?? 0) }); r.retried++; }
     else { await o.store.mark(m.id, { status: "failed", at: o.now, error: res.error }); r.failed++; }
   }
   // After every row of the run is held, so the count is whole ("Trainee has 3 new update(s) for you").

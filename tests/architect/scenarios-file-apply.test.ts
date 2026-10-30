@@ -8,7 +8,7 @@
 //     nothing is invented; all text is escaped (no foreign tag or attribute, no script link, no bidi override reaching the page);
 //   - the status word is the row's truth (Queued / Preparing / Sending / Submitted / Confirmed / Failed / Not submitted / Needs you /
 //     Unknown) and "applied" is never said; LinkedIn, Indeed and Handshake rows only link out; a row that cannot pass the posting
-//     screen (closed, stale, scam-looking, a knock-out for this person, no posting on file) offers no Apply;
+//     screen (closed, stale, scam-looking, past its deadline, a knock-out for this person, no posting on file) offers no Apply;
 //   - an approval happens only for the exact tag that is current for that row; Apply to all approves exactly the approvable set or
 //     nothing; each posting is approved at most once ever; a changed payload approves nothing and says to refresh; a row with a
 //     secret-looking field is "Needs you", never one-tap approvable, its value never printed;
@@ -324,7 +324,9 @@ function expectRow(w: World, i: number, S: Snapshot, firstUrl: Map<string, numbe
   const hidden = prep?.hidden ?? [];
   const chip = app ? (APP_WORD[app.state] ?? "Unknown") : prep?.needsYou ? "Needs you" : !prep && S.wanted[i] ? "Preparing" : null;
   const byHand = neverOpen(hostOf(p.url)) || /linkedin|indeed|joinhandshake|lnkd/i.test(hostOf(p.url));
-  const screened = !row || !!row.closed_at || p.spec.shape === "stale" || p.spec.shape === "scam" || (p.spec.shape === "knockout" && w.scenario.needsSponsor);
+  // TELEGRAM SCENARIOS (2026-10-30): a posting past its own deadline is expired, never approvable (stricter than before: it was offered).
+  const expired = p.deadline !== null && !Number.isNaN(Date.parse(p.deadline)) && Date.parse(p.deadline) < w.deps.now();
+  const screened = !row || !!row.closed_at || expired || p.spec.shape === "stale" || p.spec.shape === "scam" || (p.spec.shape === "knockout" && w.scenario.needsSponsor);
   const twin = (firstUrl.get(p.url) ?? i) < i; // the same posting link as an earlier row
   const toByHand = prep && typeof prep.payload.destination === "string" && neverOpen(hostOf(String(prep.payload.destination)));
   const blocked = !chip && !byHand && (screened || twin || !!toByHand);

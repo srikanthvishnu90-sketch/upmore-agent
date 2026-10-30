@@ -57,7 +57,11 @@ export async function startPg(opts: { includeBridge?: boolean; migrationBudget?:
   if (prov.code !== 0) throw Error(`provision failed: ${prov.stderr.slice(-800)}`);
   const pg = attachPg(work, port, bin);
   if (!opts.migrationBudget) {
-    await pg.sql(`insert into public.model_budget_days(day, limit_micros) values (public.model_budget_day(now() - interval '12 hours'), 20000000) on conflict (day) do nothing;
+    // One row for every Chicago day the open window touches (now ±12 h). Opening only the day 12 hours ago left the
+    // calendar day the reservation actually uses (model_budget_day(now())) without a row after midnight Chicago time, so
+    // every fake model call was refused as over budget from midnight to noon Chicago time (CI run 41005821719).
+    await pg.sql(`insert into public.model_budget_days(day, limit_micros) select distinct public.model_budget_day(now() + d), 20000000
+        from unnest(array[interval '-12 hours', interval '0', interval '12 hours']) d on conflict (day) do nothing;
       update public.model_budget_settings set value = to_char((now() - interval '12 hours') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') where key = 'window_start';
       update public.model_budget_settings set value = to_char((now() + interval '12 hours') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') where key = 'window_end';`);
   }

@@ -20,7 +20,11 @@
 //   (scenarios-secrets.test.ts runs thousands of generated phrasings and controls through this.)
 // Phone numbers (3-3-4), dates, amounts, order ids and a bare code are left alone (a bare code answers a paused
 // cancellation once and is withheld from storage by the handler).
-export type Redaction = { text: string; removed: ("ssn" | "card" | "account" | "password" | "code")[] };
+//   - an API key or token (RESEARCH ROUND 2, 2026-10-30): a key pasted into a message ("I kept our deploy key sk-proj-... in
+//     the config", an AWS, GitHub or Slack token, a signed JWT) was stored in the chat log and kept in the mock interview's
+//     record word for word; it is removed like a password.
+export type Redaction = { text: string; removed: ("ssn" | "card" | "account" | "password" | "code" | "key")[] };
+const KEY_SHAPED = /(?<![A-Za-z0-9])(?:sk-(?:proj-|live-|test-|ant-)?[A-Za-z0-9_-]{16,}|(?:sk|rk|pk|whsec)_(?:live|test)_[A-Za-z0-9]{8,}|whsec_[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{30,}|eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,})/g;
 
 const SSN_SHAPED = /\b(?<!\d[- ])\d{3}[- ]\d{2}[- ]\d{4}\b(?![- ]\d)/g;
 const SSN_LABELED = /\b(ssn|social security(?: number| no\.?| #)?|itin|tax id(?: number)?)(\s*(?:is|=|:|#)?\s*)(\d{9})\b/gi;
@@ -133,6 +137,7 @@ export function redactIdentity(input: string, o: { codePending?: boolean } = {})
   t = t.replace(CVV_NAMED, (_m, label, sep) => { removed.add("card"); return `${label}${sep}[security code removed]`; });
   t = t.replace(IBAN, (m) => { if (!ibanOk(m)) return m; removed.add("account"); return "[number removed]"; });
   if (o.codePending) t = t.replace(BARE_CODE, () => { removed.add("code"); return "[code removed]"; });
+  t = t.replace(KEY_SHAPED, () => { removed.add("key"); return "[key removed]"; });
   return { text: t, removed: [...removed] };
 }
 
@@ -167,7 +172,7 @@ export function redactPending(text: string, kind: SecretLead): Redaction | null 
   return { text: kind === "code" ? "[code removed]" : "[password removed]", removed: [kind] };
 }
 
-const NAMES = { ssn: "Social Security number", card: "card number", account: "account number", password: "password", code: "one-time code" } as const;
+const NAMES = { ssn: "Social Security number", card: "card number", account: "account number", password: "password", code: "one-time code", key: "key or token" } as const;
 export function redactionNote(removed: Redaction["removed"]): string | null {
   if (!removed.length) return null;
   const what = removed.map((r) => NAMES[r]);

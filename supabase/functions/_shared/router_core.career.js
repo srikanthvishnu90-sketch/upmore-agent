@@ -2592,7 +2592,7 @@ const CareerOutreach = (() => {
     ["real_estate_pe", /\breal[- ]estate (pe|private equity)\b/],
   ];
   const FIRM_TOKEN_STOP = new Set(["bank", "capital", "partners", "group", "global", "financial", "first", "national", "american", "united", "new", "city", "general", "white", "black", "real", "estate", "property", "securities", "management", "international", "holdings", "company", "fund", "funds", "chicago", "boston", "austin", "dallas", "houston", "seattle", "denver", "atlanta", "miami", "phoenix", "portland", "london", "toronto", "york"]);
-  const FIRM_ABBREV = { bcg: "Boston Consulting Group" };
+  const FIRM_ABBREV = { bcg: "Boston Consulting Group", "jp morgan": "JPMorgan", "j p morgan": "JPMorgan", "jpmorgan chase": "JPMorgan", "jp morgan chase": "JPMorgan" };
   const firmLexicon = () => { const names = []; for (const set of Object.values(firmSets().sets || {})) for (const f of set.firms || []) if (f && f.name && !names.includes(f.name)) names.push(f.name); return names; };
   function extractNamedFirms(raw, w) {
     const _firmLexicon = firmLexicon();
@@ -2624,7 +2624,8 @@ const CareerOutreach = (() => {
         const tok = nn.split(" ")[0];
         if (tok && tok.length >= 4 && firstTokenCount[tok] === 1 && !FIRM_TOKEN_STOP.has(tok)) {
           const rawTok = name.split(" ")[0].replace(/[^A-Za-z]/g, "");
-          if (rawTok && new RegExp("\\b" + rawTok + "\\b").test(raw)) idx = w.indexOf(" " + tok + " ");
+          const standsAlone = rawTok && [...raw.matchAll(new RegExp("\\b" + rawTok + "\\b", "g"))].some((m) => !/(?:\b[A-Z][A-Za-z]*\.?|\b[A-Z]\.)\s*$/.test(raw.slice(0, m.index)));
+          if (standsAlone) idx = w.indexOf(" " + tok + " ");
         }
       }
       if (idx >= 0) hits.push({ name, idx, nn });
@@ -16306,11 +16307,11 @@ const CareerRouter = (() => {
     return h ? { company: h.name, cir: h.cir, typed: h.typed } : null;
   }
   const RS_FRAME_BEFORE = /(?:\b(?:about|at|for|on|to|towards?|into|re|with|join|joining|research|researching|compare|comparing|vs\.?|versus|and|or|is|like)|\b(?:apply|applying|applied|interview|interviewing|prep|prepare|preparing)\s+(?:to|at|for|with)|\b(?:company|firm|employer|bank|fund) is)\s+(?:the\s+|a\s+|an\s+|my\s+)?$/i;
-  const RS_FRAME_AFTER = /^(?:['’]s\b|\s+(?:interviews?|culture|comp|compensation|pay|salary|salaries|process|hiring|recruiting|recruiters?|internships?|interns?|roles?|jobs?|file|headcount|revenue|employees|offices?|teams?|offers?|superday|careers?|application|deadline|timeline|odds|bar|values|analysts?|summer|swe|ibd|program|programme|look|hire|hires|want|pays?)\b)/i;
+  const RS_FRAME_AFTER = /^(?:['’]s\b|\s+(?:interviews?|culture|comp|compensation|pay|salary|salaries|process|hiring|recruiting|recruiters?|internships?|interns?|roles?|jobs?|file|headcount|revenue|employees|offices?|teams?|offers?|superday|careers?|application|deadline|timeline|odds|bar|values|analysts?|summer|swe|ibd|program|programme|look|hire|hires|want|pays?)\b|,?\s+(?:vs\.?|versus|or)\s+(?=[A-Z]))/i;
   const RS_EXCLUDE_BEFORE = /(?:\b(?:live|lives|living|lived|based|located|reside|resides|residing|grew up|raised|born|moving|move|moved|relocating|relocate|relocated|commute|from|near|outside|around|visit|visiting|visited|studied|study|studies|studying|graduated|graduating|graduate|attend|attends|attended|attending|enrolled|student|students|alum|alumni|alumnus|alumna|major|majored|majoring|degree|know|knows|knew|proficient|experience|experienced|skilled|familiar|fluent|certified|certification|using|use|uses|skills?|tools?|trained|good|great|expert|comfortable|not|except|excluding|besides|than|instead|never|no|nor|avoid|skip|hate|hated|left|quit|fired|laid off|anything but|everything but|all but)\b|n['’]t)(?:\s+(?:in|at|to|from|of|with|on|for|near|by|a|an|the|my|our|up|out|off|about|over|currently|still|now|right now|full[- ]time|part[- ]time|as an? [a-z]+))*:?\s+(?:[A-Za-z0-9.&'’-]+(?:\s+[A-Za-z0-9.&'’-]+){0,2}\s*(?:,|\band\b|\bor\b|&|\/)\s*){0,4}$/i;
   const RS_PEOPLE_AT = /\b(?:know|knows|anyone|anybody|someone|somebody|people|contacts?|connections?|alumni|works?|working)\s+(?:at|from|in|with)\s+(?:the\s+)?$/i;
   const RS_PERSON_BEFORE = /\b(?:dr|mr|mrs|ms|mx|prof|professor|friend|friends|sister|brother|mom|dad|mother|father|cousin|aunt|uncle|roommate|teacher|coach|boss|neighbor|neighbour|classmate|buddy|named|called)\.?,?\s+$/i;
-  const RS_MINE_BEFORE = /\b(?:i|i've|i’ve|i have|i had)\s+(?:currently\s+|still\s+|previously\s+|formerly\s+|once\s+|already\s+)?(?:work|works|worked|working|intern|interned|interning|was|am|used to work|used to intern|been)\s+(?:(?:as\s+an?\s+[a-z]+\s+)?(?:at|for|with)\s+)(?:the\s+)?$|\b(?:i['’]m|i am|i was)\s+(?:currently\s+|still\s+|now\s+)?(?:at|with)\s+(?:the\s+)?$|\b(?:used to|previously|formerly)\s+(?:work|intern)\s+(?:at|for|with)\s+(?:the\s+)?$/i;
+  const RS_MINE_BEFORE = /(?<!\b(?:should|could|would|can|do|will|shall|might|must)\s+)\b(?:i|i've|i’ve|i have|i had)\s+(?:currently\s+|still\s+|previously\s+|formerly\s+|once\s+|already\s+)?(?:work|works|worked|working|intern|interned|interning|was|am|used to work|used to intern|been)\s+(?:(?:as\s+an?\s+[a-z]+\s+)?(?:at|for|with)\s+)(?:the\s+)?$|\b(?:i['’]m|i am|i was)\s+(?:currently\s+|still\s+|now\s+)?(?:at|with)\s+(?:the\s+)?$|\b(?:used to|previously|formerly)\s+(?:work|intern)\s+(?:at|for|with)\s+(?:the\s+)?$/i;
   function rsOccurrenceOk(raw, i, j) {
     const typed = raw.slice(i, j);
     const before = raw.slice(0, i), after = raw.slice(j);
@@ -16322,7 +16323,8 @@ const CareerRouter = (() => {
     if (w1 && /^(?:Research|Data|Software|Product|Investment|Engineering|Design|Strategy|Sales|Finance|Marketing|Consulting|Operations)$/.test(w0) && /^[A-Z][a-z]/.test(w1) && !RS_AFTER_WORD.test(w1)) return false;
     if (/^\s+(?:university|college|institute|school|academy)\b/i.test(after)) return false;
     if (/\b(?:university|college|school|institute)\s+of\s+(?:the\s+)?$/i.test(before)) return false;
-    if (LT_PRODUCT_AFTER.test(after) && !(/\b(?:does|do|did|will|would)\s+$/i.test(before) && /^\s+pays?\b/i.test(after))) return false;
+    const firmOffice = /^\s+offices?\s+(?:in|at|like|look|culture)\b/.test(after) || (/^\s+offices?\b(?!\s*(?:365|suite|skills?|apps?|software|programs?))/.test(after) && /\b(?:the|their|its)\s+$/i.test(before));
+    if (!firmOffice && LT_PRODUCT_AFTER.test(after) && !(/\b(?:does|do|did|will|would)\s+$/i.test(before) && /^\s+pays?\b/i.test(after))) return false;
     const plain = ltPlain(typed).replace(/[.,]/g, "");
     if (LT_CITIES.has(plain) || LT_SCHOOLS.has(plain)) return false;
     if (RS_PERSON_BEFORE.test(before) || RS_MINE_BEFORE.test(before)) return false;
@@ -16359,6 +16361,12 @@ const CareerRouter = (() => {
   function namedCompanyOf(text, ctx) {
     const h = namedCompaniesOf(text, ctx)[0];
     return h ? { company: h.name, cir: h.cir, typed: h.typed } : null;
+  }
+  function cirByName(name, ctx) {
+    const n = ltPlain(ltClean(s(name)));
+    if (!n) return null;
+    const e = ltLexicon(ctx || {}).find((x) => x.cir && (ltPlain(x.name) === n || x.forms.some((f) => ltPlain(f) === n)));
+    return e ? e.cir : null;
   }
   function tailorTargetOf(text, ctx) {
     const p = ctx.posting || null;
@@ -16438,7 +16446,16 @@ const CareerRouter = (() => {
     if (/\blaw firm\b|\blaw school\b|\blaw interview\b|\blegal interview\b|\battorney\b/.test(tn)) return "law";
     if (/\bproduct management\b|\bproduct sense\b|\bpm interview\b|\bproduct manager interview\b/.test(tn)) return "pm";
     if (/\bswe\b|\bsoftware engineer|\bcoding\b|\bsystem design\b|\bdata structures\b/.test(tn)) return "swe";
-    if (/\bbanking\b|\bfinance interview\b|\binvestment banking\b|\btechnicals?\b/.test(tn)) return "finance";
+    if (/\bbanking\b|\bfinance interview\b|\binvestment banking\b|\btechnicals\b/.test(tn)) return "finance";
+    if (/\btechnical\b/.test(tn)) {
+      const h = raw === undefined ? null : namedCompaniesOf(raw, ctx).find((x) => x.cir);
+      const rf = h ? lc(`${s(h.cir.company_name)} ${s((h.cir.cohort || {}).role_family)} ${s(h.cir.industry)} ${s(h.cir.sector)}`) : "";
+      if (/\bquant|trading|trader\b/.test(rf)) return "quant";
+      if (/software|engineer|\bswe\b|developer|computer science/.test(rf)) return "swe";
+      if (/bank|financ|invest|private equity|markets|advisory/.test(rf)) return "finance";
+      if (/consult/.test(rf)) return "consulting";
+      return null;
+    }
     return null;
   }
   const PREP_SECTOR_LABEL = { finance: "finance", quant: "quant", data: "data", consulting: "consulting", medicine: "medicine", law: "law", pm: "product management", swe: "software engineering" };
@@ -16446,6 +16463,7 @@ const CareerRouter = (() => {
     if (!thread || !thread.lastQ || !thread.lastServedAt) return false;
     const raw = s(text).trim(), tn = lc(raw);
     if (raw.length <= 40 || /\?\s*$/.test(raw) || nowOf(ctx) - thread.lastServedAt > 30 * 60000) return false;
+    if (RS2_ASK_THEM.test(tn)) return false;
     if (/^(?:give me|another|next|one more|hit me|ask me|can we|could you|let'?s|ok(?:ay)? (?:next|another)|what|how|why|which|where|when|walk me|explain|teach me|back to)\b|\b(?:another|one more|next|different|harder) question\b/.test(tn)) return false;
     if (/\b(?:give me|hit me|drill me|one more|harder|tougher|weakest|focus on|can (?:we|i|you)|help me|walk me|explain|teach me|back to|model answer|switch to)\b/.test(tn)) return false;
     return !/\b(?:jobs?|apply|applying|applications?|search|find|look(?:ing)? for|stop|later|instead|cancel|never ?mind|tailor|resume|remind|watch)\b/.test(tn);
@@ -16453,6 +16471,7 @@ const CareerRouter = (() => {
   function handlePrepSession(text, ctx) {
     if (!Prep || !Prep.questionBank) return null;
     const tn = typoNorm(text);
+    if (RS2_ASK_THEM.test(tn)) return null;
     if (/\bnight[ -]before\b|\btomorrow\b[^.]*\bnervous\b|\bstar\b|\bstories\b|\bstory\b|\binterview brief\b|\bbrief me\b|\bprep pack\b|\btake[ -]home\b|\bquestions[ -]to[ -]ask\b|\bsuperday\b|\bday[ -]of checklist\b|\binterviewer research\b|\bfailure story\b|\bset\b|\bquestion bank\b|\bprep\s*:/.test(tn)) return null;
     if ((tn.match(/\bdcf\b|\blbo\b|\bcomps\b|three (financial )?statements/g) || []).length >= 2) return null;
     if (/\bmarket sizing\b|\bsizing (case|question)\b|\bestimation question\b|\bfermi\b/.test(tn)) return handlePrepQuestion(text, ctx);
@@ -16524,6 +16543,7 @@ const CareerRouter = (() => {
     };
     let candidates = qs.filter(inSector);
     if (!candidates.length) candidates = qs.filter((row) => !/^generic_behavioral/.test(s(row && row.source && row.source.type)));
+    candidates = candidates.filter((row) => !/^(?:book canon|bookshelf|reading list|canon|skill clusters?|scored skills?|competencies|resources?|further reading)\b/i.test(s(row && row.q).trim()));
     const rowSectionOf = (row) => lc((row && row.source && row.source.section) || (row && row.round) || (row && row.section) || "");
     if (sector === "consulting" && (/\bcases?\b/.test(tn) || !/\b(?:framework|structur\w*|method|issue tree|behaviou?ral|fit)\b/.test(tn))) {
       let casePool = candidates.filter((row) => /canonical case types|official sample cases/.test(rowSectionOf(row)));
@@ -16624,11 +16644,16 @@ const CareerRouter = (() => {
   function handlePrepEve(text, ctx) {
     const t = lc(text);
     if (!/\binterview\b/.test(t) || !/\b(tomorrow|tonight|nervous|anxious|can'?t sleep|cant sleep|scared|worried|freaking out)\b/.test(t)) return null;
+    const namedFirm = namedCompanyOf(text, ctx);
+    const unknown = namedFirm ? null : (() => { const lt = letterTargetOf(text, ctx); return lt && !lt.cir ? lt.company : null; })();
+    const firmCir = namedFirm && namedFirm.cir ? namedFirm.cir : null;
+    const firmName = namedFirm ? (firmCir ? cirShortName(firmCir) : namedFirm.company) : unknown;
     let items = [];
-    try { const ck = Prep && Prep.dayOfChecklist ? Prep.dayOfChecklist(ctx.profile || {}, {}) : null; const rawItems = (ck && (ck.items || ck.checklist || ck.steps)) || []; items = rawItems.map((i) => s(typeof i === "string" ? i : (i && (i.text || i.label || i.item)) || "")).filter(Boolean); } catch { items = []; }
+    try { const ck = Prep && Prep.dayOfChecklist ? (firmName ? Prep.dayOfChecklist({ company: firmName, cir: firmCir || undefined }, {}) : Prep.dayOfChecklist(ctx.profile || {}, {})) : null; const rawItems = (ck && (ck.items || ck.checklist || ck.steps)) || []; items = rawItems.map((i) => s(typeof i === "string" ? i : (i && (i.text || i.label || i.item)) || "")).filter(Boolean); } catch { items = []; }
     let q = null;
-    try { const bank = Prep.questionBank({ roleFamily: /\bfinance|banking|dcf\b/.test(t) ? "finance" : null, cir: cirFor(text, ctx) }); const qs = (bank && (bank.questions || bank.items)) || []; if (qs.length) q = s(qs[0].q || qs[0].question || qs[0].text); } catch { q = null; }
+    try { const bank = Prep.questionBank({ roleFamily: /\bfinance|banking|dcf\b/.test(t) ? "finance" : null, cir: firmCir || undefined }); const qs = (bank && (bank.questions || bank.items)) || []; if (qs.length) q = s(qs[0].q || qs[0].question || qs[0].text); } catch { q = null; }
     const facts = ["Tonight is for light reps, not cramming: one pass over your story, one question out loud, then stop — sleep is a scored input tomorrow, and a tired brain drops more points than one un-drilled question ever would."];
+    if (firmName && !firmCir) facts.push(`${firmName} has no company file here, so nothing in this plan is about how ${firmName} interviews.`);
     if (items.length) facts.push(`The logistics, settled tonight so tomorrow is only the interview: ${items.slice(0, 3).join("; ")}.`);
     if (q) facts.push(`Your one out-loud rep: ${q}`);
     const reply = compose({ headline: "You have a plan for tonight — and it ends early, on purpose.", facts, nextStep: q ? "Answer that one question out loud now; I will score it, and then we stop for the night." : "Tell me the company and round, and I will pick the one question worth rehearsing tonight." });
@@ -17155,7 +17180,7 @@ const CareerRouter = (() => {
         [/\btake[ -]home\b/, "takeHomePlan", "Your take-home plan — the shape now, the hours when the blocks are named."],
         [/\bsuperday\b/, "superdayPlan", "Your superday plan."],
         [/\bfinal[ -]round\b|\bfinal round\b/, "finalRoundDelta", "The final-round delta: what changes at this stage."],
-        [/\bquestions[ -]to[ -]ask\b|\bquestions i should ask\b|\bask the (panel|interviewer)\b/, "questionsToAsk", "Your questions to ask, matched to this panel."],
+        [RS2_ASK_THEM, "questionsToAsk", "Your questions to ask, matched to this panel."],
         [/\bdebriefs?\b|\bretro\b/, "debriefRetro", "The debrief, mined for the pattern."],
         [/\bcoffee[ -]chat\b/, "coffeeChatPrep", "Your coffee-chat brief."],
         [/\bdeflect|\bsalary\b[^.]*\b(script|deflect|say)\b|\bwhat do i say\b[^.]*\bsalary\b/, "salaryDeflectionScripts", "Your salary-deflection scripts, word for word."],
@@ -17311,12 +17336,26 @@ const CareerRouter = (() => {
   }
 
   const RS_FIGURE_ASKS = [
-    { key: "headcount", what: "headcount figure", ask: /\bhead ?count\b|\bhow many (?:people|employees|staff|workers)\b|\bnumber of (?:employees|staff|people)\b|\bemployees\b|\bcompany size\b|\bhow big is\b/, held: /\bheadcount\b|\b(?:employees|people) (?:firm-wide|worldwide|globally|in total)\b|\bemployees\b/ },
+    { key: "headcount", what: "headcount figure", ask: /\bhead ?count\b|\bhow many (?:people|employees|staff|workers)\b|\bnumber of (?:employees|staff|people)\b|\bemployees\b(?! (?:say|said|think|thought|rate|like|love|hate|feel|review))|\bcompany size\b|\bhow big is\b/, held: /\bheadcount\b|\b(?:employees|people) (?:firm-wide|worldwide|globally|in total)\b|\bemployees\b/ },
     { key: "financials", what: "revenue, valuation or funding figure", ask: /\brevenues?\b|\bvaluation\b|\bvalued at\b|\bmarket cap\b|\bprofits?\b|\bfunding\b|\bhow much (?:money )?(?:has it|did it|have they|did they) raise/, held: /\brevenues? (?:of|was|were|is|reached)\b|\bvalued at\b|\bvaluation of\b|\bmarket cap(?:italization)? of\b/ },
     { key: "acceptance", what: "acceptance rate or class size", ask: /\bacceptance rate\b|\badmit rate\b|\bacceptance rates\b|\bhow selective\b|\bclass size\b|\bhow many (?:analysts|interns|hires|people do they hire|applicants|people apply)\b|\bwhat percent(?:age)? (?:of applicants|get)\b/, held: /\bacceptance rate\b|\badmit rate\b|\bclass size (?:of|is|was)\b|\bconversion rate (?:of|is|was)\b/ },
     { key: "odds", what: "odds", ask: /\b(?:my|the) (?:odds|chances?)\b|\bwhat are (?:the )?(?:odds|chances)\b|\bprobability\b|\bhow likely (?:am i|is it|are you)\b|\bodds of\b/, held: null },
   ];
   const RS_TIMELINE_ASK = /\btimeline\b|\bdeadlines?\b|\bwhen (?:does|do|is|are|will)\b[^.?!]*\b(?:recruiting|applications?|hiring|open|close|deadline)\b|\brecruiting (?:season|cycle|window)\b/;
+  const RS2_PAY_ASK = /\bcomp\b|\bpay\b|\bsalary\b|\bsalaries\b|\bcompensation\b|\bhow much (?:do|does|did|will|would|can|could)\b[^?!\n]*\b(?:make|makes|earn|earns|get paid|paid|start at)\b|\bhow much (?:is|are) [^?!\n]*\bpaid\b|\bwhat (?:do|does) [^?!\n]*\b(?:make|earn)\b|\bbase pay\b|\bstarting (?:pay|salary)\b|\bget paid\b/;
+  const RS2_TOPIC_ASKS = [
+    { key: "news", what: "news", ask: /\blay ?offs?\b|\blaid (?:people )?off\b|\bjob cuts?\b|\bcutting jobs\b|\bhiring freeze\b|\bnews\b|\bin the headlines\b|\bscandals?\b|\blawsuits?\b|\bwhat(?:'s| is| has been) (?:happening|going on) (?:at|with)\b|\brecently\b[^.?!]*\b(?:happen|announce|cut|fire|layoff)\w*|\bfiring\b|\breorg(?:anization)?\b|\brestructur\w+/,
+      line: (n) => `The ${n} file holds no news: nothing here searched for layoffs or recent events, so I can't say whether there have been any, and I won't guess.` },
+    { key: "people", what: "names of people", ask: /\bceo\b|\bcfo\b|\bcto\b|\bfounders?\b|\bfounded by\b|\bwho (?:is|are|runs|leads|heads|owns|started)\b|\bwho(?:'s| is) (?:the |their )?(?:head|boss|recruiter|hiring manager|manager|lead|president|chair)\b|\bhead of\b|\bhiring managers?\b|\brecruiters?\b|\b(?:name|email|e-mail|contact) (?:of|for) (?:the |their |a )?(?:recruiter|hiring manager|ceo|founder|interviewer)\b|\binterviewers?\b(?:'s)? names?\b/,
+      line: (n) => `The ${n} file names no people: no executive, recruiter, hiring manager or interviewer is on record for it, and I don't name anyone a record doesn't hold.` },
+    { key: "office", what: "office details", ask: /\boffices?\b|\bheadquarter(?:s|ed)\b|\bhq\b|\bwhere (?:is|are) (?:it|they|\w+) (?:based|located)\b|\blocations?\b|\bcampus(?:es)?\b/,
+      line: (n, place) => `The ${n} file holds nothing on ${place ? `a ${place} office` : "its offices or locations"}, so I won't describe one.` },
+    { key: "rating", what: "rating", ask: /\bgood (?:company|place|employer|firm)\b|\b(?:good|great|bad|nice|decent) (?:place )?to work\b|\bworth (?:joining|working)\b|\breputation\b|\bglassdoor\b|\bemployee (?:ratings?|reviews)\b|\bwork[- ]life balance\b|\bwhat do (?:people|employees) (?:say|think)\b|\bshould i (?:work at|join)\b/,
+      line: (n) => `Whether ${n} is a good place for you is a judgment, not a fact on file: the file holds no rating or employee reviews, so I give none. Here is what it does hold.` },
+  ];
+  const RS2_TOPIC_ANY = new RegExp(RS2_TOPIC_ASKS.map((x) => x.ask.source).join("|"));
+  const RS2_ASK_THEM = /\bquestions[ -]to[ -]ask\b|\bquestions i should ask\b|\bask the (panel|interviewer)\b|\bwhat (?:should|do|can|could) i ask (?:them|him|her|at the end|the (?:interviewers?|panel|recruiter|hiring manager|team)|my interviewers?)\b|\bwhat (?:should|do|can|could) i ask\b[^.?!]*\b(?:end|interview|interviewer|panel)\b|\bwhat to ask (?:them|at the end|the interviewers?|in (?:the|my) interview)\b|\bquestions? (?:should i|do i|can i|to) ask (?:them|at the end|the interviewers?|in the interview)\b|\bask at the end\b|\b(?:what|which) questions? (?:should|do|can|could) i ask\b|\bwhat (?:should|do|can|could) i ask my\b/;
+  const RS2_COMPARE = /\bcompare\b|\bcomparing\b|\bcompared\b|\bvs\.?(?=\s|$)|\bversus\b|\bor\b|\bbetter\b|\bbetween\b|\bwhich (?:one|firm|company|is)\b|\bdifference\b/;
   function handleIntel(text, ctx) {
     if (!Intel) return null;
     const sentsOf = (t) => String(t || "").replace(/\b(Inc|Corp|Ltd|Sr|Jr|Dr|Mr|Mrs|Ms|St|vs|U\.S|D\.C|e\.g|i\.e)\./g, "$1\u0001").split(/(?<=[.!?])\s+/).map((x) => x.trim().split("\u0001").join(".")).filter(Boolean);
@@ -17325,8 +17364,9 @@ const CareerRouter = (() => {
     const fullRoleAsk = !cir && s(text).length > 60 && roleShape.test(s(text));
     if (!cir) {
       const stored = ctx.discovery && ctx.discovery.lastIntelCompany;
-      if (stored && !fullRoleAsk && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) cir = cirFor(stored, ctx);
-      if (!cir && stored && s(text).length <= 60 && /^\s*(and\s+)?(what about\s+)?for\b/i.test(s(text))) cir = cirFor(stored, ctx);
+      if (stored && !fullRoleAsk && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) cir = cirByName(stored, ctx) || cirFor(stored, ctx);
+      if (!cir && stored && !fullRoleAsk && s(text).length <= 80 && /\b(it|there)\b/i.test(s(text)) && (RS2_TOPIC_ANY.test(lc(text)) || RS2_PAY_ASK.test(lc(text)) || /\b(culture|interview process|hiring bar|look for)\b/i.test(s(text)))) cir = cirByName(stored, ctx);
+      if (!cir && stored && s(text).length <= 60 && /^\s*(and\s+)?(what about\s+)?for\b/i.test(s(text))) cir = cirByName(stored, ctx) || cirFor(stored, ctx);
     }
     if (!cir) {
       const comp0 = companyFromText(text, ctx);
@@ -17334,7 +17374,9 @@ const CareerRouter = (() => {
       if (!comp) { const am = s(text).match(/\babout\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies))?)/); if (am) comp = am[1].replace(/[?.!,]+$/, ""); }
       if (!comp) { const om = s(text).match(/\bon\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies))?)/); if (om && !/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December)$/.test(om[1])) comp = om[1].replace(/[?.!,]+$/, ""); }
       if (!comp) { const hm = s(text).match(/\bhave on\s+([a-z][a-z0-9&.'-]{2,})\b/i); if (hm && !/^(file|files|record|records|me|this|that|today|tomorrow|average|hand|him|her|them|it|my|your|tap|deck|deck,|it,)$/i.test(hm[1])) comp = hm[1].replace(/[?.!,]+$/, ""); }
-      if (!comp) { const dm = s(text).match(/\b(?:does|do|did)\s+([A-Z][A-Za-z0-9&.'-]{2,}(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies))?)\s+(?:look|hire|want|need|post|seek)\b/); if (dm) comp = dm[1].replace(/[?.!,]+$/, ""); }
+      if (!comp) { const dm = s(text).match(/\b(?:does|do|did)\s+([A-Z][A-Za-z0-9&.'-]{2,}(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group|International|Labs|Technologies)){0,3})\s+(?:look|hire|want|need|post|seek|pay|pays)\b/); if (dm) comp = dm[1].replace(/[?.!,]+$/, ""); }
+      if (!comp) { const am2 = s(text).match(/\b(?:process|culture|hiring|bar|comp|pay|salary|salaries|interviews?|internships?|recruiting|timeline|deadline|values|offices?)\s+(?:at|for|with)\s+([A-Z][A-Za-z0-9&.'’-]*(?:\s+(?:[A-Z][A-Za-z0-9&.'’-]*|&|of)){0,3})/); if (am2) comp = am2[1].replace(/[?.!,]+$/, ""); }
+      if (!comp) { const pm = s(text).match(/\b([A-Z][A-Za-z0-9&.'-]{1,}(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|&)){0,3})['’]s\s+(?:culture|interviews?|interview process|hiring|comp|compensation|pay|salaries|salary|values|bar|revenue|headcount|recruiting|timeline|deadline|offices?|internships?|process)\b/); if (pm && !/^(?:What|How|Who|Where|When|Why|Tell|It|That|This|There|Here|Let|My|Your)$/.test(pm[1].split(/\s+/)[0])) comp = pm[1].replace(/^(?:What|How)\s+/, ""); }
       if (!comp && !fullRoleAsk && /\b(their|its|they|them|the firm|the company)\b/i.test(s(text))) comp = (ctx.discovery && ctx.discovery.lastIntelCompany) || null;
       if (!comp) {
         if (roleShape.test(s(text)) && Intel.roleKbStats && Intel.kbStatsText) {
@@ -17390,6 +17432,29 @@ const CareerRouter = (() => {
     }
     const name = cirShortName(cir);
     try { ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastIntelCompany: name }); } catch {   }
+    {
+      const filed = [];
+      for (const h of namedCompaniesOf(text, ctx)) if (h.cir && !filed.some((x) => x.cir === h.cir)) filed.push(h);
+      if (filed.length >= 2 && RS2_COMPARE.test(lc(text))) {
+        const sides = filed.slice(0, 3);
+        const third = (v) => v ? v.replace(/\byou must\b/gi, "candidates must").replace(/\byou need to\b/gi, "candidates need to").replace(/\byou have to\b/gi, "candidates have to").replace(/\byou should\b/gi, "candidates should").replace(/\byou are expected to\b/gi, "candidates are expected to").replace(/\byour\b/gi, "their") : v;
+        const firstOf = (v) => { const tx = cirFieldText(v); return tx ? third(tx.split(/(?<=[.!?])\s/)[0]) : null; };
+        const names = sides.map((h) => cirShortName(h.cir));
+        const facts = [];
+        for (const [k, h] of sides.entries()) {
+          const bar = firstOf(h.cir.hiring_bar_summary);
+          facts.push(bar ? `${names[k]}'s bar, from its file: ${bar}` : `${names[k]}'s file states no hiring bar.`);
+        }
+        if (sides.length === 2) for (const [k, h] of sides.entries()) { const cu = firstOf(h.cir.values_culture_signals || h.cir.culture_notes); if (cu) facts.push(`${names[k]} on culture, from its file: ${cu}`); }
+        facts.push("Which one is better for you is your call: the files hold no ranking, and I give none.");
+        const asOf = sides.map((h, k) => (h.cir.as_of ? `${names[k]} as of ${h.cir.as_of}` : `${names[k]} with no as-of date`)).join("; ");
+        facts.push(`Source: the ${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} company files (public sources): ${asOf}.`);
+        try { ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastIntelCompany: names[0] }); } catch {   }
+        const reply = compose({ headline: `${names.slice(0, -1).join(", ")} versus ${names[names.length - 1]}: what each file supports.`, facts, nextStep: "Want one side's entry routes or interview process next?" });
+        const comparison = { kind: "company_compare", firms: names };
+        return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: names[0], comparison, payload: comparison, artifact: comparison };
+      }
+    }
     {
       const cmpM = s(text).match(/\bcompare\s+([A-Z][A-Za-z&. ]{3,40}?)\s+(?:and|with|vs\.?|versus)\s+([A-Z][A-Za-z&. ]{3,40}?)(?=[\s—–-]|$)/i) || s(text).match(/\b([A-Z][A-Za-z&. ]{3,40}?)\s+(?:vs\.?|versus)\s+([A-Z][A-Za-z&. ]{3,40}?)(?=[\s—–-]|$)/i);
       if (cmpM) {
@@ -17560,7 +17625,7 @@ const CareerRouter = (() => {
       return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, company: name, payload: cir, artifact: cir };
     }
     if (/\bhow do i get\b|\bget a job\b|\bthesis\b/.test(t)) { chosen = pick(["thesis", "routes", "bar"]); headline = `How hiring at ${name} works, from its file.`; }
-    else if (/\bcomp\b|\bpay\b|\bsalary\b|\bcompensation\b/.test(t)) { chosen = pick(["comp", "bar", "cadence"]); headline = `${name} comp, from the file.`; }
+    else if (RS2_PAY_ASK.test(t)) { chosen = pick(["comp", "bar", "cadence"]); headline = `${name} comp, from the file.`; }
     else if (/\binterview\b/.test(t)) { chosen = pick(["interview", "bar", "cadence"]); headline = `${name} interviews, from the file.`; }
     else if (/\bculture\b|\bvalues\b/.test(t)) { chosen = pick(["culture", "bar", "comp"]); headline = `${name} culture, from the file.`; }
     else if (/\blook(s|ing)? for\b|\bwants in\b|\bhires for\b/.test(t)) { chosen = pick(["bar", "routes", "cadence"]); headline = `What ${name} looks for, from its file.`; }
@@ -17584,6 +17649,29 @@ const CareerRouter = (() => {
           ? `No source on record gives your odds at ${name}, so I give no number; an estimate would need your own record read against the bar below, and it would be labelled as one.`
           : `The ${name} file holds no ${asked.what}, and no other source on record does, so I am not giving one.`);
         headline = held ? `${name}: the ${asked.what} the file holds, and what else it says.` : `${name}: no ${asked.key === "odds" ? "odds" : asked.what} on record — here is what the file does hold.`;
+      }
+    }
+    if (!RS_FIGURE_ASKS.some((f) => f.ask.test(t))) {
+      const topic = RS2_TOPIC_ASKS.find((x) => x.ask.test(t));
+      if (topic) {
+        let place = null;
+        if (topic.key === "office") {
+          const words = t.replace(/[^a-z ]+/g, " ").split(/\s+/).filter(Boolean);
+          for (let k = 0; k < words.length && !place; k++) for (const len of [3, 2, 1]) { const w = words.slice(k, k + len).join(" "); if (len <= words.length - k && LT_CITIES.has(w) && w !== "us" && w !== "remote") { place = w.replace(/\b[a-z]/g, (m) => m.toUpperCase()); break; } }
+        }
+        const strings = [];
+        const walk = (v, k) => { if (typeof v === "string") { if (!/^(?:source_url|url|source|as_of|last_verified_at|company_id)$/.test(k || "")) strings.push(v); } else if (Array.isArray(v)) v.forEach((x) => walk(x, k)); else if (v && typeof v === "object") for (const [kk, x] of Object.entries(v)) walk(x, kk); };
+        walk(cir, "");
+        const said = topic.key === "office" && place ? strings.flatMap((x) => x.split(/(?<=[.!?])\s+/)).find((x) => new RegExp(`\\b${place}\\b`, "i").test(x)) : null;
+        if (said) {
+          facts.unshift(`On ${place}, the file says: ${voiceText(said).trim()}`);
+          headline = `${name}: what the file says on ${place}.`;
+        } else {
+          if (topic.key === "rating" && byKey.culture && !chosen.includes(byKey.culture)) chosen = [byKey.culture, ...chosen.filter((x) => x !== byKey.culture)].slice(0, 3);
+          facts.length = 0;
+          facts.push(topic.line(name, place), ...chosen.map((x) => (x.label ? `${x.label}: ${x.text}` : x.text)));
+          headline = topic.key === "rating" ? `${name}: no rating on record — here is what the file does hold.` : `${name}: no ${topic.key === "office" && place ? `${place} office details` : topic.what} on record — here is what the file does hold.`;
+        }
       }
     }
     if (/\bsample size\b/.test(t) && cir.sample_size == null) {
@@ -21923,6 +22011,7 @@ const CareerRouter = (() => {
       && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b|\bwhat (do|does) (postings|employers|companies|firms) (require|look for|want|expect)\b|\bpostings (name|ask|require|usually|emphasize)\b/.test(t)
       && !/\binterviews?\b[^.]*\b(prepar\w*|get ready|getting ready|prep)\b|\b(prepar\w*|get ready|getting ready)\b[^.]*\binterviews?\b/.test(t)
       && !/\b(roles?|jobs?|internships?|positions?|openings?)\b/.test(t)
+      && !(RS2_PAY_ASK.test(t) && /\bhow much\b|\bget paid\b|\bwhat (?:do|does)\b/.test(t))
       && !/\bcover[ -]?lett?e?rs?\b|\bcovr letters?\b|\btailor\w*\b[^.]*\b(?:resume|cv)\b/.test(t)
       && !(/\bone company\b/.test(t) && /\b\d{1,3}\s+(?:people|person)\b/.test(text) && /\bwarm/.test(t))) {
       const cp = handleCampaignPlan(text, c);
@@ -22164,7 +22253,7 @@ const CareerRouter = (() => {
       const pp = handlePrepPlan(text, c);
       if (pp) return pp;
     }
-    if (/\binterview brief\b|\bbrief me\b|\bprepare me for\b|\bfailure story\b|\bstory for\b|\bdrill me\b|\bquestion bank\b|\b(what|which) questions\b[^.]*\bask(s|ed)?\b|\bstar bank\b|\bstar\b[^.]*\bstories\b|\bstories\b[^.]*\bstar\b|\bnight[ -]before\b|\btwo interviews\b|\bhiring[ -]manager round\b|\bportfolio walkthrough\b|\bprep pack\b|\binterviewer research\b|\bcoffee[ -]chat\b|\bprep set\b|\bsystem[ -]design prep\b|\bcase prep\b|\bquant prep\b|\btechnicals drill\b|\bpm prep\b|\bday[ -]of checklist\b|\bpost[ -]rejection retro\b|\bdebriefs say\b|\bmock scored\b|\bre[ -]?mock\b|\bfinal[ -]round prep\b|\bsuperday\b|\bvideo[ -]interview\b|\bvideo practice\b|\btake[ -]home\b|\bquestions[ -]to[ -]ask\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b|\bdebrief\b|\bdeflection scripts\b|\bsalary\b[^.]*\bdeflect|\binterview\b[^.]*\b(thursday|friday|tuesday|wednesday|monday|tomorrow)\b/.test(t)) {
+    if (RS2_ASK_THEM.test(t) || /\binterview brief\b|\bbrief me\b|\bprepare me for\b|\bfailure story\b|\bstory for\b|\bdrill me\b|\bquestion bank\b|\b(what|which) questions\b[^.]*\bask(s|ed)?\b|\bstar bank\b|\bstar\b[^.]*\bstories\b|\bstories\b[^.]*\bstar\b|\bnight[ -]before\b|\btwo interviews\b|\bhiring[ -]manager round\b|\bportfolio walkthrough\b|\bprep pack\b|\binterviewer research\b|\bcoffee[ -]chat\b|\bprep set\b|\bsystem[ -]design prep\b|\bcase prep\b|\bquant prep\b|\btechnicals drill\b|\bpm prep\b|\bday[ -]of checklist\b|\bpost[ -]rejection retro\b|\bdebriefs say\b|\bmock scored\b|\bre[ -]?mock\b|\bfinal[ -]round prep\b|\bsuperday\b|\bvideo[ -]interview\b|\bvideo practice\b|\btake[ -]home\b|\bquestions[ -]to[ -]ask\b|\bbar[ -]raiser\b|\bteaching[ -]demo\b|\bresearch[ -]talk\b|\bdebrief\b|\bdeflection scripts\b|\bsalary\b[^.]*\bdeflect|\binterview\b[^.]*\b(thursday|friday|tuesday|wednesday|monday|tomorrow)\b/.test(t)) {
       let px = null;
       try { px = handlePrepExtras(text, c); } catch { px = null; }
       if (px) return px;
@@ -22209,7 +22298,7 @@ const CareerRouter = (() => {
       if (frc) return frc;
       { const fd = routeFieldDecision(text, c); if (fd) return fd; }
       { const od = routeOfferDecision(text, c); if (od) return od; }
-      const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library|headcount|revenue|valuation|acceptance rate|recruiting timeline)\b/.test(t) || (RS_TIMELINE_ASK.test(t) && !!cirFor(text, c))) ? handleIntel(text, c) : null;
+      const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library|headcount|revenue|valuation|acceptance rate|recruiting timeline)\b/.test(t) || ((RS_TIMELINE_ASK.test(t) || RS2_TOPIC_ANY.test(t) || /\bresearch\b/.test(t)) && !!cirFor(text, c)) || (RS2_COMPARE.test(t) && namedCompaniesOf(text, c).filter((h) => h.cir).length >= 2)) ? handleIntel(text, c) : null;
       if (iq) return iq;
       { const ob = routeOnboardingNeeds(text, c); if (ob) return ob; }
       if (/\bhow do i get\b|\bwhat does it take\b[^.]*\b(get into|land|break into|get in)\b|\beven realistic\b|\bis .* realistic\b|\bfatal for\b|\bhonest odds\b|\bwhich fits me\b|\bstraight out of college\b|\bgrad school\b|\bwhich major\b|\bcareer switcher\b|\bany hope\b|\btake my job\b|\bactually require\b|\bactually help for\b|\boffsets the brand gap\b|\bcan i get faang\b|\bmarket bad\b|\bquant path\b|\bbig law\b|\bfrom undergrad\b|\bhow few\b|\bvc seats\b|\bdata science entry\b|\bstartup entry\b|\binternational student\b|\bprereqs\b|\bmcat\b|\bclearance timelines\b|\bh-1b\b|\bthe real ladder\b|\bno sugarcoating\b|\bcompany file built\b|\bvs\.?\b[^.]*\bfor me\b|\bmbb path\b|\bgoes stale\b|\badvice\b[^.]*\b(wrong|outdated)\b/.test(t)) {

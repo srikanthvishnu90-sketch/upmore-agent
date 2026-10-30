@@ -82,7 +82,9 @@ const CareerOutreach = (() => {
   // the lexicon, a known abbreviation, or (for short tokens like UPS)
   // the raw capital form, so "follow-ups" never yields UPS.
   const FIRM_TOKEN_STOP = new Set(["bank", "capital", "partners", "group", "global", "financial", "first", "national", "american", "united", "new", "city", "general", "white", "black", "real", "estate", "property", "securities", "management", "international", "holdings", "company", "fund", "funds", "chicago", "boston", "austin", "dallas", "houston", "seattle", "denver", "atlanta", "miami", "phoenix", "portland", "london", "toronto", "york"]);
-  const FIRM_ABBREV = { bcg: "Boston Consulting Group" };
+  // RESEARCH ROUND 2 (2026-10-30): "find analysts at JP Morgan" was planned as "analysts at Morgan Stanley": the spaced and
+  // dotted forms of JPMorgan are JPMorgan, and a firm's first word written as the end of another name is not that firm.
+  const FIRM_ABBREV = { bcg: "Boston Consulting Group", "jp morgan": "JPMorgan", "j p morgan": "JPMorgan", "jpmorgan chase": "JPMorgan", "jp morgan chase": "JPMorgan" };
   const firmLexicon = () => { const names = []; for (const set of Object.values(firmSets().sets || {})) for (const f of set.firms || []) if (f && f.name && !names.includes(f.name)) names.push(f.name); return names; };
   function extractNamedFirms(raw, w) {
     const _firmLexicon = firmLexicon();
@@ -129,7 +131,9 @@ const CareerOutreach = (() => {
         // rule above already applies.
         if (tok && tok.length >= 4 && firstTokenCount[tok] === 1 && !FIRM_TOKEN_STOP.has(tok)) {
           const rawTok = name.split(" ")[0].replace(/[^A-Za-z]/g, "");
-          if (rawTok && new RegExp("\\b" + rawTok + "\\b").test(raw)) idx = w.indexOf(" " + tok + " ");
+          // Never the end of another name ("JP Morgan", "J.P. Morgan" are JPMorgan, not Morgan Stanley).
+          const standsAlone = rawTok && [...raw.matchAll(new RegExp("\\b" + rawTok + "\\b", "g"))].some((m) => !/(?:\b[A-Z][A-Za-z]*\.?|\b[A-Z]\.)\s*$/.test(raw.slice(0, m.index)));
+          if (standsAlone) idx = w.indexOf(" " + tok + " ");
         }
       }
       if (idx >= 0) hits.push({ name, idx, nn });

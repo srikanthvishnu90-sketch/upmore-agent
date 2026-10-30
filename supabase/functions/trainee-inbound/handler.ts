@@ -37,6 +37,14 @@ export async function handleInbound(req: Request, d: InboundDeps): Promise<Respo
   const parsed = await adapter.parseInbound(req);
   if ("response" in parsed) return parsed.response;
   const msg = parsed.messages[0];
+  // CHANNEL DELIVERY ROUND 2 (2026-10-30): LoopMessage's message_failed / message_timeout for a message Trainee sent: its
+  // row is marked failed with the reason (it stayed "delivered"). A callback delivered twice changes nothing the second time.
+  if (!msg && parsed.statuses?.length) {
+    const store = d.store();
+    let failed = 0;
+    for (const st of parsed.statuses) if (store.failSent) failed += await store.failSent(st.providerMessageId, d.now(), st.error, false);
+    return json({ ok: true, failed });
+  }
   if (!msg) return json({ ok: true, ignored: (parsed.ignored ?? [])[0] ?? "nothing to read" });
   const send = d.send(apiKey);
   const r = await runInbound(msg, {

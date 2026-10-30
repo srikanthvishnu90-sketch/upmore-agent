@@ -15874,14 +15874,17 @@ const CareerRouter = (() => {
     const named = s(text).match(/\b(?:firm|company|bank|employer) is\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group))+)/);
     if (named) return named[1].replace(/[?.!,]+$/, "");
     const m = s(text).match(/\bat\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group))?)/);
-    if (m && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1].trim()))) return m[1].replace(/[?.!,]+$/, "");
+    const atName = m ? m[1].replace(/[?.!,]+$/, "") : "";
+    const atRest = atName.split(/\s+/).slice(1).join(" ");
+    if (m && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1].trim())) && !ltIsPlace(atName) && !ltIsSchool(atName) && !/^\s+(?:university|college|institute|school|academy)\b/i.test(s(text).slice(m.index + m[0].length)) && !(atRest && LT_PRODUCT_AFTER.test(` ${atRest}`))) return atName;
     const pm = s(text).match(/\bmy\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group))?)\s+(?:application|interview|offer)\b/);
     if (pm && !FACT_CITIES.some((ct) => lc(ct) === lc(pm[1].trim()))) return pm[1].replace(/[?.!,]+$/, "");
     const t = lc(text);
-    const known = new Set();
-    for (const p of postingsFromCtx(ctx || {})) if (p.company) known.add(p.company);
-    try { for (const x of cirListOf(ctx) || []) { const n = cirShortName(x); if (n) known.add(n); } } catch {   }
-    for (const name of known) if (name && t.includes(lc(name))) return name;
+    try {
+      const h = namedCompaniesOf(text, ctx)[0];
+      if (h && h.cir) return cirShortName(h.cir);
+      if (h) { const p = postingsFromCtx(ctx || {}).find((x) => x.company && ltPlain(ltClean(s(x.company).replace(/\s*\(fictional\)\s*/gi, " "))) === ltPlain(h.name)); return p ? p.company : h.name; }
+    } catch {   }
     const loose = /\bwho\b|\banyone\b|\bknow at\b|\bpath (into|to|in)\b|\bintro\b|\breferr|\bcontact/.test(t) ? t.match(/\bat\s+([a-z][a-z0-9&.'-]{2,})/) : null;
     if (loose && !/^(my|the|a|an|least|most|work|school|home|once|first|that|this|it)$/.test(loose[1]) && !FACT_CITIES.some((ct) => lc(ct) === loose[1] || lc(ct).split(" ")[0] === loose[1]) && !/^(nyc|sf|la)$/.test(loose[1])) return loose[1].replace(/[?.!,]+$/, "");
     return null;
@@ -16145,6 +16148,61 @@ const CareerRouter = (() => {
     const h = hits[0];
     return h ? { company: h.name, cir: h.cir, typed: h.typed } : null;
   }
+  const RS_FRAME_BEFORE = /(?:\b(?:about|at|for|on|to|towards?|into|re|with|join|joining|research|researching|compare|comparing|vs\.?|versus|and|or|is|like)|\b(?:apply|applying|applied|interview|interviewing|prep|prepare|preparing)\s+(?:to|at|for|with)|\b(?:company|firm|employer|bank|fund) is)\s+(?:the\s+|a\s+|an\s+|my\s+)?$/i;
+  const RS_FRAME_AFTER = /^(?:['’]s\b|\s+(?:interviews?|culture|comp|compensation|pay|salary|salaries|process|hiring|recruiting|recruiters?|internships?|interns?|roles?|jobs?|file|headcount|revenue|employees|offices?|teams?|offers?|superday|careers?|application|deadline|timeline|odds|bar|values|analysts?|summer|swe|ibd|program|programme|look|hire|hires|want|pays?)\b)/i;
+  const RS_EXCLUDE_BEFORE = /(?:\b(?:live|lives|living|lived|based|located|reside|resides|residing|grew up|raised|born|moving|move|moved|relocating|relocate|relocated|commute|from|near|outside|around|visit|visiting|visited|studied|study|studies|studying|graduated|graduating|graduate|attend|attends|attended|attending|enrolled|student|students|alum|alumni|alumnus|alumna|major|majored|majoring|degree|know|knows|knew|proficient|experience|experienced|skilled|familiar|fluent|certified|certification|using|use|uses|skills?|tools?|trained|good|great|expert|comfortable|not|except|excluding|besides|than|instead|never|no|nor|avoid|skip|hate|hated|left|quit|fired|laid off|anything but|everything but|all but)\b|n['’]t)(?:\s+(?:in|at|to|from|of|with|on|for|near|by|a|an|the|my|our|up|out|off|about|over|currently|still|now|right now|full[- ]time|part[- ]time|as an? [a-z]+))*:?\s+(?:[A-Za-z0-9.&'’-]+(?:\s+[A-Za-z0-9.&'’-]+){0,2}\s*(?:,|\band\b|\bor\b|&|\/)\s*){0,4}$/i;
+  const RS_PEOPLE_AT = /\b(?:know|knows|anyone|anybody|someone|somebody|people|contacts?|connections?|alumni|works?|working)\s+(?:at|from|in|with)\s+(?:the\s+)?$/i;
+  const RS_PERSON_BEFORE = /\b(?:dr|mr|mrs|ms|mx|prof|professor|friend|friends|sister|brother|mom|dad|mother|father|cousin|aunt|uncle|roommate|teacher|coach|boss|neighbor|neighbour|classmate|buddy|named|called)\.?,?\s+$/i;
+  const RS_MINE_BEFORE = /\b(?:i|i've|i’ve|i have|i had)\s+(?:currently\s+|still\s+|previously\s+|formerly\s+|once\s+|already\s+)?(?:work|works|worked|working|intern|interned|interning|was|am|used to work|used to intern|been)\s+(?:(?:as\s+an?\s+[a-z]+\s+)?(?:at|for|with)\s+)(?:the\s+)?$|\b(?:i['’]m|i am|i was)\s+(?:currently\s+|still\s+|now\s+)?(?:at|with)\s+(?:the\s+)?$|\b(?:used to|previously|formerly)\s+(?:work|intern)\s+(?:at|for|with)\s+(?:the\s+)?$/i;
+  function rsOccurrenceOk(raw, i, j) {
+    const typed = raw.slice(i, j);
+    const before = raw.slice(0, i), after = raw.slice(j);
+    if (/[A-Za-z0-9&]$/.test(before) || /^[A-Za-z0-9]/.test(after)) return false;
+    const RS_AFTER_WORD = /^(?:IBD|Data|Software|Summer|Product|Analyst|Engineering|Investment|Consulting|Marketing|Finance|Sales|Research|Strategy|Operations|Design|Intern|Internship|Interview|Interviews|Associate|Role|Job|Position|Posting|Culture|Comp|Pay|Salary|Hiring|Recruiting|Process|Superday|Offer|Application|Team|Program|SWE|PM|FDE|Inc|Corp|Co|Ltd|Please|Thanks|Thank|I|What|How|Can|Could|Also|And|Or|Is|Are|Do|Does|Tell|Give|Prep|Help|Look|Looks|Hire|Hires|Want|Wants|Pay|Pays|Have|Has|Like)$/;
+    const capsAfter = (/^((?:[ \t]+[A-Z][A-Za-z0-9&'’-]*){1,3})/.exec(after) || ["", ""])[1].trim().split(/\s+/).filter(Boolean);
+    const w0 = (capsAfter[0] || "").replace(/['’]s$/, ""), w1 = (capsAfter[1] || "").replace(/['’]s$/, "");
+    if (w0 && /^[A-Z][a-z]/.test(w0) && !RS_AFTER_WORD.test(w0)) return false;
+    if (w1 && /^(?:Research|Data|Software|Product|Investment|Engineering|Design|Strategy|Sales|Finance|Marketing|Consulting|Operations)$/.test(w0) && /^[A-Z][a-z]/.test(w1) && !RS_AFTER_WORD.test(w1)) return false;
+    if (/^\s+(?:university|college|institute|school|academy)\b/i.test(after)) return false;
+    if (/\b(?:university|college|school|institute)\s+of\s+(?:the\s+)?$/i.test(before)) return false;
+    if (LT_PRODUCT_AFTER.test(after) && !(/\b(?:does|do|did|will|would)\s+$/i.test(before) && /^\s+pays?\b/i.test(after))) return false;
+    const plain = ltPlain(typed).replace(/[.,]/g, "");
+    if (LT_CITIES.has(plain) || LT_SCHOOLS.has(plain)) return false;
+    if (RS_PERSON_BEFORE.test(before) || RS_MINE_BEFORE.test(before)) return false;
+    const aspire = LT_ASPIRE_BEFORE.test(before) || RS_PEOPLE_AT.test(before);
+    if (!aspire && RS_EXCLUDE_BEFORE.test(before) && !/\b(?:role|job|position|internship|opening|posting|program|interview|offer)\s+(?:at|with|for)\s+(?:the\s+)?$/i.test(before)) return false;
+    const frameBefore = aspire || RS_FRAME_BEFORE.test(before);
+    const frameAfter = RS_FRAME_AFTER.test(after);
+    const words = plain.split(" ");
+    const common = words.length === 1 && LT_COMMON.has(plain.replace(/[^a-z0-9]/g, ""));
+    if (!common) return true;
+    const sentenceStart = before === "" || /[.!?\n]\s*["“(]?\s*$/.test(before) || /^\s*["“(]?\s*$/.test(before);
+    const capital = /^[A-Z]/.test(typed);
+    if (frameAfter) return capital || frameBefore || sentenceStart;
+    if (capital && !sentenceStart) return true;
+    if (!frameBefore) return false;
+    return /^\s*(?:$|[.!?,;:)]|(?:please|pls|plz|thanks|thank you|thx|ty|and|or|vs\.?|versus|for|in|this|next|now|today)\b)/i.test(after);
+  }
+  function namedCompaniesOf(text, ctx) {
+    const raw = s(text);
+    const hits = [];
+    for (const e of ltLexicon(ctx || {})) {
+      for (const form of e.forms) {
+        const re = new RegExp(`(?<![A-Za-z0-9])${ltEsc(form).replace(/&/g, "(?:&|and)")}(?![A-Za-z0-9])`, "gi");
+        let found = false;
+        for (const m of raw.matchAll(re)) {
+          if (rsOccurrenceOk(raw, m.index, m.index + m[0].length)) { hits.push({ name: e.name, cir: e.cir, idx: m.index, typed: m[0] }); found = true; break; }
+        }
+        if (found) break;
+      }
+    }
+    hits.sort((a, b) => a.idx - b.idx || b.typed.length - a.typed.length || (b.cir ? 1 : 0) - (a.cir ? 1 : 0));
+    return hits.filter((h, k) => !hits.slice(0, k).some((g) => h.idx >= g.idx && h.idx < g.idx + g.typed.length));
+  }
+  function namedCompanyOf(text, ctx) {
+    const h = namedCompaniesOf(text, ctx)[0];
+    return h ? { company: h.name, cir: h.cir, typed: h.typed } : null;
+  }
   function tailorTargetOf(text, ctx) {
     const p = ctx.posting || null;
     if (p && (p.company || p.title)) return { label: `${p.title || "the role"} at ${p.company || "the company you pasted"}`.trim(), cir: null, company: p.company || null };
@@ -16213,11 +16271,12 @@ const CareerRouter = (() => {
     const reply = compose({ headline: `Here is your question: ${q}`, facts, nextStep: "Give me your answer and I will score it." });
     return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, question: { kind: "bank_question", q } };
   }
-  function prepSectorOf(tn) {
+  function prepSectorOf(tn, raw, ctx) {
     if (/\bthree (financial )?statements\b|\bdcf\b|\blbo\b|\bcomps\b|\bmerger model\b|\baccretion\b/.test(tn)) return "finance";
     if (/\bquant\b|\bmarket[- ]making\b|\bprobability\b|\bexpected value\b|\bcoin flips?\b|\bdice\b/.test(tn)) return "quant";
     if (/\bsql\b|\bdata analyst\b|\bdata science\b|\bdata interview\b/.test(tn)) return "data";
-    if (/\bconsulting\b|\bcase interview\b|\bcase question\b|\bcase practice\b|\bpractice cases\b|\bprofitability\b|\bmarket entry\b|\bmarket sizing\b|\bmckinsey\b|\bbain\b|\bbcg\b|\bmbb\b/.test(tn)) return "consulting";
+    if (/\bconsulting\b|\bcase interview\b|\bcase question\b|\bcase practice\b|\bpractice cases\b|\bprofitability\b|\bmarket entry\b|\bmarket sizing\b|\bmbb\b/.test(tn)) return "consulting";
+    if (/\bmckinsey\b|\bbain\b|\bbcg\b/.test(tn) && (raw === undefined || namedCompaniesOf(raw, ctx).some((h) => h.cir && /^(?:mckinsey|bain|bcg)$/.test(s(h.cir.company_id))))) return "consulting";
     if (/\bmedical school\b|\bmed school\b|\bmmi\b|\bmedicine\b|\bmedical interview\b/.test(tn)) return "medicine";
     if (/\blaw firm\b|\blaw school\b|\blaw interview\b|\blegal interview\b|\battorney\b/.test(tn)) return "law";
     if (/\bproduct management\b|\bproduct sense\b|\bpm interview\b|\bproduct manager interview\b/.test(tn)) return "pm";
@@ -16241,7 +16300,7 @@ const CareerRouter = (() => {
     if ((tn.match(/\bdcf\b|\blbo\b|\bcomps\b|three (financial )?statements/g) || []).length >= 2) return null;
     if (/\bmarket sizing\b|\bsizing (case|question)\b|\bestimation question\b|\bfermi\b/.test(tn)) return handlePrepQuestion(text, ctx);
     const thread = prepThreadOf(ctx);
-    const askSector = prepSectorOf(tn);
+    const askSector = prepSectorOf(tn, text, ctx);
     const sectorSwitch = !!(askSector && thread.sector && askSector !== thread.sector);
     const sector = askSector || thread.sector || null;
     let focus = thread.focus || null;
@@ -16310,7 +16369,12 @@ const CareerRouter = (() => {
     if (!candidates.length) candidates = qs.filter((row) => !/^generic_behavioral/.test(s(row && row.source && row.source.type)));
     const rowSectionOf = (row) => lc((row && row.source && row.source.section) || (row && row.round) || (row && row.section) || "");
     if (sector === "consulting" && (/\bcases?\b/.test(tn) || !/\b(?:framework|structur\w*|method|issue tree|behaviou?ral|fit)\b/.test(tn))) {
-      const casePool = candidates.filter((row) => /canonical case types|official sample cases/.test(rowSectionOf(row)));
+      let casePool = candidates.filter((row) => /canonical case types|official sample cases/.test(rowSectionOf(row)));
+      const namedFirm = (namedCompaniesOf(text, ctx).find((h) => h.cir) || {}).name || null;
+      if (namedFirm) {
+        const own = casePool.filter((row) => { const by = /\(([^)]+)\)\s*$/.exec(s(row.q)); return !by || namedCompaniesOf(by[1], ctx).some((h) => h.name === namedFirm); });
+        if (own.length) casePool = own;
+      }
       if (casePool.length) candidates = casePool;
     } else if (/\bbehavioral\b|\bbehavioural\b/.test(tn)) {
       const behPool = candidates.filter((row) => /behavioural|behavioral/.test(rowSectionOf(row)) || (row.source && row.source.type === "generic_behavioral_bank") || row.round === "behavioral");
@@ -16577,7 +16641,7 @@ const CareerRouter = (() => {
       role = roleM ? roleM[1].replace(/^(?:an?\s+|the\s+)/, "").replace(/\s+(?:coming up|soon|next week).*$/, "").trim() : "";
     }
     if (!role) return null;
-    const sector = prepSectorOf(t) || prepSectorOf(role);
+    const sector = prepSectorOf(t, text, ctx) || prepSectorOf(role);
     let bank = null;
     try { bank = Prep.questionBank({ sector: sector || undefined, role, roleFamily: sector || role, cir: cirFor(text, ctx), stories: [] }); } catch { bank = null; }
     const qs = ((bank && bank.questions) || []).filter((x) => x && s(x.q));
@@ -16707,7 +16771,7 @@ const CareerRouter = (() => {
       const reply = compose({ headline: "A STAR bank is mined from your real experiences — and none are on file yet.", facts: ["Stories here are never written from templates or borrowed from other candidates; each one is a confirmed experience of yours, structured situation, task, action, result.", "The moment your experience is on record — a resume paste, or you telling me the internships and projects yourself — the bank builds from it, at whatever count the material honestly supports."], nextStep: "Tell me two or three real experiences — role, what you did, how it ended — and I will bank the first stories now." });
       return { intent: "prep_brief", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "star_bank", stories: 0, total: 0 }, artifact: { kind: "star_bank", stories: 0, total: 0 } };
     }
-    const briefPayload = () => { try { return Prep.composeBrief ? Prep.composeBrief(profile, { company: company || null }, cirFor(text, ctx)) : null; } catch { return null; } };
+    const briefPayload = () => { try { return Prep.composeBrief ? Prep.composeBrief(profile || { facts: [] }, { company: company || null }, cirFor(text, ctx)) : null; } catch { return null; } };
     const bankArgs = () => {
       const roleFamily = /\btechnicals?\b|\bdcf\b|\blbo\b|\bcomps\b|three statements|\bquant\b|\bprobability\b|market[- ]making/.test(t) ? "finance"
         : /\bpm prep\b|\bproduct sense\b|\bproduct management\b/.test(t) ? "product"
@@ -16987,7 +17051,7 @@ const CareerRouter = (() => {
       }
       if (Prep.composeBrief) {
         const posting = ctx.posting || (company ? (rankedShortlist(profile, ctx, { company: lc(company) }).ranked[0] || {}).posting : null);
-        const brief = Prep.composeBrief(profile, posting ? { title: posting.title, company: posting.company } : { company: company || null }, cirFor(text, ctx));
+        const brief = Prep.composeBrief(profile || { facts: [] }, posting ? { title: posting.title, company: posting.company } : { company: company || null }, cirFor(text, ctx));
         let facts = briefFacts(brief);
         const fam = !company && !posting ? interviewFamilyOf(t) : null;
         if (fam) facts = [
@@ -17089,6 +17153,13 @@ const CareerRouter = (() => {
     return { board, match };
   }
 
+  const RS_FIGURE_ASKS = [
+    { key: "headcount", what: "headcount figure", ask: /\bhead ?count\b|\bhow many (?:people|employees|staff|workers)\b|\bnumber of (?:employees|staff|people)\b|\bemployees\b|\bcompany size\b|\bhow big is\b/, held: /\bheadcount\b|\b(?:employees|people) (?:firm-wide|worldwide|globally|in total)\b|\bemployees\b/ },
+    { key: "financials", what: "revenue, valuation or funding figure", ask: /\brevenues?\b|\bvaluation\b|\bvalued at\b|\bmarket cap\b|\bprofits?\b|\bfunding\b|\bhow much (?:money )?(?:has it|did it|have they|did they) raise/, held: /\brevenues? (?:of|was|were|is|reached)\b|\bvalued at\b|\bvaluation of\b|\bmarket cap(?:italization)? of\b/ },
+    { key: "acceptance", what: "acceptance rate or class size", ask: /\bacceptance rate\b|\badmit rate\b|\bacceptance rates\b|\bhow selective\b|\bclass size\b|\bhow many (?:analysts|interns|hires|people do they hire|applicants|people apply)\b|\bwhat percent(?:age)? (?:of applicants|get)\b/, held: /\bacceptance rate\b|\badmit rate\b|\bclass size (?:of|is|was)\b|\bconversion rate (?:of|is|was)\b/ },
+    { key: "odds", what: "odds", ask: /\b(?:my|the) (?:odds|chances?)\b|\bwhat are (?:the )?(?:odds|chances)\b|\bprobability\b|\bhow likely (?:am i|is it|are you)\b|\bodds of\b/, held: null },
+  ];
+  const RS_TIMELINE_ASK = /\btimeline\b|\bdeadlines?\b|\bwhen (?:does|do|is|are|will)\b[^.?!]*\b(?:recruiting|applications?|hiring|open|close|deadline)\b|\brecruiting (?:season|cycle|window)\b/;
   function handleIntel(text, ctx) {
     if (!Intel) return null;
     const sentsOf = (t) => String(t || "").replace(/\b(Inc|Corp|Ltd|Sr|Jr|Dr|Mr|Mrs|Ms|St|vs|U\.S|D\.C|e\.g|i\.e)\./g, "$1\u0001").split(/(?<=[.!?])\s+/).map((x) => x.trim().split("\u0001").join(".")).filter(Boolean);
@@ -17138,6 +17209,13 @@ const CareerRouter = (() => {
           return { intent: "company_intel", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "role_kb_absent" }, artifact: { kind: "role_kb_absent" } };
         }
         return null;
+      }
+      {
+        const at = s(text).indexOf(comp);
+        if (at >= 0) {
+          const more = s(text).slice(at + comp.length).match(/^(?:\s+(?:&\s+)?(?!(?:Interview|Interviews|Culture|Comp|Pay|Salary|Hiring|Recruiting|Process|Internship|Intern|Role|Job|Office|Team|Offer|Please|Thanks|I|What|How|Is|Are|Do|Does)\b)[A-Z][A-Za-z0-9&.'’-]*){1,3}/);
+          if (more) comp = (comp + more[0]).replace(/[?.!,]+$/, "").replace(/\s+/g, " ").trim();
+        }
       }
       try { ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastIntelCompany: comp }); } catch {   }
       const facts = [`The company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. ${comp} is not one of them, so none of that exists on record for this firm.`];
@@ -17214,7 +17292,7 @@ const CareerRouter = (() => {
           const framed = [...frameToks].filter(Boolean).some((f) => low.includes(`for ${f}`) || low.includes(`for a ${f}`) || low.includes(`for an ${f}`) || low.includes(`${f} at`) || low.includes(`${f} role`) || low.includes(`as a ${f}`) || low.includes(`as an ${f}`))
             || (/\b(hiring bar|the bar|bar for|look for in|hiring for)\b/.test(low) && (lab ? low.includes(lab.split(" ")[0]) : false))
             || (/\b(stats|statistics|library|percentages?|postings data)\b/.test(low) && !!lab);
-          const otherFiled = /\b(compare|vs\.?|versus)\b/.test(low) && !!(cirListOf(ctx).find((x) => x && x !== cir && cirMatches(x, low)));
+          const otherFiled = /\b(compare|vs\.?|versus)\b/.test(low) && !!namedCompaniesOf(text, ctx).find((h) => h.cir && h.cir !== cir);
           if (framed && !otherFiled) {
             lens = Intel.barForRole(cir, askedRole);
             if (lens && (lens.status === "role-bar" || lens.status === "no-role-bar")) roleAns = Intel.answerRoleIntel(cir, text, { role: askedRole });
@@ -17305,7 +17383,7 @@ const CareerRouter = (() => {
     const pick = (keys) => keys.map((k) => byKey[k]).filter(Boolean);
     let chosen = null, headline = null;
     if (/\bvs\.?\b|\bversus\b/.test(t)) {
-      const other = cirListOf(ctx).find((x) => x && x !== cir && cirMatches(x, t)) || null;
+      const other = (namedCompaniesOf(text, ctx).find((h) => h.cir && h.cir !== cir) || {}).cir || null;
       const facts = [];
       if (byKey.bar) facts.push(`The bar: ${byKey.bar.text}`);
       if (other) {
@@ -17329,6 +17407,7 @@ const CareerRouter = (() => {
     else if (/\binterview\b/.test(t)) { chosen = pick(["interview", "bar", "cadence"]); headline = `${name} interviews, from the file.`; }
     else if (/\bculture\b|\bvalues\b/.test(t)) { chosen = pick(["culture", "bar", "comp"]); headline = `${name} culture, from the file.`; }
     else if (/\blook(s|ing)? for\b|\bwants in\b|\bhires for\b/.test(t)) { chosen = pick(["bar", "routes", "cadence"]); headline = `What ${name} looks for, from its file.`; }
+    else if (RS_TIMELINE_ASK.test(t)) { chosen = pick(["cadence", "routes", "bar"]); headline = `${name}'s hiring cadence, from the file.`; }
     if (!chosen || !chosen.length) {
       chosen = pick(["bar", "routes", "cadence"]);
       const cohort = cir.cohort || {};
@@ -17336,6 +17415,20 @@ const CareerRouter = (() => {
     }
     if (!chosen.length) chosen = [{ key: "thin", label: "", offerName: "", text: "The file is thin right now — status and sourcing only, no invented detail." }];
     const facts = chosen.map((x) => (x.label ? `${x.label}: ${x.text}` : x.text));
+    {
+      const asked = RS_FIGURE_ASKS.find((f) => f.ask.test(t));
+      if (asked) {
+        const strings = [];
+        const walk = (v, k) => { if (typeof v === "string") { if (!/^(?:source_url|url|source|as_of|last_verified_at|company_id)$/.test(k || "")) strings.push(v); } else if (Array.isArray(v)) v.forEach((x) => walk(x, k)); else if (v && typeof v === "object") for (const [kk, x] of Object.entries(v)) walk(x, kk); };
+        walk(cir, "");
+        const held = asked.held ? strings.flatMap((x) => x.split(/(?<=[.!?])\s+/)).find((x) => asked.held.test(lc(x)) && /\d/.test(x)) : null;
+        if (held) facts.unshift(`On the ${asked.what}, the file says: ${voiceText(held).trim()}`);
+        else facts.unshift(asked.key === "odds"
+          ? `No source on record gives your odds at ${name}, so I give no number; an estimate would need your own record read against the bar below, and it would be labelled as one.`
+          : `The ${name} file holds no ${asked.what}, and no other source on record does, so I am not giving one.`);
+        headline = held ? `${name}: the ${asked.what} the file holds, and what else it says.` : `${name}: no ${asked.key === "odds" ? "odds" : asked.what} on record — here is what the file does hold.`;
+      }
+    }
     if (/\bsample size\b/.test(t) && cir.sample_size == null) {
       const bias = cirFieldText(cir.known_biases_of_data);
       if (bias) facts.push(`On sample size, the file states its own limit: ${bias.split(/(?<=[.!?])\s/)[0]}`);
@@ -18478,8 +18571,11 @@ const CareerRouter = (() => {
   }
   function cirFor(text, ctx) {
     if (!Intel) return null;
+    const named = namedCompaniesOf(text, ctx).find((h) => h.cir);
+    if (named) return named.cir;
     const t = lc(text);
-    return cirListOf(ctx).find((x) => x && cirMatches(x, t)) || null;
+    if (!/\barchetype\b/.test(t)) return null;
+    return cirListOf(ctx).find((x) => x && String(x.company_id || "").startsWith("archetype-") && cirMatches(x, t)) || null;
   }
   function cirFieldText(v) {
     if (!v) return "";
@@ -21878,7 +21974,7 @@ const CareerRouter = (() => {
       const tnB = typoNorm(text);
       const sessionShape =
         /\b(can we|let'?s|start)\b[^.]*\b(practi[cs]e|practise|drill|prep)\b|\b(practice|practise|drill)\b[^.]*\b(cases?|questions?|technicals?|sql|probability|interviews?)\b|\bprep( me| us)?\b[^.]*\b(interview|technicals?|banking|consulting|data|law|medicine|quant|product)\b|\bdrill me\b|\bhelp me prep\b|\bpractice cases\b|\bcase practice\b|\bwhat do they ask\b/.test(tnB)
-        || (/\bprep me\b/.test(tnB) && !!prepSectorOf(tnB))
+        || (/\bprep me\b/.test(tnB) && !!prepSectorOf(tnB, text, c))
         || (pthB.lastQ && /\banother\b|\bnext\b|\bharder\b|\bmodel answer\b|\bone more\b|\bhit me\b|\bgive me\b|\bagain\b/.test(tnB))
         || ((pthB.sector || pthB.lastQ) && /\bthree (financial )?statements\b|\bdcf\b|\blbo\b/.test(tnB))
         || ((pthB.sector || pthB.lastQ) && s(text).length < 70 && /\bone\b|\bfocus\b|\bweakest\b|\bsql\b|\bethics\b|\bmarket[- ]making\b|\bprobability\b|\bcomps\b/.test(tnB))
@@ -21953,7 +22049,7 @@ const CareerRouter = (() => {
       if (frc) return frc;
       { const fd = routeFieldDecision(text, c); if (fd) return fd; }
       { const od = routeOfferDecision(text, c); if (od) return od; }
-      const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library)\b/.test(t)) ? handleIntel(text, c) : null;
+      const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library|headcount|revenue|valuation|acceptance rate|recruiting timeline)\b/.test(t) || (RS_TIMELINE_ASK.test(t) && !!cirFor(text, c))) ? handleIntel(text, c) : null;
       if (iq) return iq;
       { const ob = routeOnboardingNeeds(text, c); if (ob) return ob; }
       if (/\bhow do i get\b|\bwhat does it take\b[^.]*\b(get into|land|break into|get in)\b|\beven realistic\b|\bis .* realistic\b|\bfatal for\b|\bhonest odds\b|\bwhich fits me\b|\bstraight out of college\b|\bgrad school\b|\bwhich major\b|\bcareer switcher\b|\bany hope\b|\btake my job\b|\bactually require\b|\bactually help for\b|\boffsets the brand gap\b|\bcan i get faang\b|\bmarket bad\b|\bquant path\b|\bbig law\b|\bfrom undergrad\b|\bhow few\b|\bvc seats\b|\bdata science entry\b|\bstartup entry\b|\binternational student\b|\bprereqs\b|\bmcat\b|\bclearance timelines\b|\bh-1b\b|\bthe real ladder\b|\bno sugarcoating\b|\bcompany file built\b|\bvs\.?\b[^.]*\bfor me\b|\bmbb path\b|\bgoes stale\b|\badvice\b[^.]*\b(wrong|outdated)\b/.test(t)) {
@@ -23664,7 +23760,7 @@ const CareerRouter = (() => {
       if (m && m.resumeIngest && typeof m.resumeIngest === "object" && intent !== "career_resume_ingest") m.resumeIngest.stale = true;
     } catch {   }
   }
-  return { handleChat, noteServedTurn, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf, detypo, letterTargetOf };
+  return { handleChat, noteServedTurn, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf, detypo, letterTargetOf, namedCompanyOf };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;
 

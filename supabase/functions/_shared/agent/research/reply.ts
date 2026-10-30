@@ -7,7 +7,11 @@ import { lintChat } from "./chat.ts";
 import type { ResearchResult } from "./index.ts";
 
 type Ok = Extract<ResearchResult, { status: "ok" }>;
-export const stripUrls = (s: string) => s.replace(/https?:\/\/\S+/g, "").replace(/\s{2,}/g, " ").replace(/[\s:]+$/, "").trim();
+// RESEARCH SCENARIOS (2026-10-29): every link the model wrote counts, not only http(s) ones: a markdown link, a "www."
+// address, a bare host with a path ("evil.example.com/apply") and a javascript:/data:/mailto: URI. The only link a reply
+// carries is the file link code adds (withLink strips every one the model wrote, of any shape).
+const MODEL_LINK = /\[([^\]]*)\]\([^)]*\)|[a-z][a-z0-9+.-]*:\/\/[^\s<>"')\]]+|\b(?:javascript|data|vbscript|mailto|file):[^\s<>"']+|\bwww\.[^\s<>"']+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s<>"']*/gi;
+export const stripUrls = (s: string) => s.replace(MODEL_LINK, (_m, label) => label ?? "").replace(/\s+([.,;:!?])/g, "$1").replace(/\s{2,}/g, " ").replace(/[\s:]+$/, "").trim();
 const firstSentence = (s: string) => (s.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? s).trim();
 
 export function withLink(paragraph: string, url: string | null): string {

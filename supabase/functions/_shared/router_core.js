@@ -40571,7 +40571,11 @@ const CareerRouter = (() => {
     const m = s(text).match(/\bat\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+(?:[A-Z][A-Za-z0-9&.'-]+|Capital|Partners|Securities|Bank|Group))?)/);
     // DEPTH WAVE (BUG-213): "at <City>" names a place, not a company
     // (see the loose-fallback note below) — the guess falls through.
-    if (m && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1].trim()))) return m[1].replace(/[?.!,]+$/, "");
+    // RESEARCH SCENARIOS (2026-10-29): "at <School>" ("I studied at Boston University") and "at <Product>" ("I'm good at
+    // Microsoft Excel") name no employer either.
+    const atName = m ? m[1].replace(/[?.!,]+$/, "") : "";
+    const atRest = atName.split(/\s+/).slice(1).join(" ");
+    if (m && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1].trim())) && !ltIsPlace(atName) && !ltIsSchool(atName) && !/^\s+(?:university|college|institute|school|academy)\b/i.test(s(text).slice(m.index + m[0].length)) && !(atRest && LT_PRODUCT_AFTER.test(` ${atRest}`))) return atName;
     // PREP-KB ROUTING (LF-02, custom battery 2026-10-18, P4): the
     // possessive frame — "my Deloitte application" — names the
     // company with no preposition before it, so every frame above
@@ -40582,11 +40586,15 @@ const CareerRouter = (() => {
     if (pm && !FACT_CITIES.some((ct) => lc(ct) === lc(pm[1].trim()))) return pm[1].replace(/[?.!,]+$/, "");
     // Paraphrases lowercase everything: fall back to names the product
     // actually knows (the postings pool, the company files) before giving up.
+    // RESEARCH SCENARIOS (2026-10-29): a known name (a posting's company, a company file) counts only where the ask names
+    // it as a whole name (namedCompaniesOf): "ramp up", "Microsoft Excel", "Google Sheets", "the Amazon river" and a
+    // file's first word ("Boston", "Morgan") name no firm.
     const t = lc(text);
-    const known = new Set();
-    for (const p of postingsFromCtx(ctx || {})) if (p.company) known.add(p.company);
-    try { for (const x of cirListOf(ctx) || []) { const n = cirShortName(x); if (n) known.add(n); } } catch { /* no files */ }
-    for (const name of known) if (name && t.includes(lc(name))) return name;
+    try {
+      const h = namedCompaniesOf(text, ctx)[0];
+      if (h && h.cir) return cirShortName(h.cir);
+      if (h) { const p = postingsFromCtx(ctx || {}).find((x) => x.company && ltPlain(ltClean(s(x.company).replace(/\s*\(fictional\)\s*/gi, " "))) === ltPlain(h.name)); return p ? p.company : h.name; }
+    } catch { /* no names */ }
     // Loose last resort (lowercased paraphrases of "who do I know at X"):
     // the first plain token after "at" that is not a stopword.
     // DEPTH WAVE (BUG-213): a CITY after "at" is a place, never a
@@ -40947,6 +40955,83 @@ const CareerRouter = (() => {
     const h = hits[0];
     return h ? { company: h.name, cir: h.cir, typed: h.typed } : null;
   }
+  // RESEARCH SCENARIOS (D-007, 2026-10-29): the company a research, intel, prep or networking ask is about is only one the
+  // person named as a whole name. The intel, prep and networking routes read the company through cirFor and
+  // companyFromText, whose matchers took a file's first word ("Boston" → Boston Consulting Group, "my friend Morgan" →
+  // Morgan Stanley), any substring ("ramp up" → Ramp, "Microsoft Excel" → Microsoft, "Google Sheets" → Google, "the Amazon
+  // river" → Amazon) or a longer firm's opening words ("Bain Capital" → Bain & Company). namedCompanyOf reads the same
+  // lexicon as letterTargetOf (a company file's or a posting's name, and that firm's own short forms) with the occurrence
+  // rules of a question about a firm: a name standing where a place, a school, a skill or product, a person, or a negated
+  // firm stands is not the subject; a word that is also a firm (Stripe, Amazon, Ramp, Notion) is the firm only when written
+  // as one (capitalized mid-sentence, or in a frame: "about stripe", "at Ramp", "Stripe's", "Stripe interview").
+  const RS_FRAME_BEFORE = /(?:\b(?:about|at|for|on|to|towards?|into|re|with|join|joining|research|researching|compare|comparing|vs\.?|versus|and|or|is|like)|\b(?:apply|applying|applied|interview|interviewing|prep|prepare|preparing)\s+(?:to|at|for|with)|\b(?:company|firm|employer|bank|fund) is)\s+(?:the\s+|a\s+|an\s+|my\s+)?$/i;
+  const RS_FRAME_AFTER = /^(?:['’]s\b|\s+(?:interviews?|culture|comp|compensation|pay|salary|salaries|process|hiring|recruiting|recruiters?|internships?|interns?|roles?|jobs?|file|headcount|revenue|employees|offices?|teams?|offers?|superday|careers?|application|deadline|timeline|odds|bar|values|analysts?|summer|swe|ibd|program|programme|look|hire|hires|want|pays?)\b)/i;
+  // Before the name: a verb that makes it a place, a school, a skill, a product, a person, an employer they have, or
+  // not the subject (the letter rules' list, without the work verbs a question about a firm uses: "what is it like to
+  // work at X"); a person's title or relation; a first-person employment.
+  const RS_EXCLUDE_BEFORE = /(?:\b(?:live|lives|living|lived|based|located|reside|resides|residing|grew up|raised|born|moving|move|moved|relocating|relocate|relocated|commute|from|near|outside|around|visit|visiting|visited|studied|study|studies|studying|graduated|graduating|graduate|attend|attends|attended|attending|enrolled|student|students|alum|alumni|alumnus|alumna|major|majored|majoring|degree|know|knows|knew|proficient|experience|experienced|skilled|familiar|fluent|certified|certification|using|use|uses|skills?|tools?|trained|good|great|expert|comfortable|not|except|excluding|besides|than|instead|never|no|nor|avoid|skip|hate|hated|left|quit|fired|laid off|anything but|everything but|all but)\b|n['’]t)(?:\s+(?:in|at|to|from|of|with|on|for|near|by|a|an|the|my|our|up|out|off|about|over|currently|still|now|right now|full[- ]time|part[- ]time|as an? [a-z]+))*:?\s+(?:[A-Za-z0-9.&'’-]+(?:\s+[A-Za-z0-9.&'’-]+){0,2}\s*(?:,|\band\b|\bor\b|&|\/)\s*){0,4}$/i;
+  // "who do I know at X", "anyone I know at X", "someone at X": the people asked about are at the firm.
+  const RS_PEOPLE_AT = /\b(?:know|knows|anyone|anybody|someone|somebody|people|contacts?|connections?|alumni|works?|working)\s+(?:at|from|in|with)\s+(?:the\s+)?$/i;
+  const RS_PERSON_BEFORE = /\b(?:dr|mr|mrs|ms|mx|prof|professor|friend|friends|sister|brother|mom|dad|mother|father|cousin|aunt|uncle|roommate|teacher|coach|boss|neighbor|neighbour|classmate|buddy|named|called)\.?,?\s+$/i;
+  const RS_MINE_BEFORE = /\b(?:i|i've|i’ve|i have|i had)\s+(?:currently\s+|still\s+|previously\s+|formerly\s+|once\s+|already\s+)?(?:work|works|worked|working|intern|interned|interning|was|am|used to work|used to intern|been)\s+(?:(?:as\s+an?\s+[a-z]+\s+)?(?:at|for|with)\s+)(?:the\s+)?$|\b(?:i['’]m|i am|i was)\s+(?:currently\s+|still\s+|now\s+)?(?:at|with)\s+(?:the\s+)?$|\b(?:used to|previously|formerly)\s+(?:work|intern)\s+(?:at|for|with)\s+(?:the\s+)?$/i;
+  function rsOccurrenceOk(raw, i, j) {
+    const typed = raw.slice(i, j);
+    const before = raw.slice(0, i), after = raw.slice(j);
+    if (/[A-Za-z0-9&]$/.test(before) || /^[A-Za-z0-9]/.test(after)) return false;
+    // Part of a longer name: "Bain Capital", "Goldman Sachs Asset Management" are other firms.
+    // An allowed word followed by another capitalized word is a longer name too ("Microsoft Research Asia").
+    const RS_AFTER_WORD = /^(?:IBD|Data|Software|Summer|Product|Analyst|Engineering|Investment|Consulting|Marketing|Finance|Sales|Research|Strategy|Operations|Design|Intern|Internship|Interview|Interviews|Associate|Role|Job|Position|Posting|Culture|Comp|Pay|Salary|Hiring|Recruiting|Process|Superday|Offer|Application|Team|Program|SWE|PM|FDE|Inc|Corp|Co|Ltd|Please|Thanks|Thank|I|What|How|Can|Could|Also|And|Or|Is|Are|Do|Does|Tell|Give|Prep|Help|Look|Looks|Hire|Hires|Want|Wants|Pay|Pays|Have|Has|Like)$/;
+    const capsAfter = (/^((?:[ \t]+[A-Z][A-Za-z0-9&'’-]*){1,3})/.exec(after) || ["", ""])[1].trim().split(/\s+/).filter(Boolean);
+    const w0 = (capsAfter[0] || "").replace(/['’]s$/, ""), w1 = (capsAfter[1] || "").replace(/['’]s$/, "");
+    if (w0 && /^[A-Z][a-z]/.test(w0) && !RS_AFTER_WORD.test(w0)) return false;
+    if (w1 && /^(?:Research|Data|Software|Product|Investment|Engineering|Design|Strategy|Sales|Finance|Marketing|Consulting|Operations)$/.test(w0) && /^[A-Z][a-z]/.test(w1) && !RS_AFTER_WORD.test(w1)) return false;
+    if (/^\s+(?:university|college|institute|school|academy)\b/i.test(after)) return false;
+    if (/\b(?:university|college|school|institute)\s+of\s+(?:the\s+)?$/i.test(before)) return false;
+    // "how much does Google pay" is the verb, not Google Pay.
+    if (LT_PRODUCT_AFTER.test(after) && !(/\b(?:does|do|did|will|would)\s+$/i.test(before) && /^\s+pays?\b/i.test(after))) return false;
+    const plain = ltPlain(typed).replace(/[.,]/g, "");
+    if (LT_CITIES.has(plain) || LT_SCHOOLS.has(plain)) return false;
+    if (RS_PERSON_BEFORE.test(before) || RS_MINE_BEFORE.test(before)) return false;
+    const aspire = LT_ASPIRE_BEFORE.test(before) || RS_PEOPLE_AT.test(before);
+    if (!aspire && RS_EXCLUDE_BEFORE.test(before) && !/\b(?:role|job|position|internship|opening|posting|program|interview|offer)\s+(?:at|with|for)\s+(?:the\s+)?$/i.test(before)) return false;
+    const frameBefore = aspire || RS_FRAME_BEFORE.test(before);
+    const frameAfter = RS_FRAME_AFTER.test(after);
+    const words = plain.split(" ");
+    const common = words.length === 1 && LT_COMMON.has(plain.replace(/[^a-z0-9]/g, ""));
+    if (!common) return true;
+    const sentenceStart = before === "" || /[.!?\n]\s*["“(]?\s*$/.test(before) || /^\s*["“(]?\s*$/.test(before);
+    const capital = /^[A-Z]/.test(typed);
+    // A word that is also a firm: written as the firm. Capitalized mid-sentence, or after a frame / before an intel noun in any
+    // case; capitalized at the start of a sentence only before an intel noun ("Stripe interview tips?").
+    if (frameAfter) return capital || frameBefore || sentenceStart;
+    if (capital && !sentenceStart) return true;
+    if (!frameBefore) return false;
+    return /^\s*(?:$|[.!?,;:)]|(?:please|pls|plz|thanks|thank you|thx|ty|and|or|vs\.?|versus|for|in|this|next|now|today)\b)/i.test(after);
+  }
+  // The companies a research ask names, in order: { name, cir, idx, typed }; a company file's name over a posting's.
+  function namedCompaniesOf(text, ctx) {
+    const raw = s(text);
+    const hits = [];
+    for (const e of ltLexicon(ctx || {})) {
+      for (const form of e.forms) {
+        const re = new RegExp(`(?<![A-Za-z0-9])${ltEsc(form).replace(/&/g, "(?:&|and)")}(?![A-Za-z0-9])`, "gi");
+        let found = false;
+        for (const m of raw.matchAll(re)) {
+          if (rsOccurrenceOk(raw, m.index, m.index + m[0].length)) { hits.push({ name: e.name, cir: e.cir, idx: m.index, typed: m[0] }); found = true; break; }
+        }
+        if (found) break;
+      }
+    }
+    hits.sort((a, b) => a.idx - b.idx || b.typed.length - a.typed.length || (b.cir ? 1 : 0) - (a.cir ? 1 : 0));
+    // At one place the longest name only ("Goldman Sachs" over "Goldman").
+    return hits.filter((h, k) => !hits.slice(0, k).some((g) => h.idx >= g.idx && h.idx < g.idx + g.typed.length));
+  }
+  // The company a research, intel, prep or networking ask names (whole name), or null. Exported for the scenario battery
+  // (tests/architect/scenarios-research.test.ts).
+  function namedCompanyOf(text, ctx) {
+    const h = namedCompaniesOf(text, ctx)[0];
+    return h ? { company: h.name, cir: h.cir, typed: h.typed } : null;
+  }
   function tailorTargetOf(text, ctx) {
     const p = ctx.posting || null;
     if (p && (p.company || p.title)) return { label: `${p.title || "the role"} at ${p.company || "the company you pasted"}`.trim(), cir: null, company: p.company || null };
@@ -41046,11 +41131,15 @@ const CareerRouter = (() => {
   // as a finance technical — the thread's sector is not switched,
   // and the reply names the switch).
   // ======================================================================
-  function prepSectorOf(tn) {
+  // RESEARCH SCENARIOS (2026-10-29): a consulting firm's name sets the consulting sector only when the ask names that firm
+  // (namedCompaniesOf, given the ask as typed): "Not BCG. help me prep for the Lazard interview" was served a Bain case,
+  // and "Bain Capital" is a private equity firm.
+  function prepSectorOf(tn, raw, ctx) {
     if (/\bthree (financial )?statements\b|\bdcf\b|\blbo\b|\bcomps\b|\bmerger model\b|\baccretion\b/.test(tn)) return "finance";
     if (/\bquant\b|\bmarket[- ]making\b|\bprobability\b|\bexpected value\b|\bcoin flips?\b|\bdice\b/.test(tn)) return "quant";
     if (/\bsql\b|\bdata analyst\b|\bdata science\b|\bdata interview\b/.test(tn)) return "data";
-    if (/\bconsulting\b|\bcase interview\b|\bcase question\b|\bcase practice\b|\bpractice cases\b|\bprofitability\b|\bmarket entry\b|\bmarket sizing\b|\bmckinsey\b|\bbain\b|\bbcg\b|\bmbb\b/.test(tn)) return "consulting";
+    if (/\bconsulting\b|\bcase interview\b|\bcase question\b|\bcase practice\b|\bpractice cases\b|\bprofitability\b|\bmarket entry\b|\bmarket sizing\b|\bmbb\b/.test(tn)) return "consulting";
+    if (/\bmckinsey\b|\bbain\b|\bbcg\b/.test(tn) && (raw === undefined || namedCompaniesOf(raw, ctx).some((h) => h.cir && /^(?:mckinsey|bain|bcg)$/.test(s(h.cir.company_id))))) return "consulting";
     if (/\bmedical school\b|\bmed school\b|\bmmi\b|\bmedicine\b|\bmedical interview\b/.test(tn)) return "medicine";
     if (/\blaw firm\b|\blaw school\b|\blaw interview\b|\blegal interview\b|\battorney\b/.test(tn)) return "law";
     if (/\bproduct management\b|\bproduct sense\b|\bpm interview\b|\bproduct manager interview\b/.test(tn)) return "pm";
@@ -41086,7 +41175,7 @@ const CareerRouter = (() => {
     if ((tn.match(/\bdcf\b|\blbo\b|\bcomps\b|three (financial )?statements/g) || []).length >= 2) return null;
     if (/\bmarket sizing\b|\bsizing (case|question)\b|\bestimation question\b|\bfermi\b/.test(tn)) return handlePrepQuestion(text, ctx);
     const thread = prepThreadOf(ctx);
-    const askSector = prepSectorOf(tn);
+    const askSector = prepSectorOf(tn, text, ctx);
     const sectorSwitch = !!(askSector && thread.sector && askSector !== thread.sector);
     const sector = askSector || thread.sector || null;
     // (0) A stated weakness/focus updates the session record — it is
@@ -41179,7 +41268,14 @@ const CareerRouter = (() => {
     // 2026-10-23 (freeze gaps): "give me a practice question" in a consulting session served method cards ("Clarify the
     // objective", "Build a case-specific issue tree") as "Your case:". A plain practice ask now gets a case too.
     if (sector === "consulting" && (/\bcases?\b/.test(tn) || !/\b(?:framework|structur\w*|method|issue tree|behaviou?ral|fit)\b/.test(tn))) {
-      const casePool = candidates.filter((row) => /canonical case types|official sample cases/.test(rowSectionOf(row)));
+      let casePool = candidates.filter((row) => /canonical case types|official sample cases/.test(rowSectionOf(row)));
+      // RESEARCH SCENARIOS (2026-10-29): prep for a named firm is never another firm's case ("help me prep for the BCG
+      // interview" was served "Your case: Coffee Shop Co. (Bain)"): a sample case another firm published is left out.
+      const namedFirm = (namedCompaniesOf(text, ctx).find((h) => h.cir) || {}).name || null;
+      if (namedFirm) {
+        const own = casePool.filter((row) => { const by = /\(([^)]+)\)\s*$/.exec(s(row.q)); return !by || namedCompaniesOf(by[1], ctx).some((h) => h.name === namedFirm); });
+        if (own.length) casePool = own;
+      }
       if (casePool.length) candidates = casePool;
     } else if (/\bbehavioral\b|\bbehavioural\b/.test(tn)) {
       const behPool = candidates.filter((row) => /behavioural|behavioral/.test(rowSectionOf(row)) || (row.source && row.source.type === "generic_behavioral_bank") || row.round === "behavioral");
@@ -41533,7 +41629,7 @@ const CareerRouter = (() => {
       role = roleM ? roleM[1].replace(/^(?:an?\s+|the\s+)/, "").replace(/\s+(?:coming up|soon|next week).*$/, "").trim() : "";
     }
     if (!role) return null;
-    const sector = prepSectorOf(t) || prepSectorOf(role);
+    const sector = prepSectorOf(t, text, ctx) || prepSectorOf(role);
     let bank = null;
     try { bank = Prep.questionBank({ sector: sector || undefined, role, roleFamily: sector || role, cir: cirFor(text, ctx), stories: [] }); } catch { bank = null; }
     const qs = ((bank && bank.questions) || []).filter((x) => x && s(x.q));
@@ -41697,7 +41793,7 @@ const CareerRouter = (() => {
     // as their payload — the F5 contract reads the brief (company,
     // sources with as-of, bar/stages, story mapping), while the bank
     // itself rides under its own key.
-    const briefPayload = () => { try { return Prep.composeBrief ? Prep.composeBrief(profile, { company: company || null }, cirFor(text, ctx)) : null; } catch { return null; } };
+    const briefPayload = () => { try { return Prep.composeBrief ? Prep.composeBrief(profile || { facts: [] }, { company: company || null }, cirFor(text, ctx)) : null; } catch { return null; } };
     // BUG-117: bank turns build the bank from the ASK — its track
     // (finance technicals / SWE coding), the company file, and the
     // profile's mined stories all go in (the handlers used to pass
@@ -42108,7 +42204,7 @@ const CareerRouter = (() => {
         const posting = ctx.posting || (company ? (rankedShortlist(profile, ctx, { company: lc(company) }).ranked[0] || {}).posting : null);
         // IB-F5F7-3: the company file rides into the brief — a null CIR
         // produced NO_CIR briefs that cannot validate or cite.
-        const brief = Prep.composeBrief(profile, posting ? { title: posting.title, company: posting.company } : { company: company || null }, cirFor(text, ctx));
+        const brief = Prep.composeBrief(profile || { facts: [] }, posting ? { title: posting.title, company: posting.company } : { company: company || null }, cirFor(text, ctx));
         // WORDING-BACKLOG (BUG-136): the brief reply speaks the
         // brief's own record (bar, loop, signals, story-mapping
         // state, questions) under a headline that names the ask's
@@ -42253,6 +42349,15 @@ const CareerRouter = (() => {
   }
 
   // ---------- company intel (125; family Intelligence: R-C5) ----------------
+  // RESEARCH SCENARIOS (2026-10-29): figures a company file never holds, and the words that ask for each; `held` is how the
+  // figure would read in a file that did hold it (then the file's own sections answer).
+  const RS_FIGURE_ASKS = [
+    { key: "headcount", what: "headcount figure", ask: /\bhead ?count\b|\bhow many (?:people|employees|staff|workers)\b|\bnumber of (?:employees|staff|people)\b|\bemployees\b|\bcompany size\b|\bhow big is\b/, held: /\bheadcount\b|\b(?:employees|people) (?:firm-wide|worldwide|globally|in total)\b|\bemployees\b/ },
+    { key: "financials", what: "revenue, valuation or funding figure", ask: /\brevenues?\b|\bvaluation\b|\bvalued at\b|\bmarket cap\b|\bprofits?\b|\bfunding\b|\bhow much (?:money )?(?:has it|did it|have they|did they) raise/, held: /\brevenues? (?:of|was|were|is|reached)\b|\bvalued at\b|\bvaluation of\b|\bmarket cap(?:italization)? of\b/ },
+    { key: "acceptance", what: "acceptance rate or class size", ask: /\bacceptance rate\b|\badmit rate\b|\bacceptance rates\b|\bhow selective\b|\bclass size\b|\bhow many (?:analysts|interns|hires|people do they hire|applicants|people apply)\b|\bwhat percent(?:age)? (?:of applicants|get)\b/, held: /\bacceptance rate\b|\badmit rate\b|\bclass size (?:of|is|was)\b|\bconversion rate (?:of|is|was)\b/ },
+    { key: "odds", what: "odds", ask: /\b(?:my|the) (?:odds|chances?)\b|\bwhat are (?:the )?(?:odds|chances)\b|\bprobability\b|\bhow likely (?:am i|is it|are you)\b|\bodds of\b/, held: null },
+  ];
+  const RS_TIMELINE_ASK = /\btimeline\b|\bdeadlines?\b|\bwhen (?:does|do|is|are|will)\b[^.?!]*\b(?:recruiting|applications?|hiring|open|close|deadline)\b|\brecruiting (?:season|cycle|window)\b/;
   function handleIntel(text, ctx) {
     if (!Intel) return null;
     // 140's composeResult keeps the FIRST sentence of each fact and
@@ -42362,6 +42467,16 @@ const CareerRouter = (() => {
           return { intent: "company_intel", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "role_kb_absent" }, artifact: { kind: "role_kb_absent" } };
         }
         return null;
+      }
+      // RESEARCH SCENARIOS (2026-10-29): the frames above keep at most two capitalized words, so "Goldman Sachs Asset
+      // Management" was answered "Goldman Sachs has no company file yet" (false: it has one; the ask named another firm).
+      // The firm is the whole capitalized name as typed.
+      {
+        const at = s(text).indexOf(comp);
+        if (at >= 0) {
+          const more = s(text).slice(at + comp.length).match(/^(?:\s+(?:&\s+)?(?!(?:Interview|Interviews|Culture|Comp|Pay|Salary|Hiring|Recruiting|Process|Internship|Intern|Role|Job|Office|Team|Offer|Please|Thanks|I|What|How|Is|Are|Do|Does)\b)[A-Z][A-Za-z0-9&.'’-]*){1,3}/);
+          if (more) comp = (comp + more[0]).replace(/[?.!,]+$/, "").replace(/\s+/g, " ").trim();
+        }
       }
       try { ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastIntelCompany: comp }); } catch { /* memo only */ }
       const facts = [`The company-file library holds dossiers built from public sources — hiring bar, entry routes, cadence, interview process, comp notes. ${comp} is not one of them, so none of that exists on record for this firm.`];
@@ -42476,7 +42591,7 @@ const CareerRouter = (() => {
           const framed = [...frameToks].filter(Boolean).some((f) => low.includes(`for ${f}`) || low.includes(`for a ${f}`) || low.includes(`for an ${f}`) || low.includes(`${f} at`) || low.includes(`${f} role`) || low.includes(`as a ${f}`) || low.includes(`as an ${f}`))
             || (/\b(hiring bar|the bar|bar for|look for in|hiring for)\b/.test(low) && (lab ? low.includes(lab.split(" ")[0]) : false))
             || (/\b(stats|statistics|library|percentages?|postings data)\b/.test(low) && !!lab);
-          const otherFiled = /\b(compare|vs\.?|versus)\b/.test(low) && !!(cirListOf(ctx).find((x) => x && x !== cir && cirMatches(x, low)));
+          const otherFiled = /\b(compare|vs\.?|versus)\b/.test(low) && !!namedCompaniesOf(text, ctx).find((h) => h.cir && h.cir !== cir);
           if (framed && !otherFiled) {
             lens = Intel.barForRole(cir, askedRole);
             if (lens && (lens.status === "role-bar" || lens.status === "no-role-bar")) roleAns = Intel.answerRoleIntel(cir, text, { role: askedRole });
@@ -42627,7 +42742,7 @@ const CareerRouter = (() => {
       // side is a second file when the ask names one, otherwise the
       // honest statement that no file exists for it — never a
       // one-firm summary wearing a comparison's clothes.
-      const other = cirListOf(ctx).find((x) => x && x !== cir && cirMatches(x, t)) || null;
+      const other = (namedCompaniesOf(text, ctx).find((h) => h.cir && h.cir !== cir) || {}).cir || null;
       const facts = [];
       if (byKey.bar) facts.push(`The bar: ${byKey.bar.text}`);
       if (other) {
@@ -42657,6 +42772,7 @@ const CareerRouter = (() => {
     else if (/\binterview\b/.test(t)) { chosen = pick(["interview", "bar", "cadence"]); headline = `${name} interviews, from the file.`; }
     else if (/\bculture\b|\bvalues\b/.test(t)) { chosen = pick(["culture", "bar", "comp"]); headline = `${name} culture, from the file.`; }
     else if (/\blook(s|ing)? for\b|\bwants in\b|\bhires for\b/.test(t)) { chosen = pick(["bar", "routes", "cadence"]); headline = `What ${name} looks for, from its file.`; }
+    else if (RS_TIMELINE_ASK.test(t)) { chosen = pick(["cadence", "routes", "bar"]); headline = `${name}'s hiring cadence, from the file.`; }
     if (!chosen || !chosen.length) {
       chosen = pick(["bar", "routes", "cadence"]);
       const cohort = cir.cohort || {};
@@ -42664,6 +42780,24 @@ const CareerRouter = (() => {
     }
     if (!chosen.length) chosen = [{ key: "thin", label: "", offerName: "", text: "The file is thin right now — status and sourcing only, no invented detail." }];
     const facts = chosen.map((x) => (x.label ? `${x.label}: ${x.text}` : x.text));
+    // RESEARCH SCENARIOS (2026-10-29): an ask for a figure the file does not hold (headcount, revenue or valuation, an
+    // acceptance rate or class size, the person's own odds) was answered with the file's summary and no word on the figure
+    // asked for. It is said plainly first: no source on record gives it, so none is given.
+    {
+      const asked = RS_FIGURE_ASKS.find((f) => f.ask.test(t));
+      if (asked) {
+        // The file's own sentence that states the figure (its words and a number), when it has one.
+        const strings = [];
+        const walk = (v, k) => { if (typeof v === "string") { if (!/^(?:source_url|url|source|as_of|last_verified_at|company_id)$/.test(k || "")) strings.push(v); } else if (Array.isArray(v)) v.forEach((x) => walk(x, k)); else if (v && typeof v === "object") for (const [kk, x] of Object.entries(v)) walk(x, kk); };
+        walk(cir, "");
+        const held = asked.held ? strings.flatMap((x) => x.split(/(?<=[.!?])\s+/)).find((x) => asked.held.test(lc(x)) && /\d/.test(x)) : null;
+        if (held) facts.unshift(`On the ${asked.what}, the file says: ${voiceText(held).trim()}`);
+        else facts.unshift(asked.key === "odds"
+          ? `No source on record gives your odds at ${name}, so I give no number; an estimate would need your own record read against the bar below, and it would be labelled as one.`
+          : `The ${name} file holds no ${asked.what}, and no other source on record does, so I am not giving one.`);
+        headline = held ? `${name}: the ${asked.what} the file holds, and what else it says.` : `${name}: no ${asked.key === "odds" ? "odds" : asked.what} on record — here is what the file does hold.`;
+      }
+    }
     if (/\bsample size\b/.test(t) && cir.sample_size == null) {
       const bias = cirFieldText(cir.known_biases_of_data);
       if (bias) facts.push(`On sample size, the file states its own limit: ${bias.split(/(?<=[.!?])\s/)[0]}`);
@@ -44269,10 +44403,16 @@ const CareerRouter = (() => {
     }
     return best;
   }
+  // RESEARCH SCENARIOS (2026-10-29): the company file an ask is about is a file it names as a whole name (namedCompaniesOf);
+  // cirMatches took a file's first word, any substring or a longer firm's opening words as that firm. An archetype file
+  // is still named by its kind word and the word archetype.
   function cirFor(text, ctx) {
     if (!Intel) return null;
+    const named = namedCompaniesOf(text, ctx).find((h) => h.cir);
+    if (named) return named.cir;
     const t = lc(text);
-    return cirListOf(ctx).find((x) => x && cirMatches(x, t)) || null;
+    if (!/\barchetype\b/.test(t)) return null;
+    return cirListOf(ctx).find((x) => x && String(x.company_id || "").startsWith("archetype-") && cirMatches(x, t)) || null;
   }
   function cirFieldText(v) {
     if (!v) return "";
@@ -49267,7 +49407,7 @@ const CareerRouter = (() => {
       const tnB = typoNorm(text);
       const sessionShape =
         /\b(can we|let'?s|start)\b[^.]*\b(practi[cs]e|practise|drill|prep)\b|\b(practice|practise|drill)\b[^.]*\b(cases?|questions?|technicals?|sql|probability|interviews?)\b|\bprep( me| us)?\b[^.]*\b(interview|technicals?|banking|consulting|data|law|medicine|quant|product)\b|\bdrill me\b|\bhelp me prep\b|\bpractice cases\b|\bcase practice\b|\bwhat do they ask\b/.test(tnB)
-        || (/\bprep me\b/.test(tnB) && !!prepSectorOf(tnB))
+        || (/\bprep me\b/.test(tnB) && !!prepSectorOf(tnB, text, c))
         || (pthB.lastQ && /\banother\b|\bnext\b|\bharder\b|\bmodel answer\b|\bone more\b|\bhit me\b|\bgive me\b|\bagain\b/.test(tnB))
         || ((pthB.sector || pthB.lastQ) && /\bthree (financial )?statements\b|\bdcf\b|\blbo\b/.test(tnB))
         || ((pthB.sector || pthB.lastQ) && s(text).length < 70 && /\bone\b|\bfocus\b|\bweakest\b|\bsql\b|\bethics\b|\bmarket[- ]making\b|\bprobability\b|\bcomps\b/.test(tnB))
@@ -49413,7 +49553,7 @@ const CareerRouter = (() => {
       // "should I become a lawyer or a doctor?" about lawyers alone).
       { const fd = routeFieldDecision(text, c); if (fd) return fd; }
       { const od = routeOfferDecision(text, c); if (od) return od; }
-      const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library)\b/.test(t)) ? handleIntel(text, c) : null;
+      const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library|headcount|revenue|valuation|acceptance rate|recruiting timeline)\b/.test(t) || (RS_TIMELINE_ASK.test(t) && !!cirFor(text, c))) ? handleIntel(text, c) : null;
       if (iq) return iq;
       // ROUTING FAMILIES (2026-10-23): an onboarding ask aimed at the product ("how do I get started with you") is not
       // a path ask; it is answered before this gate's "how do i get" shape can claim it.
@@ -52142,7 +52282,7 @@ const CareerRouter = (() => {
       if (m && m.resumeIngest && typeof m.resumeIngest === "object" && intent !== "career_resume_ingest") m.resumeIngest.stale = true;
     } catch { /* a mark never breaks a turn */ }
   }
-  return { handleChat, noteServedTurn, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf, detypo, letterTargetOf };
+  return { handleChat, noteServedTurn, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf, detypo, letterTargetOf, namedCompanyOf };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;
 

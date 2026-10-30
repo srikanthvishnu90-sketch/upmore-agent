@@ -32,6 +32,7 @@ import { cardDigest } from "./channel_card_tap.ts";
 import { type Button } from "./channel_adapters.ts";
 import { neverOpen } from "./career_people_sites.ts";
 import { safeCut, safeSlice } from "./channel_text.ts";
+import { type AccountStamp, stampOf, unsendableWhy } from "./apply_trust.ts";
 
 export const TG_CAPTION_MAX = 1024;
 export const PAGE_SIZE = 5;
@@ -63,6 +64,10 @@ export interface JobStore {
   prepared(userId: string, jobId: string): Promise<PreparedRow | null>; // the person's newest ready or shown application for this posting
   applied(userId: string, jobId: string): Promise<boolean>; // an exact duplicate: this person already has this posting in the queue
   want(userId: string, job: JobView, at: number): Promise<{ result: "queued" | "already" | "refused"; reason?: string }>; // to be prepared
+  // The same posting already sent or on its way by ANY path (career_apply_posting_sent, the rule the queue refuses a second
+  // application by): this posting's own application, one under another id whose link is the same posting, the browser extension's
+  // report, a batch ledger. Absent: not checked here (the queue still refuses it).
+  elsewhere?(userId: string, job: JobView): Promise<boolean>;
 }
 
 export interface JobDeps {
@@ -75,6 +80,15 @@ export interface JobDeps {
   // The hosted feed for a list: a Telegram Mini App URL and a signed-link fallback (either null when not configured).
   feedLinks?: (userId: string, listId: string) => Promise<{ webApp: string | null; url: string | null }>;
   facts?: (userId: string) => Promise<any[]>; // the person's CONFIRMED facts, for the posting screen's knock-outs; none known = none confirmed
+  // The account record's stamp (apply_trust.ts): an application prepared under another epoch or version, or while paused, is not
+  // offered for approval (the queue would refuse it). Absent: only the payload's own rules (expiry, answers) are judged.
+  account?: (userId: string) => Promise<AccountStamp | null>;
+}
+
+// Whether the prepared application can still go as approved (apply_trust.ts unsendableWhy): null when it can.
+export async function unsendable(userId: string, p: PreparedRow, deps: Pick<JobDeps, "account" | "now">, account?: AccountStamp | null | "unreadable"): Promise<string | null> {
+  const a = account !== undefined ? account : deps.account ? await deps.account(userId).catch(() => "unreadable" as const) : undefined;
+  return unsendableWhy(p.payload, { now: deps.now(), account: a });
 }
 
 // ---------------------------------------------------------------- refs and buttons
@@ -323,6 +337,12 @@ export async function sendApplyHere(o: { userId: string; jobs: JobView[]; refs: 
       if (r.ok) sent++;
       continue;
     }
+    const why = prep ? await unsendable(o.userId, prep, deps) : null;
+    if (why) {
+      const r = await send.text({ text: `${job.title ? `${job.title} at ` : ""}${job.company}: nothing to approve yet: ${why}.` });
+      if (r.ok) sent++;
+      continue;
+    }
     const lines = prep
       ? [...payloadLines(prep, job).slice(0, -2), ...(nc ? [nc] : []), "", "Tap Apply to approve exactly this. Nothing else is sent."]
       : [captionOf({ ...job, reasons: [], gaps: [] }, deps.now()), ...(nc ? ["", nc] : []), "", "Not prepared yet. Tap Apply to queue it; nothing is sent to the employer until you approve the exact application."];
@@ -390,6 +410,10 @@ export function secretFields(p: PreparedRow): string[] {
   (Array.isArray(p.card_lines) ? p.card_lines : []).forEach((l, i) => { if (secretLine(String(l ?? ""))) out.push(`card line ${i + 1}`); });
   return out;
 }
+// An answer carrying ANOTHER account's fact (its user_id is not the payload's): its value is never printed to this person
+// (apply round 3: the page's "What we send" and this card printed it). apply_trust.ts makes such an application unapprovable.
+export const foreignFact = (f: any, pl: any) => f?.user_id !== undefined && f.user_id !== pl?.user_id;
+export const NOT_YOURS = "(not shown: not one of your own facts)";
 export function payloadLines(p: PreparedRow, job: JobView | null): string[] {
   const pl = p.payload ?? {};
   const fields: any[] = Array.isArray(pl.fields) ? pl.fields : [];
@@ -420,7 +444,7 @@ export function payloadLines(p: PreparedRow, job: JobView | null): string[] {
     `Resume: ${resumeName ? `${resumeName} ` : ""}${sha ? `(sha256 ${sha.slice(0, 12)}...) , the one resume this was prepared with` : "none attached"}`,
     `Cover note: ${cover ? String(cover.value).trim() : "none"}`,
     answers.length ? "Answers:" : "Answers: none",
-    ...answers.map((f) => (isFile(f) ? `• ${name(f)}: file ${String(f.value).trim()}` : `• ${name(f)}: ${String(f.value).trim()}`)),
+    ...answers.map((f) => (foreignFact(f, pl) ? `• ${name(f)}: ${NOT_YOURS}` : isFile(f) ? `• ${name(f)}: file ${String(f.value).trim()}` : `• ${name(f)}: ${String(f.value).trim()}`)),
     ...(blank.length ? [`Left blank: ${blank.map(name).join("; ")}`] : []),
     ...(needsYou.length ? ["Needs you (I never type or send these; fill them in yourself on the employer's form):", ...needsYou.map((x) => `• ${x}`)] : []),
     ...(extra.length ? ["Also in this application:", ...extra.map(([k, v]) => `• ${clean(k, 80)}: ${val(v)}`)] : []),
@@ -536,7 +560,7 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
       await say(`I don't apply on LinkedIn, Indeed or Handshake for you. Open it and apply there yourself:\n${job.url}`);
       return { toast: "Apply there yourself.", status: "never_automated" };
     }
-    if (await deps.store.applied(userId, job.job_id).catch(() => false)) {
+    if (await deps.store.applied(userId, job.job_id).catch(() => false) || (deps.store.elsewhere && await deps.store.elsewhere(userId, job).catch(() => false))) {
       await say(`You already have ${job.title ? `${job.title} at ` : ""}${job.company} in your applications, so I won't queue it twice. Say "show my applications" for where it stands.`);
       return { toast: ALREADY_TOAST, status: "duplicate" };
     }
@@ -551,7 +575,9 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
     }
     const lines = pageLines(payloadLines(prep, job));
     const needsYou = secretFields(prep).length > 0; // a secret-looking field with a value: shown as "needs you", never approvable here
-    for (let i = 0; i < lines.length; i++) await send.text({ text: lines[i], buttons: i === lines.length - 1 && !needsYou ? confirmButtons(t.ref, hashTag(prep.payload_hash)) : undefined });
+    const why = needsYou ? null : await unsendable(userId, prep, deps);
+    for (let i = 0; i < lines.length; i++) await send.text({ text: lines[i], buttons: i === lines.length - 1 && !needsYou && !why ? confirmButtons(t.ref, hashTag(prep.payload_hash)) : undefined });
+    if (why) { await say(`I can't offer this one for approval: ${why}.`); return { toast: "Not approvable.", status: "unsendable" }; }
     if (needsYou) { await say(`I can't send this one from here: it has a field that needs you (a password, code or similar), and those never go through chat. Open the link and finish that part yourself:\n${prep.url}`); return { toast: "Needs you.", status: "needs_you" }; }
     return { toast: "Check it, then Confirm.", status: "shown" };
   }
@@ -561,7 +587,8 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
     // Already in the applications (approved by another tap at the same moment, on another device, or sent elsewhere): that is
     // what is said, never "changed" or "could not open": the payload it approved is no longer a ready one, so check this first,
     // and again whenever the approval below finds the prepared application gone.
-    const applied = () => deps.store.applied(userId, job.job_id).catch(() => false);
+    // Sent another way counts too (the extension, the same posting under another id): apply round 3.
+    const applied = async () => await deps.store.applied(userId, job.job_id).catch(() => false) || (!!deps.store.elsewhere && await deps.store.elsewhere(userId, job).catch(() => false));
     const duplicate = async (): Promise<JobTapResult> => {
       await say(`You already have ${job.company} in your applications, so I won't queue it twice.`);
       return { toast: ALREADY_TOAST, status: "duplicate" };
@@ -584,6 +611,10 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
       return { toast: "Nothing approved.", status: "bad_destination" };
     }
     if (secretFields(prep).length) { await say(`That application has a field that needs you (a password, code or similar), so nothing was approved. Finish it yourself on the employer's form:\n${prep.url}`); return { toast: "Needs you.", status: "needs_you" }; }
+    // Expired, prepared under another account state, or carrying an answer the contract never sends: the queue or the worker
+    // would refuse it after the yes, so the yes approves nothing (apply_trust.ts; scenarios-apply-r3.test.ts).
+    const why = await unsendable(userId, prep, deps);
+    if (why) { await say(`Nothing was approved: ${why}.`); return { toast: "Not approved.", status: "unsendable" }; }
     const screened = await screenedOut(userId, job, deps);
     if (screened) { await say(`Nothing was approved: ${screened}`); return { toast: "Not approved.", status: "screened" }; }
     if (deps.cards.confirm) {
@@ -641,6 +672,17 @@ export function supabaseConfirmedFacts(admin: any): (userId: string) => Promise<
   };
 }
 
+// The account record's stamp for apply_trust.ts (the same record career_apply_current reads). An unreadable record throws: the
+// page and Confirm then approve nothing ("couldn't check your account").
+// deno-lint-ignore no-explicit-any
+export function supabaseAccountStamp(admin: any): (userId: string) => Promise<AccountStamp | null> {
+  return async (userId) => {
+    const r = await admin.from("career_watch_kv").select("value").eq("user_id", userId).eq("key", "career:account").maybeSingle();
+    if (r.error) throw new Error(`read the account: ${r.error.message}`);
+    return stampOf(r.data?.value ?? null);
+  };
+}
+
 // ---------------------------------------------------------------- the store over Supabase
 // Remembered cards and saves live in career_watch_kv (a per-person key/value the service role writes): no new table.
 // deno-lint-ignore no-explicit-any
@@ -671,6 +713,9 @@ export function supabaseJobStore(admin: any): JobStore {
     async applied(userId, jobId) {
       const rows = must(await admin.from("career_apply_jobs").select("job_id").eq("user_id", userId).eq("job_id", jobId).limit(1), "read the queue");
       return !!rows?.length;
+    },
+    async elsewhere(userId, job) {
+      return must(await admin.rpc("career_apply_posting_sent", { p_user: userId, p_job_id: job.job_id, p_url: job.url, p_except: null, p_queued: true }), "read the applications") === true;
     },
     async want(userId, job, at) {
       const { wantsFrom, supabaseWantStore } = await import("./career_apply_want.ts");

@@ -20,7 +20,7 @@ import { BOOT_SCRIPT, cut, FEED_SCRIPT, fullOf, hostOf, renderBootstrap, renderF
 import { dayOf, BRAND, esc, layout } from "../_shared/file_page.ts";
 import { actOn, bodyHtml, COPY_SCRIPT, KIND_CSS, KIND_LABEL, textOf, type Effects, type FileRecord } from "../_shared/file_kinds.ts";
 import type { FileService } from "../_shared/file_service.ts";
-import { byHandUrl, FEED_ROWS, hashTag, isSecretField, logoDomain, logoUrl, postingVerdict, secretFields, secretKey, tapJob, type JobDeps, type JobSender, type JobStore, type JobView, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
+import { byHandUrl, FEED_ROWS, foreignFact, hashTag, isSecretField, NOT_YOURS, logoDomain, logoUrl, postingVerdict, secretFields, secretKey, tapJob, unsendable, type JobDeps, type JobSender, type JobStore, type JobView, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
 
 export type { AppRow } from "../_shared/file_page.ts";
 export interface FileStore extends JobStore {
@@ -30,6 +30,7 @@ export interface FileStore extends JobStore {
   // Queued to be prepared (career_apply_wanted): by the posting's key, as the queue stores it (its board form's link, not always the
   // link shown), else by the link.
   wanted(userId: string, url: string, job?: JobView): Promise<boolean>;
+  // elsewhere (JobStore): asked only when this posting has no application row of its own, so a yes means another path.
 }
 export interface FileDeps extends Omit<JobDeps, "store"> {
   store: FileStore;
@@ -102,6 +103,7 @@ function sendOf(p: PreparedRow): { items: { label: string; value: string; needs?
   for (const f of (Array.isArray(pl.fields) ? pl.fields : []) as any[]) {
     const label = String(f?.label ?? f?.name ?? "").replace(/\s+/g, " ").trim().slice(0, 120) || "Field";
     if (isSecretField(f)) { items.push({ label, value: "", needs: true }); secret ??= label; continue; }
+    if (foreignFact(f, pl)) { items.push({ label, value: NOT_YOURS }); continue; }
     const v = f?.value, file = /file/i.test(String(f?.type ?? ""));
     if ((sha && v === sha) || (file && ((resumeName && v === resumeName) || (resumeFile && v === resumeFile)))) continue; // the resume line above
     if (shownValue(v) !== "(empty)") answers = true;
@@ -142,14 +144,19 @@ async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: R
   // with one read of the facts: a row that cannot pass it offers no Apply and says why, so neither Apply nor "Apply to all" offers
   // what the tap would then refuse (scenarios-file-apply.test.ts: a closed posting showed Apply and sat in the "Apply to all" set).
   const facts = d.facts ? await d.facts(claims.u).then((f) => f ?? [], () => []) : [];
+  // The account's stamp, once (apply_trust.ts): a payload prepared under another account state is not offered.
+  const account = d.account ? await d.account(claims.u).catch(() => "unreadable" as const) : undefined;
   const rows: Row[] = await Promise.all(got.map(async ({ ref, c }) => {
     const job = { ...c!.job }, post = postings.find((p) => p.job_id === job.job_id) ?? null;
     job.company_domain = job.company_domain ?? post?.company_domain ?? null;
     const [app, prep] = await Promise.all([d.store.appRow(claims.u, job.job_id, job.url).catch(() => null), d.store.prepared(claims.u, job.job_id).catch(() => null)]);
-    const wanted = app || prep ? false : await d.store.wanted(claims.u, job.url, job).catch(() => false);
+    // Sent or on its way by another path (the extension, a batch, the same posting under another id): the row says so and offers
+    // nothing (apply round 3: such a row offered Apply, and the tap could only be refused as a duplicate).
+    const away = !app && d.store.elsewhere ? await d.store.elsewhere(claims.u, job).catch(() => false) : false;
+    const wanted = app || prep || away ? false : await d.store.wanted(claims.u, job.url, job).catch(() => false);
     // An application already in motion is described by its status; the prepared payload is not what it sends.
-    const sd = prep && !app ? sendOf(prep) : null;
-    const status = statusOf({ app, wanted }) ?? (sd?.secret ? { word: "needs you" as const, detail: `"${sd.secret}" needs you. I never send a password, code or ID number from here; tell Trainee in Telegram.` } : null);
+    const sd = prep && !app && !away ? sendOf(prep) : null;
+    const status = statusOf({ app, wanted }) ?? (away ? ELSEWHERE : null) ?? (sd?.secret ? { word: "needs you" as const, detail: `"${sd.secret}" needs you. I never send a password, code or ID number from here; tell Trainee in Telegram.` } : null);
     const byHand = byHandOf(job.url);
     let blocked: string | null = null;
     if (!status && !byHand) {
@@ -157,6 +164,9 @@ async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: R
       // A destination that is not a web address (javascript:, data:, a bare word) is not somewhere an application can go (file journey
       // round 2: a payload sending to "javascript:..." was offered for one-tap approval).
       else if (prep && !webDestination(prep)) blocked = "its application doesn't go to a web address, so it can't be sent. Tell Trainee in Telegram to prepare it again.";
+      // Expired, prepared under another account state, or an answer the contract never sends (apply_trust.ts): the queue or the
+      // worker would refuse it after the yes, so the page offers no Apply (apply round 3).
+      else if (prep && (blocked = await unsendable(claims.u, prep, d, account))) blocked = `${blocked}.`;
       else if (!post) blocked = "I couldn't check this posting just now (it may have closed). Refresh in a minute.";
       else blocked = postingVerdict(job, post, facts, !!d.facts, d.now());
     }
@@ -164,7 +174,7 @@ async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: R
     // The short description and the key details: the stored posting's own words; a search-only detail only in the labelled line.
     const stated = { ...job, location: post?.location ?? "", remote: post ? job.remote : null };
     return { ref, job, logo: rowLogo(job, d.env), snippet: snippetOf(stated, post?.description), full: fullOf(post?.description),
-      status, inApps: !!app, tag, resume: app ? null : resumeOf(prep), byHand, blocked, note: notes[ref], ...metaOf(job, post), why: job.reasons.slice(0, 2),
+      status, inApps: !!app || away, tag, resume: app || away ? null : resumeOf(prep), byHand, blocked, note: notes[ref], ...metaOf(job, post), why: job.reasons.slice(0, 2),
       sends: sd && !sd.secret ? `Sends: ${[resumeOf(prep) ?? "no resume", sd.answers ? "your saved answers" : "", sd.cover ? "a cover note" : ""].filter(Boolean).join(" + ")}` : undefined, send: sd?.items };
   }));
   // The same posting twice on one list (the same link under two ids): only the first row offers Apply.
@@ -195,6 +205,7 @@ async function approveOne(u: string, ref: string, tag: string, d: FileDeps): Pro
   if (res.status === "failed") return "I couldn't open the approval just now, so nothing was approved. Tap Apply again in a minute.";
   return cut((said[0] ?? "Nothing was approved.").replace(/\s+/g, " ").trim(), 600);
 }
+const ELSEWHERE = { word: "in applications" as const, detail: "Already sent or on its way another way (your computer, the browser extension, or the same posting under another link). Each posting goes once." };
 const webDestination = (p: PreparedRow) => { const dest = (p.payload as Record<string, unknown>)?.destination; return dest === undefined || dest === null || dest === "" || /^https?:\/\/\S+$/i.test(String(dest)); };
 
 const CRAWLER = /TelegramBot|Twitterbot|facebookexternalhit|Slackbot|WhatsApp|Discordbot|LinkedInBot/i;

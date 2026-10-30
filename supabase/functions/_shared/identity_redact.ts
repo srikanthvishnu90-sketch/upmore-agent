@@ -136,6 +136,37 @@ export function redactIdentity(input: string, o: { codePending?: boolean } = {})
   return { text: t, removed: [...removed] };
 }
 
+// ADVERSARIAL ROUND 2 (2026-10-30): a password or code split across two messages ("my workday password is", then
+// "Tr0ub4dor99!") was stored and shown word for word: the second message carries no label. A message that ends on a
+// password or code label with nothing after it ("... password is", "password:", "the code they texted me is") makes
+// the very next message's lone value that secret: one token (no spaces) after a password label, a 4 to 8 digit code
+// (or a short letters-and-digits code) after a code label. Anything else (a sentence, a question, "ok") stays as typed.
+const LEAD_PW_WORD = "(?:password|passcode|passwd|pass\\s?word|pwd|pw|credentials?|creds)";
+const CODE_WORD = "(?:code|otp|2fa|mfa|pin)";
+const lead = (w: string) => new RegExp(`\\b${w}\\b[^.!?\\n]{0,40}?(?:\\s(?:is|are|was|will be)\\s*[:=\\-–—]?|\\s*[:=])\\s*$`, "i");
+const LEAD_PASSWORD = lead(LEAD_PW_WORD), LEAD_CODE = lead(CODE_WORD);
+export type SecretLead = "password" | "code";
+const NOT_A_SIGN_IN_CODE = /\b(?:zip|postal|post|area|promo|promotional|coupon|discount|gift|referral|course|class|error|status|country|dial|source|dress|tax|job|reference|ref|bar|qr|airport|product|tracking)\s+code\b/i;
+export function secretLeadIn(text: string): SecretLead | null {
+  const t = String(text ?? "").trim();
+  if (!t || t.length > 200) return null;
+  // A zip, promo, course or error code is a number to keep, never a sign-in code.
+  if (LEAD_CODE.test(t) && !/\b(?:password|passwd|passcode|pwd|pw)\b/i.test(t)) return NOT_A_SIGN_IN_CODE.test(t) ? null : "code";
+  return LEAD_PASSWORD.test(t) ? "password" : null;
+}
+// Words a person sends after a label instead of the value ("wait", "nvm", "actually no"): never taken for one.
+const NOT_A_VALUE = /^(?:ok(?:ay)?|k|yes|yeah|yep|no|nope|nah|wait|nvm|nevermind|sorry|thanks|thx|lol|hi|hello|hey|help|stop|cancel|why|what|huh|hmm+|idk|later|actually|nothing|none|skip|done|\?+|!+|\.+)[.!?]*$/i;
+export function looksLikePendingSecret(text: string, kind: SecretLead): boolean {
+  const t = String(text ?? "").trim();
+  if (!t || NOT_A_VALUE.test(t)) return false;
+  if (kind === "code") return /^\d(?:[ -]?\d){3,7}$/.test(t) || (/^\S{4,16}$/.test(t) && /\d/.test(t));
+  return /^\S{4,64}$/.test(t) && !/^https?:\/\//i.test(t);
+}
+export function redactPending(text: string, kind: SecretLead): Redaction | null {
+  if (!looksLikePendingSecret(text, kind)) return null;
+  return { text: kind === "code" ? "[code removed]" : "[password removed]", removed: [kind] };
+}
+
 const NAMES = { ssn: "Social Security number", card: "card number", account: "account number", password: "password", code: "one-time code" } as const;
 export function redactionNote(removed: Redaction["removed"]): string | null {
   if (!removed.length) return null;

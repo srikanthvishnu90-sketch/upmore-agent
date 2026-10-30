@@ -10864,9 +10864,13 @@ const CareerRouter = (() => {
     // with no alert framing and no new-posting trigger, so "text me when new analyst roles open up" still creates.
     const ownApplications = /\bmy\s+(?:[\w'-]+\s+){0,4}?(?:applications?|apps)\b|\bapplication status\b|\bstatus of (?:my|the) (?:[\w'-]+\s+){0,3}?applications?\b|\bmy (?:job )?tracker\b|\bwhere (?:i|things) stand\b/.test(t);
     if (ownApplications && !/\b(alerts?|watch(?:es|ing)?|notify|opens? up|goes up|comes up|gets? posted|is posted|new (?:jobs?|roles?|openings?|positions?|postings?|internships?))\b/.test(t)) return null;
-    const tellQuestionOnly = /\btell me (what|how|whether|if|why|which|who|whose)\b/.test(t)
+    // ADVERSARIAL ROUND 2 (2026-10-30): "tell me about the Acme role" / "tell me more about that job" is a question about
+    // a posting, never an alert ask: it saved a job watch on the person's account ("Watch set: Acme") they never asked for.
+    // A future trigger ("tell me about new analyst roles when they open") still creates.
+    const tellQuestionOnly = /\btell me (what|how|whether|if|why|which|who|whose|about|more)\b/.test(t)
       && !/\b(text|message|ping|notify|send|dm)\s+me\b/.test(t)
-      && !/\btell me when\b/.test(t);
+      && !/\btell me when\b/.test(t)
+      && (!/\btell me (about|more)\b/.test(t) || !/\b(opens? up|goes up|comes up|gets? posted|is posted|when|whenever|as soon as|the moment|the minute|new)\b/.test(t));
     const JOB_NOUN_RE = /\b(jobs?|roles?|openings?|positions?|postings?|internships?)\b/;
     const jobAfterDelivery = deliveryM ? JOB_NOUN_RE.test(t.slice(deliveryM.index + deliveryM[0].length)) : false;
     const futureTrigger = /\b(opens? up|goes up|comes up|gets? posted|is posted|when|whenever|as soon as|the moment|the minute)\b/.test(t);

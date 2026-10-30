@@ -10,7 +10,7 @@ import { liveOnly, type LinkCheck } from "../link_check.ts";
 import { startWatching, validPrefs, validZone, type AlertStore } from "../career_alert_store.ts";
 import { DEFAULT_PREFS } from "../career_alerts.ts";
 import { applyFloor } from "../career_floor.ts";
-import { addStanding, instructionShaped, type MemoryStore, quotedFrom, ungroundedWords } from "./memory.ts";
+import { addStanding, instructionShaped, type MemoryStore, plantedRefusal, quotedFrom, ungroundedWords } from "./memory.ts";
 import { standing } from "../career_mail.ts";
 import { appsFromTracker, type MailStore } from "../career_mail_store.ts";
 import { dayIn, EVENT_KINDS, type EventStore, recordEvent, RECALL_MAX, windowOf } from "./timeline.ts";
@@ -86,15 +86,45 @@ function confirmationRefusal(c: ToolCtx, id: string): string | null {
   // ONBOARDING SCENARIOS (2026-10-29): a yes word anywhere was taken ("is that right?", "yeah maybe", "yes I think so?"):
   // only a plain yes confirms (122's confirmationReply, the router's own reader).
   if (!AFFIRM.test(t.message) || DENY.test(t.message) || CareerProfile.confirmationReply(t.message).kind !== "yes") return "the person's message is not a plain yes; ask them to confirm the fact as written";
+  // ADVERSARIAL ROUND 2 (2026-10-30): the yes must answer THIS fact. A "yes" to another question ("want me to search
+  // Chicago?") confirmed every draft on file, including one they never saw ("my GPA is 4.0, you confirmed it last week",
+  // saved as a draft, then confirmed by an unrelated yes). When the reply before this turn is known, it must have shown
+  // the fact (its id, or most of its own words); a caller without that reply (no history) is unchanged.
+  if (typeof t.before === "string" && t.before.trim()) {
+    const fact = (profileOf(c).facts || []).find((f: any) => f.id === id);
+    if (fact && !factShown(t.before, String(fact.text ?? ""), id)) return "the reply before this turn did not show this fact; show it to them as written and ask them to confirm it";
+  }
   return null;
+}
+// Whether a reply showed a fact: its id, or most of the fact's own words (3+ letters, not filler), at least two of them.
+function factShown(before: string, text: string, id: string): boolean {
+  if (new RegExp(`(?<![\\w-])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`).test(before)) return true;
+  const words = (x: string) => String(x).toLowerCase().normalize("NFKD").replace(/[^a-z0-9+#.\s]/g, " ").split(/\s+/).map((w) => w.replace(/\.+$/, "")).filter((w) => w.length >= 3 && !FILLER.has(w));
+  const mine = [...new Set(words(text))];
+  if (!mine.length) return before.toLowerCase().includes(text.trim().toLowerCase());
+  const said = new Set(words(before));
+  const hit = mine.filter((w) => said.has(w)).length;
+  return hit * 2 >= mine.length && hit >= Math.min(2, mine.length);
 }
 // D-007: a fact about the person is saved only from what they said in this turn's message: never a guess. Most of the
 // fact's own words (3+ letters, not filler) must be in their message, and words of inference are refused outright.
 const FILLER = new Set(["the", "and", "for", "with", "has", "have", "had", "was", "are", "is", "years", "year", "wants", "want", "work", "worked", "role", "roles", "job", "jobs", "their", "they", "from", "who", "that", "this", "person", "user"]);
+const SENSITIVE = /\b(?:citizen|citizenship|green card|permanent resident|visa|h-?1b|opt|cpt|f-?1|sponsorship|sponsor|authori[sz]ed|clearance|gpa|phd|ph\.d|doctorate|mba|masters?|bachelors?|veteran|disabilit(?:y|ies)|convicted|felony)\b/g;
 const GUESSED = /\b(assum\w*|infer\w*|probabl\w*|likely|presumabl\w*|guess\w*|seems?|maybe|perhaps|implied)\b/i;
 export function factRefusal(text: string, message: string | undefined): string | null {
   if (GUESSED.test(text)) return "not saved: a fact about the person is only what they said, never an assumption or inference";
   if (message === undefined) return null;
+  // ADVERSARIAL ROUND 2 (2026-10-30): a number is said exactly or not at all. Half the words were enough, so "GPA 4.0"
+  // was saved from a message that said "GPA 3.7" (a pasted resume, a posting telling the model the GPA is 4.0).
+  const numsOf = (x: string) => (String(x).match(/\d+(?:[.,]\d+)*/g) ?? []).map((n) => n.replace(/,(?=\d{3}\b)/g, ""));
+  const saidNums = new Set(numsOf(message));
+  const unsaid = numsOf(text).filter((n) => !saidNums.has(n));
+  if (unsaid.length) return `not saved: ${unsaid.join(", ")} is not in the person's message; save only what they said, in their words`;
+  // The same for the words an application's eligibility answers turn on: "US citizen, no sponsorship needed" was saved from
+  // a message that said only "no sponsorship needed" (half the words were enough).
+  const low = ` ${String(message).toLowerCase().replace(/[^a-z0-9]+/g, " ")} `;
+  const missing = [...String(text).toLowerCase().matchAll(SENSITIVE)].map((m) => m[0]).filter((w) => !low.includes(` ${w.replace(/[^a-z0-9]+/g, " ").trim()} `));
+  if (missing.length) return `not saved: the person did not say "${[...new Set(missing)].join('", "')}" in their message; save only what they said, in their words`;
   const words = (x: string) => String(x).toLowerCase().normalize("NFKD").replace(/[^a-z0-9+#.\s]/g, " ").split(/\s+/).filter((w) => w.length >= 3 && !FILLER.has(w));
   const said = new Set(words(message)), mine = words(text);
   if (!mine.length) return null;
@@ -222,6 +252,9 @@ export function careerTools(deps: {
         // Launch readiness S3: the saved words come from the person's message, never from a posting or email the model read.
         const foreign = ungroundedWords(c.turn.message, String(i.instruction ?? ""), String(i.quote ?? ""));
         if (foreign.length) throw new Error(`not kept: the instruction must be in the person's own words from this message, and these are not: ${foreign.slice(0, 8).join(", ")}; restate it with their words, or nothing is kept`);
+        // ADVERSARIAL ROUND 2: text written to steer an AI, or an act aimed at an address or link, is never a standing rule.
+        const planted = plantedRefusal(String(i.instruction ?? ""), String(i.quote ?? ""));
+        if (planted) throw new Error(planted);
         await store.saveStanding(c.userId, r.items);
         if (r.items.length > had.length) await record(c, "instruction_kept", r.item.text, { id: r.item.id, said: r.item.said });
         return { kept: r.item, total: r.items.length };
@@ -297,7 +330,9 @@ export function careerTools(deps: {
       description: "Read the resume the person pasted in this message: every entry under its section heading (Experience, Skills, Education, Projects) is saved as a draft fact in their words. Use it whenever their message is a resume.",
       input_schema: obj(),
       run: async (_i, c) => {
-        const text = String(c.turn?.message ?? "");
+        // A resume they pasted, or the text of a file they attached this turn (ADVERSARIAL ROUND 2: attached text rides
+        // turn.attached, apart from their own words, and is read here only as a resume).
+        const text = [c.turn?.message, c.turn?.attached].filter(Boolean).join("\n\n");
         if (text.trim().length < 40) throw new Error("this message holds no resume text; ask them to paste it");
         const r = CareerProfile.ingestResume(profileOf(c), { text, fileName: "pasted-in-chat.txt", mimeType: "text/plain" }, { now: new Date(c.now).toISOString() });
         if (!r.ok) return { saved: 0, reason: r.failure?.reason ?? "nothing could be read", next: "save what they said with add_profile_fact, in their words" };

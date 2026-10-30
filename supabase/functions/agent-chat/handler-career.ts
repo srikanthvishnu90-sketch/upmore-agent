@@ -26,7 +26,7 @@
 // "unrecorded" when the sink failed. A missing row is never a zero.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
-import { redactionNote } from "../_shared/identity_redact.ts";
+import { looksLikePendingSecret, redactionNote, redactPending, secretLeadIn } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
@@ -240,7 +240,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // Text, photos, or both (a photo alone is a message: spec 16 item 12).
     const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN, { codePending: codePending(situation) });
     if (!input.ok) return json(cors, { error: input.error }, 400);
-    const { message, userContent, imageBlocks } = input;
+    let { message, userContent } = input;
+    const { imageBlocks } = input;
     flowCtx.note = redactionNote(input.redacted);
     // Card or bank details in chat (battery 2026-10-30): removed above, never stored; the person is told where paying goes.
     if (flowCtx.note && input.redacted.some((r: string) => r === "card" || r === "account")) flowCtx.note = `${flowCtx.note} ${PAY_BY_CHECKOUT}`;
@@ -260,6 +261,20 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       throw error;
     }
     flowCtx.user = user.id; flowCtx.thread = tid;
+    // ADVERSARIAL ROUND 2 (2026-10-30): the second half of a split secret. When this thread's previous message ended on a
+    // password or code label ("my workday password is"), this message's lone value is that secret: removed before anything
+    // stores it or a model reads it, and the person is told (identity_redact.ts secretLeadIn / redactPending). Read only
+    // for a message shaped like a lone value, in a thread the person owns (ownerThread, above).
+    if (thread_id && !imageBlocks.length && (looksLikePendingSecret(message, "password") || looksLikePendingSecret(message, "code"))) {
+      const prev = await admin.from("agent_messages").select("content").eq("thread_id", tid).eq("role", "user").order("id", { ascending: false }).limit(1);
+      if (prev.error) console.error("split secret check: previous message unreadable:", prev.error.message);
+      const lead = secretLeadIn(String(prev.data?.[0]?.content ?? ""));
+      const red = lead ? redactPending(message, lead) : null;
+      if (red) {
+        message = red.text; userContent = red.text;
+        flowCtx.note = redactionNote([...new Set([...input.redacted, ...red.removed])]);
+      }
+    }
 
     // GO-LIVE FLIP (2026-10-13, owner ruling: "the career version is the
     // final switch" — the money version is gone from live). Career is the

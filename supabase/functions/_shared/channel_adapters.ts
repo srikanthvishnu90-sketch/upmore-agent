@@ -75,7 +75,7 @@ export type ParseResult = { messages: InboundMessage[]; statuses?: StatusEvent[]
 
 export type SendResult =
   | { ok: true; id: string | null; ids?: string[] }
-  | { ok: false; error: string; retryable: boolean; hold?: boolean; optOut?: boolean };
+  | { ok: false; error: string; retryable: boolean; hold?: boolean; optOut?: boolean; retryAfterMs?: number }; // retryAfterMs: the provider's own "wait this long" (Telegram's 429)
 export interface ChannelLimits {
   chars: number; // the platform's hard limit per message
   packChars: number; // what one message carries at most (longer text is split on purpose, lines kept together)

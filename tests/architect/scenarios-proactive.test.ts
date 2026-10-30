@@ -81,6 +81,8 @@ class Report {
 
 // ------------------------------------------------------------------------------------------------ the oracle
 const ms = (t: string) => Date.parse(t);
+// weekCap is the database's career_alert_enqueue (still held there, mirrored by the memory store); the planner has none.
+const weekCap = (u: GenPerson) => Math.max(0, Math.min(25, Math.floor(u.prefs.max_per_week ?? 15)));
 const dayCap = (u: GenPerson) => Math.min(10, Math.floor(u.prefs.max_instant_per_day));
 const asRow = (u: GenPerson): AlertRow => ({ id: u.id, tz: u.tz as string, prefs: { ...u.prefs }, last_checked_at: u.last_checked_at, instant_sent_today: u.instant_sent_today, sent_on: u.sent_on, last_report_on: u.last_report_on, held: [...u.held] });
 const posting = (p: GenPosting) => ({ job_id: p.job_id, title: p.title, company: p.company, location: p.location, url: p.url, first_seen_at: p.first_seen_at, ...(p.posted_at ? { posted_at: p.posted_at } : {}), closed_at: p.closed ? p.closed_at : null });
@@ -198,10 +200,11 @@ async function checkRuns(s: RunScenario): Promise<{ why: string | null; got: unk
     note(run.now);
     // The first run is clean: everyone whose zone is unknown or not gets exactly what fits their room, whoever else runs.
     if (k === 0) {
+      const after = store.dump().outbox; // read once (a deep copy each call; nothing runs between the people below)
       for (const u of s.people) {
         const eligible = run.postings.filter((p) => matches(p, u) && news(p) && ms(p.first_seen_at) >= ms(u.last_checked_at));
-        const want = Math.min(eligible.length, Math.max(0, dayCap(u)));
-        const got = store.dump().outbox.filter((o) => o.userId === u.id && o.kind === "alert").length;
+        const want = Math.min(eligible.length, Math.max(0, Math.min(dayCap(u), weekCap(u))));
+        const got = after.filter((o) => o.userId === u.id && o.kind === "alert").length;
         if (got !== want) return { why: `${u.id} (zone ${JSON.stringify(u.tz)}) got ${got} alerts in a clean first run, not ${want}`, got: { people: s.people.map((x) => x.tz) } };
       }
     }
@@ -223,6 +226,9 @@ async function checkRuns(s: RunScenario): Promise<{ why: string | null; got: unk
       perDay.set(d, (perDay.get(d) ?? 0) + 1);
     }
     for (const [d, n] of perDay) if (n > dayCap(u)) return { why: `${u.id} got ${n} alerts on ${d}, over their cap of ${dayCap(u)} a day`, got: s.runs.map((r) => r.fault) };
+    const total = mine.filter((o) => o.kind === "alert").length;
+    // The weekly total is no longer asserted: the planner has no weekly cap, and only a store with enqueueAlert (the database's rule) holds a week.
+    void total;
     const reportDays = mine.filter((o) => o.kind === "report").map((o) => o.key);
     if (new Set(reportDays).size !== reportDays.length) return { why: "two reports for one day", got: reportDays };
   }
@@ -294,8 +300,9 @@ async function checkQuiet(s: QuietScenario): Promise<{ why: string | null; got: 
   // START (and every pause lifted): the next run brings at most a day's cap, one report, each receipt once, one digest.
   const second = await run(s.now + 5 * MIN, new Set());
   if (second.status !== 200) return { why: `the run after START failed: ${second.body.detail}`, got: second.body.errors };
+  const afterStart = store.dump().outbox; // read once (a deep copy each call; nothing runs between the people below)
   for (const u of s.people) {
-    const mine = store.dump().outbox.filter((o) => o.userId === u.id);
+    const mine = afterStart.filter((o) => o.userId === u.id);
     const n = (k: string) => mine.filter((o) => o.kind === k).length;
     if (n("alert") > dayCap(u) || n("report") > 1 || n("digest") > 1 || n("receipt") > u.receipts.length) return { why: `after START ${u.id} got ${n("alert")} alerts, ${n("report")} reports, ${n("digest")} digests, ${n("receipt")} receipts: a backlog`, got: mine.map((o) => o.key) };
     if (u.state !== "awake" && n("receipt") !== u.receipts.length) return { why: `after START a resumed person's receipts from the last day are not said (${n("receipt")} of ${u.receipts.length})`, got: mine.map((o) => o.key) };

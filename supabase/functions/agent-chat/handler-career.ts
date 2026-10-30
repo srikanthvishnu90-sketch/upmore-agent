@@ -26,7 +26,7 @@
 // "unrecorded" when the sink failed. A missing row is never a zero.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
-import { redactionNote } from "../_shared/identity_redact.ts";
+import { looksLikePendingSecret, redactionNote, redactPending, secretLeadIn } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
@@ -52,7 +52,7 @@ import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWi
 import { STAGED_TOOL_POLICY, stagedRoute } from "./career_staged.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_ANSWER_INTENT, CARD_INTENT, cardTurn, cardWaiting, supabaseCardStore } from "../_shared/career_apply_cards.ts";
-import { billingTurn, stripeFromEnv, supabaseBillingStore } from "../_shared/career_billing.ts";
+import { billingTurn, PAY_BY_CHECKOUT, stripeFromEnv, supabaseBillingStore } from "../_shared/career_billing.ts";
 import { mockTurn, supabaseMockStore as supabaseMockStoreUncapped } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
@@ -109,6 +109,7 @@ import { applyHereTurn } from "../_shared/apply_here.ts"; // APPLY HERE: a paste
 import { supabaseFileStore } from "../trainee-file/store.ts";
 import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts"; // FILE KINDS
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
+import { vaultRefreshWrite } from "../_shared/oauth_vault_refresh.ts";
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -240,8 +241,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // Text, photos, or both (a photo alone is a message: spec 16 item 12).
     const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN, { codePending: codePending(situation) });
     if (!input.ok) return json(cors, { error: input.error }, 400);
-    const { message, userContent, imageBlocks } = input;
+    let { message, userContent } = input;
+    const { imageBlocks } = input;
     flowCtx.note = redactionNote(input.redacted);
+    // Card or bank details in chat (battery 2026-10-30): removed above, never stored; the person is told where paying goes.
+    if (flowCtx.note && input.redacted.some((r: string) => r === "card" || r === "account")) flowCtx.note = `${flowCtx.note} ${PAY_BY_CHECKOUT}`;
     // L4: thread_id must be a string when provided (non-string truthy values
     // would otherwise cause a DB error → noisy 500).
     if (thread_id !== undefined && thread_id !== null && typeof thread_id !== "string")
@@ -258,6 +262,20 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       throw error;
     }
     flowCtx.user = user.id; flowCtx.thread = tid;
+    // ADVERSARIAL ROUND 2 (2026-10-30): the second half of a split secret. When this thread's previous message ended on a
+    // password or code label ("my workday password is"), this message's lone value is that secret: removed before anything
+    // stores it or a model reads it, and the person is told (identity_redact.ts secretLeadIn / redactPending). Read only
+    // for a message shaped like a lone value, in a thread the person owns (ownerThread, above).
+    if (thread_id && !imageBlocks.length && (looksLikePendingSecret(message, "password") || looksLikePendingSecret(message, "code"))) {
+      const prev = await admin.from("agent_messages").select("content").eq("thread_id", tid).eq("role", "user").order("id", { ascending: false }).limit(1);
+      if (prev.error) console.error("split secret check: previous message unreadable:", prev.error.message);
+      const lead = secretLeadIn(String(prev.data?.[0]?.content ?? ""));
+      const red = lead ? redactPending(message, lead) : null;
+      if (red) {
+        message = red.text; userContent = red.text;
+        flowCtx.note = redactionNote([...new Set([...input.redacted, ...red.removed])]);
+      }
+    }
 
     // GO-LIVE FLIP (2026-10-13, owner ruling: "the career version is the
     // final switch" — the money version is gone from live). Career is the
@@ -494,10 +512,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (error) throw new Error("read the career grant's vault entry");
           return data ? String(data) : null;
         },
-        writeVault: async (name, secret) => {
-          const { error } = await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret });
-          if (error) throw new Error("save the refreshed career grant");
-        },
+        writeVault: (name, secret) => vaultRefreshWrite(admin, name, secret, "save the refreshed career grant"),
       }, CAREER_SEND_SCOPE);
       // The resume attached is WO-028's, tailored to the posting from confirmed facts, else the person's own file.
       const resumes = supabaseResumes(admin, { profile: () => ((ctx as any).profile ?? {}), tailor: { render: edgeRenderer(), resumes: supabaseResumeStore(admin) } });
@@ -930,7 +945,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
               judge: { on: f5JudgeOn, model: (payload) => callModel(f5Cfg, payload, { meter: f5Meter, role: "chat" }), cache: supabaseJudgeCache(admin),
                 n: Number(Deno.env.get("CAREER_JUDGE_N")) || undefined, standing: () => supabaseMemoryStore(admin).standing(user.id) } });
             if (found) {
-              out = { ...out, reply: f5Said?.append ? `${out.reply}\n\n${found.reply}` : found.reply, resultStatus: found.status, handler: "search_judge" };
+              // ONBOARDING ROUND 2: the router's line that nothing is sent before the resume is confirmed (an apply ask with
+              // no confirmed resume) stays with the search's own reply.
+              const prof = (ctx as any).profile, facts: any[] = Array.isArray(prof?.facts) && !prof?._fromStatedFacts ? prof.facts : [];
+              const confirmedResume = facts.some((f) => f && ["education", "experience", "project", "leadership", "skill"].includes(f.kind) && f.needs_confirmation !== true && (f.status == null || f.status === "confirmed"));
+              const askText = String(message ?? "").toLowerCase();
+              const applyAsk = !/\?\s*$/.test(askText) && /\bapply\s+(?:to|for|at|me|on|now)\b|\bapply\b[^.?!]{0,40}\b(?:jobs?|roles?|postings?|positions?|internships?|openings?)\b|\bsubmit (?:my|an?) applications?\b/.test(askText);
+              const resumeLine = f5Said?.append || confirmedResume || !applyAsk || /\bresume\b/i.test(found.reply) ? ""
+                : facts.some((f) => f && f.source === "resume-ingest" && f.needs_confirmation === true)
+                ? "\n\nAnd nothing is sent anywhere before your resume is confirmed: its entries are waiting for your word (reply \"yes, that's my resume\" if they're right)."
+                : "\n\nAnd nothing is sent anywhere before your resume is confirmed: paste or attach it, confirm it, then ask again.";
+              out = { ...out, reply: (f5Said?.append ? `${out.reply}\n\n${found.reply}` : found.reply) + resumeLine, resultStatus: found.status, handler: "search_judge" };
               (ctx as any).discovery = { ...((ctx as any).discovery ?? {}), lastShortlist: found.shortlist, lastSource: found.source };
             }
           } catch (e) { console.error("career search judge: the router's reply stands:", (e as Error)?.message ?? e); }
@@ -1062,7 +1087,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (longRest?.full && src && (Deno.env.get("TRAINEE_FILE_BASE_URL") || "").trim()) {
           const made = await createFileService({ store: supabaseFileKindStore(admin), env: Deno.env, now: Date.now }).create(user.id, "research_brief", {
             title: "More on your question", subject: "Your question", findings: chunkSentences(longRest.full, PAGE_CHUNK_CHARS, PAGE_MAX_CHUNKS).chunks.map((value, i) => ({ label: i ? `The rest of the answer (${i + 1})` : "The rest of the answer", value, source: "Reported, not verified" })), sources: [{ title: new URL(src).hostname, url: src }] }).catch(() => null);
-          if (made && made.ok && (made.url ?? made.webApp)) overflowLink = (made.url ?? made.webApp) as string;
+          // TELEGRAM SCENARIOS (2026-10-30): only the signed link. A Mini App URL (webApp) opens only from Telegram's own button;
+          // sent as a plain link it opened in the browser signed out, and the rest of the answer (not sent as a second message)
+          // was lost. Without the signed link the rest goes as the second message.
+          if (made && made.ok && made.url) overflowLink = made.url;
         }
         const sh = shapeForTurn({ overflowLink, on: replyWriterOn(Deno.env), channel: writerChannel((body as any)?.channel), reply: out.reply, attachments: turnAttachments, allowedLinks: turnLinks,
           writable: writable(out, agentMeta, { structured: !!(careerTask || careerBatch) }) });

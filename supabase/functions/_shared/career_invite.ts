@@ -23,7 +23,7 @@ export interface Invite {
   role: string | null;
   // said: the invite's own words for each date and time it states; date (YYYY-MM-DD), time (HH:MM, 24h) and zone (IANA)
   // only when exactly one is stated and nothing has to be guessed; starts_at only when all three are.
-  when: { said: string[]; date: string | null; time: string | null; zone: string | null; zone_said: string | null; starts_at: string | null };
+  when: { said: string[]; date: string | null; time: string | null; zone: string | null; zone_said: string | null; starts_at: string | null; zone_unplaced?: string | null };
   format: { kind: "video" | "phone" | "onsite" | "recorded video" | "superday"; said: string } | null;
   interviewers: Interviewer[];
 }
@@ -286,6 +286,16 @@ export function extractInvite(o: { text: string; subject?: string | null; from?:
   for (const m of body.matchAll(IANA)) if (validZone(m[1])) zones.set(m[1], m[1]);
   const zone = zones.size === 1 ? [...zones.keys()][0] : null;
   const zone_said = zone ? zones.get(zone)! : null;
+  // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): an abbreviation right after the time that names no one zone ("2 PM IST":
+  // India, Israel or Ireland; CET, AEST, SGT) is said back as the invite wrote it, never converted, and never told as "no
+  // time zone stated" (the brief said that while the invite named one).
+  let zone_unplaced: string | null = null;
+  if (!zones.size) {
+    for (const end of timeAt) {
+      const m = /^\s*\(?\s*([A-Z]{2,5})\b(?![:\-])/.exec(body.slice(end, end + 12));
+      if (m && !ABBREV[m[1]] && !/^(AM|PM|ID|OR|TO|ON|AT|IN|BY)$/.test(m[1])) { zone_unplaced = m[1]; break; }
+    }
+  }
   const starts_at = date && time && zone ? new Date(zonedInstant(date, time, zone)).toISOString() : null;
 
   let format: Invite["format"] = null;
@@ -293,7 +303,7 @@ export function extractInvite(o: { text: string; subject?: string | null; from?:
 
   return {
     company: company ? clip(company, 80) : null, role: role ? clip(role, 80) : null,
-    when: { said: [...new Set(said)].slice(0, 6), date, time, zone, zone_said, starts_at },
+    when: { said: [...new Set(said)].slice(0, 6), date, time, zone, zone_said, starts_at, ...(zone_unplaced ? { zone_unplaced } : {}) },
     format, interviewers: interviewersIn(body, company),
   };
 }
@@ -339,11 +349,23 @@ const fmtTime = (time: string) => {
   const [h, m] = time.split(":").map(Number);
   return `${h % 12 || 12}:${pad(m)} ${h < 12 ? "AM" : "PM"}`;
 };
-export function whenLine(inv: Invite): string {
+// The instant on the person's own clock: "Thursday, November 5 at 11:00 AM".
+export function onTheirClock(at: number, tz: string): string {
+  const p = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(at));
+  const g = (t: string) => p.find((x) => x.type === t)?.value ?? "";
+  return `${g("weekday")}, ${g("month")} ${Number(g("day"))} at ${fmtTime(`${Number(g("hour")) % 24}:${g("minute")}`)}`;
+}
+// PROACTIVE SCENARIOS ROUND 2 (2026-10-30): `tz`, the person's zone: a time the invite states with its zone is also said on
+// the person's own clock, the zone named. The brief said only the invite's "2:00 PM ET" to a person in Los Angeles or
+// Kolkata, and left the arithmetic (and the day it lands on) to them.
+export function whenLine(inv: Invite, tz?: string | null): string {
   const w = inv.when;
   if (w.date) {
-    const at = w.time ? ` at ${fmtTime(w.time)}${w.zone_said ? ` ${w.zone_said}` : ", no time zone stated"}` : ", no time stated";
-    return `When: ${fmtDay(w.date)}${at}.`;
+    const zoneWords = w.zone_said ? ` ${w.zone_said}` : w.zone_unplaced ? ` ${w.zone_unplaced} (a time zone that can mean more than one place; confirm it with the recruiter)` : ", no time zone stated";
+    const at = w.time ? ` at ${fmtTime(w.time)}${zoneWords}` : ", no time stated";
+    const start = w.starts_at ? Date.parse(w.starts_at) : NaN;
+    const mine = Number.isFinite(start) && tz && validZone(tz) ? ` On your clock: ${onTheirClock(start, tz)} your time (${tz}).` : "";
+    return `When: ${fmtDay(w.date)}${at}.${mine}`;
   }
   if (w.said.length) return `When: the invite says ${w.said.slice(0, 4).map((s) => `"${clip(s, 40)}"`).join(", ")}; I have not filled in or picked a date or time it does not state.`;
   return "When: the invite states no date or time. Confirm them with the recruiter.";
@@ -354,7 +376,7 @@ export function whoLine(inv: Invite): string {
 }
 
 export interface InviteBrief { texts: string[]; brief: Brief; record: string | null; asked: AskedQuestion[]; patterns_from: "company record" | "role bank" | "none" }
-export function inviteBrief(inv: Invite, o: { now: number; cir?: any | null; postings?: any[]; lib?: any[] }): InviteBrief {
+export function inviteBrief(inv: Invite, o: { now: number; cir?: any | null; postings?: any[]; lib?: any[]; tz?: string | null }): InviteBrief {
   const cir = o.cir !== undefined ? o.cir : recordFor(inv.company, o.lib);
   const b = roleBrief({ company: inv.company, role: inv.role, cir, postings: o.postings ?? [], lib: o.lib });
   const name = b.company, rec = b.record;
@@ -364,7 +386,7 @@ export function inviteBrief(inv: Invite, o: { now: number; cir?: any | null; pos
   const patterns_from = facts.length ? "company record" : b.families.length ? "role bank" : "none";
   // The record's steps are in the plan (point 6); this text carries what the record says they ask and look for.
   const first = (quote: number, nAsked: number) => {
-    const lines = [`Interview brief: ${name ?? "the invite does not name the company"}${inv.role ? `, ${inv.role}` : ""}.`, whenLine(inv)];
+    const lines = [`Interview brief: ${name ?? "the invite does not name the company"}${inv.role ? `, ${inv.role}` : ""}.`, whenLine(inv, o.tz)];
     lines.push(`Format: ${inv.format ? `${inv.format.kind} (the invite says "${inv.format.said}")` : "not stated in the invite"}.`);
     lines.push(whoLine(inv));
     const co = name ?? "this company";
@@ -397,7 +419,21 @@ export interface InterviewRow {
   when_said: string[]; date: string | null; time: string | null; zone: string | null; starts_at: string | null;
   format: string | null; interviewers: Interviewer[];
   mail_at: string | null; seen_at: string; brief_at: string | null; brief_ms: number | null;
+  // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): a later email moved this interview to another time, or cancelled it. Neither
+  // gets a thank-you or a nudge for this date.
+  moved_at?: string | null; cancelled_at?: string | null;
 }
+
+// PROACTIVE SCENARIOS ROUND 2 (2026-10-30): an email that says the interview is off. Read sentence by sentence: the
+// sentence names the interview and says it is cancelled, and is not a condition ("if you need to cancel") or a move.
+const CANCELLED = /\b(cancel(?:l)?ed|cancel(?:l)?ing|(?:have|need|had|must) to cancel|call(?:ed|ing) off|will no longer (?:take place|go ahead|be going ahead))\b/i;
+const CONDITION = /\b(if|should you|in case|unless|whether)\b/i;
+const ABOUT_INTERVIEW = /\b(interview\w*|phone screen|screen(?:ing)? call|onsite|on-site|superday|panel)\b/i;
+export function cancelsInterview(subject: string, body: string): boolean {
+  return `${subject ?? ""}.\n${body ?? ""}`.split(/(?<=[.!?])\s+|\n+/).some((s) => ABOUT_INTERVIEW.test(s) && CANCELLED.test(s) && !CONDITION.test(s) && !/\breschedul|\bnew (?:date|time)\b|\binstead\b/i.test(s));
+}
+// An email that moves an interview to another time.
+export const MOVES_INTERVIEW = /\b(reschedul\w*|(?:move|moved|moving|shift|shifted|push|pushed) (?:your |the |our )?(?:\w+ )?(?:interview|call|onsite|on-site|screen)|new (?:date|time)|(?:chang\w+) (?:to )?(?:the |your )?(?:date|time))\b/i;
 export function interviewRow(inv: Invite, o: { key: string; source: "mail" | "chat"; ref: string | null; mail_at: string | null; seen_at: number }): InterviewRow {
   return {
     key: o.key, source: o.source, ref: o.ref, company: inv.company, role: inv.role,
@@ -424,7 +460,7 @@ export function interviewDrafts(rows: InterviewRow[], apps: TrackedApp[], now: n
   const out: Draft[] = [];
   const done = new Set<string>();
   for (const r of [...rows].sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")))) {
-    if (!r.date) continue;
+    if (!r.date || r.moved_at || r.cancelled_at) continue;
     const ref = inviteRef(r);
     if (done.has(`${ref}:${r.date}`)) continue;
     done.add(`${ref}:${r.date}`);

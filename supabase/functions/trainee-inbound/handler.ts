@@ -20,7 +20,7 @@ export interface InboundDeps {
   store: () => InboundStore;
   send: (apiKey: string) => Send; // channel commands and the signup refusal go straight out: no account, no outbox row
   chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string }) => Promise<{ status: number; reply: string; threadId: string | null }>;
-  deliverReply: (a: { userId: string; key: string; apiKey: string; now: number }) => Promise<void>;
+  deliverReply: (a: { userId: string; key: string; apiKey: string; now: number }) => Promise<unknown>;
 }
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 

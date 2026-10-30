@@ -176,6 +176,13 @@ function fnDiscoverFields(includeHidden) {
     if (typeof el.className === "string" && /requiredInput/.test(el.className)) return;
     const visible = type === "file" ? true : (el.offsetParent !== null || el.getClientRects().length > 0);
     if (!visible && !includeHidden) return;
+    // A honeypot: a text box kept from people (aria-hidden, or out of the tab order) and placed off the page. A browser
+    // gives it a box, so it read as a field and took the person's website or phone (round 2 of the apply scenarios,
+    // 2026-10-30), which marks the application as a robot's. Never a field, never filled.
+    if (/^(text|email|tel|url|search|number|textarea)$/.test(type) && (el.closest("[aria-hidden='true']") || el.getAttribute("tabindex") === "-1")) {
+      const r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+      if (r && (r.right <= 0 || r.bottom <= 0)) return;
+    }
     // D9 (BUG-066): the card/group heading is carried for EVERY field,
     // not just radio/checkbox groups — a Lever custom card's text input
     // has no <label>, and its heading is the only human label there is.

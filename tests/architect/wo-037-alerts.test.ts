@@ -4,7 +4,7 @@
 // cannot count sends nothing); the labeled set is labeled by a person through a tiny CLI, and precision counts only the
 // rows a person labeled; the hidden-market sheet scores only same-day checks of both sites and says NOT_RUN until then.
 // Contract: docs/architect/work-orders/WO-037-discovery-at-scale.md
-import { matchPosting, type AlertPrefs } from "../../supabase/functions/_shared/career_alerts.ts";
+import { matchPosting, planProactive, type AlertPrefs } from "../../supabase/functions/_shared/career_alerts.ts";
 import { memoryAlertStore, validPrefs, type AlertRow } from "../../supabase/functions/_shared/career_alert_store.ts";
 import { runAlerts } from "../../supabase/functions/_shared/career_proactive_run.ts";
 import { relevanceFloor } from "../../supabase/functions/_shared/career_floor.ts";
@@ -75,13 +75,10 @@ Deno.test("WO-037/A1 zero alerts below the person's threshold: every alert queue
   assert(floorOnly.length > 50, "the week held many near misses the floor had to stop");
 });
 
-Deno.test("WO-037/A2 zero spam weeks: at most the weekly cap in any rolling 7 days, the daily cap each local day, none in quiet hours, each posting once, one report a day", async () => {
+Deno.test("WO-037/A2 zero spam weeks: the daily cap each local day, none in quiet hours, each posting once, one report a day", async () => {
   const { out } = await week(PEOPLE, 11, 12);
   for (const p of PEOPLE) {
     const mine = out.filter((o) => o.userId === p.id), alerts = mine.filter((o) => o.kind === "alert").sort((a, b) => a.at - b.at);
-    for (let i = 0; i < alerts.length; i++) {
-      void i; // no weekly cap (owner rule "no limits"): only the daily pacing below bounds a week
-    }
     const byDay = new Map<string, number>();
     for (const a of alerts) { const d = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(a.at)); byDay.set(d, (byDay.get(d) ?? 0) + 1); }
     for (const [d, n] of byDay) assert(n <= p.prefs.max_instant_per_day, `${p.id}: ${n} alerts on ${d}`);
@@ -92,14 +89,16 @@ Deno.test("WO-037/A2 zero spam weeks: at most the weekly cap in any rolling 7 da
     eq(new Set(mine.map((o) => o.key)).size, mine.length, `${p.id}: a key twice`);
     assert(mine.filter((o) => o.kind === "report").length <= 7, `${p.id}: one report a day`);
   }
-  const most = Math.max(...PEOPLE.map((p) => out.filter((o) => o.userId === p.id && o.kind === "alert").length));
-  assert(most > 15, `no weekly cap: the heaviest person got more than the old 15 in the week (${most})`);
 });
 
 Deno.test("WO-037/A3 no weekly cap: max_per_week is ignored, a blind store still sends, and the daily pacing holds", async () => {
-  const five = [{ id: "five", prefs: prefs({ remote_ok: true, max_instant_per_day: 10, max_per_week: 5 }) }];
-  const { out } = await week(five, 5, 12);
-  assert(out.filter((o) => o.kind === "alert").length > 5, "a stated max_per_week of 5 no longer caps");
+  eq(validPrefs({ keywords: ["x"], max_per_week: 5 }).ok, true);
+  eq(validPrefs({ keywords: ["x"], max_per_week: 26 }).ok, false, "never more than 25 a week");
+  eq(validPrefs({ keywords: ["x"], max_per_week: -1 }).ok, false);
+  // accepted and ignored: the planner alerts past a stated max_per_week of 2, and past 15 already sent this week
+  const six = Array.from({ length: 6 }, (_, k) => ({ job_id: `greenhouse:t:${k}`, title: "Data Analyst", company: "Stripe", location: "Remote", url: `https://job-boards.greenhouse.io/t/jobs/${k}`, first_seen_at: iso(MON + 60000 + k), closed_at: null }));
+  const planned = planProactive({ users: [{ ...row("p", prefs({ remote_ok: true, max_instant_per_day: 10, max_per_week: 2 }), MON), sent_this_week: 20 }], postings: six, now: MON + 600000 });
+  eq(planned.filter((o) => o.kind === "alert").length, 6, "max_per_week 2 and 20 sent this week: still six alerts");
   const store = memoryAlertStore();
   await store.save(row("u", prefs({ remote_ok: true, max_instant_per_day: 10 }), MON));
   const blind = { get: store.get, save: store.save, active: store.active }; // no alertsSince

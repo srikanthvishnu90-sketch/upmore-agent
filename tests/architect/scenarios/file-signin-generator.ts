@@ -1,7 +1,7 @@
 // Sign-in scenarios at scale for the hosted jobs page (owner, 2026-10-29): a deterministic, seeded generator of random
 // sequences of who does what to supabase/functions/trainee-file/handler.ts. Each scenario is a world (does the SMS provider
 // work) and 4-30 steps; each step is one actor's request, a change in the world (the clock, the account, Telegram, a payload,
-// a store that fails), or a few requests at once. The runner and the invariants are in tests/architect/scenarios-file-signin.test.ts.
+// a store that fails), or a few requests at once. The runner and the invariants are in tests/architect/scenarios-file-signin-battery.ts.
 //
 // Actors (the runner gives each its own browser, cookie jar and what it has seen):
 //   owner    - the account U's person: gets U's links from the bot, holds U's phone (reads its texts), types it many ways;

@@ -66,6 +66,12 @@ export function statusAsk(message: string): { company: string | null; latest?: t
 
 const date = (iso: string | null | undefined) =>
   iso && Number.isFinite(Date.parse(iso)) ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : null;
+// What a stop that needs the person is, in their words (the queue keeps a code).
+export const NEEDS_YOU_WORDS: Record<string, string> = {
+  captcha: "a verification check on the employer's page, which Trainee never solves; finish it yourself at the link",
+  bot_check: "a verification check on the employer's page, which Trainee never solves; finish it yourself at the link",
+  login_required: "the employer's site asks you to sign in to an account first; Trainee never signs in for you",
+};
 export function statusLine(a: AppRow): string {
   const who = a.company || "An employer", name = `${who}${a.title ? ` (${a.title})` : ""}`, on = date(a.updated_at), conf = a.confirmation_id;
   switch (a.state) {
@@ -76,7 +82,10 @@ export function statusLine(a: AppRow): string {
     case "unknown_outcome":
       return `${name}: I can't tell whether it reached ${who}. It will not be sent again.`;
     case "needs_user":
-      return `${name}: stopped before it was sent; it needs you (${a.reason ?? "no reason recorded"}).`;
+      // Round 2 of the apply scenarios (2026-10-30): an emailed code is asked AFTER the application went (the receipt says
+      // so); "stopped before it was sent" was untrue for it, and the reason was the queue's own code ("email_code").
+      if (a.reason === "email_code") return `${name}: sent, but not finished: ${who} emailed you a code to finish it. Type it on their page yourself; it will not be sent again.`;
+      return `${name}: stopped before it was sent; it needs you (${NEEDS_YOU_WORDS[String(a.reason)] ?? a.reason ?? "no reason recorded"}).`;
     case "failed":
     case "not_submitted":
       return `${name}: not sent (${a.reason ?? "no reason recorded"}).`;

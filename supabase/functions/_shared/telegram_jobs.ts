@@ -31,6 +31,7 @@ import { tapCard, type TapStore } from "./channel_card_tap.ts";
 import { cardDigest } from "./channel_card_tap.ts";
 import { type Button } from "./channel_adapters.ts";
 import { neverOpen } from "./career_people_sites.ts";
+import { safeCut, safeSlice } from "./channel_text.ts";
 
 export const TG_CAPTION_MAX = 1024;
 export const PAGE_SIZE = 5;
@@ -110,19 +111,34 @@ export const sourceOf = (jobId: string, provider?: string | null) => {
 // employer's only when its name is the employer's name (careers.acme.com for Acme): a list of every applicant-tracking and
 // job-board host can never be complete (tests/architect/scenarios-file-apply.test.ts: acme.bamboohr.com showed BambooHR's logo
 // as Acme's; LinkedIn's short-link host and Indeed's UK host showed theirs).
+// TELEGRAM SCENARIOS (2026-10-30): a host counts only when its name IS the employer's name, whole words of it from the start
+// ("meta" for Meta Platforms, "capitalone" for Capital One), or that name with a careers word around it ("acmecareers",
+// "joinacme"). A host that merely starts with or contains the name is another company's: metaview.ai and metabase.com are not
+// Meta, datadoghq.com is not Data Corp, globalstaffing.com is not Global Payments, unitedhealthgroup.com is not United Airlines,
+// stripes.com is not Stripe (each showed that company's logo as the employer's).
 const SECOND_LEVEL = /^(co|com|ac|org|net|gov|edu|ne|or)$/;
 const registrableLabel = (h: string) => { const l = h.split("."); return l.length >= 3 && SECOND_LEVEL.test(l[l.length - 2]) && l[l.length - 1].length === 2 ? l[l.length - 3] : l[l.length - 2] ?? ""; };
 const companySlug = (c: string) => String(c ?? "").toLowerCase().replace(/&/g, "and").replace(/\b(inc|llc|ltd|corp|corporation|co|company|gmbh|the)\b\.?/g, "").replace(/[^a-z0-9]/g, "");
+const CAREER_WORD = /^(?:careers?|jobs?|hiring|talent|team|work|join|apply|people|corp|inc|co|hq|group|labs?|global|usa|us)?$/;
 export function hostIsEmployers(h: string, company: string): boolean {
   const label = registrableLabel(h).replace(/[^a-z0-9]/g, ""), slug = companySlug(company);
   if (!label || !slug) return false;
-  if (label === slug) return true;
-  const first = String(company ?? "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)[0] ?? "";
-  return (Math.min(label.length, slug.length) >= 4 && (label.includes(slug) || slug.includes(label))) || (first.length >= 4 && label.startsWith(first));
+  const words = String(company ?? "").toLowerCase().replace(/&/g, " and ").split(/[^a-z0-9]+/).filter(Boolean);
+  const names = new Set<string>([slug]);
+  for (let i = 1; i <= words.length; i++) { const n = words.slice(0, i).join(""); if (n.length >= 4 || i === words.length) names.add(n); }
+  for (const n of names) {
+    if (!n) continue;
+    if (label === n) return true;
+    if (label.startsWith(n) && CAREER_WORD.test(label.slice(n.length))) return true;
+    if (label.endsWith(n) && CAREER_WORD.test(label.slice(0, label.length - n.length))) return true;
+  }
+  return false;
 }
 export function logoDomain(job: Pick<JobView, "company_domain" | "url" | "company">, env: { get(k: string): string | undefined }): string | null {
   const given = String(job.company_domain ?? "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
-  if (/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(given)) return given;
+  // A stated domain that is an applicant-tracking host, a job board or a never-opened site is not the employer's (it showed
+  // LinkedIn's, Lever's or Greenhouse's logo as the employer's).
+  if (/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(given) && !AGGREGATOR.test(given) && !neverOpen(given)) return given;
   const h = host(job.url);
   if (h && !AGGREGATOR.test(h) && !neverOpen(h)) {
     const bare = h.replace(/^(www|careers|jobs|job|apply|boards|hiring)\./, "");
@@ -149,11 +165,14 @@ const dayOf = (iso: string) => { const t = Date.parse(iso); if (Number.isNaN(t))
 export function agoOf(iso: string | null, now: number): string | null {
   const t = iso ? Date.parse(iso) : NaN;
   if (Number.isNaN(t)) return null;
+  // TELEGRAM SCENARIOS: a date after now (a posting stamped ahead, another time zone) is its day, never "0 min ago".
+  if (t > now + 60000) return dayOf(iso!);
   const mins = Math.max(0, Math.floor((now - t) / 60000));
   const rel = mins < 60 ? `${mins} min ago` : mins < 1440 ? `${Math.floor(mins / 60)} h ago` : `${Math.floor(mins / 1440)} d ago`;
   return `${rel} (${dayOf(iso!)})`;
 }
-const clean = (s: unknown, n: number) => String(s ?? "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim().slice(0, n);
+// Cut on a whole character (TELEGRAM SCENARIOS: a 160-character title cut inside an emoji made the card invalid UTF-8, refused).
+const clean = (s: unknown, n: number) => safeSlice(String(s ?? "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim(), n);
 
 // The posting as the tools found it, joined with the stored posting row for what the search result does not carry.
 export function jobViewOf(hit: any, row: PostingRow | null | undefined): JobView {
@@ -188,7 +207,8 @@ export function captionOf(job: JobView, now: number): string {
     ...(job.gaps.length ? ["Gaps:", ...job.gaps.slice(0, 2).map((r) => `• ${r}`)] : []),
   ];
   const text = lines.join("\n").replace(/\n{3,}/g, "\n\n");
-  return text.length <= TG_CAPTION_MAX ? text : `${text.slice(0, TG_CAPTION_MAX - 1)}…`;
+  // Cut on a whole character: half an emoji is not valid UTF-8, and Telegram refuses the whole card (photo and text both).
+  return text.length <= TG_CAPTION_MAX ? text : `${safeSlice(text, TG_CAPTION_MAX - 1)}…`;
 }
 
 // The requirements section of the posting's own text when it has one; otherwise the start of the text, said so.
@@ -210,7 +230,7 @@ export function detailsOf(job: JobView, row: PostingRow | null | undefined, now:
   while (rest.length > DETAILS_MAX) {
     let cut = rest.lastIndexOf("\n", DETAILS_MAX);
     if (cut < DETAILS_MAX / 2) cut = rest.lastIndexOf(" ", DETAILS_MAX);
-    if (cut < 1) cut = DETAILS_MAX;
+    if (cut < 1) cut = safeCut(rest, DETAILS_MAX);
     out.push(rest.slice(0, cut).trim());
     rest = rest.slice(cut).trim();
   }
@@ -240,7 +260,7 @@ export async function sendJobPage(o: { userId: string; jobs: JobView[]; page: nu
     let shownAs: "photo" | "text" = "text";
     if (logo) { const r = await send.photo({ photoUrl: logo, caption, buttons }).catch(() => ({ ok: false })); if (r.ok) { shownAs = "photo"; photo++; } }
     if (shownAs === "text") {
-      const r = await send.text({ text: `${caption}${job.url ? `\n\n${job.url}` : ""}`.slice(0, 4000), buttons });
+      const r = await send.text({ text: safeSlice(`${caption}${job.url ? `\n\n${job.url}` : ""}`, 4000), buttons });
       if (r.ok) text++;
       else continue; // not delivered: no card is remembered for a button nobody can tap
     }
@@ -411,10 +431,10 @@ function pageLines(lines: string[], max = 3800): string[] {
   let buf = "";
   for (const raw of lines) {
     for (let line = raw; ; ) {
-      const piece = line.slice(0, max);
+      const piece = line.slice(0, safeCut(line, max));
       if (buf && buf.length + 1 + piece.length > max) { out.push(buf); buf = ""; }
       buf = buf ? `${buf}\n${piece}` : piece;
-      line = line.slice(max);
+      line = line.slice(piece.length);
       if (!line) break;
     }
   }
@@ -444,6 +464,10 @@ export async function screenedOut(userId: string, job: JobView, deps: JobDeps): 
 }
 // The same screen as a pure verdict over a posting row already read (the list page screens every row it offers with one read).
 export function postingVerdict(job: JobView, row: PostingRow, facts: any[], factsWired: boolean, now: number): string | null {
+  // TELEGRAM SCENARIOS (2026-10-30): a posting whose own deadline has passed is expired: never queued, never approvable (its card
+  // said "Apply by: <day>", and Confirm approved it days after).
+  const deadline = Date.parse(String(row.deadline ?? job.deadline ?? ""));
+  if (!Number.isNaN(deadline) && deadline < now) return `its deadline to apply (${dayOf(new Date(deadline).toISOString())}) has passed`;
   const content = contentOf(row);
   const r = screenPicks([{ job_id: job.job_id, url: job.url, company: job.company, title: job.title, location: job.location, content }], { apps: [], facts, now });
   if (r.ok.length) return null;

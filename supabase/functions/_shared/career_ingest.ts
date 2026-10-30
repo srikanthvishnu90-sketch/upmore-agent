@@ -17,12 +17,16 @@ import { FEEDS, isMoreProvider, MORE_PROVIDERS } from "./career_ingest_feeds.ts"
 // Feature 6: the posting URL-shape guard (packages/domain/166-career-url-shape.js, MUSE-F-010), copied byte for byte
 // (tests/edge/career-ingest-scale.test.ts fails while the copy is stale). It sets globalThis.CareerUrlShape.
 import "./career_url_shape.js";
+import { chunksOf, idChunks, jsonArrayElements, readBody, transientStorageError, type ArrayScan } from "./career_ingest_stream.ts";
 
 // etag / last_modified: what the board's last full read answered (career_board_state, WO-037), sent back as a conditional
 // request; absent on the cursor path.
 // body_sha (Feature 6): the SHA-256 of the body the board's last full read answered; a board whose body is the same again
 // is not parsed or normalized (read as "not modified"), the way a 304 is. Only with boardFetchFeed's bodyHash option.
-export interface Board { company: string; provider: string; board: string; etag?: string | null; last_modified?: string | null; body_sha?: string | null }
+// offset / pass_started_at (2026-10-30): a board too large to read inside one run's posting budget is read in parts over
+// several runs; `offset` is where this part starts (the board's job list, counted in job objects), `pass_started_at` when
+// the pass that part belongs to began (its first part). Absent: a read from the start.
+export interface Board { company: string; provider: string; board: string; etag?: string | null; last_modified?: string | null; body_sha?: string | null; offset?: number | null; pass_started_at?: string | null }
 export interface FeedPosting {
   job_id: string; company: string; title: string; location?: string; url: string; description?: string;
   ats_id?: string; department?: string; posted_at?: string | null; remote?: string; role_family?: string; seniority_band?: string;
@@ -32,10 +36,19 @@ export interface FeedPosting {
 // A feed returns its postings; `complete: false` says the board has more than was read (closes nothing). WO-037:
 // `not_modified` says the board answered 304 to a conditional request (nothing changed since the last read); etag and
 // last_modified are the validators a full read answered with, kept for the next conditional request.
-export interface FeedRead { postings: FeedPosting[]; complete: boolean; not_modified?: boolean; etag?: string | null; last_modified?: string | null; body_sha?: string | null }
+// `batches` (2026-10-30, boardFetchFeed's `stream` option): the postings arrive a batch at a time while the body is read
+// and normalized lazily (each batch says how many of the board's job objects it covers), so a run never holds a whole
+// board; `postings` is then empty. The reader starts at Board.offset.
+export interface FeedBatch { postings: FeedPosting[]; consumed: number }
+export interface FeedRead { postings: FeedPosting[]; complete: boolean; not_modified?: boolean; etag?: string | null; last_modified?: string | null; body_sha?: string | null; batches?: AsyncIterable<FeedBatch> }
 export type FetchFeed = (b: Board) => Promise<FeedPosting[] | FeedRead>;
 // What happened to one board in a run (WO-037: the sharded scheduler records it in career_board_state).
-export interface BoardOutcome { status: "ok" | "partial" | "not_modified" | "failed"; error?: string; etag?: string | null; last_modified?: string | null; body_sha?: string | null }
+// next_offset (2026-10-30): the read stopped at the run's posting budget with more of the board left; the next read
+// resumes there (pass_started_at: when this pass began). null/absent: the pass is over.
+export interface BoardOutcome { status: "ok" | "partial" | "not_modified" | "failed"; error?: string; etag?: string | null; last_modified?: string | null; body_sha?: string | null; next_offset?: number | null; pass_started_at?: string | null }
+// A stored posting without its description (2026-10-30): the description's SHA-256 stands in for it, so a run compares
+// a board's postings with what is stored without reading 20 KB of text per posting back.
+export type KnownPosting = Omit<Posting, "description"> & { description_sha: string };
 export interface Posting extends FeedPosting {
   provider: string; board: string; first_seen_at: string; last_seen_at: string; closed_at: string | null;
 }
@@ -47,6 +60,10 @@ export interface PostingsDb {
   openForBoard(b: Board): Promise<{ job_id: string }[]>; newSince(isoTime: string): Promise<Posting[]>; // open, first_seen_at > t, newest first
   search(words: string[], limit: number): Promise<Posting[]>; // open postings matching every word, newest first
   getCursor(): Promise<number>; setCursor(n: number): Promise<void>;
+  // 2026-10-30: the stored postings among ids, without descriptions (the store that has it; else getMany is used).
+  known?(ids: string[]): Promise<KnownPosting[]>;
+  // 2026-10-30: a board's open postings last seen before `beforeIso` (the close at the end of a pass read in parts).
+  staleForBoard?(b: Board, beforeIso: string): Promise<string[]>;
 }
 export interface IngestStats {
   boards_ok: number; boards_failed: number; boards_partial: number; new: number; seen: number; reopened: number; closed: number;
@@ -56,6 +73,7 @@ export interface IngestStats {
   url_rejected?: number; url_rejected_shapes?: Record<string, number>; url_unknown?: number;
   postings_read?: number; // Feature 6: postings parsed this run (the CPU proxy postingBudget counts)
   stopped_by?: "deadline" | "posting_budget"; // why boards were left for the next run, when any were
+  boards_continued?: number; // 2026-10-30: boards stopped inside at the posting budget, their next part due next run
   failures: { board: string; provider: string; error: string }[];
   large_closes: { board: string; provider: string; closed: number; was_open: number }[]; // a board that lost half or more at once
 }
@@ -72,6 +90,8 @@ const CONTENT = ["company", "title", "location", "url", "description", "departme
 // Postgres hands timestamps back in its own format ("+00:00"), so a time compares as a time.
 const sameValue = (k: string, x: any, y: any) => k === "posted_at" ? (x ? Date.parse(x) : null) === (y ? Date.parse(y) : null) : (x ?? (TEXT_DEFAULTS.has(k) ? "" : null)) === (y ?? (TEXT_DEFAULTS.has(k) ? "" : null));
 const same = (a: any, b: any) => CONTENT.every((k) => sameValue(k, a[k], b[k]));
+// The same test against a stored row without its description (2026-10-30): the description compares by its SHA-256.
+const sameKnown = (a: KnownPosting, b: FeedPosting, descriptionSha: string) => a.description_sha === descriptionSha && CONTENT.every((k) => k === "description" || sameValue(k, (a as any)[k], (b as any)[k]));
 
 // `deadline` (epoch ms): boards not started by then wait for the next run; the cursor moves only past boards attempted.
 // `clock`: what the deadline is checked against (default Date.now). The caller passes the clock it built the deadline
@@ -80,7 +100,18 @@ const same = (a: any, b: any) => CONTENT.every((k) => sameValue(k, a[k], b[k]));
 // run uses hours, so tens of thousands of unchanged postings are not rewritten every few minutes.
 // `useCursor: false` (WO-037, the sharded scheduler): read `boards` in the order given, from the first, and leave the
 // cursor alone; `onBoard` hears each attempted board's outcome.
-export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; db: PostingsDb; now: number; maxBoards?: number; concurrency?: number; deadline?: number; clock?: () => number; touchAfterMs?: number; useCursor?: boolean; onBoard?: (b: Board, r: BoardOutcome) => void; postingBudget?: number }): Promise<IngestStats & { attempted: number }> {
+// `onBoard` may return a promise; the run waits for it (the handler records board state in small groups as it goes).
+// 2026-10-30, bounded per board: a board's postings are handled a batch (INGEST_BATCH) at a time: the stored rows
+// compared without descriptions (db.known), at most a batch written or touched per call, and only the ids kept for the
+// close. With `postingBudget`, a board whose read reaches the budget stops there (partial, closes nothing) and its next read
+// resumes where it stopped (BoardOutcome.next_offset); the part that ends a pass read over several runs closes what the
+// pass did not see (staleForBoard). A transient storage error (a statement timeout, a request that never arrived) fails
+// that board, recorded with its reason, and the run goes on; any other storage error fails the run.
+export const INGEST_BATCH = 100;
+// How far before its stopping point a board's next part starts (postings already handled are only compared again).
+export const RESUME_OVERLAP = 20;
+class StorageFailure extends Error { constructor(readonly original: unknown) { super(original instanceof Error ? original.message : String(original)); } }
+export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; db: PostingsDb; now: number; maxBoards?: number; concurrency?: number; deadline?: number; clock?: () => number; touchAfterMs?: number; useCursor?: boolean; onBoard?: (b: Board, r: BoardOutcome) => unknown; postingBudget?: number }): Promise<IngestStats & { attempted: number }> {
   const now = new Date(o.now).toISOString(), n = o.boards.length, clock = o.clock || Date.now;
   const st = { boards_ok: 0, boards_failed: 0, boards_partial: 0, new: 0, seen: 0, reopened: 0, closed: 0, failures: [], large_closes: [], attempted: 0 } as IngestStats & { attempted: number };
   if (!n) return st;
@@ -88,62 +119,153 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
   const useCursor = o.useCursor !== false;
   const start = useCursor ? ((await o.db.getCursor()) % n + n) % n : 0;
   const pick = Array.from({ length: take }, (_, i) => o.boards[(start + i) % n]);
+  const touchAfterMs = o.touchAfterMs ?? 0;
+  const store = async <T>(f: () => Promise<T>): Promise<T> => { try { return await f(); } catch (e) { throw new StorageFailure(e); } };
+  const budgetLeft = () => (o.postingBudget ? o.postingBudget - (st.postings_read ?? 0) : Infinity);
+  const fail = async (b: Board, error: string) => {
+    st.boards_failed++;
+    st.failures.push({ board: b.board, provider: b.provider, error });
+    await o.onBoard?.(b, { status: "failed", error });
+  };
+  // A storage failure: transient -> that board fails (its reason recorded); anything else fails the run.
+  const storageFailed = (e: unknown) => {
+    if (!(e instanceof StorageFailure)) throw e;
+    if (!transientStorageError(e.original)) throw e.original;
+    return `storage: ${e.message}`.slice(0, 300);
+  };
 
-  async function one(b: Board) {
-    let list: FeedPosting[], complete = true, validators: { etag?: string | null; last_modified?: string | null; body_sha?: string | null } = {};
+  async function one(b0: Board) {
+    const offset = Math.max(0, Math.floor(Number(b0.offset) || 0));
+    // A part after the first is read in full: no validators (a 304 or an unchanged body would end the pass unread).
+    const b = offset > 0 ? { ...b0, etag: null, last_modified: null, body_sha: null } : b0;
+    let r: FeedRead, plain = false; // plain: the feed answered a bare list (no validators)
     try {
-      const r = await o.fetchFeed(b);
-      if (Array.isArray(r)) list = r;
-      else {
-        list = r.postings; complete = r.complete; validators = { etag: r.etag ?? null, last_modified: r.last_modified ?? null, ...(r.body_sha !== undefined ? { body_sha: r.body_sha } : {}) };
-        // Nothing changed since the last full read: nothing to write, nothing to close.
-        if (r.not_modified) { st.boards_ok++; st.boards_not_modified = (st.boards_not_modified ?? 0) + 1; o.onBoard?.(b, { status: "not_modified", ...validators }); return; }
+      const got = await o.fetchFeed(b);
+      plain = Array.isArray(got);
+      r = Array.isArray(got) ? { postings: got, complete: true } : got;
+    } catch (e) {
+      await fail(b0, e instanceof Error ? e.message : String(e));
+      return;
+    }
+    const validators = { etag: r.etag ?? null, last_modified: r.last_modified ?? null, ...(r.body_sha !== undefined ? { body_sha: r.body_sha } : {}) };
+    // Nothing changed since the last full read: nothing to write, nothing to close.
+    if (r.not_modified) { st.boards_ok++; st.boards_not_modified = (st.boards_not_modified ?? 0) + 1; await o.onBoard?.(b0, { status: "not_modified", ...validators }); return; }
+
+    const seen = new Set<string>();
+    async function handle(list: FeedPosting[]) {
+      const fresh = new Map<string, FeedPosting>();
+      for (const p of list) {
+        if (!p || !p.job_id || seen.has(p.job_id)) continue;
+        // Feature 6: a link that is never a posting never enters the table (and one stored before is closed below, since a
+        // complete read no longer carries it). "unknown" is kept and counted: the guard never promotes or drops a guess.
+        const v = urlShape(p.url);
+        if (v.verdict === "not_posting") {
+          st.url_rejected = (st.url_rejected ?? 0) + 1;
+          const shapes = (st.url_rejected_shapes ??= {});
+          shapes[v.shape] = (shapes[v.shape] ?? 0) + 1;
+          continue;
+        }
+        if (v.verdict === "unknown") st.url_unknown = (st.url_unknown ?? 0) + 1;
+        seen.add(p.job_id);
+        fresh.set(p.job_id, p);
+      }
+      if (!fresh.size) return;
+      const writes: Posting[] = [], touched: string[] = [], needWhole: FeedPosting[] = [];
+      const due = (old: { last_seen_at: string }) => o.now - Date.parse(old.last_seen_at) >= touchAfterMs;
+      if (o.db.known) {
+        const known = new Map((await store(() => o.db.known!([...fresh.keys()]))).map((p) => [p.job_id, p]));
+        for (const p of fresh.values()) {
+          const old = known.get(p.job_id);
+          if (!old) { st.new++; writes.push({ ...p, provider: b.provider, board: b.board, first_seen_at: now, last_seen_at: now, closed_at: null }); continue; }
+          if (old.closed_at) st.reopened++; else st.seen++;
+          if (!old.closed_at && sameKnown(old, p, await sha256Hex(p.description ?? ""))) { if (due(old)) touched.push(p.job_id); continue; }
+          // A posting the feed gave no description keeps the stored one (as a whole row would): read back for these only.
+          if (p.description === undefined) { needWhole.push(p); continue; }
+          const { description_sha: _sha, ...rest } = old;
+          writes.push({ ...rest, ...p, provider: b.provider, board: b.board, first_seen_at: old.first_seen_at, last_seen_at: now, closed_at: null } as Posting);
+        }
+        if (needWhole.length) {
+          const whole = new Map((await store(() => o.db.getMany(needWhole.map((p) => p.job_id)))).map((p) => [p.job_id, p]));
+          for (const p of needWhole) { const old = whole.get(p.job_id)!; writes.push({ ...old, ...p, provider: b.provider, board: b.board, first_seen_at: old.first_seen_at, last_seen_at: now, closed_at: null }); }
+        }
+      } else {
+        const known = new Map((await store(() => o.db.getMany([...fresh.keys()]))).map((p) => [p.job_id, p]));
+        for (const p of fresh.values()) {
+          const old = known.get(p.job_id);
+          if (!old) { st.new++; writes.push({ ...p, provider: b.provider, board: b.board, first_seen_at: now, last_seen_at: now, closed_at: null }); continue; }
+          if (old.closed_at) st.reopened++; else st.seen++;
+          if (!old.closed_at && same(old, p)) { if (due(old)) touched.push(p.job_id); continue; }
+          writes.push({ ...old, ...p, provider: b.provider, board: b.board, first_seen_at: old.first_seen_at, last_seen_at: now, closed_at: null });
+        }
+      }
+      if (writes.length) await store(() => o.db.putMany(writes));
+      if (touched.length) await store(() => o.db.touch(touched, now));
+    }
+
+    let consumed = 0, more = false, readError: unknown = null;
+    try {
+      if (r.batches) {
+        const it = r.batches[Symbol.asyncIterator]();
+        try {
+          for (;;) {
+            // The run's posting budget is reached: this board stops here (at least one batch read) and resumes next run.
+            if (consumed > 0 && budgetLeft() <= 0) { more = true; break; }
+            let nx: IteratorResult<FeedBatch>;
+            try { nx = await it.next(); } catch (e) { readError = e; break; }
+            if (nx.done) break;
+            consumed += nx.value.consumed;
+            st.postings_read = (st.postings_read ?? 0) + nx.value.consumed;
+            await handle(nx.value.postings);
+          }
+        } finally {
+          if (more || readError !== null || consumed === 0) { try { await it.return?.(undefined); } catch { /* the stream is closed either way */ } }
+        }
+      } else {
+        st.postings_read = (st.postings_read ?? 0) + r.postings.length;
+        for (let i = 0; i < r.postings.length; i += INGEST_BATCH) await handle(r.postings.slice(i, i + INGEST_BATCH));
       }
     } catch (e) {
-      const error = e instanceof Error ? e.message : String(e);
-      st.boards_failed++;
-      st.failures.push({ board: b.board, provider: b.provider, error });
-      o.onBoard?.(b, { status: "failed", error });
+      await fail(b0, storageFailed(e));
+      return;
+    }
+    if (readError !== null && consumed === 0) { await fail(b0, readError instanceof Error ? readError.message : String(readError)); return; }
+    const passStarted = offset > 0 ? (b0.pass_started_at ?? now) : now;
+    if (more || readError !== null) {
+      // Stopped inside the board: the next part starts a little before this one stopped (a board that moved its list a few
+      // places is still covered); nothing is closed until the pass ends.
+      st.boards_ok++;
+      st.boards_partial++;
+      if (more) st.boards_continued = (st.boards_continued ?? 0) + 1;
+      const nextOffset = offset +Math.max(1, consumed > 2 * RESUME_OVERLAP ? consumed - RESUME_OVERLAP : consumed);
+      await o.onBoard?.(b0, { status: "partial", ...validators, body_sha: null, next_offset: nextOffset, pass_started_at: passStarted });
+      return;
+    }
+    const complete = r.complete;
+    try {
+      if (complete && offset === 0) {
+        const open = await store(() => o.db.openForBoard(b));
+        const gone = open.map((p) => p.job_id).filter((id) => !seen.has(id));
+        if (gone.length) {
+          await store(() => o.db.close(gone, now));
+          st.closed += gone.length;
+          if (gone.length >= 20 && gone.length * 2 >= open.length) st.large_closes.push({ board: b.board, provider: b.provider, closed: gone.length, was_open: open.length });
+        }
+      } else if (complete && o.db.staleForBoard) {
+        // The last part of a pass read over several runs: what no part saw is gone. A posting an earlier part saw was written
+        // or touched then, or had been touched less than touchAfterMs before (so after pass start - touchAfterMs).
+        const before = new Date(Date.parse(passStarted) - touchAfterMs).toISOString();
+        const gone = (await store(() => o.db.staleForBoard!(b, before))).filter((id) => !seen.has(id));
+        if (gone.length) { await store(() => o.db.close(gone, now)); st.closed += gone.length; }
+      }
+    } catch (e) {
+      await fail(b0, storageFailed(e));
       return;
     }
     st.boards_ok++;
-    st.postings_read = (st.postings_read ?? 0) + list.length;
     if (!complete) st.boards_partial++;
-    o.onBoard?.(b, { status: complete ? "ok" : "partial", ...validators });
-    const fresh = new Map<string, FeedPosting>();
-    for (const p of list) {
-      if (!p || !p.job_id || fresh.has(p.job_id)) continue;
-      // Feature 6: a link that is never a posting never enters the table (and one stored before is closed below, since a
-      // complete read no longer carries it). "unknown" is kept and counted: the guard never promotes or drops a guess.
-      const v = urlShape(p.url);
-      if (v.verdict === "not_posting") {
-        st.url_rejected = (st.url_rejected ?? 0) + 1;
-        const shapes = (st.url_rejected_shapes ??= {});
-        shapes[v.shape] = (shapes[v.shape] ?? 0) + 1;
-        continue;
-      }
-      if (v.verdict === "unknown") st.url_unknown = (st.url_unknown ?? 0) + 1;
-      fresh.set(p.job_id, p);
-    }
-    const known = new Map((await o.db.getMany([...fresh.keys()])).map((p) => [p.job_id, p]));
-    const writes: Posting[] = [], touched: string[] = [];
-    for (const p of fresh.values()) {
-      const old = known.get(p.job_id);
-      if (!old) { st.new++; writes.push({ ...p, provider: b.provider, board: b.board, first_seen_at: now, last_seen_at: now, closed_at: null }); continue; }
-      if (old.closed_at) st.reopened++; else st.seen++;
-      if (!old.closed_at && same(old, p)) { if (o.now - Date.parse(old.last_seen_at) >= (o.touchAfterMs ?? 0)) touched.push(p.job_id); continue; }
-      writes.push({ ...old, ...p, provider: b.provider, board: b.board, first_seen_at: old.first_seen_at, last_seen_at: now, closed_at: null });
-    }
-    if (writes.length) await o.db.putMany(writes);
-    if (touched.length) await o.db.touch(touched, now);
-    if (!complete) return; // a partial read proves nothing about what it did not reach
-    const open = await o.db.openForBoard(b);
-    const gone = open.map((p) => p.job_id).filter((id) => !fresh.has(id));
-    if (gone.length) {
-      await o.db.close(gone, now);
-      st.closed += gone.length;
-      if (gone.length >= 20 && gone.length * 2 >= open.length) st.large_closes.push({ board: b.board, provider: b.provider, closed: gone.length, was_open: open.length });
-    }
+    const outcome: BoardOutcome = plain ? { status: complete ? "ok" : "partial" } : { status: complete ? "ok" : "partial", ...validators };
+    if (offset > 0) Object.assign(outcome, { body_sha: null, next_offset: null, pass_started_at: null });
+    await o.onBoard?.(b0, outcome);
   }
 
   const width = Math.max(1, Math.min(o.concurrency ?? 1, pick.length));
@@ -203,6 +325,7 @@ export function memoryPostingsDb(): PostingsDb {
     async touch(ids, at) { for (const id of ids) { const p = rows.get(id); if (p) rows.set(id, { ...p, last_seen_at: at }); } },
     async close(ids, at) { for (const id of ids) { const p = rows.get(id); if (p) rows.set(id, { ...p, closed_at: at }); } },
     async openForBoard(b) { return open().filter((p) => p.provider === b.provider && p.board === b.board).map((p) => ({ job_id: p.job_id })); },
+    async staleForBoard(b, before) { const t = Date.parse(before); return open().filter((p) => p.provider === b.provider && p.board === b.board && Date.parse(p.last_seen_at) < t).map((p) => p.job_id); },
     async newSince(t) { return open().filter((p) => p.first_seen_at > t && freshWhenSeen(p)).sort(newest).map((p) => ({ ...p })); },
     async search(words, limit) {
       return open().filter((p) => matchesWords(p, words)).sort((a, b) => titleTier(a, words) - titleTier(b, words) || newest(a, b))
@@ -218,9 +341,13 @@ export function memoryPostingsDb(): PostingsDb {
 const COLUMNS = ["job_id", "provider", "board", "ats_id", "company", "title", "location", "url", "description", "department",
   "posted_at", "remote", "role_family", "seniority_band", "apply_email", "pay", "first_seen_at", "last_seen_at", "closed_at"] as const;
 const LIST_COLUMNS = COLUMNS.filter((c) => c !== "description").join(",");
-// Requests stay small: 100 ids keep an in() list well inside gateway URL limits; 100 rows of up to 20 KB of text keep a
-// write body around 2 MB at worst.
-const PAGE = 1000, ID_CHUNK = 100, WRITE_CHUNK = 100;
+// Requests and statements stay small (2026-10-30 production fix):
+//   an in() list is cut by its URL length (idChunks: at most URL_MAX characters, and ID_CHUNK ids): 100 Workday ids made
+//     ~20 KB URLs the gateway never sent ("read postings: TypeError: error sending request");
+//   a write is at most WRITE_ROWS rows and WRITE_BYTES of JSON per statement (each row rewrites the search index);
+//   a statement that times out is retried as two halves, down to one row, before the board fails (never the lane);
+//   the stored rows a run compares against come back without descriptions (career_postings_known, a POST: no URL limit).
+const PAGE = 1000, ID_CHUNK = 100, URL_MAX = 6000, WRITE_ROWS = 50, WRITE_BYTES = 1_000_000, KNOWN_CHUNK = 200;
 const row = (p: Posting) => Object.fromEntries(COLUMNS.map((c) => [c, (p as any)[c] ?? (TEXT_DEFAULTS.has(c) ? "" : null)]));
 const chunks = <T>(xs: T[], n: number) => Array.from({ length: Math.ceil(xs.length / n) }, (_, i) => xs.slice(i * n, i * n + n));
 function must<T>(r: { data: T | null; error: { message: string } | null }, what: string): T {
@@ -236,9 +363,38 @@ export interface IngestRunRow {
   postings_new: number; postings_seen: number; postings_reopened: number; postings_closed: number; url_rejected: number;
   lane_fresh: number | null; lane_total: number | null; directory_fresh: number | null; directory_total: number | null;
   failures: { provider: string; board: string; error: string }[]; report: string;
+  // 2026-10-30 (20261030030000_career_ingest_bounded.sql): 'started' is written when a run begins, so a run the platform
+  // stops (memory, CPU, wall clock) still shows in the log; 'failed' carries the error a run ended on.
+  status?: "started" | "done" | "failed"; error?: string | null;
 }
+// Rows grouped for writing: at most `rows` each and about `bytes` of JSON.
+export function writeBatches<T>(xs: T[], rows = WRITE_ROWS, bytes = WRITE_BYTES): T[][] {
+  const out: T[][] = [];
+  let cur: T[] = [], size = 0;
+  for (const x of xs) {
+    const n = JSON.stringify(x).length;
+    if (cur.length && (cur.length >= rows || size + n > bytes)) { out.push(cur); cur = []; size = 0; }
+    cur.push(x);
+    size += n;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+// One statement over `items`; on a transient failure (a statement timeout) the two halves are tried apart, down to one item.
+export async function halving<T>(items: T[], run: (part: T[]) => Promise<void>): Promise<void> {
+  try { await run(items); }
+  catch (e) {
+    if (items.length <= 1 || !transientStorageError(e)) throw e;
+    const mid = Math.ceil(items.length / 2);
+    await halving(items.slice(0, mid), run);
+    await halving(items.slice(mid), run);
+  }
+}
+const missingFunction = (m: string) => /could not find the function|PGRST202|no function |function .* does not exist/i.test(m);
 export const RUN_LOG_DAYS = 14;
-export function supabasePostingsDb(admin: any): PostingsDb & { recordRun(stats: IngestStats, at: string): Promise<void>; recordLaneRun(row: IngestRunRow): Promise<void> } {
+export function supabasePostingsDb(admin: any): PostingsDb & { recordRun(stats: IngestStats, at: string): Promise<void>; recordLaneRun(row: IngestRunRow): Promise<void>;
+  startLaneRun(row: Pick<IngestRunRow, "at" | "lane" | "lanes" | "window_min">): Promise<number | null>; finishLaneRun(id: number, row: IngestRunRow): Promise<void> } {
+  let knownRpc = true; // false once the database says career_postings_known is not there (the migration not yet applied)
   const T = "career_postings", S = "career_ingest_state";
   async function pages(build: (from: number, to: number) => any, what: string): Promise<any[]> {
     const out: any[] = [];
@@ -255,12 +411,40 @@ export function supabasePostingsDb(admin: any): PostingsDb & { recordRun(stats: 
     async put(p) { must(await admin.from(T).upsert([row(p)], { onConflict: "job_id" }), "write posting"); },
     async getMany(ids) {
       const out: Posting[] = [];
-      for (const c of chunks(ids, ID_CHUNK)) out.push(...(must<Posting[]>(await admin.from(T).select("*").in("job_id", c), "read postings") || []));
+      for (const c of idChunks(ids, { maxUrl: URL_MAX, maxIds: ID_CHUNK })) out.push(...(must<Posting[]>(await admin.from(T).select("*").in("job_id", c), "read postings") || []));
       return out;
     },
-    async putMany(ps) { for (const c of chunks(ps, WRITE_CHUNK)) must(await admin.from(T).upsert(c.map(row), { onConflict: "job_id" }), "write postings"); },
-    async touch(ids, at) { for (const c of chunks(ids, ID_CHUNK)) must(await admin.from(T).update({ last_seen_at: at }).in("job_id", c), "touch postings"); },
-    async close(ids, at) { for (const c of chunks(ids, ID_CHUNK)) must(await admin.from(T).update({ closed_at: at }).in("job_id", c), "close postings"); },
+    async known(ids) {
+      const out: KnownPosting[] = [];
+      for (const c of chunks(ids, KNOWN_CHUNK)) {
+        if (knownRpc) {
+          const r = await admin.rpc("career_postings_known", { p_ids: c });
+          if (!r.error) { out.push(...((r.data as KnownPosting[]) || [])); continue; }
+          if (!missingFunction(r.error.message)) throw new Error(`read postings: ${r.error.message}`);
+          knownRpc = false;
+        }
+        // Before the migration: the whole rows by URL-bounded lists, each description hashed and dropped at once.
+        for (const d of idChunks(c, { maxUrl: URL_MAX, maxIds: ID_CHUNK })) {
+          for (const p of must<Posting[]>(await admin.from(T).select("*").in("job_id", d), "read postings") || []) {
+            const { description, ...rest } = p;
+            out.push({ ...rest, description_sha: await sha256Hex(description ?? "") });
+          }
+        }
+      }
+      return out;
+    },
+    async putMany(ps) {
+      for (const c of writeBatches(ps.map(row))) await halving(c, async (part) => { must(await admin.from(T).upsert(part, { onConflict: "job_id" }), "write postings"); });
+    },
+    async touch(ids, at) {
+      for (const c of idChunks(ids, { maxUrl: URL_MAX, maxIds: ID_CHUNK })) await halving(c, async (part) => { must(await admin.from(T).update({ last_seen_at: at }).in("job_id", part), "touch postings"); });
+    },
+    async close(ids, at) {
+      for (const c of idChunks(ids, { maxUrl: URL_MAX, maxIds: ID_CHUNK })) await halving(c, async (part) => { must(await admin.from(T).update({ closed_at: at }).in("job_id", part), "close postings"); });
+    },
+    async staleForBoard(b, before) {
+      return (await pages((x, y) => admin.from(T).select("job_id").eq("provider", b.provider).eq("board", b.board).is("closed_at", null).lt("last_seen_at", before).order("job_id").range(x, y), "read stale board postings")).map((p) => p.job_id);
+    },
     async openForBoard(b) {
       return pages((x, y) => admin.from(T).select("job_id").eq("provider", b.provider).eq("board", b.board).is("closed_at", null).order("job_id").range(x, y), "read board postings");
     },
@@ -299,9 +483,25 @@ export function supabasePostingsDb(admin: any): PostingsDb & { recordRun(stats: 
     async setCursor(c) { must(await admin.from(S).upsert({ id: 1, cursor: c }, { onConflict: "id" }), "write ingest cursor"); },
     async recordRun(stats, at) { must(await admin.from(S).upsert({ id: 1, last_run_at: at, last_stats: stats }, { onConflict: "id" }), "write ingest stats"); },
     // Lane 0 also drops records older than RUN_LOG_DAYS (about 5,800 rows a day at 20 lanes every 5 minutes).
+    // A run's row is written when it starts ('started') and completed when it ends, so a run the platform stops shows.
+    // null: the log cannot hold a started row yet (the migration not applied): the run is recorded once, at its end.
+    async startLaneRun(r) {
+      const x = await admin.from("career_ingest_runs").insert({ ...r, ms: 0, boards_due: 0, boards_read: 0, boards_ok: 0, boards_failed: 0, status: "started",
+        report: `lane ${r.lane} of ${r.lanes}: started; no end recorded (the function was stopped: memory, CPU or time limit)` }).select("id").single();
+      return x.error ? null : Number(x.data?.id) || null;
+    },
+    async finishLaneRun(id, r) {
+      must(await admin.from("career_ingest_runs").update({ ...r, status: r.status ?? "done", failures: r.failures.slice(0, 50), report: r.report.slice(0, 2000) || "-", error: r.error ? r.error.slice(0, 1000) : null }).eq("id", id), "write ingest run");
+      if (r.lane === 0) must(await admin.from("career_ingest_runs").delete().lt("at", new Date(Date.parse(r.at) - RUN_LOG_DAYS * 86400000).toISOString()), "prune ingest runs");
+    },
     async recordLaneRun(r) {
       const R = "career_ingest_runs";
-      must(await admin.from(R).insert({ ...r, failures: r.failures.slice(0, 50), report: r.report.slice(0, 2000) }), "write ingest run");
+      const { status, error, ...base } = r;
+      const ext = status || error ? { status: status ?? "done", error: error ? error.slice(0, 1000) : null } : {};
+      const ins = await admin.from(R).insert({ ...base, ...ext, failures: r.failures.slice(0, 50), report: r.report.slice(0, 2000) || "-" });
+      // Before the migration the log has no status / error columns: the row is kept without them (the report says it).
+      if (ins.error && Object.keys(ext).length && /status|error|column/i.test(ins.error.message)) must(await admin.from(R).insert({ ...base, failures: r.failures.slice(0, 50), report: r.report.slice(0, 2000) || "-" }), "write ingest run");
+      else must(ins, "write ingest run");
       if (r.lane === 0) must(await admin.from(R).delete().lt("at", new Date(Date.parse(r.at) - RUN_LOG_DAYS * 86400000).toISOString()), "prune ingest runs");
     },
   };
@@ -400,7 +600,11 @@ export async function sha256Hex(text: string): Promise<string> {
   for (const x of d) h += x.toString(16).padStart(2, "0");
   return h;
 }
-export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?: string; timeoutMs?: number; bodyHash?: boolean } = {}): FetchFeed {
+// 2026-10-30: the bounded read's limits (see streamRead).
+export const WHOLE_MAX = 2_000_000, XML_MAX = 8_000_000, STREAM_TIMEOUT_MS = 45000;
+// Where each JSON provider's job array is: a key of the root object, or the root itself (null).
+const CORE_ARRAY: Record<string, string | null> = { greenhouse: "jobs", lever: null, ashby: "jobs" };
+export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?: string; timeoutMs?: number; bodyHash?: boolean; stream?: boolean; wholeMax?: number } = {}): FetchFeed {
   const headers: Record<string, string> = { accept: "application/json" };
   if (opts.userAgent) headers["user-agent"] = opts.userAgent;
   const timeoutMs = opts.timeoutMs ?? 15000;
@@ -465,7 +669,98 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
     raw = raw.filter((j) => j && typeof j === "object");
     return { json: { name: spec.company(first), jobs: raw.map((j) => spec.toGreenhouse(j, b.board)) }, raw, complete, validators };
   }
-  return async (b: Board) => {
+  // 2026-10-30, `stream` (the deployed function): a bounded read. A body up to WHOLE_MAX characters is read whole (hashed,
+  // parsed once) and normalized a batch at a time as the run asks for it; a longer one is never held: its job array is
+  // split element by element as it arrives (jsonArrayElements) and each batch normalized and handed on, the elements
+  // before Board.offset counted and passed over unparsed. The run stops asking at its posting budget and the stream is
+  // cancelled. An XML feed past XML_MAX fails the board with that reason. The paged readers (SmartRecruiters, Workday)
+  // hold at most 1,000 short list entries and are batched after their read.
+  async function streamRead(b: Board): Promise<FeedRead> {
+    const offset = Math.max(0, Math.floor(Number(b.offset) || 0));
+    const more = isMoreProvider(b.provider), spec = more ? FEEDS[b.provider as keyof typeof FEEDS] : null;
+    if (b.provider === "smartrecruiters" || (spec && spec.maxPages > 1)) {
+      const r = await legacy(b);
+      const read: FeedRead = Array.isArray(r) ? { postings: r, complete: true } : r;
+      if (read.not_modified) return read;
+      const all = read.postings;
+      return { ...read, postings: [], batches: (async function* () { for (let i = offset; i < all.length; i += INGEST_BATCH) { const s = all.slice(i, i + INGEST_BATCH); yield { postings: s, consumed: s.length }; } })() };
+    }
+    const core = more ? null : { feed: (CareerJobs.feeds as any)[b.provider], normalize: ({ greenhouse: CareerJobs.normalizeGreenhouse, lever: CareerJobs.normalizeLever, ashby: CareerJobs.normalizeAshby } as any)[b.provider] };
+    if (core && (!core.feed || !core.normalize)) throw new Error(`provider ${b.provider} is not supported`);
+    const rq = spec ? spec.request(b.board, 0) : { url: withPay(b.provider, core!.feed(b.board).url as string), method: "GET" as const, accept: "application/json", body: undefined };
+    const xml = !!spec && spec.arrayKey === undefined;
+    const h: Record<string, string> = { ...headers, accept: rq.accept };
+    if (b.etag) h["if-none-match"] = b.etag;
+    if (b.last_modified) h["if-modified-since"] = b.last_modified;
+    // One timer for the request and its body: timeoutMs to the first WHOLE_MAX characters, STREAM_TIMEOUT_MS for a body
+    // read as a stream (its batches are written while it arrives); cleared whichever way the read ends.
+    const ctl = new AbortController();
+    let timer = setTimeout(() => ctl.abort(new Error(`timed out after ${timeoutMs / 1000}s`)), timeoutMs);
+    const stop = () => clearTimeout(timer);
+    let streaming = false;
+    try {
+      let res: Response;
+      try { res = await fetchFn(rq.url, { method: rq.method, headers: h, signal: ctl.signal }); }
+      catch (e) { throw new Error(ctl.signal.aborted || (e instanceof Error && /timed? ?out|abort/i.test(`${e.name} ${e.message}`)) ? `timed out after ${timeoutMs / 1000}s` : e instanceof Error ? e.message : String(e)); }
+      const notModified = { postings: [], complete: false, not_modified: true as const, etag: b.etag ?? null, last_modified: b.last_modified ?? null, ...(opts.bodyHash ? { body_sha: b.body_sha ?? null } : {}) };
+      if (res.status === 304 && (b.etag || b.last_modified)) { try { await res.body?.cancel(); } catch { /* closed */ } return notModified; }
+      if (res.status < 200 || res.status >= 300) { try { await res.body?.cancel(); } catch { /* closed */ } throw new Error(`HTTP ${res.status}`); }
+      const etag = res.headers.get("etag"), lastModified = res.headers.get("last-modified");
+      let body;
+      try { body = await readBody(res, xml ? XML_MAX : opts.wholeMax ?? WHOLE_MAX); }
+      catch (e) { throw new Error(ctl.signal.aborted ? `timed out after ${timeoutMs / 1000}s` : e instanceof Error ? e.message : String(e)); }
+      // A board's own name, then each slice of its jobs -> postings (the provider's normalizer, as the whole read does).
+      const norm = (slice: any[], root: Record<string, unknown>, company: string | null): FeedPosting[] => {
+        if (spec) return toPostings(b, CareerJobs.normalizeGreenhouse({ name: company, jobs: slice.map((j) => spec.toGreenhouse(j, b.board)) }, b.board, b.company), slice);
+        const json = b.provider === "lever" ? slice : { ...root, jobs: slice };
+        return toPostings(b, core!.normalize(json, b.board, b.company), slice);
+      };
+      if (body.text !== null) {
+        stop();
+        const text = body.text;
+        const sha = opts.bodyHash ? await sha256Hex(text) : null;
+        if (sha && b.body_sha && b.body_sha === sha) return { ...notModified, etag: etag ?? b.etag ?? null, last_modified: lastModified ?? b.last_modified ?? null, body_sha: sha };
+        let data: any;
+        if (spec) { data = spec.parse(text); if (!spec.shape(data)) throw new Error(`not a ${b.provider} board (unexpected body)`); }
+        else { try { data = JSON.parse(text); } catch { throw new Error(`not a ${b.provider} board (unexpected body)`); } }
+        const raw = (spec ? spec.jobs(data) : rawJobs[b.provider](data)).filter((j: any) => j && typeof j === "object");
+        const company = spec ? spec.company(data) : null, root = spec || Array.isArray(data) ? {} : { name: data?.name };
+        return { postings: [], complete: true, etag, last_modified: lastModified, ...(opts.bodyHash ? { body_sha: sha } : {}),
+          batches: (async function* () { for (let i = offset; i < raw.length; i += INGEST_BATCH) { const s = raw.slice(i, i + INGEST_BATCH); yield { postings: norm(s, root, company), consumed: s.length }; } })() };
+      }
+      if (xml) { try { await body.rest?.[Symbol.asyncIterator]().return?.(undefined); } catch { /* closed */ } throw new Error(`body over ${XML_MAX / 1e6} MB: too large to read`); }
+      streaming = true;
+      clearTimeout(timer);
+      timer = setTimeout(() => ctl.abort(new Error("timed out")), STREAM_TIMEOUT_MS);
+      const key = spec ? spec.arrayKey! : CORE_ARRAY[b.provider];
+      const scan: ArrayScan = { found: false, done: false, root: {}, counted: 0 };
+      const provider = b.provider;
+      const batches = (async function* () {
+        let batch: any[] = [], tried = 0, company: string | null | undefined;
+        const out = () => {
+          if (spec && company === undefined) company = spec.company(key ? { ...scan.root, [key]: batch } : batch);
+          const r = { postings: norm(batch, scan.root, company ?? null), consumed: tried };
+          batch = []; tried = 0;
+          return r;
+        };
+        try {
+          for await (const text of jsonArrayElements(chunksOf(body), key, offset, scan)) {
+            tried++;
+            try { const j = JSON.parse(text); if (j && typeof j === "object") batch.push(j); } catch { /* not a job: counted, dropped */ }
+            if (tried >= INGEST_BATCH) yield out();
+          }
+          if (!scan.found) throw new Error(`not a ${provider} board (unexpected body)`);
+          if (tried) yield out();
+        } catch (e) {
+          throw new Error(ctl.signal.aborted ? `timed out reading the body after ${STREAM_TIMEOUT_MS / 1000}s` : e instanceof Error ? e.message : String(e));
+        } finally { stop(); }
+      })();
+      return { postings: [], complete: true, etag, last_modified: lastModified, ...(opts.bodyHash ? { body_sha: null } : {}), batches };
+    } finally {
+      if (!streaming) stop();
+    }
+  }
+  const legacy = async (b: Board): Promise<FeedPosting[] | FeedRead> => {
     if (isMoreProvider(b.provider)) {
       const r = await readMore(b, Date.now() + timeoutMs);
       if (r === null) return { postings: [], complete: false, not_modified: true, etag: b.etag ?? null, last_modified: b.last_modified ?? null, ...(opts.bodyHash ? { body_sha: b.body_sha ?? null } : {}) };
@@ -503,6 +798,7 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
     if (validators && (validators.etag || validators.last_modified)) return { postings, complete, ...validators };
     return complete ? postings : { postings, complete };
   };
+  return opts.stream ? streamRead : legacy;
 }
 // One read's normalized jobs -> the rows the table takes. Every row must fit the table's constraints
 // (20261019000000_career_postings.sql): one bad row would otherwise fail its board's write on every run. A posting

@@ -42,7 +42,12 @@ export function statusOf(o: { app: AppRow | null; wanted: boolean }): Status | n
       case "submitted_unconfirmed": return { word: "submitted", detail: `${who} hasn't confirmed it yet.` };
       case "queued": return { word: "queued", detail: "We haven't started it yet." };
       case "driving": return { word: "sending", detail: "Being sent now; not submitted yet." };
-      case "needs_user": return { word: "needs you", detail: a.reason ?? "It stopped and needs you." };
+      // An emailed code is asked after the application went; the other stops are before it (round 2, 2026-10-30: the
+      // detail was the queue's own code, "email_code" or "bot_check").
+      case "needs_user": return { word: "needs you", detail: a.reason === "email_code" ? `Sent, but not finished: ${who} emailed you a code to finish it. Type it on their page yourself.`
+        : a.reason === "captcha" || a.reason === "bot_check" ? `Stopped before it was sent: a verification check on ${who}'s page. Trainee never solves one; finish it yourself at the link.`
+        : a.reason === "login_required" ? `Stopped before it was sent: ${who}'s site asks you to sign in first. Trainee never signs in for you.`
+        : a.reason ?? "It stopped and needs you." };
       case "failed": return { word: "failed", detail: a.reason ?? "No reason was recorded." };
       case "not_submitted": return { word: "not submitted", detail: a.reason ?? "It was not sent." };
       case "unknown_outcome": return { word: "unknown", detail: `We can't tell whether it reached ${who}. It won't be sent again.` };

@@ -17,7 +17,7 @@ import { FEEDS, isMoreProvider, MORE_PROVIDERS } from "./career_ingest_feeds.ts"
 // Feature 6: the posting URL-shape guard (packages/domain/166-career-url-shape.js, MUSE-F-010), copied byte for byte
 // (tests/edge/career-ingest-scale.test.ts fails while the copy is stale). It sets globalThis.CareerUrlShape.
 import "./career_url_shape.js";
-import { chunksOf, idChunks, jsonArrayElements, readBody, transientStorageError, type ArrayScan } from "./career_ingest_stream.ts";
+import { chunksOf, cut, idChunks, jsonArrayElements, readBody, rowContentError, storable, transientStorageError, type ArrayScan } from "./career_ingest_stream.ts";
 
 // etag / last_modified: what the board's last full read answered (career_board_state, WO-037), sent back as a conditional
 // request; absent on the cursor path.
@@ -26,7 +26,9 @@ import { chunksOf, idChunks, jsonArrayElements, readBody, transientStorageError,
 // offset / pass_started_at (2026-10-30): a board too large to read inside one run's posting budget is read in parts over
 // several runs; `offset` is where this part starts (the board's job list, counted in job objects), `pass_started_at` when
 // the pass that part belongs to began (its first part). Absent: a read from the start.
-export interface Board { company: string; provider: string; board: string; etag?: string | null; last_modified?: string | null; body_sha?: string | null; offset?: number | null; pass_started_at?: string | null }
+// gone_reads (2026-10-30, ingest round 2): how many reads in a row before this one the board answered 404 / 410 (it no
+// longer exists at the ATS); at GONE_AFTER the board's open postings are closed (they are gone with it).
+export interface Board { company: string; provider: string; board: string; etag?: string | null; last_modified?: string | null; body_sha?: string | null; offset?: number | null; pass_started_at?: string | null; gone_reads?: number | null }
 export interface FeedPosting {
   job_id: string; company: string; title: string; location?: string; url: string; description?: string;
   ats_id?: string; department?: string; posted_at?: string | null; remote?: string; role_family?: string; seniority_band?: string;
@@ -45,7 +47,13 @@ export type FetchFeed = (b: Board) => Promise<FeedPosting[] | FeedRead>;
 // What happened to one board in a run (WO-037: the sharded scheduler records it in career_board_state).
 // next_offset (2026-10-30): the read stopped at the run's posting budget with more of the board left; the next read
 // resumes there (pass_started_at: when this pass began). null/absent: the pass is over.
-export interface BoardOutcome { status: "ok" | "partial" | "not_modified" | "failed"; error?: string; etag?: string | null; last_modified?: string | null; body_sha?: string | null; next_offset?: number | null; pass_started_at?: string | null }
+// gone_reads: a failed read that answered 404 / 410: how many in a row now (this one included); gone_closed: the open
+// postings closed because the board is gone (GONE_AFTER reached).
+export interface BoardOutcome { status: "ok" | "partial" | "not_modified" | "failed"; error?: string; etag?: string | null; last_modified?: string | null; body_sha?: string | null; next_offset?: number | null; pass_started_at?: string | null; gone_reads?: number; gone_closed?: number }
+// A board that answers 404 / 410 on this many reads in a row is gone: its open postings are closed (never left listed as
+// open for ever), and it is read again only on the failure backoff (career_shards.ts retryAfterMs), not every window.
+export const GONE_AFTER = 3;
+export const goneAnswer = (error: string) => /^HTTP (404|410)$/.test(error);
 // A stored posting without its description (2026-10-30): the description's SHA-256 stands in for it, so a run compares
 // a board's postings with what is stored without reading 20 KB of text per posting back.
 export type KnownPosting = Omit<Posting, "description"> & { description_sha: string };
@@ -74,6 +82,8 @@ export interface IngestStats {
   postings_read?: number; // Feature 6: postings parsed this run (the CPU proxy postingBudget counts)
   stopped_by?: "deadline" | "posting_budget"; // why boards were left for the next run, when any were
   boards_continued?: number; // 2026-10-30: boards stopped inside at the posting budget, their next part due next run
+  boards_gone?: number; // 2026-10-30 (round 2): boards found gone this run (GONE_AFTER reads of 404 / 410), their postings closed
+  boards_left_directory?: number; // boards no longer in the directory, their postings closed and their state forgotten (handler)
   failures: { board: string; provider: string; error: string }[];
   large_closes: { board: string; provider: string; closed: number; was_open: number }[]; // a board that lost half or more at once
 }
@@ -125,14 +135,36 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
   const fail = async (b: Board, error: string) => {
     st.boards_failed++;
     st.failures.push({ board: b.board, provider: b.provider, error });
+    // 2026-10-30 (round 2): a board that answers 404 / 410 read after read no longer exists. Production held boards at
+    // "HTTP 404" for days (fail_count 69) with their postings still listed open. At GONE_AFTER in a row they are closed.
+    if (goneAnswer(error)) {
+      const gone = Math.max(0, Math.floor(Number(b.gone_reads) || 0)) + 1;
+      let closed = 0;
+      if (gone >= GONE_AFTER) {
+        try {
+          const open = (await store(() => o.db.openForBoard(b))).map((p) => p.job_id);
+          if (open.length) { await store(() => o.db.close(open, now)); closed = open.length; st.closed += closed; }
+          st.boards_gone = (st.boards_gone ?? 0) + 1;
+        } catch (e) {
+          const why = storageFailed(e); // the close is tried again on the board's next read
+          st.failures[st.failures.length - 1].error = `${error}; closing its postings: ${why}`.slice(0, 300);
+        }
+      }
+      await o.onBoard?.(b, { status: "failed", error, gone_reads: gone, ...(gone >= GONE_AFTER ? { gone_closed: closed } : {}) });
+      return;
+    }
     await o.onBoard?.(b, { status: "failed", error });
   };
-  // A storage failure: transient -> that board fails (its reason recorded); anything else fails the run.
+  // A storage failure: transient, or a row the table refuses -> that board fails (its reason recorded); anything else
+  // fails the run.
   const storageFailed = (e: unknown) => {
     if (!(e instanceof StorageFailure)) throw e;
-    if (!transientStorageError(e.original)) throw e.original;
+    if (!transientStorageError(e.original) && !rowContentError(e.original)) throw e.original;
     return `storage: ${e.message}`.slice(0, 300);
   };
+  // 2026-10-30 (round 2): a posting rewritten by a run whose clock is behind the one that last saw it keeps the later
+  // time (last_seen_at never moves back, and never before first_seen_at: the table's check would refuse the write).
+  const later = (a: string, b: string | null | undefined) => (b && Date.parse(b) > Date.parse(a) ? b : a);
 
   async function one(b0: Board) {
     const offset = Math.max(0, Math.floor(Number(b0.offset) || 0));
@@ -182,11 +214,11 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
           // A posting the feed gave no description keeps the stored one (as a whole row would): read back for these only.
           if (p.description === undefined) { needWhole.push(p); continue; }
           const { description_sha: _sha, ...rest } = old;
-          writes.push({ ...rest, ...p, provider: b.provider, board: b.board, first_seen_at: old.first_seen_at, last_seen_at: now, closed_at: null } as Posting);
+          writes.push({ ...rest, ...p, provider: b.provider, board: b.board, first_seen_at: old.first_seen_at, last_seen_at: later(now, old.last_seen_at), closed_at: null } as Posting);
         }
         if (needWhole.length) {
           const whole = new Map((await store(() => o.db.getMany(needWhole.map((p) => p.job_id)))).map((p) => [p.job_id, p]));
-          for (const p of needWhole) { const old = whole.get(p.job_id)!; writes.push({ ...old, ...p, provider: b.provider, board: b.board, first_seen_at: old.first_seen_at, last_seen_at: now, closed_at: null }); }
+          for (const p of needWhole) { const old = whole.get(p.job_id)!; writes.push({ ...old, ...p, provider: b.provider, board: b.board, first_seen_at: old.first_seen_at, last_seen_at: later(now, old.last_seen_at), closed_at: null }); }
         }
       } else {
         const known = new Map((await store(() => o.db.getMany([...fresh.keys()]))).map((p) => [p.job_id, p]));
@@ -195,7 +227,7 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
           if (!old) { st.new++; writes.push({ ...p, provider: b.provider, board: b.board, first_seen_at: now, last_seen_at: now, closed_at: null }); continue; }
           if (old.closed_at) st.reopened++; else st.seen++;
           if (!old.closed_at && same(old, p)) { if (due(old)) touched.push(p.job_id); continue; }
-          writes.push({ ...old, ...p, provider: b.provider, board: b.board, first_seen_at: old.first_seen_at, last_seen_at: now, closed_at: null });
+          writes.push({ ...old, ...p, provider: b.provider, board: b.board, first_seen_at: old.first_seen_at, last_seen_at: later(now, old.last_seen_at), closed_at: null });
         }
       }
       if (writes.length) await store(() => o.db.putMany(writes));
@@ -269,13 +301,20 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
   }
 
   const width = Math.max(1, Math.min(o.concurrency ?? 1, pick.length));
-  let next = 0;
-  await Promise.all(Array.from({ length: width }, async () => {
+  let next = 0, halted: { e: unknown } | null = null;
+  // 2026-10-30 (round 2): a run that fails (a storage error that is not one board's) stops every worker before it
+  // reports: no board starts after it, and nothing is still writing once the caller has handed back the unread boards.
+  await Promise.allSettled(Array.from({ length: width }, async () => {
     // Feature 6: postingBudget bounds a run's CPU (parsing and normalizing postings is most of it): once the run has parsed
     // that many, no further board starts; the rest stay due, oldest first, for the next run.
     const stop = () => (o.deadline && clock() >= o.deadline) ? "deadline" as const : (o.postingBudget && (st.postings_read ?? 0) >= o.postingBudget) ? "posting_budget" as const : null;
-    while (next < pick.length) { const why = stop(); if (why) { st.stopped_by = why; break; } st.attempted++; await one(pick[next++]); }
+    while (next < pick.length && !halted) {
+      const why = stop(); if (why) { st.stopped_by = why; break; }
+      st.attempted++;
+      try { await one(pick[next++]); } catch (e) { halted ??= { e }; }
+    }
   }));
+  if (halted) throw (halted as { e: unknown }).e;
   if (useCursor) await o.db.setCursor((start + st.attempted) % n);
   return st;
 }
@@ -521,7 +560,6 @@ export function decodeEntities(t: string): string {
   }
   return out.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
-const clip = (v: unknown, n: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 const RAW_ID: Record<string, (j: any) => string> = { greenhouse: (j) => j.id, lever: (j) => j.id, ashby: (j) => j.id, smartrecruiters: (j) => j.id,
   ...Object.fromEntries(MORE_PROVIDERS.map((p) => [p, FEEDS[p].id])) };
 // Every provider ingest reads: the 121 bundle's four and WO-044's seven.
@@ -529,6 +567,18 @@ export const INGEST_PROVIDERS = Object.keys(RAW_ID);
 const rawJobs: Record<string, (json: any) => any[]> = {
   greenhouse: (j) => (j && j.jobs) || [], lever: (j) => (Array.isArray(j) ? j : []), ashby: (j) => (j && j.jobs) || [], smartrecruiters: (j) => (j && j.content) || [],
 };
+// 2026-10-30 (round 2): the body a real board of each of the four answers with. Anything else (`{}`, `null`, an error
+// object, `{"jobs": null}`, a Lever object where its list belongs) is not the board's list: the read fails and closes
+// nothing. It used to read as an empty board and close every open posting the board had.
+const isObj = (j: any) => !!j && typeof j === "object" && !Array.isArray(j);
+const CORE_SHAPE: Record<string, (json: any) => boolean> = {
+  greenhouse: (j) => isObj(j) && Array.isArray(j.jobs), lever: (j) => Array.isArray(j), ashby: (j) => isObj(j) && Array.isArray(j.jobs),
+  smartrecruiters: (j) => isObj(j) && Array.isArray(j.content),
+};
+function coreShape(provider: string, json: any) {
+  if (!CORE_SHAPE[provider]?.(json)) throw new Error(`not a ${provider} board (unexpected body)`);
+}
+const NOT_MODIFIED = Symbol("not modified");
 
 // ------------------------------------------------------------------------------------------------ the pay a board states
 // WO-069: the pay a board's public API states in its own structured fields, as text written from the API's own numbers,
@@ -539,12 +589,16 @@ const rawJobs: Record<string, (json: any) => any[]> = {
 //   smartrecruiters  its postings list carries no structured pay: null
 export const PAY_MAX = 200; // the column's limit (20261022110000_career_postings_pay.sql)
 const oneLine = (v: unknown) => String(v ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
+// 2026-10-30 (round 2): the figure as the board states it: cents kept ($17.50 an hour was written "$18"), and a figure
+// the board gives no currency for is written without one (it was written as dollars: a currency the board never said).
 function money(v: unknown, currency: unknown): string | null {
   const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN;
-  if (!Number.isFinite(n) || Math.round(n) < 1) return null; // a 0 or a missing figure is no figure
-  const cur = oneLine(currency).toUpperCase() || "USD";
-  if (!/^[A-Z]{3}$/.test(cur)) return null;
-  return `${cur === "USD" ? "$" : `${cur} `}${Math.round(n).toLocaleString("en-US")}`;
+  if (!Number.isFinite(n) || n < 0.995) return null; // a 0 or a missing figure is no figure
+  const cur = oneLine(currency).toUpperCase();
+  if (cur && !/^[A-Z]{3}$/.test(cur)) return null;
+  const cents = Math.round(n * 100);
+  const text = cents % 100 === 0 ? (cents / 100).toLocaleString("en-US") : (cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${cur === "USD" ? "$" : cur ? `${cur} ` : ""}${text}`;
 }
 function span(lo: string | null, hi: string | null, loN: number, hiN: number): string | null {
   if (lo && hi) return hiN < loN ? null : lo === hi ? lo : `${lo}–${hi}`;
@@ -560,7 +614,7 @@ export function boardPay(provider: string, raw: any): string | null {
         const loN = Number(r?.min_cents) / 100, hiN = Number(r?.max_cents) / 100;
         const s = span(money(loN, r?.currency_type), money(hiN, r?.currency_type), loN, hiN);
         if (!s) continue;
-        const title = oneLine(r?.title).replace(/[\s:;,.-]+$/, "").slice(0, 80).trim();
+        const title = cut(oneLine(r?.title).replace(/[\s:;,.-]+$/, ""), 80).trim();
         const part = title ? `${s} (${title})` : s;
         if (parts.includes(part)) continue;
         if ([...parts, part].join("; ").length > PAY_MAX) break; // whole ranges only, never one cut in half
@@ -577,12 +631,12 @@ export function boardPay(provider: string, raw: any): string | null {
       const iv = oneLine(r.interval).toLowerCase();
       const unit = /^per-(year|month|week|day|hour)\b/.exec(iv)?.[1];
       const per = unit ? LEVER_PER[unit] : iv.replace(/-/g, " ");
-      return `${s}${per ? ` ${per}` : ""}`.slice(0, PAY_MAX);
+      return cut(`${s}${per ? ` ${per}` : ""}`, PAY_MAX);
     }
     if (provider === "ashby") {
       const c = raw?.compensation;
       const s = oneLine(c?.compensationTierSummary) || oneLine(c?.scrapeableCompensationSalarySummary);
-      return s ? s.slice(0, PAY_MAX).trim() : null;
+      return s ? cut(s, PAY_MAX).trim() : null;
     }
   } catch { /* a malformed pay field is no pay field */ }
   return null;
@@ -608,8 +662,9 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
   const headers: Record<string, string> = { accept: "application/json" };
   if (opts.userAgent) headers["user-agent"] = opts.userAgent;
   const timeoutMs = opts.timeoutMs ?? 15000;
-  // WO-037: `cond` sends the board's last validators (If-None-Match / If-Modified-Since); a 304 comes back as null.
-  async function getJson(url: string, deadline: number, cond?: Board, seen?: { etag?: string | null; last_modified?: string | null; body_sha?: string | null }) {
+  // WO-037: `cond` sends the board's last validators (If-None-Match / If-Modified-Since); a 304 comes back as NOT_MODIFIED
+  // (2026-10-30: it was null, so a board whose body was the JSON `null` read as "not modified").
+  async function getJson(prov: string, url: string, deadline: number, cond?: Board, seen?: { etag?: string | null; last_modified?: string | null; body_sha?: string | null }): Promise<any> {
     const left = deadline - Date.now();
     if (left <= 0) throw new Error(`timed out after ${timeoutMs / 1000}s`);
     const h: Record<string, string> = { ...headers };
@@ -619,19 +674,24 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
     try { res = await fetchFn(url, { headers: h, signal: AbortSignal.timeout(left) }); }
     catch (e) { throw new Error(e instanceof Error && /timed? ?out|abort/i.test(`${e.name} ${e.message}`) ? `timed out after ${timeoutMs / 1000}s` : e instanceof Error ? e.message : String(e)); }
     if (seen) { seen.etag = res.headers.get("etag"); seen.last_modified = res.headers.get("last-modified"); }
-    if (res.status === 304 && cond) { try { await res.body?.cancel(); } catch { /* already closed */ } return null; }
+    if (res.status === 304 && cond) { try { await res.body?.cancel(); } catch { /* already closed */ } return NOT_MODIFIED; }
     if (res.status < 200 || res.status >= 300) { try { await res.body?.cancel(); } catch { /* already closed */ } throw new Error(`HTTP ${res.status}`); }
-    if (!(opts.bodyHash && seen)) return await res.json();
     const text = await res.text();
-    seen.body_sha = await sha256Hex(text);
-    if (cond?.body_sha && cond.body_sha === seen.body_sha) return null; // the same body as the last full read
-    return JSON.parse(text);
+    if (opts.bodyHash && seen) {
+      seen.body_sha = await sha256Hex(text);
+      if (cond?.body_sha && cond.body_sha === seen.body_sha) return NOT_MODIFIED; // the same body as the last full read
+    }
+    let data: unknown;
+    try { data = JSON.parse(text); } catch { throw new Error(`not a ${prov} board (unexpected body)`); }
+    coreShape(prov, data);
+    return data;
   }
   // WO-044: a provider of career_ingest_feeds.ts. GET, or Workday's read-only search POST; paged where the provider
   // pages (past maxPages the read is partial and closes nothing); the conditional request applies to one-request GETs.
   async function readMore(b: Board, deadline: number) {
     const spec = FEEDS[b.provider as keyof typeof FEEDS];
     let raw: any[] = [], complete = true, first: unknown = null, total: number | null = null;
+    const ids = new Set<string>();
     let validators: { etag: string | null; last_modified: string | null; body_sha?: string | null } | null = null;
     for (let page = 0; page < spec.maxPages; page++) {
       const rq = spec.request(b.board, page);
@@ -662,8 +722,23 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
       if (!spec.shape(data)) throw new Error(`not a ${b.provider} board (unexpected body)`);
       const got = spec.jobs(data);
       if (page === 0) { first = data; total = spec.total(data, 0); }
-      raw.push(...got);
-      if (spec.maxPages === 1 || got.length < spec.pageSize || (total !== null && raw.length >= total)) break;
+      if (spec.maxPages === 1) { raw.push(...got); break; }
+      // 2026-10-30 (round 2): a paged board's ids are counted once. A page that repeats one an earlier page gave means the
+      // list moved between pages (or the board ignores the offset and answers page one again): the read is partial and
+      // closes nothing. Duplicates used to count toward the board's total, so the read looked complete and closed the rest.
+      // (An id listed twice on one page is the board's own duplicate: kept once.)
+      const before = new Set(ids);
+      let added = 0, repeated = 0;
+      for (const j of got) {
+        if (!j || typeof j !== "object") continue;
+        const id = spec.id(j);
+        if (id && before.has(id)) { repeated++; continue; }
+        if (id && ids.has(id)) continue;
+        if (id) ids.add(id);
+        raw.push(j); added++;
+      }
+      if (repeated) complete = false;
+      if (got.length < spec.pageSize || added === 0 || (total !== null && ids.size >= total)) break;
       if (page + 1 >= spec.maxPages) complete = false;
     }
     raw = raw.filter((j) => j && typeof j === "object");
@@ -722,7 +797,7 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
         if (sha && b.body_sha && b.body_sha === sha) return { ...notModified, etag: etag ?? b.etag ?? null, last_modified: lastModified ?? b.last_modified ?? null, body_sha: sha };
         let data: any;
         if (spec) { data = spec.parse(text); if (!spec.shape(data)) throw new Error(`not a ${b.provider} board (unexpected body)`); }
-        else { try { data = JSON.parse(text); } catch { throw new Error(`not a ${b.provider} board (unexpected body)`); } }
+        else { try { data = JSON.parse(text); } catch { throw new Error(`not a ${b.provider} board (unexpected body)`); } coreShape(b.provider, data); }
         const raw = (spec ? spec.jobs(data) : rawJobs[b.provider](data)).filter((j: any) => j && typeof j === "object");
         const company = spec ? spec.company(data) : null, root = spec || Array.isArray(data) ? {} : { name: data?.name };
         return { postings: [], complete: true, etag, last_modified: lastModified, ...(opts.bodyHash ? { body_sha: sha } : {}),
@@ -750,6 +825,9 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
             if (tried >= INGEST_BATCH) yield out();
           }
           if (!scan.found) throw new Error(`not a ${provider} board (unexpected body)`);
+          // 2026-10-30 (round 2): a body that ends inside its job list is not the whole list (it used to read as complete
+          // and close every posting past the cut).
+          if (!scan.done) throw new Error(`not a ${provider} board (the body ended inside its job list)`);
           if (tried) yield out();
         } catch (e) {
           throw new Error(ctl.signal.aborted ? `timed out reading the body after ${STREAM_TIMEOUT_MS / 1000}s` : e instanceof Error ? e.message : String(e));
@@ -776,20 +854,33 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
     const base = withPay(b.provider, feed(b.board).url as string);
     let raw: any[] = [], complete = true, json: any, validators: { etag: string | null; last_modified: string | null; body_sha?: string | null } | null = null;
     if (b.provider === "smartrecruiters") {
+      // 2026-10-30 (round 2): ids are counted once. A page that repeats one already read means the list moved (or the
+      // board pages in a loop): what was read is partial and closes nothing. Duplicates used to count toward totalFound,
+      // so the read looked complete and the postings never read were closed.
+      const ids = new Set<string>();
       for (let page = 0; ; page++) {
-        const j = await getJson(`${base}?limit=${SR_PAGE}&offset=${page * SR_PAGE}`, deadline);
-        const got = rawJobs.smartrecruiters(j);
-        raw.push(...got);
+        const j = await getJson("smartrecruiters", `${base}?limit=${SR_PAGE}&offset=${page * SR_PAGE}`, deadline);
+        const got = rawJobs.smartrecruiters(j).filter((x: any) => x && typeof x === "object");
+        const before = new Set(ids); // an id twice on one page is the board's own duplicate (kept once), not a moved list
+        let added = 0, repeated = 0;
+        for (const x of got) {
+          const id = String(RAW_ID.smartrecruiters(x) ?? "");
+          if (id && before.has(id)) { repeated++; continue; }
+          if (id && ids.has(id)) continue;
+          if (id) ids.add(id);
+          raw.push(x); added++;
+        }
         json = { ...j, content: raw };
+        if (repeated) complete = false;
         const total = Number(j && j.totalFound);
-        if (got.length < SR_PAGE || (Number.isFinite(total) && raw.length >= total)) break;
+        if (got.length < SR_PAGE || added === 0 || (Number.isFinite(total) && ids.size >= total)) break;
         if (page + 1 >= SR_MAX_PAGES) { complete = false; break; }
       }
     } else {
       // One request per board: the conditional request applies (SmartRecruiters pages, so it reads in full).
       const seen: { etag?: string | null; last_modified?: string | null; body_sha?: string | null } = {};
-      json = await getJson(base, deadline, b, seen);
-      if (json === null) return { postings: [], complete: false, not_modified: true, etag: b.etag ?? seen.etag ?? null, last_modified: b.last_modified ?? seen.last_modified ?? null, ...(opts.bodyHash ? { body_sha: seen.body_sha ?? b.body_sha ?? null } : {}) };
+      json = await getJson(b.provider, base, deadline, b, seen);
+      if (json === NOT_MODIFIED) return { postings: [], complete: false, not_modified: true, etag: b.etag ?? seen.etag ?? null, last_modified: b.last_modified ?? seen.last_modified ?? null, ...(opts.bodyHash ? { body_sha: seen.body_sha ?? b.body_sha ?? null } : {}) };
       raw = rawJobs[b.provider](json);
       validators = { etag: seen.etag ?? null, last_modified: seen.last_modified ?? null, ...(opts.bodyHash ? { body_sha: seen.body_sha ?? null } : {}) };
     }
@@ -806,16 +897,23 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
 function toPostings(b: Board, normalized: any[], raw: any[]): FeedPosting[] {
     const token = b.board.toLowerCase();
     const postings: FeedPosting[] = [];
+    // 2026-10-30 (round 2): every text the table takes is text Postgres stores (no NUL, no lone surrogate) and every
+    // length limit ends between characters, never inside an emoji: one such posting used to fail its board's write and,
+    // as a storage error that was not transient, the whole lane run, every tick. An id or a link with a control character
+    // or a space is not a usable id or link: the posting is left out.
+    const safeClip = (v: unknown, n: number) => cut(storable(v).replace(/\s+/g, " ").trim(), n).trim();
     normalized.forEach((p, i) => {
       const atsId = String(RAW_ID[b.provider](raw[i]) ?? "");
-      const title = clip(p.title, 500), url = String(p.url || "");
-      if (!atsId || !title || !/^https:\/\//.test(url) || url.length > 2000) return;
-      const description = decodeEntities(String(p.jd_text || "")).slice(0, MAX_DESCRIPTION);
+      const title = safeClip(p.title, 500), url = String(p.url || "");
+      if (!atsId || !title || !/^https:\/\//.test(url) || url.length > 2000 || /[\s\u0000-\u001f\u007f]/.test(url) || storable(url) !== url) return;
+      if (/[\u0000-\u001f\u007f]/.test(atsId) || storable(atsId) !== atsId || atsId.length > 1000) return;
+      const description = cut(decodeEntities(storable(p.jd_text || "")), MAX_DESCRIPTION);
+      const pay = boardPay(b.provider, raw[i]);
       postings.push({
-        job_id: `${b.provider}:${token}:${atsId}`, ats_id: atsId, company: clip(p.company || b.company, 300) || b.board, title,
-        location: clip(p.location, 1000), url, description,
-        department: clip(p.department, 300), posted_at: p.posted_at || null, remote: p.remote, role_family: p.role_family, seniority_band: p.seniority_band,
-        apply_email: applyEmailOf({ description, url }), pay: boardPay(b.provider, raw[i]),
+        job_id: `${b.provider}:${token}:${atsId}`, ats_id: atsId, company: safeClip(p.company || b.company, 300) || b.board, title,
+        location: safeClip(p.location, 1000), url, description,
+        department: safeClip(p.department, 300), posted_at: p.posted_at || null, remote: p.remote, role_family: p.role_family, seniority_band: p.seniority_band,
+        apply_email: applyEmailOf({ description, url }), pay: pay === null ? null : cut(storable(pay), PAY_MAX) || null,
       });
     });
     return postings;

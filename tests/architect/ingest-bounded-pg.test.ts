@@ -200,7 +200,8 @@ Deno.test({
 
       await t.step("P6 a run that fails is logged as failed, with its error", async () => {
         const env = { get: (k: string) => ({ CAREER_INGEST_SECRET: SECRET, INGEST_CONTACT_EMAIL: "ops@example.test" } as Record<string, string>)[k] };
-        fail.fn = (r) => r.method === "GET" && r.path.startsWith("/rest/v1/career_board_state") ? "permission denied for table career_board_state" : null;
+        // The board state unreadable: the due list (GET) or, since ingest round 2, the claim that takes it (one RPC).
+        fail.fn = (r) => (r.method === "GET" && r.path.startsWith("/rest/v1/career_board_state")) || r.path.startsWith("/rest/v1/rpc/career_board_state_claim") ? "permission denied for table career_board_state" : null;
         const before = await n(pg, "select count(*) from career_ingest_runs");
         const res = await handleIngest(new Request("https://fn.test/?lane=0&lanes=1", { method: "POST", headers: { "x-trainee-ingest-secret": SECRET } }),
           { env, boards: [clinic(6)], now: () => T0 + 20 * H, db: () => supabasePostingsDb(admin), state: () => supabaseBoardState(admin), fetchFeed: () => feed });

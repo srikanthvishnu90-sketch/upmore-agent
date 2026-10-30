@@ -334,7 +334,8 @@ Deno.test("B6 the bounded read gives the same postings as the whole read for eve
     let e2 = "";
     try { await drain(await boardFetchFeed((async () => new Response(JSON.stringify({ error: "not found", detail: "x".repeat(40) }))) as unknown as typeof fetch, { stream: true, wholeMax })({ company: "A", provider: "greenhouse", board: "x" })); }
     catch (e) { e2 = (e as Error).message; }
-    eq(e2, wholeMax ? "not a greenhouse board (unexpected body)" : "", wholeMax ? "streamed: no jobs array" : "whole: no jobs (as the whole read: an empty board)");
+    // Ingest round 2: read whole it used to be an empty board (every open posting closed); now both fail and close nothing.
+    eq(e2, "not a greenhouse board (unexpected body)", wholeMax ? "streamed: no jobs array" : "whole: no jobs array");
   }
 });
 

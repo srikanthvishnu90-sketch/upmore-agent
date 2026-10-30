@@ -59,7 +59,7 @@ Deno.test({ name: "outreach end to end: ~80 flows through the rail's functions, 
     // The first email to an address, or a failure that says what the queue holds instead of a TypeError.
     const firstTo = async (gmail: FakeGmail, addr: string, u: string) => {
       const m = gmail.to(addr)[0];
-      if (!m) throw new Error(`nothing was sent to ${addr}; queue: ${JSON.stringify(await rows(db, `select state, attempts, result, send_at from public.career_send_queue where user_id = '${u}'`))}`);
+      if (!m) throw new Error(`nothing was sent to ${addr}; queue: ${JSON.stringify(await rows(db, `select state, attempts, result, next_at, lease_owner, lease_until, now() as db_now from public.career_send_queue where user_id = '${u}'`))}; account: ${JSON.stringify(await rows(db, `select * from public.career_send_accounts where user_id = '${u}'`))}; gmail sent ${gmail.sent.length}`);
       return m;
     };
 
@@ -295,7 +295,7 @@ Deno.test({ name: "outreach end to end: ~80 flows through the rail's functions, 
       console.log(`[outreach e2e] ${flows} flows, ${problems.length} problems, ${outside} outside requests`);
       eq(outside, 0, "no request left the machine");
       for (const p of problems) console.log(`  PROBLEM ${p}`);
-      eq(problems, [], `${problems.length} of ${flows} flows found a problem`);
+      eq(problems, [], `${problems.length} of ${flows} flows found a problem; first: ${problems.slice(0, 3).join(" | ").slice(0, 1500)}`);
       ok(flows >= 60, `${flows} flows`);
     });
   } finally {

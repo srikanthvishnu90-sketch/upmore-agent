@@ -277,6 +277,9 @@ export function telegramAdapter(o: {
     async send(address, bubbles, opts): Promise<SendResult> {
       if (!bubbles.length) return { ok: false, error: "nothing to send: the message has no text", retryable: false };
       const ids: string[] = [];
+      // retryAfterMs counts from when send began (the outbox adds it to the run's time): a 429 on a later message comes
+      // after the pacing of the earlier ones.
+      const now = o.clock ?? Date.now, t0 = now();
       for (let i = 0; i < bubbles.length; i++) {
         await pace(address);
         const after = i ? ` after ${i} of ${bubbles.length} messages went out` : "";
@@ -294,16 +297,21 @@ export function telegramAdapter(o: {
         if (o.native && !("error" in r) && r.status === 400 && /parse entities|can't find end|unsupported start tag/i.test(String(r.body?.description ?? ""))) {
           r = await call("sendMessage", { chat_id: Number(address), text: safeSlice(telegramPlain(bubbles[i]), TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...keyboard }, wait);
         }
+        // CHANNEL DELIVERY ROUND 2 (2026-10-30): what went out before a failure is reported (sent, sentIds), so a failure on
+        // the 2nd+ message that certainly sent nothing (a 429 asking for more than WAIT_MID_REPLY_S, 502, 503, a connection
+        // that never opened) is retried from that message (career_outbox.sent_parts): the rest is no longer lost ("after 1 of
+        // 3 messages went out") and nothing already sent goes again.
+        const partial = i ? { sent: i, sentIds: [...ids] } : {};
         if ("error" in r) {
           const e = r.error, timedOut = e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError");
-          return timedOut ? { ok: false, error: `Telegram timed out (it may have been delivered)${after}`, retryable: false }
-            : { ok: false, error: redact(`Telegram unreachable: ${e instanceof Error ? e.message : String(e)}`).slice(0, 200) + after, retryable: i === 0 };
+          return timedOut ? { ok: false, error: `Telegram timed out (it may have been delivered)${after}`, retryable: false, ...partial }
+            : { ok: false, error: redact(`Telegram unreachable: ${e instanceof Error ? e.message : String(e)}`).slice(0, 200) + after, retryable: true, ...partial };
         }
         if (r.status === 200 && r.body?.ok === true) { const id = r.body?.result?.message_id; if (id !== undefined && id !== null) ids.push(String(id)); continue; }
         const desc = redact(String(r.body?.description ?? "")).slice(0, 120);
-        if (r.status === 403 && /blocked|deactivated/i.test(desc)) return { ok: false, error: `Telegram 403: ${desc}${after}`, retryable: false, optOut: true };
+        if (r.status === 403 && /blocked|deactivated/i.test(desc)) return { ok: false, error: `Telegram 403: ${desc}${after}`, retryable: false, optOut: true, ...partial };
         const ra = r.status === 429 ? retryAfterOf(r.body) : null;
-        return { ok: false, error: `Telegram HTTP ${r.status}${desc ? `: ${desc}` : ""}${after}`, retryable: i === 0 && (r.status === 429 || r.status === 502 || r.status === 503), ...(ra !== null ? { retryAfterMs: ra * 1000 } : {}) };
+        return { ok: false, error: `Telegram HTTP ${r.status}${desc ? `: ${desc}` : ""}${after}`, retryable: r.status === 429 || r.status === 502 || r.status === 503, ...(ra !== null ? { retryAfterMs: ra * 1000 + Math.max(0, now() - t0) } : {}), ...partial };
       }
       return { ok: true, id: ids[0] ?? null, ids };
     },

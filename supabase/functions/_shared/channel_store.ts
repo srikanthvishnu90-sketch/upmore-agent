@@ -22,13 +22,15 @@ function must<T>(r: { data: T | null; error: { message: string } | null }, what:
   return r.data as T;
 }
 
-export type DeliveryStore = ChannelStore & { release(): Promise<number>; sweep(now: number): Promise<number> };
+// reroute (CHANNEL DELIVERY ROUND 2, optional): rows bound to a channel the person no longer has go to their home channel,
+// or fail with the reason when they have none (career_outbox_reroute); how many.
+export type DeliveryStore = ChannelStore & { release(): Promise<number>; sweep(now: number): Promise<number>; reroute?(now: number): Promise<number> };
 
 // `only` narrows the store to one row (a reply sent the moment it is written); `user` to everything due for one person
 // (a WhatsApp message: what waited for the window goes out first, then the answer). The rules are the same.
 // deno-lint-ignore no-explicit-any
 export function supabaseChannelStore(admin: any, o: { only?: { userId: string; key: string }; user?: string } = {}): DeliveryStore {
-  const claimed = new Map<string, { prior: string; attempts: number }>();
+  const claimed = new Map<string, { prior: string; attempts: number; parts?: number }>();
   return {
     async due(now, limit) {
       const claim = o.only ? admin.rpc("career_outbox_claim_key", { p_user: o.only.userId, p_key: o.only.key, p_now: iso(now) })
@@ -52,6 +54,18 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
         if (!held.error) {
           const at = new Map<string, number | null>((held.data ?? []).map((h: any) => [String(h.id), ms(h.held_at)]));
           for (const r of out) if (at.has(r.id)) r.heldAt = at.get(r.id) ?? null;
+        }
+      }
+      // CHANNEL DELIVERY ROUND 2 (2026-10-30): a row tried before may have sent some of its messages (sent_parts,
+      // 20261030100000_channel_delivery_r2.sql) with their ids; it resumes after them. Without the column (a project
+      // without the migration) or on a failed read, nothing is known to have gone and the row goes whole, as before.
+      // (Any claimed row: a row held part way goes back to "queued" when the person writes.)
+      const again = out.map((r) => r.id);
+      if (again.length) {
+        const sp = await admin.from("career_outbox").select("id,sent_parts,provider_ids").in("id", again).gt("sent_parts", 0);
+        if (!sp.error) for (const x of sp.data ?? []) {
+          const r = out.find((y) => y.id === String(x.id));
+          if (r && Number(x.sent_parts) > 0) { r.sentParts = Number(x.sent_parts); r.sentIds = Array.isArray(x.provider_ids) ? x.provider_ids.map(String) : []; const c = claimed.get(r.id); if (c) c.parts = r.sentParts; }
         }
       }
       // FEATURE 16: a Telegram row that carries an open card goes out with the card's Approve and Decline buttons, bound
@@ -152,17 +166,30 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
     async mark(id, m: DeliveryMark) {
       const c = claimed.get(id);
       const base = { status: m.status, claimed_at: null, error: m.error ? m.error.slice(0, 500) : null };
+      // CHANNEL DELIVERY ROUND 2: every id a row went out as is kept (a single one too), and sent_parts recorded on a row
+      // that stopped part way; a delivered row's sent_parts goes back to 0.
+      const ids = (m.providerIds ?? []).slice(0, 10).map((x) => x.slice(0, 200));
+      const progress = m.sentParts !== undefined ? { sent_parts: m.sentParts, provider_ids: ids.length ? ids : null } : {};
       const patch = m.status === "delivered" ? { ...base, delivered_at: iso(m.at), provider_id: m.providerId ? m.providerId.slice(0, 200) : null, retry_at: null,
-          ...(m.providerIds ? { provider_ids: m.providerIds.slice(0, 10).map((x) => x.slice(0, 200)) } : {}) }
-        : m.status === "failed" ? { ...base, attempts: (c?.attempts ?? 0) + 1, retry_at: m.retryAt ? iso(m.retryAt) : null }
+          ...(ids.length ? { provider_ids: ids } : { provider_ids: null }), ...(m.sentParts !== undefined || (c?.parts ?? 0) > 0 ? { sent_parts: 0 } : {}) }
+        : m.status === "failed" ? { ...base, attempts: (c?.attempts ?? 0) + 1, retry_at: m.retryAt ? iso(m.retryAt) : null, ...progress }
         // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): put back for later (quiet hours on the person's clock now).
         : m.status === "queued" ? { ...base, status: "queued", contact: null, retry_at: null, ...(m.deliverAt ? { deliver_at: iso(m.deliverAt) } : {}) }
-        : { ...base, retry_at: null };
-      must(await admin.from("career_outbox").update(patch).eq("id", id).eq("status", "sending"), "record delivery");
+        : { ...base, retry_at: null, ...progress };
+      let done = await admin.from("career_outbox").update(patch).eq("id", id).eq("status", "sending");
+      // A project without 20261030100000 has no sent_parts: recorded without it (the row then goes whole next time, as before).
+      if (done.error && "sent_parts" in patch && /sent_parts/.test(done.error.message ?? "")) {
+        const { sent_parts: _drop, ...rest } = patch as Record<string, unknown>;
+        done = await admin.from("career_outbox").update(rest).eq("id", id).eq("status", "sending");
+      }
+      must(done, "record delivery");
       claimed.delete(id);
     },
+    // CHANNEL DELIVERY ROUND 2 (2026-10-30): the template's count is everything waiting for the person on WhatsApp: held,
+    // and still to go (a run claims 20; a person with 37 waiting was told "20 new updates").
     async heldFor(userId) {
-      const r = await admin.from("career_outbox").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "held");
+      const r = await admin.from("career_outbox").select("id", { count: "exact", head: true }).eq("user_id", userId)
+        .in("status", ["held", "queued", "sending"]).or("channel.is.null,channel.eq.whatsapp");
       if (r.error) throw new Error(`count held messages: ${r.error.message}`);
       return Number(r.count) || 0;
     },
@@ -182,6 +209,13 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
         claimed.delete(id); n++;
       }
       return n;
+    },
+    // CHANNEL DELIVERY ROUND 2 (2026-10-30): career_outbox_reroute. A project without it answers 0 (rows stay as before).
+    async reroute(now) {
+      const r = await admin.rpc("career_outbox_reroute", { p_now: iso(now) });
+      const said = `${(r.error as any)?.code ?? ""} ${r.error?.message ?? ""}`;
+      if (r.error && /career_outbox_reroute|PGRST202/i.test(said) && /exist|find|no function|PGRST202/i.test(said)) return 0;
+      return Number(must<number>(r, "reroute rows of an unlinked channel")) || 0;
     },
     async sweep(now) {
       const r = must<any[]>(await admin.from("career_outbox").update({ status: "failed", retry_at: null, claimed_at: null, error: UNKNOWN_OUTCOME })

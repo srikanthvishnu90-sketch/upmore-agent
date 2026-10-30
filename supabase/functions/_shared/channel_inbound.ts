@@ -52,7 +52,8 @@ const LINK_ASK = /^(link|connect) (my (trainee )?account|telegram|this chat)[.!]
 export const LINK_NONCE_MS = 10 * 60000;
 export const LINK_ASK_MS = 60 * 60000; // a yes counts for an hour after the question
 
-export interface Person { userId: string; threadId: string | null; contact?: string }
+// alias (CHANNEL DELIVERY ROUND 2): the WhatsApp business-scoped id recorded for the contact, when there is one.
+export interface Person { userId: string; threadId: string | null; contact?: string; alias?: string | null }
 export type Redeemed = { ok: true; userId: string; threadId: string | null } | { ok: false; why: "invalid" | "linked_elsewhere" };
 export interface InboundStore {
   claimMessage(id: string, at: number, provider?: Provider): Promise<boolean>; // false: this provider's message id was handled before
@@ -71,6 +72,15 @@ export interface InboundStore {
   redeemLinkNonce?(nonce: string, contact: string, at: number): Promise<Redeemed>;
   reholdSent?(providerMessageId: string, at: number, error: string): Promise<number>; // a sent message that failed for the window
   unlinkTelegram?(userId: string, at: number): Promise<number>; // FEATURE 16: "unlink telegram"; how many contacts let go
+  // CHANNEL DELIVERY ROUND 2 (2026-10-30), optional:
+  // failSent: a sent message the provider later reported not delivered (WhatsApp 131026 and the like, a LoopMessage
+  //   message_failed): its row is marked failed with the reason (retry: put back to go again from that message); how many.
+  // releaseContact: the WhatsApp number now belongs to someone else (another business-scoped id wrote from it): the contact
+  //   is let go from the account it was linked to.
+  // movedNumber: the person changed their WhatsApp number: their account moves to the new one; false when it cannot.
+  failSent?(providerMessageId: string, at: number, error: string, retry: boolean): Promise<number>;
+  releaseContact?(contact: string, at: number): Promise<void>;
+  movedNumber?(from: string, to: string, at: number): Promise<boolean>;
 }
 export interface CoreDeps {
   env: { get(k: string): string | undefined };
@@ -156,9 +166,25 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
   // (best effort) rather than leave them with silence.
   try {
     let person = await store.person(contact);
+    // CHANNEL DELIVERY ROUND 2 (2026-10-30): a WhatsApp number given to someone else. Meta's business-scoped id is the
+    // account's, not the number's: a message from the number with another id is another person. It ran as the number's old
+    // owner (their thread, their account) and opened the window for their queued messages, which then went to the new owner.
+    // The contact is let go from the old account first; the new owner is a stranger, as anyone new is.
+    if (person && msg.channel === "whatsapp" && msg.alias && person.alias && person.alias !== msg.alias && person.contact === msg.contact && store.releaseContact) {
+      await store.releaseContact(msg.contact, now);
+      person = null;
+    }
     for (const alias of msg.aliases ?? []) { if (person) break; person = await store.person(alias); }
     if (person?.contact) contact = person.contact;
-    if (store.sawInbound) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
+    // The person changed their WhatsApp number: their account follows them (the old number is let go).
+    if (msg.kind === "moved") {
+      const moved = !!(person && msg.movedTo && store.movedNumber && await store.movedNumber(contact, `wa:${msg.movedTo}`, now));
+      return ok({ moved, ...(moved ? {} : { ignored: "a number change for no account" }) });
+    }
+    // CHANNEL DELIVERY ROUND 2: WhatsApp's window runs from when the person sent the message (its timestamp), not from when
+    // a retried webhook reached Trainee; never later than now (a phone's clock ahead of ours).
+    const seenAt = typeof msg.sentAt === "number" && Number.isFinite(msg.sentAt) && msg.sentAt < now && msg.sentAt > now - 7 * 86400000 ? msg.sentAt : now;
+    if (store.sawInbound) await store.sawInbound(contact, seenAt, { alias: msg.alias ?? null, phone: msg.phone ?? null });
     if (msg.kind === "blocked") { await store.setOptOut(contact, true, now); return ok({ command: "stop", blocked: true }); }
     // FEATURE 16: a button tap from a chat that is no one's account approves nothing; the button is answered and that is all.
     if (msg.kind === "callback" && !person) {
@@ -192,14 +218,16 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       const s = await d.reply(contact, d.render(text));
       return ok({ link: r.ok ? "linked" : r.why, sent: s.ok });
     }
-    const command = msg.command ?? channelCommand(msg.text, msg.channel);
+    // CHANNEL DELIVERY ROUND 2: a LoopMessage text that came over SMS reads the carrier keywords (CANCEL, REVOKE, ARRET...).
+    const command = msg.command ?? channelCommand(msg.text, msg.sms ? "sms" : msg.channel);
     // Telegram's Start from a chat Trainee has never seen is the person's first message, not a START: it goes through
     // sign-up like any first text.
     const firstStart = command === "start" && !!msg.command && !person;
     // WO-106 (live 2026-10-21): on a chat channel a known person's HELP (or /help) and Telegram's /start are also a turn for
     // the brain, which knows their goal and what is in flight, so the reply ends in their next step; /start's "you're back
     // on" line goes first. STOP, the word START (a re-subscribe after STOP) and every command on SMS keep their fixed reply.
-    const toBrain = !!msg.channel && !!person && (command === "help" || (command === "start" && !!msg.command));
+    // CHANNEL DELIVERY ROUND 2: a HELP that came over SMS gets the carrier's fixed answer, as every command on SMS does.
+    const toBrain = !!msg.channel && !msg.sms && !!person && (command === "help" || (command === "start" && !!msg.command));
     if (command && !firstStart) {
       if (command !== "help") await store.setOptOut(contact, command === "stop", now);
       if (!toBrain) {
@@ -247,7 +275,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
         return ok({ refused: "signup closed", sent: r.ok });
       }
       person = await store.createPerson(contact, now, msg.phone ?? null);
-      if (store.sawInbound) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
+      if (store.sawInbound) await store.sawInbound(contact, seenAt, { alias: msg.alias ?? null, phone: msg.phone ?? null });
       // A first Start is the person's first message: the brain welcomes them with what to send first (WO-106).
     }
 
@@ -442,15 +470,22 @@ export async function handleChannelWebhook(req: Request, adapter: ChannelAdapter
   if ("response" in parsed) return parsed.response;
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
   let reheld = 0;
+  let failed = 0;
   for (const s of parsed.statuses ?? [] as StatusEvent[]) {
     if (s.hold && d.store.reholdSent) reheld += await d.store.reholdSent(s.providerMessageId, d.now(), s.error);
-    else if (!s.hold) console.error(`${adapter.provider}: a sent message failed after it was accepted: ${s.error}`);
+    else if (!s.hold) {
+      console.error(`${adapter.provider}: a sent message failed after it was accepted: ${s.error}`);
+      // CHANNEL DELIVERY ROUND 2 (2026-10-30): the row said "delivered" while the provider said it was not (131026
+      // undeliverable, 130429 throughput...). Now it is failed with the reason; a throughput refusal goes again from that
+      // message.
+      if (d.store.failSent) failed += await d.store.failSent(s.providerMessageId, d.now(), s.error, s.retry === true);
+    }
   }
-  if (!parsed.messages.length) return json({ ok: true, ...(reheld ? { reheld } : {}), ignored: (parsed.ignored ?? [])[0] ?? "nothing to read" });
+  if (!parsed.messages.length) return json({ ok: true, ...(reheld ? { reheld } : {}), ...(failed ? { failed } : {}), ignored: (parsed.ignored ?? [])[0] ?? "nothing to read" });
   const results: Record<string, unknown>[] = [];
   for (const m of parsed.messages) {
     const r = await runInbound(m, d);
     results.push(r.body);
   }
-  return json({ ok: true, ...(reheld ? { reheld } : {}), results });
+  return json({ ok: true, ...(reheld ? { reheld } : {}), ...(failed ? { failed } : {}), results });
 }

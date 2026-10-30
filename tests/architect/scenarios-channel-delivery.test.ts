@@ -418,7 +418,10 @@ Deno.test(`channel delivery at scale, provider failures retried only when nothin
     const row = store.rows()[0];
     let why: string | null = null;
     const twice = [...out.entries()].find(([, n]) => n > 1);
-    const retryable = s.mode !== "ok" && s.failAt === 0 && RETRY_FIRST[s.channel].has(s.mode);
+    // CHANNEL DELIVERY ROUND 2 (2026-10-30): a failure that certainly sent nothing of its bubble (429, 502, 503, a connection
+    // that never opened) is retried on any bubble, from that bubble (career_outbox.sent_parts): it must then end delivered
+    // with every bubble exactly once. It was final after the first bubble ("after n of m"), the rest never sent.
+    const retryable = s.mode !== "ok" && RETRY_FIRST[s.channel].has(s.mode);
     const blocked = s.channel === "telegram" && s.mode === "403";
     if (twice) why = `"${twice[0]}" may have reached the person ${twice[1]} times`;
     else if (s.mode === "ok" || retryable) { if (row.status !== "delivered" || bubbles.some((b) => out.get(b) !== 1)) why = `must end delivered, every bubble once (status ${row.status})`; }

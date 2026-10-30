@@ -70,6 +70,11 @@ export interface InboundMessage {
   document?: { fileId: string; uniqueId: string; name: string; mime: string; size: number | null } | null;
   // FEATURE 16: a button tap (Telegram callback_query): its id (answered once), the button's data, the message it was on.
   callback?: { id: string; data: string; messageId: string | null } | null;
+  // TELEGRAM ROUND 2 (2026-10-30): forwardedFrom: the message was forwarded (who it came from, as the platform names it): it
+  // is someone else's words, never the person's command, yes or link. caption: `text` is the words sent with a photo, video
+  // or GIF (`media`), which Trainee does not see; never a command either.
+  forwardedFrom?: string | null;
+  caption?: boolean;
 }
 // FEATURE 16: buttons under a sent message (Telegram's inline keyboard), rows of { text, data } (a tap comes back as a
 // callback with data, at most 64 bytes) or { text, loginUrl } (Telegram's login: it opens the page signed in as the user).

@@ -694,10 +694,10 @@ export function stripeFromEnv(fetchFn: typeof fetch, key: string | undefined | n
     },
   };
 }
-// deno-lint-ignore no-explicit-any
 // The chat's cancel and undo advance stripe_synced_at to the moment after Stripe confirmed them (billing round 2): a webhook
 // read of Stripe taken before the chat's change but written after it is then refused as stale (it used to put the old flag
 // back until Stripe's next event). Never moved backwards: a later webhook read already on the row is left as it is.
+// deno-lint-ignore no-explicit-any
 export function supabaseBillingStore(admin: any, o: { now?: () => number } = {}): BillingStore {
   const mark = async (userId: string, subscriptionId: string, value: boolean) => {
     const at = new Date((o.now ?? Date.now)()).toISOString();

@@ -518,14 +518,24 @@ export async function actionHash(kind: ActionKind, p: Record<string, any>): Prom
 export const SUGGESTED_DAYS = [3, 7, 14]; // days after the first email
 export const SUGGESTED_STEPS = [3, 4, 7]; // the same, as waits between touches
 export const FOLLOWUP_ASK = "When someone doesn't reply to an outreach email, when should I draft follow-ups for your approval? Most replies come within three touches, so I suggest follow-ups 3, 7 and 14 days after the first email: say \"use the suggested\". Or set your own, like \"follow up after 5 days\", \"follow up after 2, 5, 9 and 20 days\" or \"4 follow-ups a week apart\", or say \"no follow-ups\".";
-export async function runFollowupDrafts(o: { store: RepliesStore; outbox: Outbox; model: ModelFn | null; person: (userId: string) => Promise<Person>; now: number; worker: string; limit?: number; leaseS?: number }) {
-  const stats = { asked: 0, due: 0, drafted: 0, failed: 0, batches: 0 };
-  for (const u of await o.store.askDue(500, o.now)) if (await o.outbox.enqueue(u, { key: "status:outreach-followup-interval-ask", kind: "status", text: FOLLOWUP_ASK, at: o.now })) stats.asked++;
+// OUTREACH SCENARIOS (2026-10-30): `quiet` (career_quiet_users: paused, texted STOP, erased). A quiet person gets nothing
+// started on their behalf (the rule every other proactive rail keeps, career-proactive/handler.ts): before, this run asked
+// them for an interval, drafted their follow-ups with the model and queued the batch to their outbox while they were
+// paused. Now their due threads are released untouched (drafted after they resume) and no ask is queued.
+export type Quiet = (userIds: string[]) => Promise<Set<string>>;
+const quietOf = async (quiet: Quiet | undefined, ids: string[]) => (!quiet || !ids.length ? new Set<string>() : await quiet([...new Set(ids)]).catch(() => new Set(ids)));
+export async function runFollowupDrafts(o: { store: RepliesStore; outbox: Outbox; model: ModelFn | null; person: (userId: string) => Promise<Person>; now: number; worker: string; limit?: number; leaseS?: number; quiet?: Quiet }) {
+  const stats = { asked: 0, due: 0, drafted: 0, failed: 0, batches: 0, quiet: 0 };
+  const ask = await o.store.askDue(500, o.now);
+  const askQuiet = await quietOf(o.quiet, ask);
+  for (const u of ask) if (!askQuiet.has(u) && await o.outbox.enqueue(u, { key: "status:outreach-followup-interval-ask", kind: "status", text: FOLLOWUP_ASK, at: o.now })) stats.asked++;
   const due = await o.store.followupsDue(o.worker, o.limit ?? 200, o.now, o.leaseS ?? 300);
   stats.due = due.length;
   const byUser = new Map<string, ThreadRow[]>();
   for (const t of due) byUser.set(t.user_id, [...(byUser.get(t.user_id) ?? []), t]);
+  const quiet = await quietOf(o.quiet, [...byUser.keys()]);
   for (const [userId, threads] of byUser) {
+    if (quiet.has(userId)) { for (const t of threads) await o.store.releaseThread(t.id, o.worker); stats.quiet += threads.length; continue; }
     const person = await o.person(userId);
     const items: { thread_id: string; kind: ActionKind; payload: Record<string, any>; hash: string; step?: number | null }[] = [];
     for (const t of threads) {
@@ -605,10 +615,13 @@ export async function proposeEvent(o: { store: RepliesStore; userId: string; thr
   const [a] = await o.store.saveActions(o.userId, [{ thread_id: t.id, kind: "calendar_event", payload, hash: await actionHash("calendar_event", payload) }], o.now);
   return a;
 }
-export async function runScheduling(o: { store: RepliesStore; outbox: Outbox; calendars: Partial<Record<Provider, CalendarProvider>>; model: ModelFn | null; person: (u: string) => Promise<Person>; tz: (u: string) => Promise<string | null>; now: number; limit?: number }) {
+export async function runScheduling(o: { store: RepliesStore; outbox: Outbox; calendars: Partial<Record<Provider, CalendarProvider>>; model: ModelFn | null; person: (u: string) => Promise<Person>; tz: (u: string) => Promise<string | null>; now: number; limit?: number; quiet?: Quiet }) {
   const stats: Record<string, number> = {};
   const fresh: Action[] = [];
-  for (const t of await o.store.wantingCall(o.limit ?? 200)) {
+  const wanting = await o.store.wantingCall(o.limit ?? 200);
+  const quiet = await quietOf(o.quiet, wanting.map((t) => t.user_id));
+  for (const t of wanting) {
+    if (quiet.has(t.user_id)) { stats.quiet = (stats.quiet ?? 0) + 1; continue; } // drafted once they resume
     const cal = o.calendars[t.provider];
     const tz = (await o.tz(t.user_id).catch(() => null)) || "America/New_York";
     const r = cal ? await draftScheduling({ store: o.store, userId: t.user_id, thread: t, calendar: cal, model: o.model, person: await o.person(t.user_id), tz, now: o.now }) : { status: "not_wired" as const };
@@ -1110,8 +1123,13 @@ export async function runRepliesLane(o: {
   const out: Record<string, unknown> = {};
   const step = async (name: string, f: () => Promise<unknown>) => { try { out[name] = await f(); } catch (e) { out[name] = { error: (e instanceof Error ? e.message : String(e)).slice(0, 300) }; } };
   await step("sync", () => runReplySync({ store, readers, model: o.model, now: o.now, worker, tz }));
-  await step("followups", () => runFollowupDrafts({ store, outbox: o.outbox, model: o.model, person, now: o.now, worker }));
-  await step("scheduling", () => runScheduling({ store, outbox: o.outbox, calendars, model: o.model, person, tz, now: o.now }));
+  const quiet: Quiet = async (ids) => {
+    const { data, error } = await o.admin.rpc("career_quiet_users", { p_users: ids });
+    if (error) throw new Error(`read who is paused: ${error.message}`);
+    return new Set<string>((data ?? []).map((r: any) => String(r?.user_id ?? r)));
+  };
+  await step("followups", () => runFollowupDrafts({ store, outbox: o.outbox, model: o.model, person, now: o.now, worker, quiet }));
+  await step("scheduling", () => runScheduling({ store, outbox: o.outbox, calendars, model: o.model, person, tz, now: o.now, quiet }));
   await step("actions", () => runOutreachActions({ store, rail, calendars, now: o.now, worker }));
   return out;
 }

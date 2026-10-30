@@ -77,7 +77,25 @@ export interface OutreachStore {
   putContacts?(userId: string, epoch: number, rows: KeyedContact[], o?: { replaceFile?: string; unlessForgotten?: boolean }): Promise<number | null>;
   forgetContacts?(userId: string, epoch: number, sel: { all?: boolean; linkedin?: boolean; rowKeys?: string[] }): Promise<number | null>;
   accountEpoch?(userId: string): Promise<number>;
+  // OUTREACH SCENARIOS (2026-10-30): which of these addresses no one may email: one that said "stop" to ANY Trainee user
+  // (career_outreach_dnc is read by address, across everyone) or that bounced for anyone (career_send_bad_addresses).
+  // dnc(userId) above is the person's own list only; drafting read only that, so someone who told another person "stop"
+  // was drafted to, approved, and then refused by the rail while the person was told it was going.
+  blocked?(emails: string[]): Promise<Map<string, "opted_out" | "bounced">>;
+  // A batch shown again in another chat moves to that chat: only the chat that shows a batch last can approve it.
+  moveBatch?(userId: string, batchId: string, threadId: string): Promise<void>;
 }
+// Every address of these that may not be emailed (lowercase -> why), the person's own list and everyone's.
+export async function blockedAddresses(store: OutreachStore, userId: string, emails: string[]): Promise<Map<string, "opted_out" | "bounced">> {
+  const list = [...new Set(emails.filter(Boolean).map((e) => String(e).trim().toLowerCase()))];
+  const out = new Map<string, "opted_out" | "bounced">();
+  if (!list.length) return out;
+  const own = await store.dnc(userId);
+  for (const e of list) if (own.has(await emailHash(e))) out.set(e, "opted_out");
+  if (store.blocked) for (const [e, why] of await store.blocked(list)) if (!out.has(e)) out.set(e, why);
+  return out;
+}
+export const BLOCKED_WHY = { opted_out: "they asked not to be contacted", bounced: "that address bounced before, so no one emails it again" } as const;
 export interface KeyedContact { row_key: string; person_key: string; file: string; name_key: string; email: string | null; firm_key: string; firm_raw_key: string; data: ContactRow }
 // One follow-up reminder: on the draft the person sent (from Trainee or themselves), due on a day, fired at most once.
 export interface Followup {
@@ -513,7 +531,16 @@ export async function outreachTurn(o: {
   const note = lapsed.length ? `${lapsedLine(lapsed.length)}\n\n` : "";
   if (!batch.length) return r.kind === "show" ? { reply: `${note}There are no outreach drafts yet. Ask me to draft emails to people on your list.`, status: lapsed.length ? "empty_lapsed" : "empty", intent: "career_outreach_answer" } : null;
   const open = (s: string, status: string) => ({ reply: s, status, intent: OUTREACH_INTENT });
-  if (r.kind === "show") return { ...open(note + batchText(batch), lapsed.length ? "shown_lapsed" : "shown"), parts: [...(lapsed.length ? [lapsedLine(lapsed.length)] : []), ...batchMessages(batch)] };
+  // OUTREACH SCENARIOS (2026-10-30): an answer approves only the batch this chat showed. The newest batch was read for
+  // the person, whichever chat drafted it, so "yes" here approved a batch drafted and shown in another chat (never shown
+  // here). Showing it here moves it here; answering in a chat that did not show it approves nothing.
+  if (r.kind === "show") {
+    if (batch[0].thread_id && batch[0].thread_id !== o.threadId && o.store.moveBatch) await o.store.moveBatch(o.userId, batch[0].batch_id, o.threadId);
+    return { ...open(note + batchText(batch), lapsed.length ? "shown_lapsed" : "shown"), parts: [...(lapsed.length ? [lapsedLine(lapsed.length)] : []), ...batchMessages(batch)] };
+  }
+  if (!anytime && batch[0].thread_id && batch[0].thread_id !== o.threadId) {
+    return { reply: `Nothing was approved or changed: your newest drafts were shown in another chat, not this one. Say "show drafts" to see them here.`, status: "other_chat", intent: "career_outreach_answer" };
+  }
   const byN = new Map(batch.map((d) => [d.n, d]));
   const numbers = batch.map((d) => d.n);
   const range = numbers.length === 1 ? "only number 1" : `numbers 1 to ${Math.max(...numbers)}`;
@@ -754,12 +781,13 @@ const mergeRows = (a: { row_key: string; data: ContactRow }[], b: { row_key: str
   for (const r of [...a, ...b]) m.set(r.row_key, r.data);
   return [...m.entries()].sort(([x], [y]) => x.localeCompare(y)).map(([, d]) => d);
 };
-export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void; setQuiet(userId: string, on: boolean): void; setEpoch(userId: string, epoch: number): void; allContacts(userId: string): ContactRow[]; forgotten(userId: string): string[] } {
+export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void; setQuiet(userId: string, on: boolean): void; setEpoch(userId: string, epoch: number): void; allContacts(userId: string): ContactRow[]; forgotten(userId: string): string[]; markBounced(email: string): void } {
   const drafts: (OutreachDraft & { user_id: string })[] = [], dnc: Record<string, Set<string>> = {}, prefs: Record<string, Prefs> = {}, intents: Record<string, string | null> = {};
   const follow: Record<string, Followup[]> = {}, leases: Record<string, number> = {};
   const book: Record<string, Map<string, KeyedContact>> = {}, forgottenByUser: Record<string, Set<string>> = {}, epochByUser: Record<string, number> = {};
   const rowsOf = (u: string) => [...(book[u]?.values() ?? [])].sort((a, z) => a.row_key.localeCompare(z.row_key));
   const quiet = new Set<string>(); // paused, opted out or erased (career_user_quiet in the database)
+  const bad = new Set<string>(); // bounced for anyone (career_send_bad_addresses)
   let seq = 0;
   const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x));
   const self: any = {
@@ -848,6 +876,17 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
       return n;
     },
     async accountEpoch(u: string) { return epochByUser[u] ?? 0; },
+    async blocked(emails: string[]) {
+      const out = new Map<string, "opted_out" | "bounced">();
+      for (const e of emails) {
+        const k = e.trim().toLowerCase(), h = await emailHash(k);
+        if (bad.has(k)) out.set(k, "bounced"); else if (Object.values(dnc).some((set) => set.has(h))) out.set(k, "opted_out");
+      }
+      return out;
+    },
+    async moveBatch(u: string, b: string, t: string) { for (const d of drafts) if (d.user_id === u && d.batch_id === b) d.thread_id = t; },
+    // Test seam: an address that bounced for anyone (career_send_bad_addresses).
+    markBounced(email: string) { bad.add(email.trim().toLowerCase()); },
     // Test seams: the account's privacy epoch (an erase bumps it), and a write by "another thread" between a read and a save.
     setEpoch(u: string, e: number) { epochByUser[u] = e; },
     allContacts(u: string) { return copy(rowsOf(u).map((r) => r.data)); },
@@ -977,6 +1016,21 @@ export function supabaseOutreachStore(admin: any): OutreachStore {
     async dnc(u) {
       const rows = must(await admin.from("career_outreach_dnc").select("email_hash").eq("user_id", u).limit(10000), "read the do-not-contact list");
       return new Set((rows ?? []).map((r: any) => String(r.email_hash)));
+    },
+    async blocked(emails) {
+      const out = new Map<string, "opted_out" | "bounced">();
+      const byHash = new Map<string, string>();
+      for (const e of emails) byHash.set(await emailHash(e), e.trim().toLowerCase());
+      const hashes = [...byHash.keys()];
+      for (let k = 0; k < hashes.length; k += 100) {
+        const part = hashes.slice(k, k + 100);
+        for (const r of must(await admin.from("career_send_bad_addresses").select("email_hash").in("email_hash", part), "read the bounced addresses") ?? []) out.set(byHash.get(String(r.email_hash))!, "bounced");
+        for (const r of must(await admin.from("career_outreach_dnc").select("email_hash").in("email_hash", part), "read the do-not-contact list") ?? []) if (!out.has(byHash.get(String(r.email_hash))!)) out.set(byHash.get(String(r.email_hash))!, "opted_out");
+      }
+      return out;
+    },
+    async moveBatch(u, b, t) {
+      must(await admin.from("career_outreach_drafts").update({ thread_id: t }).eq("user_id", u).eq("batch_id", b), "move the batch to this chat");
     },
     async addDnc(u, h, reason, at) {
       must(await admin.from("career_outreach_dnc").upsert({ user_id: u, email_hash: h, reason: reason.slice(0, 120), at: new Date(at).toISOString() }, { onConflict: "user_id,email_hash", ignoreDuplicates: true }), "add to the do-not-contact list");

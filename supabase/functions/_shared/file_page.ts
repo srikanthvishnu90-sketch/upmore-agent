@@ -16,19 +16,28 @@ export interface AppRow {
 export interface Row {
   ref: string; job: JobView; logo: string | null; snippet: string; full: string | null;
   status: Status | null; // null: nothing yet, so the row offers Apply
+  inApps?: boolean; // the status is an application on file (not "preparing", not a field that needs the person)
   tag: string | null; // first 16 hex of the payload hash this row's Apply is bound to; null when nothing is prepared yet
   resume: string | null; byHand: boolean; note?: string;
   blocked?: string | null; // why this row offers no Apply (it cannot pass the posting screen, or is the same posting as a row above)
   sends?: string; send?: { label: string; value: string; needs?: boolean }[];
   meta?: string; metaSrc?: "From the posting" | "Reported, not verified" | null; why?: string[];
 }
-export interface Feed { og?: Og; token: string; rows: Row[]; setHash: string | null; setSize: number; top?: string; botUrl?: string | null }
+// total: how many postings the list holds; the page shows the first rows.length of them and says so when that is fewer.
+export interface Feed { og?: Og; token: string; rows: Row[]; setHash: string | null; setSize: number; top?: string; botUrl?: string | null; total?: number }
 
 // Bidi overrides and isolates (U+202A-E, U+2066-9) in a company, title or location would reverse the text after them on the page,
 // a provenance label included; they are dropped, never rendered.
 export const BIDI_CONTROLS = /[\u202A-\u202E\u2066-\u2069]/g;
-export const esc = (s: unknown) => String(s ?? "").replace(BIDI_CONTROLS, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+// Half of a character outside the Basic Multilingual Plane (an emoji, a CJK extension ideograph) left by a cut elsewhere renders as
+// a replacement box; it is dropped, never rendered (file journey round 2: an emoji company's lettermark was a lone surrogate).
+export const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+export const esc = (s: unknown) => String(s ?? "").replace(BIDI_CONTROLS, "").replace(LONE_SURROGATE, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+// A cut never splits a character: the code unit count is the budget, and a surrogate pair at the cut goes whole or not at all.
+export const cut = (s: string, n: number) => { let t = s.slice(0, Math.max(0, n)); if (/[\uD800-\uDBFF]$/.test(t)) t = t.slice(0, -1); return t; };
+const clip = (s: string, n: number) => (s.length > n ? `${cut(s, n - 1).trimEnd()}…` : s);
+// The lettermark: the company's first character (a whole emoji or a whole letter in any script, never half of one), upper-cased.
+export const initialOf = (company: string) => { const c = [...String(company ?? "").replace(BIDI_CONTROLS, "").replace(LONE_SURROGATE, "").trim()][0]; return c ? [...c.toLocaleUpperCase("en")][0] : "?"; };
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 export const dayOf = (iso: string | null | undefined) => { const t = iso ? Date.parse(iso) : NaN; if (Number.isNaN(t)) return null; const d = new Date(t); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; };
 export const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -99,9 +108,11 @@ ul.rows{list-style:none;margin:0;padding:0}
 .chip.queued,.chip.sending,.chip.submitted,.chip.confirmed{color:var(--good)}.chip.failed,.chip.not-submitted,.chip.unknown{color:var(--bad)}.chip.needs-you{color:var(--warn)}
 details{margin:4px 0 0 58px}summary{list-style:none;cursor:pointer;min-height:44px;padding:4px 0}
 summary::-webkit-details-marker{display:none}
-.role{display:block;font-weight:500}.desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--mute);font-size:16px}
+.role{display:block;font-weight:500;overflow-wrap:anywhere}.desc{overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--mute);font-size:16px}
 details[open] .desc{display:block;-webkit-line-clamp:unset}
-.meta,.why,.note{margin:2px 0 0 58px;font-size:15px;color:var(--mute)}.why{color:var(--ink)}
+.meta,.why,.note{margin:2px 0 0 58px;font-size:15px;color:var(--mute);overflow-wrap:anywhere}
+.name,.role,.desc,.full{unicode-bidi:plaintext;text-align:start}.with,.top-note{overflow-wrap:anywhere}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}.why{color:var(--ink)}
 .full{white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;margin:8px 0}
 .note a,details a,.top-note a{color:var(--link)}.lnk{display:inline;min-height:44px;padding:0 4px;border:0;background:none;color:var(--link);font:inherit;text-decoration:underline;cursor:pointer}.sendh{margin:8px 0 2px;font-weight:600;font-size:15px}.send{margin:0 0 8px;padding-left:20px;font-size:15px;color:var(--mute)}.send li{margin:2px 0;overflow-wrap:anywhere}
 :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:8px}
@@ -122,7 +133,11 @@ export function layout(title: string, inner: string, o: { script?: string; bodyA
 // In-place flip without a reload: every .ajax form posts, the response page replaces the list. Without script the forms post and
 // the response is the whole page. The script is a constant (the CSP allows exactly its hash).
 export const TG_READY = `var w=window.Telegram&&window.Telegram.WebApp;if(w){try{w.ready();w.expand();var c=getComputedStyle(document.body).backgroundColor.match(/\\d+/g);if(c){var h="#"+c.slice(0,3).map(function(n){return("0"+(+n).toString(16)).slice(-2)}).join("");if(w.setBackgroundColor)w.setBackgroundColor(h);if(w.setHeaderColor)w.setHeaderColor(h)}}catch(e){}}`;
-export const FEED_SCRIPT = `(function(){${TG_READY}var r=document.getElementById("root");if(!r||!window.fetch||!window.DOMParser)return;r.addEventListener("submit",function(e){var f=e.target;if(!f.classList||!f.classList.contains("ajax"))return;e.preventDefault();var b=f.querySelector("button");if(b)b.disabled=true;fetch(location.href,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams(new FormData(f)).toString()}).then(function(x){return x.text()}).then(function(t){var d=new DOMParser().parseFromString(t,"text/html").getElementById("root");if(d){r.innerHTML=d.innerHTML}else{f.submit()}}).catch(function(){f.submit()})})})();`;
+// The in-place flip keeps the person where they were (file journey round 2): focus goes back to the row they acted on (its button,
+// else its summary), or to the note on top, and what changed is read out through the page's one live region (#live, outside #root, so
+// it is there before the change). A response that is not the list (signed out, an error page) is shown as it came, never posted again:
+// the same one request the plain form makes without script.
+export const FEED_SCRIPT = `(function(){${TG_READY}var r=document.getElementById("root");if(!r||!window.fetch||!window.DOMParser)return;var lv=document.getElementById("live");r.addEventListener("submit",function(e){var f=e.target;if(!f.classList||!f.classList.contains("ajax"))return;e.preventDefault();var b=f.querySelector("button");if(b)b.disabled=true;var li=f.closest?f.closest("li.row"):null,id=li?li.id:"";fetch(location.href,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams(new FormData(f)).toString()}).then(function(x){return x.text()},function(){f.submit();return null}).then(function(t){if(t===null)return;var p=new DOMParser().parseFromString(t,"text/html"),d=p.getElementById("root"),g=null,s="";if(!d){document.title=p.title;document.body.innerHTML=p.body.innerHTML;g=document.querySelector("h1");if(g){g.setAttribute("tabindex","-1");g.focus()}return}r.innerHTML=d.innerHTML;var n=id?document.getElementById(id):null,top=r.querySelector(".top-note");if(n){var m=n.querySelector(".note")||n.querySelector(".chip");s=m?m.textContent:"";g=n.querySelector("button.apply,a.apply,summary")}if(top){s=top.textContent;g=top;top.setAttribute("tabindex","-1")}if(!g){g=r.querySelector("h1");if(g)g.setAttribute("tabindex","-1")}if(lv)lv.textContent=s.replace(/\\s+/g," ").trim();if(g)g.focus()})})})();`;
 export const BOOT_SCRIPT = `(function(){${TG_READY}var p=new URLSearchParams(location.hash.slice(1)),d=p.get("tgWebAppData");if(!d){document.getElementById("nodata").hidden=false;return}var f=document.createElement("form");f.method="post";function a(n,v){var i=document.createElement("input");i.type="hidden";i.name=n;i.value=v;f.appendChild(i)}a("init",d);a("list",document.body.getAttribute("data-list"));document.body.appendChild(f);f.submit()})();`;
 
 export const BRAND = `<div class="brand"><svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Trainee"><rect width="64" height="64" rx="14" fill="#4A2F5E"/><text x="32" y="45" font-family="Georgia,serif" font-size="40" font-weight="700" text-anchor="middle" fill="#fff">T</text></svg><span class="wm">Trainee</span></div>`;
@@ -131,14 +146,14 @@ const hidden = (token: string, action: string, extra = "") => `<input type="hidd
 
 function rowHtml(r: Row, token: string): string {
   const j = r.job;
-  const initial = esc((j.company.trim()[0] ?? "?").toUpperCase());
+  const initial = esc(initialOf(j.company));
   const img = r.logo ? `<img src="${esc(r.logo)}" alt="${esc(j.company)} logo" width="48" height="48" loading="lazy" referrerpolicy="no-referrer">` : "";
   const link = webUrl(j.url), host = link ? hostOf(link) : "";
   let act: string;
   if (r.status) act = `<span class="chip ${r.status.word.replace(/ /g, "-")}" role="status">${esc(cap1(r.status.word))}</span>`;
   else if (r.byHand) act = link ? `<a class="apply" href="${esc(link)}" rel="noopener noreferrer" aria-label="Open ${esc(j.title)} at ${esc(j.company)} to apply there yourself">Apply there</a>` : "";
   else if (r.blocked) act = "";
-  else act = `<form method="post" class="ajax act">${hidden(token, "apply", `<input type="hidden" name="ref" value="${esc(r.ref)}"><input type="hidden" name="tag" value="${esc(r.tag ?? "none")}">`)}<button type="submit" class="apply" aria-label="Apply to ${esc(j.title)} at ${esc(j.company)}">Apply</button></form>`;
+  else act = `<form method="post" class="ajax act">${hidden(token, "apply", `<input type="hidden" name="ref" value="${esc(r.ref)}"><input type="hidden" name="tag" value="${esc(r.tag ?? "none")}">`)}<button type="submit" class="apply" aria-label="${j.title.trim() ? `Apply to ${esc(j.title)} at ${esc(j.company)}` : `Apply to ${esc(j.company)}`}">Apply</button></form>`;
   const openOn = host ? `<p><a href="${esc(link)}" rel="noopener noreferrer">Open on ${esc(host)}</a></p>` : "";
   const more = r.full ? `<p class="full">${esc(r.full)}</p>${openOn}` : `<p class="full">The full posting text isn't on file.</p>${openOn}`;
   const note = r.note ? `<p class="note">${esc(r.note)} ${refresh(token)}</p>` : r.status ? `<p class="note">${esc(r.status.detail)}</p>` : r.byHand ? `<p class="note">Not applied for automatically on this site.</p>` : r.blocked ? `<p class="note">Not offered: ${esc(r.blocked)}</p>` : "";
@@ -153,9 +168,10 @@ function rowHtml(r: Row, token: string): string {
 export function renderFeed(f: Feed): string {
   const names = [...new Set(f.rows.map((r) => r.resume).filter(Boolean))] as string[];
   const withLine = names.length ? `<p class="with">Applying with: ${esc(names.join(", "))}</p>` : "";
+  const more = f.total && f.total > f.rows.length ? `<p class="with">Showing the first ${f.rows.length} of ${f.total}. Ask Trainee in Telegram for the rest.</p>` : "";
   const all = f.setHash && f.setSize >= 2 ? `<form method="post" class="ajax all">${hidden(f.token, "applyall", `<input type="hidden" name="set" value="${f.setHash}">`)}<button type="submit">Apply to all ${f.setSize}</button></form>` : "";
   const top = f.top ? `<p class="top-note" role="alert">${esc(f.top)} ${refresh(f.token)}</p>` : "";
-  const inner = `<div id="root"><header>${BRAND}<h1>Your jobs</h1>${withLine}${all}</header><main id="main">${top}<ul class="rows">${f.rows.map((r) => rowHtml(r, f.token)).join("")}</ul></main>${signOutFoot(f.token)}</div>`;
+  const inner = `<div id="root"><header>${BRAND}<h1>Your jobs</h1>${withLine}${more}${all}</header><main id="main">${top}<ul class="rows">${f.rows.map((r) => rowHtml(r, f.token)).join("")}</ul></main>${signOutFoot(f.token)}</div><p id="live" class="sr" role="status" aria-live="polite"></p>`;
   return layout("Your jobs - Trainee", inner, { script: FEED_SCRIPT, tg: true, og: f.og });
 }
 // Sign out of this page here, or everywhere it is open (every session of the account ends; each needs a new sign-in).
@@ -182,11 +198,11 @@ export function renderLinkState(title: string, paras: string[], botUrl?: string 
 
 // ---------------------------------------------------------------- plain text twin: every row, its state, what Apply does
 export function renderText(f: Feed): string {
-  return renderTextRaw(f).replace(BIDI_CONTROLS, "");
+  return renderTextRaw(f).replace(BIDI_CONTROLS, "").replace(LONE_SURROGATE, "");
 }
 function renderTextRaw(f: Feed): string {
   const names = [...new Set(f.rows.map((r) => r.resume).filter(Boolean))];
-  const L = ["Your jobs", ...(names.length ? [`Applying with: ${names.join(", ")}`] : []), `Apply to all: ${f.setHash && f.setSize >= 2 ? `available (${f.setSize} rows)` : "not available"}`, ""];
+  const L = ["Your jobs", ...(names.length ? [`Applying with: ${names.join(", ")}`] : []), ...(f.total && f.total > f.rows.length ? [`Showing the first ${f.rows.length} of ${f.total}.`] : []), `Apply to all: ${f.setHash && f.setSize >= 2 ? `available (${f.setSize} rows)` : "not available"}`, ""];
   f.rows.forEach((r, i) => {
     L.push(`${i + 1}. ${r.job.company} - ${r.job.title}`);
     if (r.snippet) L.push(`   ${r.snippet}`);

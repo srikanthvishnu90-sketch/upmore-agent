@@ -97,7 +97,10 @@ export function parseTelegramUpdate(u: any): { message: InboundMessage | null; i
   // SERIAL-1462: a reply in Telegram carries the replied-to message as message.reply_to_message (Bot API); its message_id
   // is the id sendMessage returned when that message went out.
   const repliedTo = m.reply_to_message && typeof m.reply_to_message === "object" && Number.isSafeInteger(m.reply_to_message.message_id) ? String(m.reply_to_message.message_id) : null;
-  const base = { provider: "telegram" as const, channel: "telegram" as const, messageId, contact: `tg:${m.chat.id}`, address: String(m.chat.id), replyToMessageId: repliedTo };
+  // IDENTITY SCENARIOS (2026-10-30): a forwarded message (Bot API 7.0+ forward_origin; earlier forward_from, forward_from_chat,
+  // forward_sender_name, forward_date) is someone else's words, so it never answers "Reply yes to link it".
+  const forwarded = !!(m.forward_origin || m.forward_from || m.forward_from_chat || m.forward_sender_name || m.forward_date);
+  const base = { provider: "telegram" as const, channel: "telegram" as const, messageId, contact: `tg:${m.chat.id}`, address: String(m.chat.id), replyToMessageId: repliedTo, ...(forwarded ? { forwarded: true } : {}) };
   // FEATURE 16: a document (a resume as a PDF or Word file) is read: getFile, then the file itself (channel_inbound.ts).
   // message.document: file_id (to download), file_unique_id (stable across bots and time), file_name, mime_type,
   // file_size (https://core.telegram.org/bots/api#document, ASSUMED field names). Its caption is the message text.

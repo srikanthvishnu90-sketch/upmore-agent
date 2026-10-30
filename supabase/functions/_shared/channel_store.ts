@@ -94,6 +94,11 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
       const at = rows.filter((r) => r.opted_out === true && r.opted_out_at).map((r) => Date.parse(r.opted_out_at)).filter(Number.isFinite);
       return at.length ? Math.max(...at) : null;
     },
+    // IDENTITY SCENARIOS (2026-10-30): the contact is still this person's, read at the moment of sending.
+    async stillTheirs(userId, contact) {
+      const row = must<any>(await admin.from("channel_contacts").select("user_id").eq("contact", contact).maybeSingle(), "read the contact's owner");
+      return !!row && row.user_id === userId;
+    },
     // WO-091c: paused, opted out or erased (career_user_quiet, 20261022120000_career_control_state.sql).
     async quiet(userId) {
       return must<boolean>(await admin.rpc("career_user_quiet", { p_user: userId }), "read the pause") === true;

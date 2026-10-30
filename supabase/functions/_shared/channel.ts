@@ -70,6 +70,9 @@ export interface ChannelStore {
   quiet?(userId: string): Promise<boolean>;
   // ERASE SCENARIOS ROUND 2 (2026-10-30): the person's account no longer exists (career_account_gone). Absent: not checked.
   gone?(userId: string): Promise<boolean>;
+  // IDENTITY SCENARIOS (2026-10-30): the contact a claimed row is about to go to is still the person's (channel_contacts).
+  // Absent: not checked.
+  stillTheirs?(userId: string, contact: string): Promise<boolean>;
   // A queued job alert or report (key alert:… or report:…) still wanted now: the person's alert settings, the watch behind
   // them and the posting, read at delivery (career_watch_alerts.ts, alertStillWanted). Absent: not checked (memory stores).
   alertWanted?(row: OutboxRow): Promise<boolean>;
@@ -184,6 +187,17 @@ export async function deliverDue(o: {
     if (isReply(m.key) && stalled.has(lane(m))) { r.deferred++; continue; }
     const channel = channelOf(m.contact), adapter = adapterFor(channel);
     if (!adapter) { r.not_wired++; continue; } // claimed but untouched: the run's release puts it back, queued
+    // IDENTITY SCENARIOS (2026-10-30): a run claims up to a hundred rows at once, each with the contact it targeted then. A
+    // Telegram chat unlinked, a WhatsApp number shown to be someone else's, or a chat moved by a link while the run was
+    // sending got the rest of the claimed rows anyway (the rest of a long answer went to the chat just unlinked). Each row is
+    // checked against the contact's owner now; one that is no longer theirs goes back in the queue (sent home on the next run,
+    // or failed with the reason when no channel is left). A check that cannot be read leaves the row for the next run.
+    if (o.store.stillTheirs) {
+      let mine: boolean | null;
+      try { mine = await o.store.stillTheirs(m.userId, m.contact); } catch (e) { console.error("deliver: the contact's owner could not be read:", e instanceof Error ? e.message : String(e)); mine = null; }
+      if (mine === null) { r.deferred++; continue; }
+      if (!mine) { await o.store.mark(m.id, { status: "queued", at: o.now }); r.deferred++; continue; }
+    }
     // STOP holds what Trainee starts (alerts, reports, cards, receipts); the answer to a message the person sent after STOP
     // still goes out, as the STOP reply promises.
     const out = await o.store.optedOut(m.contact);

@@ -69,6 +69,9 @@ export function parseWhatsAppBody(b: any, phoneNumberId?: string): { messages: I
           replyToMessageId: typeof m?.context?.id === "string" && m.context.id ? m.context.id.slice(0, 200) : null,
           aliases: waId && bsuid ? [`wa:${bsuid}`] : [], alias: waId && bsuid ? bsuid : null,
           phone: waId && waId.length >= 8 && waId.length <= 15 ? `+${waId}` : null,
+          // IDENTITY SCENARIOS (2026-10-30): messages[].context.forwarded / frequently_forwarded (Cloud API): someone else's
+          // words, never the person's answer to "Reply yes to link it".
+          ...(m?.context?.forwarded === true || m?.context?.frequently_forwarded === true ? { forwarded: true } : {}),
         };
         // CHANNEL DELIVERY ROUND 2 (2026-10-30): the person's own time for the message (messages[].timestamp, Unix seconds;
         // VERIFIED-S: webhooks/components), so WhatsApp's window is counted from it and not from a retried webhook's arrival.

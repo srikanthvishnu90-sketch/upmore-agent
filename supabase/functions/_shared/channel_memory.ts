@@ -8,7 +8,8 @@ import type { InboundStore, Person, Redeemed } from "./channel_inbound.ts";
 import { LINK_ASK_MS, LINK_NONCE_MS } from "./channel_inbound.ts";
 import { NO_CHANNEL_NOTE } from "./channel.ts";
 
-export interface MemContact { contact: string; userId: string | null; threadId: string | null; optedOut: boolean; phone: string | null; alias: string | null; home: boolean; lastInboundAt: number | null; nudgedAt: number | null; createdAt: number }
+// refusedAt (IDENTITY SCENARIOS, 2026-10-30): channel_contacts.refused_at, the sign-up refusal said to this contact.
+export interface MemContact { contact: string; userId: string | null; threadId: string | null; optedOut: boolean; phone: string | null; alias: string | null; home: boolean; lastInboundAt: number | null; nudgedAt: number | null; createdAt: number; refusedAt?: number | null }
 export interface MemOutbox {
   id: string; userId: string; key: string; kind: string; text: string; deliverAt: number; channel: Channel | null; createdAt: number;
   status: "queued" | "sending" | "delivered" | "failed" | "skipped_opt_out" | "held"; attempts: number; retryAt: number | null;
@@ -30,10 +31,13 @@ export function memoryChannelWorld() {
   const nonces = new Map<string, { userId: string; expiresAt: number; usedAt: number | null }>();
   const asks: { id: number; userId: string; contact: string; phone: string; askedOn: string; createdAt: number; expiresAt: number; answeredAt: number | null }[] = [];
   let users = 0, seq = 0, asksSeq = 0;
-  const phoneOf = (contact: string, phone?: string | null) => (contact.startsWith("+") ? contact : contact.startsWith("tg:") ? null : phone ?? null);
+  // IDENTITY SCENARIOS (2026-10-30): a Telegram contact keeps a number only from the person's own share (Telegram's verified
+  // number, the only way one reaches Trainee there), as 20261030120000_channel_identity.sql allows.
+  const phoneOf = (contact: string, phone?: string | null) => (contact.startsWith("+") ? contact : phone ?? null);
   const upsert = (contact: string, at: number, patch: Partial<MemContact> = {}) => {
     const c = contacts.get(contact) ?? { contact, userId: null, threadId: null, optedOut: false, phone: phoneOf(contact), alias: null, home: false, lastInboundAt: null, nudgedAt: null, createdAt: at };
     Object.assign(c, patch);
+    if (c.userId) c.refusedAt = null; // a contact that gets an account starts afresh (channel_contacts_refusal_reset)
     contacts.set(contact, c);
     return c;
   };
@@ -83,7 +87,17 @@ export function memoryChannelWorld() {
       const c = contacts.get(contact) ?? (contact.startsWith("wa:") ? [...contacts.values()].find((x) => x.alias === contact.slice(3)) : undefined);
       return c?.userId ? { userId: c.userId, threadId: c.threadId, contact: c.contact, alias: c.alias } : null;
     },
-    async refusedBefore(contact, at) { if (contacts.has(contact)) return true; upsert(contact, at); return false; },
+    // IDENTITY SCENARIOS (2026-10-30): the refusal itself is what is remembered, not that a row exists.
+    async refusedBefore(contact, at) {
+      const c = contacts.get(contact);
+      if (c && !c.userId && c.refusedAt != null) return true;
+      upsert(contact, at, { refusedAt: at });
+      return false;
+    },
+    async pendingLink(contact, at) {
+      const r = asks.filter((x) => x.contact === contact && x.answeredAt === null && x.expiresAt > at).sort((x, y) => y.createdAt - x.createdAt || y.id - x.id)[0];
+      return r ? r.askedOn : null;
+    },
     async createPerson(contact, at, phone): Promise<Person> {
       const userId = `u${++users}`;
       upsert(contact, at, { userId, phone: phoneOf(contact, phone) });
@@ -104,9 +118,12 @@ export function memoryChannelWorld() {
       if (!c.userId) return;
       for (const r of outbox) if (r.userId === c.userId && r.status === "held" && (r.channel === null || r.channel === channelOf(contact))) { r.status = "queued"; r.deliverAt = Math.min(r.deliverAt, at); r.error = null; }
     },
+    // IDENTITY SCENARIOS (2026-10-30): a stopped account is still the number's account (it was skipped, and the number signed
+    // up a second time); it is returned marked, after any account that is not stopped. Stopped is the person's (any contact).
     async linkCandidate(phone, except) {
-      const c = [...contacts.values()].filter((x) => x.phone === phone && x.userId && channelOf(x.contact) !== except && !x.optedOut).sort((a, b) => (b.lastInboundAt ?? -Infinity) - (a.lastInboundAt ?? -Infinity))[0];
-      return c ? { userId: c.userId!, contact: c.contact } : null;
+      const c = [...contacts.values()].filter((x) => x.phone === phone && x.userId && channelOf(x.contact) !== except)
+        .sort((a, b) => Number(optedOut(a.contact)) - Number(optedOut(b.contact)) || (b.lastInboundAt ?? -Infinity) - (a.lastInboundAt ?? -Infinity))[0];
+      return c ? { userId: c.userId!, contact: c.contact, optedOut: optedOut(c.contact) } : null;
     },
     async askToLink(a) {
       if (asks.some((x) => x.userId === a.userId && x.contact === a.contact && x.answeredAt === null && x.expiresAt > a.at)) return null;
@@ -121,16 +138,21 @@ export function memoryChannelWorld() {
       return `link:${id}`;
     },
     async confirmLink(a) {
-      const r = asks.filter((x) => x.userId === a.userId && x.askedOn === a.askedOn && x.answeredAt === null && x.expiresAt > a.at).sort((x, y) => y.createdAt - x.createdAt)[0];
+      const r = asks.filter((x) => x.userId === a.userId && x.askedOn === a.askedOn && x.answeredAt === null && x.expiresAt > a.at).sort((x, y) => y.createdAt - x.createdAt || y.id - x.id)[0];
       if (!r) return null;
       r.answeredAt = a.at;
       const other = contacts.get(r.contact)?.userId;
       if (other && other !== a.userId) return null;
-      upsert(r.contact, a.at, { userId: a.userId, threadId: contacts.get(a.askedOn)?.threadId ?? null, phone: r.phone });
+      // IDENTITY SCENARIOS (2026-10-30): one contact per channel: the account's earlier chat on that channel is let go.
+      for (const c of ofUser(a.userId)) if (channelOf(c.contact) === channelOf(r.contact) && c.contact !== r.contact) { c.userId = null; c.threadId = null; c.home = false; }
+      upsert(r.contact, a.at,{ userId: a.userId, threadId: contacts.get(a.askedOn)?.threadId ?? null, phone: r.phone });
       enqueue(a.userId, { key: `link:${r.id}:done`, kind: "link", text: a.notice, at: a.at, channel: channelOf(r.contact) });
       return { contact: r.contact, key: `link:${r.id}:done` };
     },
     async issueLinkNonce(userId, at) {
+      // At most three live links a person: an older one is burned (channel_link_nonce_issue).
+      const live = [...nonces.values()].filter((n) => n.userId === userId && n.usedAt === null && n.expiresAt > at).sort((a, b) => b.expiresAt - a.expiresAt);
+      for (const n of live.slice(2)) n.usedAt = at;
       const bytes = crypto.getRandomValues(new Uint8Array(32));
       const n = Array.from(bytes, (b) => NONCE_CHARS[b & 63]).join("");
       nonces.set(await sha256(n), { userId, expiresAt: at + LINK_NONCE_MS, usedAt: null });
@@ -198,6 +220,7 @@ export function memoryChannelWorld() {
         return out;
       },
       async optedOut(contact) { return optedOut(contact); },
+      async stillTheirs(userId, contact) { return contacts.get(contact)?.userId === userId; },
       async quiet(userId) { return paused.has(userId) || ofUser(userId).some((c) => c.optedOut); },
       async setOptOut(contact, out, at) { await inbound.setOptOut(contact, out, at); },
       async contactsSentOn(day, channel) { return new Set(outbox.filter((o) => o.status === "delivered" && o.deliveredAt !== null && utcDay(o.deliveredAt) === day && (!channel || channelOf(o.contact!) === channel)).map((o) => o.contact)).size; },
@@ -245,6 +268,15 @@ export function memoryChannelWorld() {
     newUser: () => `u${++users}`,
     // CHANNEL DELIVERY ROUND 2 (2026-10-30): the app's home channel (channel_set_home): held rows for the home channel go
     // back in the queue, so they go out on the new home (or are held again there).
+    // IDENTITY SCENARIOS (2026-10-30): an account deleted (delete-account): what references auth.users goes with it (on delete
+    // cascade): its contacts, its outbox, its link questions and its link tokens.
+    deleteUser: (userId: string) => {
+      for (const [k, c] of contacts) if (c.userId === userId) contacts.delete(k);
+      for (let i = outbox.length - 1; i >= 0; i--) if (outbox[i].userId === userId) { claimedIds.delete(outbox[i].id); outbox.splice(i, 1); }
+      for (let i = asks.length - 1; i >= 0; i--) if (asks[i].userId === userId) asks.splice(i, 1);
+      for (const [k, n] of nonces) if (n.userId === userId) nonces.delete(k);
+      paused.delete(userId);
+    },
     setHome: (userId: string, channel: Channel) => {
       if (!ofUser(userId).some((c) => channelOf(c.contact) === channel)) return false;
       for (const c of ofUser(userId)) c.home = channelOf(c.contact) === channel;

@@ -65,6 +65,10 @@ export interface InboundMessage {
   // the build container), so no id is read there. A card's text yes approves only when this id is the message that
   // carried the card (career_apply_cards.ts).
   replyToMessageId?: string | null;
+  // IDENTITY SCENARIOS (2026-10-30): the message was forwarded from somewhere else (Telegram message.forward_origin and the
+  // older forward_from / forward_date; WhatsApp messages[].context.forwarded). Its words are not the person's own answer:
+  // a forwarded "yes" never links a channel.
+  forwarded?: boolean;
   // FEATURE 16: a file the person sent (Telegram message.document): the provider's id to download it by, its stable
   // unique id (the person's upload reference), its name, type and size as the platform reports them. `text` is its caption.
   document?: { fileId: string; uniqueId: string; name: string; mime: string; size: number | null } | null;

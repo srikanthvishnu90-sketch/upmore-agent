@@ -23,6 +23,20 @@
 //     keeps Stripe's status and period end; the chat says "ended" once the end has passed);
 //   - referral credits go to the Stripe balance under an idempotency key made from the credit rows, so two deliveries
 //     credit once.
+//
+// Billing round 2 (battery 2026-10-30, tests/architect/scenarios-billing-r2.test.ts, flow-scenarios-billing-r2.test.ts):
+//   - two live subscriptions for one person (a double checkout) were "last read wins": the row flipped between them with the
+//     order of Stripe's events, and when the shown one ended the row said "cancelled" while the other still charged. Now every
+//     event reads all the person's subscriptions (Stripe's search by the person, the event's customer and the customer
+//     already on the row) and writes one chosen the same way whatever the order: the newest live one (created, then id);
+//     none live, the one on the row as Stripe has it now; the row also says how many are live (live_subscriptions), and the
+//     chat says so;
+//   - the price's currency is kept (a EUR plan was "a price I don't have on file") and a coupon or discount is marked (the
+//     chat said "You're paying $10/month" under a 100%-off coupon);
+//   - customer.deleted (Stripe cancels the customer's subscriptions) was ignored: the row is now re-read and written;
+//     subscription_schedule events are a nudge like the others;
+//   - the referrer's credit was granted on any checkout or paid invoice, a free trial's $0 one included: only a payment of
+//     more than zero counts.
 // Stripe is reached with fetch (no SDK), pinned to API version 2023-10-16 (the version the old handler used, which has
 // current_period_start/end on the subscription). The key and the webhook secret are never printed.
 
@@ -73,6 +87,11 @@ type Json = any;
 export interface WebhookStripe {
   // The subscription as Stripe has it now; null when Stripe says it does not exist (404).
   subscription(id: string): Promise<Json | null>;
+  // Every subscription of a customer, any status (Stripe's list, newest first); [] when Stripe has no such customer.
+  subscriptions?(customerId: string): Promise<Json[]>;
+  // Every subscription whose metadata names the person, under any customer (Stripe's search; it can lag a minute behind,
+  // so the customers' own lists are read as well). [] when Stripe's search is not available to the account.
+  subscriptionsOf?(userId: string): Promise<Json[]>;
   customer(id: string): Promise<Json | null>;
   creditBalance(customerId: string, amountCents: number, description: string, idempotencyKey: string): Promise<void>;
 }
@@ -96,6 +115,21 @@ export function webhookStripe(fetchFn: typeof fetch, key: string, o: { timeoutMs
   return {
     subscription: (id) => call(`/subscriptions/${encodeURIComponent(id)}`, {}, true),
     customer: (id) => call(`/customers/${encodeURIComponent(id)}`, {}, true),
+    async subscriptions(customerId) {
+      const q = new URLSearchParams({ customer: customerId, status: "all", limit: "100" });
+      const j = await call(`/subscriptions?${q}`, {}, true);
+      return Array.isArray(j?.data) ? j.data : [];
+    },
+    async subscriptionsOf(userId) {
+      const q = new URLSearchParams({ query: `metadata['supabase_user_id']:'${userId}'`, limit: "100" });
+      try {
+        const j = await call(`/subscriptions/search?${q}`, {}, true);
+        return Array.isArray(j?.data) ? j.data : [];
+      } catch (e) {
+        if (e instanceof StripeHttpError && e.status === 400) return [];
+        throw e;
+      }
+    },
     async creditBalance(customerId, amountCents, description, idempotencyKey) {
       const body = new URLSearchParams({ amount: String(-Math.abs(amountCents)), currency: "usd", description });
       await call(`/customers/${encodeURIComponent(customerId)}/balance_transactions`, {
@@ -110,6 +144,9 @@ export interface SyncRow {
   user_id: string; status: string; plan: string | null; price_cents: number | null;
   current_period_start: string | null; current_period_end: string | null;
   stripe_customer_id: string; stripe_subscription_id: string; cancel_at_period_end: boolean; synced_at: string;
+  // Billing round 2: the price's currency (null when no price), a coupon or discount on the subscription, and how many of
+  // the person's subscriptions are live (null: not known).
+  currency?: string | null; discounted?: boolean; live_subscriptions?: number | null;
 }
 // applied | stale (a later read already written) | other_subscription (a live different subscription is on the row) |
 // foreign (the customer or subscription is another person's) | no_user | invalid
@@ -117,6 +154,9 @@ export type SyncResult = "applied" | "stale" | "other_subscription" | "foreign" 
 export interface WebhookStore {
   sync(row: SyncRow): Promise<SyncResult>;
   userForCustomer(customerId: string): Promise<string | null>;
+  // The person's row as it is (its customer and subscription), or null. Optional only for older fakes.
+  current?(userId: string): Promise<{ stripe_customer_id: string | null; stripe_subscription_id: string | null; status: string; plan: string | null;
+    price_cents: number | null; current_period_start: string | null; current_period_end: string | null; cancel_at_period_end: boolean | null; currency?: string | null } | null>;
   pendingCredits(userId: string): Promise<{ id: string; amount: number }[]>;
   markCreditsApplied(ids: string[]): Promise<void>;
   creditReferrer(userId: string): Promise<void>;
@@ -129,6 +169,7 @@ export function supabaseWebhookStore(admin: any): WebhookStore {
         p_user_id: row.user_id, p_status: row.status, p_plan: row.plan, p_price_cents: row.price_cents,
         p_period_start: row.current_period_start, p_period_end: row.current_period_end, p_customer: row.stripe_customer_id,
         p_subscription: row.stripe_subscription_id, p_cancel_at_period_end: row.cancel_at_period_end, p_synced_at: row.synced_at,
+        p_currency: row.currency ?? null, p_discounted: row.discounted === true, p_live_subscriptions: row.live_subscriptions ?? null,
       });
       if (r.error) throw new Error(`sync the subscription: ${r.error.message}`);
       return String(r.data) as SyncResult;
@@ -138,6 +179,11 @@ export function supabaseWebhookStore(admin: any): WebhookStore {
       if (r.error) throw new Error(`find the customer: ${r.error.message}`);
       // Two rows holding one customer is no answer at all: nobody is guessed.
       return Array.isArray(r.data) && r.data.length === 1 ? String(r.data[0].user_id) : null;
+    },
+    async current(userId) {
+      const r = await admin.from("user_subscriptions").select("*").eq("user_id", userId).maybeSingle();
+      if (r.error) throw new Error(`read the row: ${r.error.message}`);
+      return r.data ?? null;
     },
     async pendingCredits(userId) {
       // The referral tables are optional on a project (20260927_000001 is not in go-live's list): absent, no credits.
@@ -162,10 +208,12 @@ const idOf = (v: unknown): string | null => typeof v === "string" && v ? v : v &
 export function rowFrom(sub: Json, userId: string, syncedAt: string): SyncRow | null {
   const id = idOf(sub?.id), customer = idOf(sub?.customer);
   if (!id || !customer || !STATUSES.has(String(sub?.status))) return null;
-  // The plan's own price: one item, a whole unit amount in USD; the interval names the plan. Anything else is unknown.
+  // The plan's own price: one item, a whole unit amount in a currency Stripe states (billing round 2: not only USD); the
+  // interval names the plan. Anything else is unknown.
   const items = Array.isArray(sub?.items?.data) ? sub.items.data : [];
   const p = items.length === 1 ? items[0]?.price ?? items[0]?.plan : null;
-  const amount = p && Number.isSafeInteger(p.unit_amount ?? p.amount) && (p.unit_amount ?? p.amount) >= 0 && String(p.currency ?? "").toLowerCase() === "usd"
+  const currency = String(p?.currency ?? "").toLowerCase();
+  const amount = p && Number.isSafeInteger(p.unit_amount ?? p.amount) && (p.unit_amount ?? p.amount) >= 0 && /^[a-z]{3}$/.test(currency)
     && (items[0]?.quantity ?? 1) === 1 ? Number(p.unit_amount ?? p.amount) : null;
   const interval = p?.recurring?.interval ?? p?.interval;
   const count = Number(p?.recurring?.interval_count ?? p?.interval_count ?? 1);
@@ -178,6 +226,10 @@ export function rowFrom(sub: Json, userId: string, syncedAt: string): SyncRow | 
     user_id: userId, status: String(sub.status), plan, price_cents: plan ? amount : null,
     current_period_start: iso(sub.current_period_start), current_period_end: end,
     stripe_customer_id: customer, stripe_subscription_id: id, cancel_at_period_end: ending, synced_at: syncedAt,
+    currency: plan ? currency : null,
+    // A coupon or discount on the subscription (2023-10-16: discount; later versions: discounts): the price is not the charge.
+    discounted: !!(sub.discount && typeof sub.discount === "object") || (Array.isArray(sub.discounts) && sub.discounts.length > 0),
+    live_subscriptions: null,
   };
 }
 
@@ -212,11 +264,18 @@ export async function handleStripeWebhook(req: Request, d: WebhookDeps): Promise
     if (type === "checkout.session.completed") subId = idOf(obj.subscription);
     else if (type.startsWith("customer.subscription.")) subId = idOf(obj.id);
     else if (type.startsWith("invoice.")) subId = idOf(obj.subscription);
-    else { console.log(`stripe-webhook: unhandled event ${type}`); return json({ received: true }); }
+    else if (type.startsWith("subscription_schedule.")) subId = idOf(obj.subscription);
+    else if (type === "customer.deleted") {
+      const out = await customerDeleted(idOf(obj.id), d);
+      return json({ received: true, ...(out === "applied" ? {} : { ignored: out }) });
+    } else { console.log(`stripe-webhook: unhandled event ${type}`); return json({ received: true }); }
     if (!subId) return json({ received: true, ignored: "no subscription" });
     const out = await sync(subId, d);
-    // The referrer's credit on a paid charge (idempotent in the database: only a pending referral is credited).
-    if (out.userId && (type === "checkout.session.completed" || type === "invoice.payment_succeeded" || type === "invoice.paid")) await d.store.creditReferrer(out.userId);
+    // The referrer's credit on a paid charge (idempotent in the database: only a pending referral is credited). Only money
+    // actually paid counts: a free trial's checkout or $0 invoice, or a 100%-off coupon, is not a paid charge.
+    const paid = type === "checkout.session.completed" ? obj.payment_status === "paid" && Number(obj.amount_total) > 0
+      : (type === "invoice.payment_succeeded" || type === "invoice.paid") && Number(obj.amount_paid) > 0;
+    if (out.userId && paid) await d.store.creditReferrer(out.userId);
     return json({ received: true, ...(out.result === "applied" ? {} : { ignored: out.result }) });
   } catch (e) {
     // Stripe or the database did not answer: nothing is written from the payload; Stripe retries.
@@ -241,8 +300,26 @@ async function sync(subId: string, d: WebhookDeps): Promise<{ result: SyncResult
     console.error(`stripe-webhook: no person for subscription ${subId}; ignored`);
     return { result: "unknown_person", userId: null };
   }
-  const row = rowFrom(sub, userId, syncedAt);
+  // Every subscription the person has at Stripe (Stripe's search by the person, this customer's, and the customer already
+  // on the row), and the one to show chosen by Stripe's own facts, so the order events arrive in never decides it.
+  const cur = d.store.current ? await d.store.current(userId) : null;
+  const all = new Map<string, Json>();
+  if (stripe.subscriptionsOf) for (const s of await stripe.subscriptionsOf(userId)) { const sid = idOf(s?.id); if (sid && s?.metadata?.supabase_user_id === userId) all.set(sid, s); }
+  if (stripe.subscriptions) {
+    for (const c of [...new Set([customer, cur?.stripe_customer_id].filter((x): x is string => typeof x === "string" && !!x))]) {
+      for (const s of await stripe.subscriptions(c)) {
+        const sid = idOf(s?.id);
+        const owner = typeof s?.metadata?.supabase_user_id === "string" ? s.metadata.supabase_user_id : null;
+        // Another person's subscription on a shared customer is never theirs to show here.
+        if (sid && (owner === null || owner === userId)) all.set(sid, s);
+      }
+    }
+  }
+  all.set(subId, sub); // the subscription just read is the freshest copy of itself
+  const chosen = choose([...all.values()], cur?.stripe_subscription_id);
+  const row = rowFrom(chosen, userId, syncedAt);
   if (!row) return { result: "invalid", userId: null };
+  row.live_subscriptions = stripe.subscriptions ? [...all.values()].filter((s) => LIVE.includes(String(s?.status))).length : null;
   const result = await d.store.sync(row);
   if (result !== "applied") {
     console.log(`stripe-webhook: subscription ${subId} not written (${result})`);
@@ -250,6 +327,35 @@ async function sync(subId: string, d: WebhookDeps): Promise<{ result: SyncResult
   }
   if (row.status === "active") await applyCredits(userId, row.stripe_customer_id, d);
   return { result, userId };
+}
+
+// The subscription a person's row shows: the newest live one (created, then id); none live, the one already on the row as
+// Stripe has it now (so its own end is written, never refused as another subscription's), else the newest of any status.
+export function choose(subs: Json[], onRow?: string | null): Json {
+  const order = (a: Json, b: Json) => (Number(b?.created) || 0) - (Number(a?.created) || 0) || String(idOf(b?.id)).localeCompare(String(idOf(a?.id)));
+  const live = subs.filter((s) => LIVE.includes(String(s?.status))).sort(order);
+  return live[0] ?? subs.find((s) => onRow && idOf(s?.id) === onRow) ?? [...subs].sort(order)[0];
+}
+
+// customer.deleted: Stripe cancels a deleted customer's subscriptions. The row that holds the customer is synced like any
+// other event (all the person's subscriptions read, so a live one under another customer is still found); a subscription
+// Stripe no longer returns, under a customer Stripe confirms deleted, is written as cancelled (the row's own period and
+// price kept). Nothing is guessed when Stripe does not confirm the deletion.
+async function customerDeleted(customer: string | null, d: WebhookDeps): Promise<SyncResult | "unknown_person" | "not_deleted" | "no_row" | "not_found"> {
+  if (!customer) return "unknown_person";
+  const stripe = d.stripe!;
+  const userId = await d.store.userForCustomer(customer);
+  if (!userId || !UUID.test(userId)) return "unknown_person";
+  const c = await stripe.customer(customer);
+  if (c && !c.deleted) return "not_deleted";
+  const cur = d.store.current ? await d.store.current(userId) : null;
+  if (!cur?.stripe_subscription_id || cur.stripe_customer_id !== customer) return "no_row";
+  if (await stripe.subscription(cur.stripe_subscription_id)) return (await sync(cur.stripe_subscription_id, d)).result;
+  return await d.store.sync({
+    user_id: userId, status: "canceled", plan: cur.plan, price_cents: cur.price_cents, current_period_start: cur.current_period_start,
+    current_period_end: cur.current_period_end, stripe_customer_id: customer, stripe_subscription_id: cur.stripe_subscription_id,
+    cancel_at_period_end: false, synced_at: new Date(d.now()).toISOString(), currency: cur.currency ?? null, discounted: false, live_subscriptions: 0,
+  });
 }
 
 async function applyCredits(userId: string, customerId: string, d: WebhookDeps) {

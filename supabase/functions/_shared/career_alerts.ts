@@ -36,6 +36,9 @@ export interface PlanUser {
   last_report_on: string | null; // YYYY-MM-DD in the person's zone
   held?: string[]; // job_ids the daily cap held back
   sent_this_week?: number; // WO-037: alerts queued for delivery in the last 7 days (the run counts them from the outbox)
+  // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): the jobs (twinKey) of alerts already queued for the person: the same job
+  // seen again on another board is not news.
+  alerted_twins?: string[];
 }
 export type Planned =
   | { userId: string; kind: "alert"; key: string; at: number; job_id: string; text: string }
@@ -68,11 +71,42 @@ export const WEEKLY_DEFAULT = 15, WEEKLY_MAX = 25;
 export const weeklyCap = (p: AlertPrefs) => Math.max(0, Math.min(WEEKLY_MAX, Math.floor(p.max_per_week ?? WEEKLY_DEFAULT)));
 const DAY = 86400000;
 
-const words = (s: unknown) => String(s ?? "").toLowerCase().split(/[^a-z0-9+#]+/).filter(Boolean);
+// PROACTIVE SCENARIOS ROUND 2 (2026-10-30): what a phone does not show is not part of a posting's words. Zero-width and
+// direction characters are dropped before a title is matched or quoted: "Data​Analyst" reads "DataAnalyst", and a
+// right-to-left override (U+202E) in a title turned "gnp.exe" into "exe.png" on the person's screen inside an alert.
+const FORMAT_CHARS = /[­​-‏‪-‮⁠-⁤⁦-⁩﻿]/g;
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/g;
+const words = (s: unknown) => String(s ?? "").replace(FORMAT_CHARS, "").toLowerCase().split(/[^a-z0-9+#]+/).filter(Boolean);
 // Postgres hands timestamps back as "+00:00", the feed as "Z": compare instants, never strings.
 const ms = (t: unknown) => { const n = Date.parse(String(t ?? "")); return Number.isFinite(n) ? n : NaN; };
-// Posting fields are other people's text: one line, bounded, before they go into a message.
-const clean = (s: unknown, n: number) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+// Posting fields are other people's text: one line, bounded, before they go into a message. PROACTIVE SCENARIOS ROUND 2
+// (2026-10-30): and only their visible words. A board's markup ("<b>Data Analyst</b> <a href=...>apply</a>", a <script>,
+// an <img onerror=...>) went into the alert and the daily report as written, and the dashboard's feed reads the same rows;
+// invisible direction and control characters went in too. Markup is dropped (a script or style element with its content),
+// invisible characters are dropped, control characters read as spaces.
+export function postingText(s: unknown, n: number): string {
+  return String(s ?? "")
+    .replace(/<\s*(script|style)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, " ")
+    .replace(/<\s*\/?\s*[a-z][^>]*>/gi, " ")
+    .replace(FORMAT_CHARS, "").replace(CONTROL_CHARS, " ")
+    .replace(/\s+/g, " ").trim().slice(0, n).trim();
+}
+const clean = postingText;
+// The same job on two boards (a company that posts on Greenhouse and on Lever, each with its own id and sometimes its own
+// pay): one job to the person. Its board (provider:board, from the job id) and its company, title and place as the person
+// would read them. Two postings alike on ONE board are two openings (two requisitions), never twins.
+export const twinKey = (p: any) => `${String(p?.job_id ?? "").split(":").slice(0, 2).join(":")}|${[p?.company, p?.title, p?.location].map((x) => clean(x, 200).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()).join("|")}`;
+const sourceOf = (k: string) => k.slice(0, k.indexOf("|"));
+const jobOf = (k: string) => k.slice(k.indexOf("|") + 1);
+// Whether a posting (its twinKey) is the same job as one already taken from another board.
+function twinOf(taken: Map<string, Set<string>>, k: string): boolean {
+  const from = taken.get(jobOf(k));
+  return !!from && [...from].some((s) => s !== sourceOf(k));
+}
+function take(taken: Map<string, Set<string>>, k: string) {
+  if (!taken.has(jobOf(k))) taken.set(jobOf(k), new Set());
+  taken.get(jobOf(k))!.add(sourceOf(k));
+}
 const httpsUrl = (u: unknown) => (/^https:\/\/\S+$/.test(String(u ?? "")) ? String(u) : null);
 
 export function matchPosting(p: any, prefs: AlertPrefs): boolean {
@@ -114,6 +148,18 @@ export function zoneOr(tz: unknown, fallback = DEFAULT_ZONE): string {
 }
 // The person's local date (YYYY-MM-DD) at an instant, in their zone (zoneOr).
 export const localDay = (at: number, tz: unknown) => local(at, zoneOr(tz)).date;
+// The first instant of the person's local day (on the minute; a day that starts inside a daylight-saving jump starts at
+// its first minute that exists).
+export function localDayStart(at: number, tz: unknown): number {
+  const zone = zoneOr(tz), day = local(at, zone).date;
+  let t = Math.floor(at / 60000) * 60000;
+  const l = local(t, zone);
+  t -= (l.hour * 60 + l.minute) * 60000;
+  // a daylight-saving change between midnight and `at` leaves t an hour off: step to the day's first minute
+  while (local(t, zone).date === day && local(t - 60000, zone).date === day) t -= 15 * 60000;
+  while (local(t, zone).date !== day) t += 60000;
+  return t;
+}
 // The person's local date, hour and minute at an instant.
 // One formatter per zone, kept (2026-10-30): building an Intl.DateTimeFormat is the expensive part (ICU loads the zone's
 // rules), and nextAwake asks the clock up to ~100 times per person per run; the answer is the same either way.
@@ -162,7 +208,14 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
     const weekRoom = weeklyCap(prefs) - Math.max(0, Number(u.sent_this_week ?? 0));
     let room = Math.max(0, Math.min(dayRoom, Number.isFinite(weekRoom) ? weekRoom : 0));
     const at = isQuiet(l.hour, prefs) ? nextAwake(o.now, u.tz, prefs) : o.now;
+    // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): one alert per job. The same job on two boards (its own id on each, other
+    // pay) was two alerts, and took two of the day's places.
+    const twins = new Map<string, Set<string>>();
+    for (const k of u.alerted_twins ?? []) take(twins, k);
     for (const p of fresh) {
+      const twin = twinKey(p);
+      if (twinOf(twins, twin)) continue;
+      take(twins, twin);
       if (room <= 0) { out.push({ userId: u.id, kind: "held", job_id: p.job_id }); continue; }
       room--;
       const mins = Math.max(0, Math.floor((o.now - ms(p.first_seen_at)) / 60000));
@@ -172,9 +225,11 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
     // The daily report: once per local day, at or after the person's hour.
     if (l.hour >= prefs.report_hour && u.last_report_on !== l.date) {
       const held = new Set(u.held || []);
+      const listed = new Map<string, Set<string>>();
       const day = o.postings
         .filter((p) => matchPosting(p, prefs) && floorOk(p) && ((ms(p.first_seen_at) > o.now - DAY && freshWhenSeen(p)) || held.has(p.job_id)))
-        .sort(byFit(fits));
+        .sort(byFit(fits))
+        .filter((p) => { const t = twinKey(p); if (twinOf(listed, t)) return false; take(listed, t); return true; });
       const text = day.length
         ? [`Your daily job report: ${day.length} match${day.length === 1 ? "" : "es"} in the last day.`,
            ...day.slice(0, REPORT_LIMIT).map((p) => `- ${line(p)}\n  ${httpsUrl(p.url)}`),

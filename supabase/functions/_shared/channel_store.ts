@@ -7,7 +7,8 @@
 // person's across channels.
 import type { ChannelStore, DeliveryMark, OutboxRow } from "./channel.ts";
 import type { Channel } from "./channel_adapters.ts";
-import { alertStillWanted } from "./career_watch_alerts.ts";
+import { alertStillWanted, alertWithinLimits } from "./career_watch_alerts.ts";
+import { localDayStart, zoneOr } from "./career_alerts.ts";
 import { buttonsForRows } from "./channel_card_tap.ts"; // FEATURE 16
 
 export const SENDING_TIMEOUT_MS = 10 * 60000; // longer than any run can last (a function's wall clock is shorter)
@@ -43,6 +44,15 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
         const by = new Map(seen.map((s) => [s.contact, s]));
         for (const r of out) if (by.has(r.contact)) { const s = by.get(r.contact); r.lastInboundAt = ms(s.last_inbound_at); r.nudgedAt = ms(s.nudged_at); }
         for (const r of out) if (String(r.contact).startsWith("wa:") && r.lastInboundAt === undefined) { r.lastInboundAt = null; r.nudgedAt = null; }
+        // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): whether the window ever held each one (held_at,
+        // 20261030070000_proactive_r2.sql). A project without the column, or a read that fails, leaves it unknown: such a
+        // row is never treated as stale on WhatsApp (as before).
+        const ids = out.filter((r) => String(r.contact).startsWith("wa:")).map((r) => r.id);
+        const held = await admin.from("career_outbox").select("id,held_at").in("id", ids);
+        if (!held.error) {
+          const at = new Map<string, number | null>((held.data ?? []).map((h: any) => [String(h.id), ms(h.held_at)]));
+          for (const r of out) if (at.has(r.id)) r.heldAt = at.get(r.id) ?? null;
+        }
       }
       // FEATURE 16: a Telegram row that carries an open card goes out with the card's Approve and Decline buttons, bound
       // to that card and its items' hashes (channel_card_tap.ts). A read that fails sends the text without them: the
@@ -93,6 +103,40 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
         : null;
       return alertStillWanted(m.key, { row: prefs ? { prefs: prefs.prefs } : null, record, posting });
     },
+    // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): a job alert against the person's fit floor and daily cap now: the fit it was
+    // queued with (alert_fit, 20261030070000_proactive_r2.sql; without the column the fit is not known and never holds an
+    // alert back) and the alerts already delivered today on their clock. A read that fails throws: the row waits.
+    async alertWithinLimits(m, now) {
+      const prefs = must<any>(await admin.from("career_alert_prefs").select("prefs,tz").eq("user_id", m.userId).maybeSingle(), "read alert settings");
+      if (!prefs) return true;
+      const f = await admin.from("career_outbox").select("alert_fit").eq("id", m.id).maybeSingle();
+      const fit = !f.error && typeof f.data?.alert_fit === "number" ? f.data.alert_fit : null;
+      const since = new Date(localDayStart(now, zoneOr(prefs.tz))).toISOString();
+      const r = await admin.from("career_outbox").select("id", { count: "exact", head: true }).eq("user_id", m.userId).eq("kind", "alert").eq("status", "delivered").gte("delivered_at", since);
+      if (r.error) throw new Error(`count today's alerts: ${r.error.message}`);
+      return alertWithinLimits(prefs.prefs, fit, Number(r.count) || 0);
+    },
+    // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): a daily report's postings closed since it was written.
+    async closedLinks(urls) {
+      const rows = must<any[]>(await admin.from("career_postings").select("url").in("url", urls.slice(0, 50)).not("closed_at", "is", null), "read the report's postings") || [];
+      return new Set(rows.map((r) => String(r.url)));
+    },
+    // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): the person's zone and quiet hours now (their alert settings), null with none.
+    async quietHours(userId) {
+      const r = must<any>(await admin.from("career_alert_prefs").select("tz,prefs").eq("user_id", userId).maybeSingle(), "read quiet hours");
+      return r ? { tz: r.tz ?? null, quiet_start: r.prefs?.quiet_start, quiet_end: r.prefs?.quiet_end } : null;
+    },
+    // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): channel_template_claim (20261030070000_proactive_r2.sql). A project without
+    // it answers null: the run counts as before.
+    async claimTemplate(contact, day, cap, at) {
+      const r = await admin.rpc("channel_template_claim", { p_contact: contact, p_day: day, p_cap: cap, p_at: iso(at) });
+      const said = `${(r.error as any)?.code ?? ""} ${r.error?.message ?? ""}`;
+      if (r.error && /channel_template_claim|PGRST202/i.test(said) && /exist|find|no function|PGRST202/i.test(said)) return null;
+      return must<boolean>(r, "claim a template") === true;
+    },
+    async unclaimTemplate(contact, at) {
+      must(await admin.from("channel_contacts").update({ nudged_at: null }).eq("contact", contact).eq("nudged_at", iso(at)), "give back a template");
+    },
     async setOptOut(contact, out, at) {
       must(await admin.rpc("channel_set_opt_out", { p_contact: contact, p_out: out, p_at: iso(at) }), "save opt-out");
     },
@@ -111,6 +155,8 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
       const patch = m.status === "delivered" ? { ...base, delivered_at: iso(m.at), provider_id: m.providerId ? m.providerId.slice(0, 200) : null, retry_at: null,
           ...(m.providerIds ? { provider_ids: m.providerIds.slice(0, 10).map((x) => x.slice(0, 200)) } : {}) }
         : m.status === "failed" ? { ...base, attempts: (c?.attempts ?? 0) + 1, retry_at: m.retryAt ? iso(m.retryAt) : null }
+        // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): put back for later (quiet hours on the person's clock now).
+        : m.status === "queued" ? { ...base, status: "queued", contact: null, retry_at: null, ...(m.deliverAt ? { deliver_at: iso(m.deliverAt) } : {}) }
         : { ...base, retry_at: null };
       must(await admin.from("career_outbox").update(patch).eq("id", id).eq("status", "sending"), "record delivery");
       claimed.delete(id);

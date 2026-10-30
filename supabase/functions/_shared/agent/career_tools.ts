@@ -879,7 +879,8 @@ export function careerTools(deps: {
         const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`invite:${c.userId}:${text.replace(/\s+/g, " ").trim()}`)));
         const key = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
         const postings = await deps.postings(`${inv.role ?? ""} ${inv.company ?? ""}`.trim()).catch(() => []);
-        const b = inviteBrief(inv, { now: c.now, postings });
+        // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): a stated time is also said on the person's own clock (their zone named).
+        const b = inviteBrief(inv, { now: c.now, postings, tz: deps.tz ?? null });
         // Kept for its thank-you, its nudge and the digest; a store that cannot be written never stops the brief.
         let kept = false;
         if (deps.interviews) {
@@ -889,7 +890,7 @@ export function careerTools(deps: {
           } catch (e) { console.error("brief_from_invite: not kept", e instanceof Error ? e.message : String(e)); }
         }
         return {
-          is_invite: true, invite: { company: inv.company, role: inv.role, when: whenLine(inv), format: inv.format, interviewers: inv.interviewers },
+          is_invite: true, invite: { company: inv.company, role: inv.role, when: whenLine(inv, deps.tz ?? null), format: inv.format, interviewers: inv.interviewers },
           interviewers_note: INTERVIEWER_NOTE, texts: b.texts, record: b.record, patterns_from: b.patterns_from, kept,
         };
       },

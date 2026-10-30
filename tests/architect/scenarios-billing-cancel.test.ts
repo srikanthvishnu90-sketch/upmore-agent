@@ -326,7 +326,10 @@ Deno.test({
     for (const l of logs) if (l.includes(STRIPE_KEY) || l.includes(WEBHOOK_SECRET)) { fails.push(`a secret in a log line: ${l.slice(0, 160)}`); break; }
     console.log(`[webhook scenarios] ${WEBHOOK.length} scenarios, ${deliveries} deliveries; ${Object.entries(tally).sort().map(([k, v]) => `${k} ${v}`).join(", ")}`);
     if (fails.length) throw new Error(`${fails.length} webhook failures:\n${[...new Set(fails)].slice(0, 60).join("\n")}`);
-    for (const k of ["sync:stale", "sync:other_subscription", "sync:foreign", "sync:no_user"]) assertNode.ok((tally[k] ?? 0) > 0, `${k} exercised`);
+    // Billing round 2: the handler reads all the person's subscriptions and always writes the newest live one, so the store's
+    // "other_subscription" refusal is a safety net the handler no longer reaches (the row is still checked against Stripe's
+    // live subscription after every step above; tests/db/billing_webhook_sync*.test.sql check the refusal itself).
+    for (const k of ["sync:stale", "sync:foreign", "sync:no_user"]) assertNode.ok((tally[k] ?? 0) > 0, `${k} exercised`);
   },
 });
 

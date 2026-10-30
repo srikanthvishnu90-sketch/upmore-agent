@@ -236,6 +236,7 @@ MIGRATIONS=(
   20261030100000_channel_delivery_r2.sql
   20261030110000_career_ingest_r2.sql
   20261030120000_channel_identity.sql
+  20261030130000_billing_r2.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -351,6 +352,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_outbox_reroute') and exists (select 1 from pg_proc where proname = 'career_outbox_fail_sent') and exists (select 1 from pg_proc where proname = 'channel_wa_number_moved') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_outbox' and column_name = 'sent_parts')"
   "exists (select 1 from pg_proc where proname = 'career_board_state_claim') and exists (select 1 from pg_trigger where tgname = 'career_postings_closed_apply' and tgrelid = 'public.career_postings'::regclass)"
   "exists (select 1 from pg_proc where proname = 'channel_refused_before') and exists (select 1 from pg_proc where proname = 'channel_link_pending') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'channel_contacts' and column_name = 'refused_at')"
+  "exists (select 1 from pg_proc where proname = 'billing_sync_subscription' and pronargs = 13) and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'user_subscriptions' and column_name = 'live_subscriptions')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

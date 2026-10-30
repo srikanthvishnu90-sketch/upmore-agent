@@ -173,7 +173,7 @@ Deno.test({
           if (c.body !== "cancel_at_period_end=true" || c.path !== `/v1/subscriptions/${rowAtAsk?.stripe_subscription_id}`) fail(`cancel call: ${c.path} ${c.body}`);
           if (c.auth !== `Bearer ${STRIPE_KEY}`) fail("cancel without the key header");
         }
-        if (w.calls.some((c) => c.method === "GET" && !/^\/v1\/invoices\?customer=cus_scen\d+&status=paid&limit=5$/.test(c.path))) fail(`an unexpected Stripe read: ${w.calls.map((c) => c.path).join(", ")}`);
+        if (w.calls.some((c) => c.method === "GET" && !/^\/v1\/invoices\?customer=cus_scen\d+&status=paid&limit=5&expand%5B%5D=data\.charge$/.test(c.path))) fail(`an unexpected Stripe read: ${w.calls.map((c) => c.path).join(", ")}`);
         // The row is marked ending exactly when Stripe confirmed a cancel.
         const confirmed = posts.length > 0 && sc.mode === "ok";
         if ((w.state.marked > 0) !== confirmed) fail(`row marked ${w.state.marked}, Stripe confirmed ${confirmed}`);

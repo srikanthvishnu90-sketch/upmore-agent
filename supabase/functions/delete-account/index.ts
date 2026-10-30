@@ -37,7 +37,8 @@ serve(async (req: Request) => {
     return new Response("confirmation mismatch", { status: 400 });
   }
 
-  const r = await deleteAccount(restDeps(SUPABASE_URL, SERVICE_KEY, fetch), uid);
+  // Billing round 2: a live Trainee plan is cancelled at Stripe first; unconfirmed, nothing is deleted (account_delete.ts).
+  const r = await deleteAccount(restDeps(SUPABASE_URL, SERVICE_KEY, fetch, { billing: { stripeKey: Deno.env.get("STRIPE_SECRET_KEY") } }), uid);
   return new Response(JSON.stringify({
     deleted: r.deleted, user_id: uid, google: r.google, outlook: r.outlook, failures: r.failures, message: deletionWords(r),
   }), { status: r.deleted ? 200 : 502, headers: { "Content-Type": "application/json" } });

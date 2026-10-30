@@ -44,6 +44,8 @@ export class FakeStripe {
   balance = new Map<string, number>();
   calls: Call[] = [];
   mode: Mode = "ok";
+  searchLagSec = 0;
+  searchNowSec = 0;
   // Stripe keeps a key ~24 h: same key and same request -> the first answer again, nothing applied; a different request -> 400.
   private idem = new Map<string, { path: string; body: string; status: number; json: unknown }>();
   constructor(private key = STRIPE_KEY) {}
@@ -82,6 +84,13 @@ export class FakeStripe {
       return json(v, status);
     };
     let m: RegExpExecArray | null;
+    // Stripe's search by metadata (stripe-webhook reads it since billing round 2); searchLagSec leaves out what was
+    // created within that many seconds of searchNowSec (Stripe's search can lag about a minute).
+    if (url.pathname === "/v1/subscriptions/search" && req.method === "GET") {
+      const who = /metadata\['supabase_user_id'\]:'([^']+)'/.exec(url.searchParams.get("query") ?? "")?.[1];
+      const list = [...this.subs.values()].filter((x) => who && x.metadata.supabase_user_id === who && !(this.searchLagSec && x.created > this.searchNowSec - this.searchLagSec));
+      return answer({ object: "search_result", data: list.map((x) => this.subJson(x)), has_more: false });
+    }
     if ((m = /^\/v1\/subscriptions\/([^/]+)$/.exec(url.pathname))) {
       const s = this.subs.get(decodeURIComponent(m[1]));
       if (!s) return answer({ error: { type: "invalid_request_error", code: "resource_missing" } }, 404);
@@ -105,6 +114,12 @@ export class FakeStripe {
       const c = this.customers.get(decodeURIComponent(m[1]));
       if (!c) return answer({ error: { type: "invalid_request_error", code: "resource_missing" } }, 404);
       return answer(c.deleted ? { id: c.id, deleted: true } : { id: c.id, object: "customer", metadata: { ...c.metadata } });
+    }
+    // A customer's subscriptions, any status, newest first (stripe-webhook reads them since billing round 2).
+    if (url.pathname === "/v1/subscriptions" && req.method === "GET") {
+      const c = url.searchParams.get("customer");
+      const list = [...this.subs.values()].filter((x) => x.customer === c).sort((x, y) => y.created - x.created || (y.id < x.id ? -1 : 1));
+      return answer({ object: "list", data: list.map((x) => this.subJson(x)), has_more: false });
     }
     if (url.pathname === "/v1/invoices") return answer({ object: "list", data: [] });
     return answer({ error: { type: "invalid_request_error" } }, 404);

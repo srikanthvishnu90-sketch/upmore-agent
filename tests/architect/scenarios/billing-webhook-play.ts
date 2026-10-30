@@ -207,7 +207,8 @@ export async function playWebhook(sc: WebhookScenario, o: {
   // Stripe calls: the key, the pinned version, and only these.
   for (const c of fake.calls) {
     if (c.auth !== `Bearer ${STRIPE_KEY}` || c.version !== "2023-10-16") fail(`a Stripe call without the key or version: ${c.path}`);
-    if (!(c.method === "GET" && /^\/v1\/(?:subscriptions|customers)\/[A-Za-z0-9_]+$/.test(c.path)) && !(c.method === "POST" && /^\/v1\/customers\/[A-Za-z0-9_]+\/balance_transactions$/.test(c.path))) fail(`an unexpected Stripe call: ${c.method} ${c.path}`);
+    if (!(c.method === "GET" && /^\/v1\/(?:subscriptions|customers)\/[A-Za-z0-9_]+$/.test(c.path)) && !(c.method === "GET" && /^\/v1\/subscriptions\?customer=[A-Za-z0-9_]+&status=all&limit=100$/.test(c.path))
+      && !(c.method === "GET" && /^\/v1\/subscriptions\/search\?query=metadata%5B%27supabase_user_id%27%5D%3A%27[0-9a-f-]+%27&limit=100$/.test(c.path)) && !(c.method === "POST" && /^\/v1\/customers\/[A-Za-z0-9_]+\/balance_transactions$/.test(c.path))) fail(`an unexpected Stripe call: ${c.method} ${c.path}`);
   }
   return { fails, deliveries: Object.values(statuses).reduce((a, b) => a + b, 0), statuses };
 

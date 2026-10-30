@@ -18,7 +18,7 @@ import { legacyRows } from "./career_referrals.ts";
 import { parsePeopleAsk, type PeopleDeps, type PersonRec, peopleTurn } from "./career_people.ts";
 import { chatAsk, companyKey } from "./career_people_import.ts";
 import { batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
-  type KeyedContact, type OutreachStore, payloadHash, type Recipient, recordOutreach, blockedAddresses, BLOCKED_WHY } from "./career_outreach.ts";
+  type KeyedContact, type OutreachStore, payloadHash, type Recipient, recordOutreach, blockedAddresses, BLOCKED_WHY, draftLangOf } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
 import { siteAsk, trackTurn } from "./career_outreach_track.ts";
 
@@ -559,7 +559,7 @@ async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>
 
 async function writeBatch(o: NetworkingDeps, pick: ContactRow[], held: { name: string; why: string }[], considered: number, topic: string | null, signature: string, facts: unknown[], replace: OutreachDraft[] = []): Promise<NetworkingResult> {
   const results: Drafted[] = [];
-  for (let k = 0; k < pick.length; k += 5) results.push(...await Promise.all(pick.slice(k, k + 5).map((r) => draftFor({ model: o.model!, facts, r: recipientOf(r), topic }))));
+  for (let k = 0; k < pick.length; k += 5) results.push(...await Promise.all(pick.slice(k, k + 5).map((r) => draftFor({ model: o.model!, facts, r: recipientOf(r), topic, lang: draftLangOf(o.message) }))));
   const footer = footerOf(signature), ok: Omit<OutreachDraft, "id" | "batch_id" | "thread_id">[] = [];
   const failed: { name: string; why: string }[] = [];
   for (const [k, d] of results.entries()) {

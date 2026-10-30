@@ -301,7 +301,12 @@ export interface MailProviderLike {
     | { status: "REFUSED" | "CHANGED" | "CANCELLED" | "UNKNOWN"; detail: string } | { status: "RATE_LIMITED"; retryAfterMs: number }>;
 }
 export type RecordBounce = (domain: string, localPartFormat: string | null, o: { addressType: AddressType | null }) => Promise<void>;
-export interface WorkerOpts { worker: string; accounts?: number; perAccount?: number; leaseSeconds?: number; deadlineMs?: number; idleStop?: boolean }
+// sendTimeoutMs: how long one Gmail send request may take before it is given up (NETWORKING R2, 2026-10-30). Always
+// shorter than the lease (at most half of it), so a send still waiting on Gmail can never overlap a re-claim of the same
+// email; a request given up is an attempt (it may have reached Gmail), so the next try looks in Sent first.
+export interface WorkerOpts { worker: string; accounts?: number; perAccount?: number; leaseSeconds?: number; deadlineMs?: number; idleStop?: boolean; sendTimeoutMs?: number }
+export const SEND_TIMEOUT_MS = 30_000;
+export const sendTimeout = (o: Pick<WorkerOpts, "leaseSeconds" | "sendTimeoutMs">) => Math.max(1, Math.min(o.sendTimeoutMs ?? SEND_TIMEOUT_MS, Math.floor(((o.leaseSeconds ?? 120) * 1000) / 2)));
 export interface WorkerStats { claims: number; sent: number; already_sent: number; retry: number; quota: number; reconnect: number; policy: number; refused: number; failed: number; stale: number; answered: number; errors: number; error: string | null }
 
 // Every address in a To header ("Jane <j@x.com>, k@y.com", a quoted "Doe, Jane" name included), lowercase.
@@ -342,7 +347,7 @@ async function mayGo(d: WorkerDeps, it: Claimed, worker: string, stats: WorkerSt
   stats.stale++;
   return out("retry", { untried: true, detail: go === null ? "could not check the email before sending" : "cancelled before it went", retry_at: new Date(now() + 60_000).toISOString() });
 }
-async function sendOne(d: WorkerDeps, it: Claimed, stats: WorkerStats, worker: string): Promise<Outcome> {
+async function sendOne(d: WorkerDeps, it: Claimed, stats: WorkerStats, worker: string, timeoutMs = SEND_TIMEOUT_MS): Promise<Outcome> {
   const now = d.now ?? Date.now;
   const out = (outcome: string, extra: Record<string, unknown> = {}): Outcome => ({ id: it.id, outcome, ...extra });
   const m: Mail = { to: it.to, subject: it.subject, text: it.body };
@@ -380,13 +385,31 @@ async function sendOne(d: WorkerDeps, it: Claimed, stats: WorkerStats, worker: s
   const stop = await mayGo(d, it, worker, stats, out);
   if (stop) return stop;
   let ans: GmailAnswer;
+  // NETWORKING R2 (2026-10-30): the send request (and reading Gmail's answer) is bounded, shorter than the lease. Before, a
+  // request that hung past the 120 s lease left the email claimable by another worker while this one could still be
+  // answered "sent": the two could overlap. Given up, it is a try that may have reached Gmail: retried only after the
+  // person's Sent mail shows it did not go (inSent above, on the next attempt).
+  const ac = new AbortController();
+  let timedOut = false;
+  const late = `Gmail did not answer within ${Math.max(1, Math.round(timeoutMs / 1000))} s; Sent is checked before any retry`;
+  const timer = setTimeout(() => { timedOut = true; ac.abort(); }, timeoutMs);
   try {
-    const unsubscribe = it.kind === "outreach" && it.from_email ? { mailto: it.from_email, url: d.unsubscribeUrl?.(it) ?? null } : null;
-    const r = await d.fetch(`${GMAIL_API}/messages/send`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ raw: rawOf(m, { unsubscribe }) }) });
-    ans = await classifyGmail(r, it.attempts, now());
+    // NETWORKING R2 (2026-10-30): a follow-up of a cold email is cold outreach too: it carries List-Unsubscribe like the
+    // first one did (before, only kind "outreach" had it, so the replies lane's follow-ups went without it).
+    const cold = it.kind === "outreach" || (it.kind === "general" && !!it.follow_up_of);
+    const unsubscribe = cold && it.from_email ? { mailto: it.from_email, url: d.unsubscribeUrl?.(it) ?? null } : null;
+    const r = await Promise.race([
+      d.fetch(`${GMAIL_API}/messages/send`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ raw: rawOf(m, { unsubscribe }) }), signal: ac.signal })
+        .then((x) => classifyGmail(x, it.attempts, now())),
+      new Promise<never>((_, no) => ac.signal.addEventListener("abort", () => no(new Error("timed out")), { once: true })),
+    ]);
+    ans = r;
   } catch (e) {
-    ans = { kind: "retry", detail: `network: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200) };
+    ans = { kind: "retry", detail: timedOut ? late : `network: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200) };
+  } finally {
+    clearTimeout(timer);
   }
+  if (timedOut && ans.kind !== "retry") ans = { kind: "retry", detail: late };
   if (ans.kind === "sent") { stats.sent++; return out("sent", { gmail_id: ans.id, thread_id: ans.threadId }); }
   if (ans.kind === "quota") { stats.quota++; return out("quota", { untried: true, detail: ans.detail, resume_at: new Date(ans.resumeAt).toISOString() }); }
   if (ans.kind === "reconnect") { stats.reconnect++; return out("reconnect", { untried: true, detail: ans.detail }); }
@@ -457,7 +480,7 @@ export async function runSendWorker(d: WorkerDeps, o: WorkerOpts): Promise<Worke
             pending.push({ id: it.id, outcome: "retry", untried: true, detail: stop ? "account paused" : "worker out of time", retry_at: new Date(now()).toISOString() });
             continue;
           }
-          const r = await sendOne(d, it, stats, o.worker);
+          const r = await sendOne(d, it, stats, o.worker, sendTimeout(o));
           pending.push(r);
           stop = r.outcome === "quota" || r.outcome === "reconnect" || r.outcome === "policy";
           if (pending.length >= RECORD_EVERY) await record(false);
@@ -506,8 +529,12 @@ export function deliveryNotice(m: { from: string; subject: string; text: string;
 }
 // An automatic reply (out of office, vacation, leave), in English and the common European forms, from its headers, its
 // subject, or its first words.
-export const AUTO_SUBJECT = new RegExp(String.raw`^\s*\[?\s*(?:(?:re|aw|antw|sv|r)\s*:\s*)?(?:automatic reply|auto(?:matic)?[- ]?(?:reply|response|answer)|autoreply|autoresponder|out of (?:the )?office|ooo\b|away from (?:the |my )?(?:office|desk)|on (?:vacation|leave|holiday)\b|vacation (?:reply|response|message|notice)|abwesenheitsnotiz|automatische antwort|abwesend\b|r[ée]ponse automatique|absence du bureau|absent(?:e)? du bureau|respuesta autom[áa]tica|fuera de la oficina|risposta automatica|fuori (?:sede|ufficio)|automatisch antwoord|afwezig|autosvar|resposta autom[áa]tica|fora do escrit[óo]rio|automaattinen vastaus|odpowied[źz] automatyczna)`, "i");
-export const AUTO_TEXT = /\b(?:i am|i'm|i will be|i'll be) (?:currently )?(?:out of (?:the )?office|away|on (?:vacation|leave|holiday|pto|parental leave|maternity leave|paternity leave|annual leave|sabbatical))\b|\bout of (?:the )?office (?:until|through|till)\b|\bwith (?:limited|no) access to (?:my )?e-?mail\b/i;
+// NETWORKING R2 (2026-10-30, tests/architect/scenarios-networking-r2.test.ts): auto-replies in more languages (Japanese,
+// Chinese, Korean, Russian, Ukrainian, Polish, Czech, Slovak, Turkish, Danish, Norwegian, Swedish, Finnish, Hungarian,
+// Romanian, Greek, Hebrew, Arabic) by subject, and the body-only "I'm out of the office" in Spanish, French, German, Italian,
+// Portuguese and Dutch, were read as a real reply: the sequence stopped and the thread said "replied" on an away notice.
+export const AUTO_SUBJECT = new RegExp(String.raw`^\s*\[?\s*(?:(?:re|aw|antw|sv|r|vs|odp|ynt|отв)\s*:\s*)?(?:automatic reply|auto(?:matic)?[- ]?(?:reply|response|answer)|autoreply|autoresponder|out of (?:the )?office|ooo\b|away from (?:the |my )?(?:office|desk)|on (?:vacation|leave|holiday)\b|vacation (?:reply|response|message|notice)|abwesenheitsnotiz|automatische antwort|abwesend\b|r[ée]ponse automatique|absence du bureau|absent(?:e)? du bureau|respuesta autom[áa]tica|fuera de la oficina|risposta automatica|fuori (?:sede|ufficio)|automatisch antwoord|afwezig|autosvar|resposta autom[áa]tica|fora do escrit[óo]rio|automaattinen vastaus|odpowied[źz] automatyczna|automatyczna odpowied[źz]|poza biurem|automatick[áa] odpov[ěe]ď|automatick[áa] odpove[ďd]|mimo kancel[áa][řr]|otomatik (?:yan[ıi]t|cevap)|ofis d[ıi][şs][ıi]nda|frav[æa]rende|frav[æa]r\b|fr[åa]nvaro|fr[åa]nvarande|poissa\b|automatikus v[áa]lasz|h[áa]zon k[íi]v[üu]l|r[ăa]spuns automat|自動返信|自動応答|自動回覆|自动回复|自动答复|不在|자동\s?회신|자동\s?응답|부재\s?중|автоответ|автоматический ответ|автоматичн(?:а|ий) відповідь|автовідповідь|нет на месте|в отпуске|αυτόματη απάντηση|תשובה אוטומטית|رد تلقائي|رد آلي)`, "i");
+export const AUTO_TEXT = /\b(?:i am|i'm|i will be|i'll be) (?:currently )?(?:out of (?:the )?office|away|on (?:vacation|leave|holiday|pto|parental leave|maternity leave|paternity leave|annual leave|sabbatical))\b|\bout of (?:the )?office (?:until|through|till)\b|\bwith (?:limited|no) access to (?:my )?e-?mail\b|(?:^|[\s,.;:!¡¿])(?:estoy|estar[ée]|me encuentro) (?:fuera de (?:la )?oficina|de vacaciones|ausente|de baja)|(?:^|[\s,.;:!])je (?:suis|serai) (?:absente?|en cong[ée]s?|en vacances|hors du bureau)|\bich bin\b[^\n]{0,40}?\b(?:nicht im b[üu]ro|im urlaub|abwesend|au[sß]er haus)|\bsono (?:fuori (?:ufficio|sede)|in ferie|assente)|\bsar[òo] (?:fuori (?:ufficio|sede)|in ferie|assente)|\bestou (?:fora do escrit[óo]rio|de f[ée]rias|ausente)|\bik ben\b[^\n]{0,30}?\b(?:afwezig|met vakantie|op vakantie|niet op kantoor)/i;
 export function autoReply(m: { subject: string; text: string; headers?: Record<string, string> }): boolean {
   const h = Object.fromEntries(Object.entries(m.headers ?? {}).map(([k, v]) => [k.toLowerCase(), String(v ?? "")]));
   if (/auto-replied|auto-generated/i.test(h["auto-submitted"] ?? "") || "x-autoreply" in h || "x-autorespond" in h || /auto_reply/i.test(h["precedence"] ?? "") || /^(?:oof|autoreply)$/i.test(h["x-auto-response-suppress"] ?? "")) return true;
@@ -543,11 +570,15 @@ export function newText(body: string): string {
 // greeting or not). "Don't hesitate to email me", "stop by Thursday" in the middle of a sentence, "no thanks needed" are
 // not opt-outs.
 const OPT_OUT_ANYWHERE = /\b(?:unsubscribe|stop (?:emailing|e-mailing|contacting|writing to|messaging|sending)\b|please stop\b|remove me\b|take me off\b|do not (?:contact|email|e-mail|message|write to) me|don'?t (?:contact|email|e-mail|message|write to) me|opt me out|opt[- ]out\b|not interested|no longer interested|leave me alone|please don'?t reach out|do not reach out|no,? thanks?(?: you)?\b(?![ \t]+(?:needed|necessary|required|for\b))|no thank you\b|thanks,? but no thanks)/i;
+// NETWORKING R2 (2026-10-30): an opt-out in another language ("Por favor, no me escriba más", "Merci de ne plus me
+// contacter", "Bitte kontaktieren Sie mich nicht mehr", "non mi interessa") was read as a plain reply: the sequence
+// stopped, but the address was never put on the do-not-contact list, so anyone could write to them again.
+const OPT_OUT_OTHER = /(?:^|[\s,.;:!¡¿"'(])(?:no me (?:escrib\w*|contact\w*|env[íi]\w*|mand\w*)|no (?:vuelva|vuelvas) a (?:escribir|contactar)\w*|d[ae]me de baja|darme de baja|no (?:me interesa|estoy interesad[oa]|tengo inter[ée]s)|ne (?:plus )?m(?:e |['’])(?:contactez|[ée]crivez|recontactez) plus|ne plus me (?:contacter|[ée]crire|solliciter)|d[ée]sinscri(?:re|vez|s)|retirez[- ]moi|(?:je ne suis )?pas int[ée]ress[ée]e?|kontaktieren sie mich nicht mehr|(?:bitte )?nicht mehr (?:kontaktieren|anschreiben|schreiben|mailen)|keine (?:weiteren )?(?:e-?mails|nachrichten) mehr|kein interesse|bitte (?:abmelden|austragen)|non (?:mi )?(?:contatt\w+|scriv\w+) pi[ùu]|non (?:sono interessat[oa]|mi interessa)|cancellami|rimuovetemi|n[ãa]o me (?:contacte|contate|escreva|envie)\w*|n[ãa]o (?:tenho interesse|estou interessad[oa])|descadastr\w+|geen interesse|niet meer (?:mailen|contacteren|benaderen)|(?:graag )?(?:afmelden|uitschrijven))(?=$|[\s,.;:!?"')-])|配信停止|配信を停止|退订|取消订阅|不要再联系|수신\s?거부|отписаться|не пишите мне|больше не пишите/i;
 const OPT_OUT_LEAD = /^(?:stop|remove|unsubscribe|opt[- ]?out)\b/i;
 const GREETING = /^(?:(?:hi|hello|hey|dear|greetings|good (?:morning|afternoon|evening))\b[^,.!:\n]{0,30}|[A-Za-z]{2,20})\s*[,.!:\-–—]+\s*/i;
 export function optedOut(fresh: string): boolean {
   const t = decodeEntities(String(fresh ?? "")).replace(/[’‘]/g, "'");
-  if (OPT_OUT_ANYWHERE.test(t)) return true;
+  if (OPT_OUT_ANYWHERE.test(t) || OPT_OUT_OTHER.test(t)) return true;
   for (const line of t.split("\n")) {
     const l = line.trim();
     if (OPT_OUT_LEAD.test(l) || OPT_OUT_LEAD.test(l.replace(GREETING, ""))) return true;

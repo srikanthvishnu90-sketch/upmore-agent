@@ -37,6 +37,7 @@ export const TG_CAPTION_MAX = 1024;
 export const PAGE_SIZE = 5;
 export const MASS_FROM = 3; // more than this many postings go as one link to the list page, not one card each
 export const DETAILS_MAX = 3600;
+export const FEED_ROWS = 30; // the hosted list page shows at most this many rows of a list (trainee-file/handler.ts MAX_ROWS)
 
 export interface JobView {
   job_id: string; company: string; title: string; location: string; url: string;
@@ -288,7 +289,8 @@ export async function sendJobCards(o: { userId: string; hits: any[]; deps: JobDe
   if (jobs.length > MASS_FROM && o.deps.feedLinks) {
     const links = await o.deps.feedLinks(o.userId, listId).catch(() => null);
     if (links?.url || links?.webApp) {
-      const line = `${jobs.length} jobs for you.${links.url ? ` Open the list: ${links.url}` : ""}`;
+      // The count is what the page will show (file journey round 2: "45 jobs for you" opened a page of 30 that never said so).
+      const line = `${jobs.length} jobs for you.${jobs.length > FEED_ROWS ? ` The list shows the first ${FEED_ROWS}.` : ""}${links.url ? ` Open the list: ${links.url}` : ""}`;
       const r = await o.send.text({ text: line, buttons: links.webApp ? [[{ text: "Open the list", webApp: links.webApp }]] : undefined });
       if (r.ok) return { sent: 1, total: jobs.length };
     }
@@ -444,6 +446,9 @@ function pageLines(lines: string[], max = 3800): string[] {
 
 // ---------------------------------------------------------------- taps
 export interface JobTapResult { toast: string; status: string }
+// A posting already in the applications is "in your applications", never "applied": it may be queued and not sent yet (file journey
+// round 2: the Telegram button's toast said "Already applied." for an application that was only queued).
+export const ALREADY_TOAST = "Already in your applications.";
 export const BLOCKED_HOST = /(^|\.)(linkedin\.com|indeed\.com|joinhandshake\.com)$/i;
 export const GONE_REPLY = "That card is too old for me to open. Ask me for the postings again and I'll send fresh ones.";
 export const NO_WORKER_REPLY = (company: string, title: string) =>
@@ -533,7 +538,7 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
     }
     if (await deps.store.applied(userId, job.job_id).catch(() => false)) {
       await say(`You already have ${job.title ? `${job.title} at ` : ""}${job.company} in your applications, so I won't queue it twice. Say "show my applications" for where it stands.`);
-      return { toast: "Already applied.", status: "duplicate" };
+      return { toast: ALREADY_TOAST, status: "duplicate" };
     }
     const screened = await screenedOut(userId, job, deps);
     if (screened) { await say(`Not queued: ${screened}`); return { toast: "Not queued.", status: "screened" }; }
@@ -559,7 +564,7 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
     const applied = () => deps.store.applied(userId, job.job_id).catch(() => false);
     const duplicate = async (): Promise<JobTapResult> => {
       await say(`You already have ${job.company} in your applications, so I won't queue it twice.`);
-      return { toast: "Already applied.", status: "duplicate" };
+      return { toast: ALREADY_TOAST, status: "duplicate" };
     };
     if (await applied()) return duplicate();
     const prep = await deps.store.prepared(userId, job.job_id).catch(() => null);
@@ -571,6 +576,12 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
     if (byHandUrl(job.url) || byHandUrl(String((prep.payload as Record<string, unknown>)?.destination ?? prep.url ?? ""))) {
       await say(`I don't apply on LinkedIn, Indeed or Handshake for you, so nothing was approved. Open it and apply there yourself:\n${job.url}`);
       return { toast: "Apply there yourself.", status: "never_automated" };
+    }
+    // A destination that is not a web address is nowhere an application can go: nothing is approved (file journey round 2).
+    const dest = (prep.payload as Record<string, unknown>)?.destination;
+    if (dest !== undefined && dest !== null && dest !== "" && !/^https?:\/\/\S+$/i.test(String(dest))) {
+      await say(`That application doesn't go to a web address, so nothing was approved. Ask me to prepare ${job.company} again.`);
+      return { toast: "Nothing approved.", status: "bad_destination" };
     }
     if (secretFields(prep).length) { await say(`That application has a field that needs you (a password, code or similar), so nothing was approved. Finish it yourself on the employer's form:\n${prep.url}`); return { toast: "Needs you.", status: "needs_you" }; }
     const screened = await screenedOut(userId, job, deps);

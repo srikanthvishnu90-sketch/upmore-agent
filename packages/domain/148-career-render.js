@@ -782,18 +782,40 @@ const CareerRender = (() => {
     streams.forEach((streamBuf, page) => {
       const s = streamBuf.toString("latin1");
       let font = null, size = 0, x = 0, y = 0, pendingText = null;
+      // ONBOARDING ROUND 2 (2026-10-30): a resume saved as a PDF by Word or Google Docs writes most lines as TJ arrays
+      // ("[(Data)-250(Analyst)-250(Intern)] TJ"); every string but the array's last was dropped, so "Data Analyst Intern,
+      // Northwind" read as "Northwind" and the person was shown entries that were not theirs. An array's strings are one
+      // run, with a space where the array moves the next string a word's width or more. T* and ' move to the next line
+      // (by the leading TL, TD's, or the font size), and Td / TD move from the line's start in the text matrix's scale.
+      let inArray = false, ma = 1, md = 1, lineX = 0, lineY = 0, lead = 0;
       let i = 0;
       const numBefore = (pos) => { const m = s.slice(Math.max(0, pos - 40), pos).match(/(-?[\d.]+)\s*(-?[\d.]+)\s*$/); return m ? [parseFloat(m[1]), parseFloat(m[2])] : null; };
+      const opAt = (k, op) => s.startsWith(op, k) && !/[A-Za-z0-9*]/.test(s[k + op.length] || " ") && !/[A-Za-z0-9]/.test(s[k - 1] || " ");
+      const nextLine = () => { lineY -= (lead || size * 1.2) * md; x = lineX; y = lineY; };
       while (i < s.length) {
         const c = s[i];
-        if (c === "(") { const [txt, ni] = readPdfLiteral(s, i); pendingText = txt; i = ni; continue; }
-        if (c === "/" ) { const m = s.slice(i).match(/^\/(\S+)\s+([\d.]+)\s+Tf/); if (m) { font = m[1]; size = parseFloat(m[2]); i += m[0].length; continue; } i++; continue; }
-        if (s.startsWith("Tj", i) || s.startsWith("TJ", i) || s.startsWith("'", i) || s.startsWith('"', i)) {
-          if (pendingText !== null && pendingText !== "") runs.push({ text: pendingText, x, y, size, font, page });
-          pendingText = null; i += 2; continue;
+        if (c === "(") {
+          const [txt, ni] = readPdfLiteral(s, i);
+          if (inArray && pendingText !== null) {
+            const gap = s.slice(i - 30 < 0 ? 0 : i - 30, i).match(/\)\s*(-?[\d.]+)\s*$/);
+            const space = gap && parseFloat(gap[1]) <= -180 && !/\s$/.test(pendingText) && !/^\s/.test(txt);
+            pendingText += (space ? " " : "") + txt;
+          } else pendingText = txt;
+          i = ni; continue;
         }
-        if (s.startsWith("Tm", i)) { const nums = s.slice(Math.max(0, i - 60), i).match(/(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s*$/); if (nums) { x = parseFloat(nums[5]); y = parseFloat(nums[6]); } i += 2; continue; }
-        if (s.startsWith("Td", i) || s.startsWith("TD", i)) { const pair = numBefore(i); if (pair) { x += pair[0]; y += pair[1]; } i += 2; continue; }
+        if (c === "[") { inArray = true; pendingText = null; i++; continue; }
+        if (c === "]") { inArray = false; i++; continue; }
+        if (c === "/" ) { const m = s.slice(i).match(/^\/(\S+)\s+([\d.]+)\s+Tf/); if (m) { font = m[1]; size = parseFloat(m[2]); i += m[0].length; continue; } i++; continue; }
+        if (opAt(i, "BT")) { x = y = lineX = lineY = 0; ma = md = 1; i += 2; continue; }
+        if (opAt(i, "TL")) { const m = s.slice(Math.max(0, i - 20), i).match(/(-?[\d.]+)\s*$/); if (m) lead = parseFloat(m[1]); i += 2; continue; }
+        if (opAt(i, "T*")) { nextLine(); i += 2; continue; }
+        if (s.startsWith("Tj", i) || s.startsWith("TJ", i) || s.startsWith("'", i) || s.startsWith('"', i)) {
+          if (c === "'" || c === '"') nextLine();
+          if (pendingText !== null && pendingText !== "") runs.push({ text: pendingText, x, y, size: size * Math.abs(ma || 1), font, page });
+          pendingText = null; inArray = false; i += c === "'" || c === '"' ? 1 : 2; continue;
+        }
+        if (s.startsWith("Tm", i)) { const nums = s.slice(Math.max(0, i - 60), i).match(/(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s*$/); if (nums) { ma = parseFloat(nums[1]) || 1; md = parseFloat(nums[4]) || 1; x = lineX = parseFloat(nums[5]); y = lineY = parseFloat(nums[6]); } i += 2; continue; }
+        if (s.startsWith("Td", i) || s.startsWith("TD", i)) { const pair = numBefore(i); if (pair) { lineX += pair[0] * ma; lineY += pair[1] * md; x = lineX; y = lineY; if (s[i + 1] === "D") lead = -pair[1]; } i += 2; continue; }
         i++;
       }
     });

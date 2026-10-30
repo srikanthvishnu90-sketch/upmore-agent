@@ -945,7 +945,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
               judge: { on: f5JudgeOn, model: (payload) => callModel(f5Cfg, payload, { meter: f5Meter, role: "chat" }), cache: supabaseJudgeCache(admin),
                 n: Number(Deno.env.get("CAREER_JUDGE_N")) || undefined, standing: () => supabaseMemoryStore(admin).standing(user.id) } });
             if (found) {
-              out = { ...out, reply: f5Said?.append ? `${out.reply}\n\n${found.reply}` : found.reply, resultStatus: found.status, handler: "search_judge" };
+              // ONBOARDING ROUND 2: the router's line that nothing is sent before the resume is confirmed (an apply ask with
+              // no confirmed resume) stays with the search's own reply.
+              const prof = (ctx as any).profile, facts: any[] = Array.isArray(prof?.facts) && !prof?._fromStatedFacts ? prof.facts : [];
+              const confirmedResume = facts.some((f) => f && ["education", "experience", "project", "leadership", "skill"].includes(f.kind) && f.needs_confirmation !== true && (f.status == null || f.status === "confirmed"));
+              const askText = String(message ?? "").toLowerCase();
+              const applyAsk = !/\?\s*$/.test(askText) && /\bapply\s+(?:to|for|at|me|on|now)\b|\bapply\b[^.?!]{0,40}\b(?:jobs?|roles?|postings?|positions?|internships?|openings?)\b|\bsubmit (?:my|an?) applications?\b/.test(askText);
+              const resumeLine = f5Said?.append || confirmedResume || !applyAsk || /\bresume\b/i.test(found.reply) ? ""
+                : facts.some((f) => f && f.source === "resume-ingest" && f.needs_confirmation === true)
+                ? "\n\nAnd nothing is sent anywhere before your resume is confirmed: its entries are waiting for your word (reply \"yes, that's my resume\" if they're right)."
+                : "\n\nAnd nothing is sent anywhere before your resume is confirmed: paste or attach it, confirm it, then ask again.";
+              out = { ...out, reply: (f5Said?.append ? `${out.reply}\n\n${found.reply}` : found.reply) + resumeLine, resultStatus: found.status, handler: "search_judge" };
               (ctx as any).discovery = { ...((ctx as any).discovery ?? {}), lastShortlist: found.shortlist, lastSource: found.source };
             }
           } catch (e) { console.error("career search judge: the router's reply stands:", (e as Error)?.message ?? e); }

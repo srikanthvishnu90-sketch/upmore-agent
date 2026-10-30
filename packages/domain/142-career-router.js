@@ -1915,13 +1915,16 @@ const CareerRouter = (() => {
   // on the profile, with a receipt. Posting-shaped pastes stay
   // with capturePastedPosting (it runs first and marks the turn),
   // email-shaped pastes stay with the pasted-email routes.
-  function resumePasteDraftsOf(raw) {
+  // ONBOARDING ROUND 2: a text the person FRAMED as their resume (and every resume file's text) needs less proof: two
+  // entries, work or education among them (a short first resume: one school, one job). The file reader
+  // (channel_resume_upload.ts readsAsResume) keeps a file only on this same proof, so a kept file is always read.
+  function resumePasteDraftsOf(raw, framed) {
     if (!ProfileMod || !ProfileMod.parseResumeText) return null;
     let drafts = null;
     try { drafts = ProfileMod.parseResumeText(raw); } catch { return null; }
-    if (!Array.isArray(drafts) || drafts.length < 3) return null;
+    if (!Array.isArray(drafts) || drafts.length < (framed ? 2 : 3)) return null;
     const kinds = new Set(drafts.map((d) => d && d.kind).filter(Boolean));
-    if (kinds.size < 2 || !(kinds.has("experience") || kinds.has("education"))) return null;
+    if ((!framed && kinds.size < 2) || !(kinds.has("experience") || kinds.has("education"))) return null;
     return drafts;
   }
   // ONBOARDING SCENARIOS (2026-10-29): the composer keeps a few clean sentences per reply and drops every line or sentence
@@ -1957,13 +1960,15 @@ const CareerRouter = (() => {
     const markerPaste = (raw.match(/\b(?:skills|education|experience|work history|summary|certifications|projects)\s*:/gi) || []).length >= 2;
     if ((raw.length < 300 || raw.split(/\r?\n/).length < 6) && !framedPaste && !markerPaste) return null;
     if (ctx.pastedText) return null; // a posting paste already claimed this turn upstream
-    if (/\b(responsibilities|qualifications|about the role|what you'?ll do|what you will do)\s*:/i.test(raw)) return null; // posting-shaped
-    if (/^\s*(from|subject|date|to)\s*:/im.test(raw)) return null; // email-shaped
+    // ONBOARDING ROUND 2: a paste the person framed as their resume (and every resume file's text, which arrives framed)
+    // is a resume even when a job's lines say "Responsibilities:" or "Qualifications:"; the shape gates are for unframed text.
+    if (!framedPaste && /\b(responsibilities|qualifications|about the role|what you'?ll do|what you will do)\s*:/i.test(raw)) return null; // posting-shaped
+    if (!framedPaste && /^\s*(from|subject|date|to)\s*:/im.test(raw)) return null; // email-shaped
     if (!ProfileMod || !ProfileMod.classifyResumeIngest || !ProfileMod.ingestResume || !ProfileMod.createProfile) return null;
     let cls = null;
     try { cls = ProfileMod.classifyResumeIngest(raw); } catch { return null; }
     if (!cls || !cls.ok) return null;
-    if (!resumePasteDraftsOf(raw)) return null;
+    if (!resumePasteDraftsOf(raw, framedPaste)) return null;
     // V241 LIVE-FIX LANE 2 (probe j): ingest never lands on a BRIDGE
     // profile (profileFromStatedFacts' per-turn derivation, marked
     // _fromStatedFacts): the bridge is re-derived from the stated
@@ -2164,6 +2169,120 @@ const CareerRouter = (() => {
     }
     const reply = compose({ headline: "Confirmed — your resume facts are on your record.", facts: [`${confirmed} fact${confirmed === 1 ? "" : "s"} from the resume you pasted are confirmed, in your own words — tailoring, packets, and answers now run on them.`, ...(superseded.length ? ["It replaces your earlier resume: nothing from that one is used any more."] : [])], nextStep: "Name a role (or paste a posting) and the tailoring runs on them." });
     return { intent: "career_resume_ingest", reply, resultStatus: "completed", sends: 0, resume_ingest: { confirmed, ...(superseded.length ? { superseded: superseded.length } : {}) } };
+  }
+  // ONBOARDING ROUND 2 (2026-10-30, tests/architect/scenarios-onboarding-r2.test.ts; D-007):
+  //   framed     a message the person framed as their resume (every resume FILE's text arrives framed "here is my
+  //              resume:") that does not read as one (a cover letter, a transcript, a layout with no sections) fell
+  //              through to other routes: a cover letter's "I am writing to apply for the Data Analyst role at Northwind"
+  //              started an application run with nothing confirmed, and a transcript or a resume in another language got
+  //              "do you want to send me your resume first?" right after they sent it. A framed document is claimed here,
+  //              before every route that reads a sentence of it as an ask: read as a resume, or said plainly that it was
+  //              not, with nothing saved, applied or sent from it.
+  //   pending    /start or a greeting while their entries wait for a yes said "To start, paste your resume", and the yes
+  //              that followed was refused as a yes to another question. The entries are shown again, for that yes.
+  //   dispute    "actually I never worked at X" / "remove X from my resume" after the yes did nothing: the entry stayed
+  //              confirmed and went on every application. An entry the person disowns leaves the record (named back to
+  //              them); before the yes it leaves the drafts and the rest is shown again. A name in several entries
+  //              changes nothing and asks which.
+  const RESUME_FRAME = /^\s*(?:(?:here'?s|here is|this is|attached is|sending)\s+my\s+(?:updated\s+|new\s+|current\s+)?(?:resume|cv|r[ée]sum[ée])|my\s+(?:resume|cv)\s*:)/i;
+  function handleFramedDocument(text, ctx) {
+    const raw = s(text);
+    if (!RESUME_FRAME.test(raw)) return null;
+    const body = raw.replace(/^[^\n]*?(?::|\n)/, "");
+    if (body.split(/\r?\n/).filter((l) => l.trim()).length < 4 || body.trim().length < 120) return null;
+    const read = handleResumePasteIngest(text, ctx);
+    if (read) return read;
+    if (ctx.pastedText) return null;
+    const t = lc(body);
+    const looks = /^\s*(?:dear|to whom|hello|hi)\b/m.test(t) && /\b(?:sincerely|regards|best|thank you)\b/.test(t) ? "It reads like a cover letter, not a resume."
+      : /\btranscript\b|\b(?:cumulative|term|semester) gpa\b|\bcredits?\b/.test(t) ? "It reads like a transcript, not a resume."
+      : "I found no section I read entries from (Experience, Education, Skills, Projects).";
+    const pending = resumeDraftsPending(ctx).length, confirmed = resumeOnRecord(ctx);
+    const reply = compose({ headline: "I couldn't read that as a resume, so nothing from it was saved.", facts: [looks, "Nothing from it is on your record, and nothing is tailored, applied for or sent from it.",
+      ...(pending ? ["The resume you sent before it is still waiting for your word."] : confirmed ? ["Your confirmed resume stays as it is."] : [])],
+      nextStep: "Send your resume as a PDF or Word file, or paste its text with its section headings, and I'll show you every entry I read for your yes." });
+    return { intent: "career_resume_not_read", reply, resultStatus: "blocked", sends: 0 };
+  }
+  // The drafts shown for a yes that still stand as shown, in the order shown.
+  function resumeDraftsPending(ctx) {
+    const mir = threadMirrorOf(ctx);
+    const profile = ctx && ctx.profile && typeof ctx.profile === "object" ? ctx.profile : null;
+    if (!mir || !mir.resumeIngest || !profile || !Array.isArray(mir.resumeIngest.factIds)) return [];
+    return mir.resumeIngest.factIds.map((id) => (profile.facts || []).find((f) => f && f.id === id && f.needs_confirmation && f.source === "resume-ingest")).filter(Boolean);
+  }
+  function resumePendingGreeting(ctx) {
+    const shown = resumeDraftsPending(ctx);
+    if (!shown.length) return null;
+    const wm = threadMirrorForWrite(ctx);
+    if (wm && wm.resumeIngest) delete wm.resumeIngest.stale;
+    return { intent: "career_resume_ingest", resultStatus: "awaiting_user", sends: 0, resume_ingest: { confirmed: 0 },
+      reply: resumeAskReply("Welcome back — your resume is waiting for your word.", [], shown.map((f, i) => `${i + 1}. ${f.text}`)) };
+  }
+  const RESUME_ENTRY_KINDS = new Set(["experience", "education", "project", "leadership", "award", "certification", "skill", "publication", "language"]);
+  function disputedName(text) {
+    const t = s(text).trim().replace(/[’`]/g, "'").replace(/[.!]+$/, "");
+    const lead = /^(?:(?:actually|oh|oops|sorry|wait|hmm|no|nope|hold on|um|so|also|and|but|just so you know|fyi)[\s,:;—–-]+)*/i;
+    const u = t.replace(lead, "");
+    const pats = [
+      /^i\s+(?:have\s+)?(?:never|didn'?t|did not|haven'?t|have not)\s+(?:actually\s+|really\s+|ever\s+)?(?:work(?:ed)?|intern(?:ed)?|go(?:ne)?|went|stud(?:y|ied)|attend(?:ed)?|graduate(?:d)?|use(?:d)?|know|knew|lead|led|w[io]n|earn(?:ed)?|receive(?:d)?|get|got|hold|held|do|did|build|built|make|made)\b(?:\s+(?:at|for|to|in|from|on|with|as))?\s+(.+?)(?:\s*[,;—–-]\s*(?:remove|delete|take|drop|that'?s|it'?s|so)\b.*)?$/i,
+      /^(?:please\s+)?(?:remove|delete|drop|erase|strike|take\s+(?:out|off)|get\s+rid\s+of)\s+(?:the\s+|my\s+)?(.+?)(?:\s+(?:entry|line|job|role|one|item|fact|skill|school))?(?:\s+(?:from|off|on)\s+(?:my\s+|the\s+)?(?:resume|cv|profile|record|list|skills|entries))?(?:\s*[,;—–-]\s*(?:i\s+)?(?:never|didn'?t|it'?s|that'?s|not)\b.*)?$/i,
+      /^(?:the\s+)?(.+?)\s+(?:entry|one|job|line)?\s*(?:is|was|isn'?t|wasn'?t)\s+(?:not\s+(?:mine|me|true|real)|never\s+(?:mine|true)|made\s+up|fake|someone\s+else'?s|not\s+my\s+(?:job|school|degree))$/i,
+      /^(?:that'?s|it'?s|this\s+is)\s+not\s+my\s+(?:job|school|degree|project|award|role)\s+(?:at|from|in)\s+(.+)$/i,
+    ];
+    for (const re of pats) {
+      const m = re.exec(u);
+      if (!m) continue;
+      const x = m[1].replace(/^["'“‘]+|["'”’.,;:!]+$/g, "").replace(/\s+(?:entry|line|job|role|one|item|there|anymore|any more)$/i, "").trim();
+      if (x.length >= 1 && x.length <= 80 && !/^(?:it|that|this|them|those|these|anything|everything|all|my data|my account)$/i.test(x)) return x;
+    }
+    return null;
+  }
+  function handleResumeDispute(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw || raw.length > 240 || /\n/.test(raw)) return null;
+    const profile = ctx.profile && typeof ctx.profile === "object" && !ctx.profile._fromStatedFacts ? ctx.profile : null;
+    if (!profile || !Array.isArray(profile.facts)) return null;
+    const x = disputedName(raw);
+    if (!x) return null;
+    const esc = x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`${/^\w/.test(x) ? "\\b" : ""}${esc}${/\w$/.test(x) ? "\\b" : ""}`, "i");
+    const pending = resumeDraftsPending(ctx);
+    const live = (profile.facts || []).filter((f) => f && RESUME_ENTRY_KINDS.has(f.kind) && (!f.needs_confirmation || pending.includes(f)) && !(ProfileMod && ProfileMod.quarantinedFact && ProfileMod.quarantinedFact(f)));
+    // A one-letter name ("R") is only ever a skill of exactly that name.
+    const hits = x.length < 2 ? live.filter((f) => f.kind === "skill" && s(f.name || f.title) === x) : live.filter((f) => [f.title, f.name, f.text].some((v) => typeof v === "string" && re.test(v)));
+    if (!hits.length) return null;
+    const label = (f) => s(f.kind === "skill" ? (f.name || f.title) : f.title).slice(0, 160);
+    // The entries are said word for word, outside the composer (which drops a line with a "|" in it, as in "Company | Title").
+    const verbatim = (head, lines, rest) => [Reply ? Reply.composeResult({ headline: head }).bubbles.join("\n") : head, lines.join("\n"), compose(rest)].join("\n\n");
+    if (hits.length > 1) {
+      const reply = verbatim(`I changed nothing — “${x}” is in ${hits.length} entries on your record.`, hits.slice(0, 5).map((f, i) => `${i + 1}. ${label(f)}`), { headline: "Tell me which one to take off, word for word as it reads." });
+      return { intent: "career_resume_dispute", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    const f = hits[0];
+    const wasDraft = !!f.needs_confirmation;
+    profile.facts = profile.facts.filter((g) => g !== f);
+    if (ProfileMod && ProfileMod.refreshSkillFlags) { try { ProfileMod.refreshSkillFlags(profile); } catch { /* flags only */ } }
+    profile.fact_version = (Number.isFinite(profile.fact_version) ? profile.fact_version : 0) + 1; // packets bound to the old facts go stale
+    profile.profile_ingest_audit = [...(profile.profile_ingest_audit || []), { at: nowOf(ctx), outcome: wasDraft ? "draft_disowned_before_confirmation" : "confirmed_entry_disowned", removed_fact_ids: [f.id], removed: [{ id: f.id, kind: f.kind, title: label(f).slice(0, 120) }], said: raw.slice(0, 200) }];
+    if (wasDraft) {
+      const wm = threadMirrorForWrite(ctx);
+      if (wm && wm.resumeIngest) {
+        wm.resumeIngest.factIds = (wm.resumeIngest.factIds || []).filter((id) => id !== f.id);
+        if (Array.isArray(wm.resumeIngest.entries)) wm.resumeIngest.entries = wm.resumeIngest.entries.filter((e) => e && e.id !== f.id);
+        delete wm.resumeIngest.stale;
+      }
+      const rest = resumeDraftsPending(ctx);
+      if (!rest.length) {
+        if (wm) delete wm.resumeIngest;
+        const reply = verbatim("I took this entry out, and nothing from that resume is left to confirm:", [label(f)], { headline: "Nothing from it is on your record or used anywhere.", nextStep: "Send your resume again (a file or pasted text) and I'll show you what I read for your yes." });
+        return { intent: "career_resume_dispute", reply, resultStatus: "completed", sends: 0 };
+      }
+      return { intent: "career_resume_ingest", resultStatus: "awaiting_user", sends: 0, resume_ingest: { confirmed: 0 },
+        reply: resumeAskReply("I took that entry out: it is not on your record, and nothing is confirmed yet.", [`Taken out: ${label(f)}`], rest.map((g, i) => `${i + 1}. ${g.text}`)) };
+    }
+    const left = (profile.facts || []).filter((g) => g && RESUME_ENTRY_KINDS.has(g.kind) && !g.needs_confirmation).length;
+    const reply = verbatim("I took this entry off your record:", [label(f)], { headline: "Nothing uses it any more: no application, letter, answer or alert.", facts: [`Your other ${left} confirmed entr${left === 1 ? "y stands" : "ies stand"} as you confirmed ${left === 1 ? "it" : "them"}.`], nextStep: "If something else on it is wrong, tell me what it should say." });
+    return { intent: "career_resume_dispute", reply, resultStatus: "completed", sends: 0 };
   }
   // PENDING AFFIRMATION (text-path measurement 2026-10-24): a bare
   // affirmation binds to the pending state that asked for it —
@@ -11429,7 +11548,7 @@ const CareerRouter = (() => {
     const isStart = /^\/start(\s+\S+)?[.!]?$/i.test(raw);
     const isGreeting = /^(hi|hello|hey|hiya|howdy|yo|sup|heya|hii+|hey+|greetings|good\s+(morning|afternoon|evening))(\s+(there|trainee))?[\s!.]*$/i.test(raw);
     if (!isStart && !isGreeting) return null;
-    return greetingResult(ctx);
+    return resumePendingGreeting(ctx) || greetingResult(ctx);
   }
   // PRODUCT AUDIT 2026-10-28 (#2): the greeting was 477 characters (two texts on SMS) and the same whatever the person
   // had already done. Now: who Trainee is in one line, and the one next step that fits their record.
@@ -12048,6 +12167,10 @@ const CareerRouter = (() => {
     // on Telegram "/start" is the first message every user sends,
     // and the generic fallback was the product's first word.
     { const gr = handleGreeting(text, c); if (gr) return gr; }
+    // ONBOARDING ROUND 2: a document framed as the person's resume, and an entry they disown, ahead of every route that
+    // reads a sentence of them as an ask (see handleFramedDocument and handleResumeDispute).
+    { const fd = handleFramedDocument(text, c); if (fd) return fd; }
+    { const rd = handleResumeDispute(text, c); if (rd) return rd; }
     // DEPTH LANE A (LF-01h): an explicit memory invocation — "draft
     // it from what you know about me" — is the most specific claim a
     // turn can carry: the user is ordering the record's USE. It is
@@ -15790,6 +15913,17 @@ const CareerRouter = (() => {
     }
     // The 140 unmatched fallback and the capability-absent honest
     // replies are exact-text contracts of their own — never appended to.
+    // ONBOARDING ROUND 2 (flow-scenarios-onboarding-r2.test.ts): an apply ask before any resume is confirmed was answered
+    // about the posting alone ("that posting is not in the list", "I found no posting for apply"), so the person learned
+    // only later that nothing can be sent without a confirmed resume. The reply now says so too, and what to do.
+    if (res && typeof res.reply === "string" && res.reply && res.intent !== "career_fallback" && res.intent !== "honest_unavailable" && !/\bresume\b/i.test(res.reply) && !resumeOnRecord(c)) {
+      const ask = lc(s(text)).replace(/[’]/g, "'");
+      if (!/\?\s*$/.test(ask) && /\bapply\s+(?:to|for|at|me|on|now)\b|\bapply\b[^.?!]{0,40}\b(?:jobs?|roles?|postings?|positions?|internships?|openings?)\b|\bsubmit (?:my|an?) applications?\b/.test(ask)) {
+        res.reply = `${res.reply}\n\n${resumeDraftsPending(c).length
+          ? "And nothing is sent anywhere before your resume is confirmed: its entries are waiting for your word (reply \"yes, that's my resume\" if they're right)."
+          : "And nothing is sent anywhere before your resume is confirmed: paste or attach it, confirm it, then ask again."}`;
+      }
+    }
     if (res && typeof res.reply === "string" && res.reply && res.intent !== "career_fallback" && res.intent !== "honest_unavailable") res.reply = ensureNextStepText(res.reply);
     syncThreadOut(c);
     return res;

@@ -281,7 +281,7 @@ Deno.test({
             const conf = facts.filter((x) => x.needs_confirmation === false), drafts = facts.filter((x) => x.needs_confirmation === true);
             if (drafts.length) fail(`person ${i}`, `confirmed entries and drafts side by side after two yeses at once: ${who()}`);
             if (JSON.stringify(factSig(conf)) !== JSON.stringify(sig(m.pending))) fail(`person ${i}`, `two yeses at once did not confirm exactly the entries shown: ${JSON.stringify(factSig(conf))}: ${who()}`);
-            if (Number(st.events) < conf.length || conf.some((x) => !x.confirmation_event_id)) fail(`person ${i}`, `${st.events} fact_confirmed events for ${conf.length} entries: ${who()}`);
+            if (Number(st.events) !== conf.length || conf.some((x) => !x.confirmation_event_id)) fail(`person ${i}`, `${st.events} fact_confirmed events for ${conf.length} entries: ${who()}`);
             const first = fileFor(j, j.steps[0])!;
             if (!st.on_file || st.record?.kind !== "file" || st.record?.sha256 !== await sha256Bytes(first.bytes)) fail(`person ${i}`, `record and profile disagree: ${JSON.stringify(st.record)}: ${who()}`);
             // deno-lint-ignore no-explicit-any

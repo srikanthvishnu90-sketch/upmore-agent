@@ -13,7 +13,22 @@
 // Each stamped fact names a persisted fact_confirmed event (this person, now, their own message's hash, the upload's
 // reference and hash, the hash of what was shown) and carries an owner provenance. An event that cannot be recorded stamps
 // nothing: the fact reads as needs-review, never as evidenced (the brain's rule, career_tools.ts confirm_profile_fact).
-import { type EventStore, recordEvent } from "./agent/timeline.ts";
+// agent-chat passes heldEvents() below, so the events persist with the turn's commit or not at all.
+import { type CareerEvent, type EventStore, recordEvent } from "./agent/timeline.ts";
+
+// RESUME CONFIRM RACE (2026-10-30, migration 20261030060000): the confirmation's events are not written during the turn.
+// They are held here and written by the turn's own commit (career_host_commit_evidenced), in the transaction that saves
+// the profile holding the entries they evidence: a refused save (another thread saved first) writes none, so no record
+// says "resume on file" while the profile still holds drafts, and the resend writes the only set. Nothing is read back.
+export function heldEvents(): EventStore & { rows(): CareerEvent[] } {
+  const rows: CareerEvent[] = [];
+  return {
+    async add(e) { rows.push(JSON.parse(JSON.stringify(e))); },
+    async addMany(es) { for (const e of es) rows.push(JSON.parse(JSON.stringify(e))); },
+    async recall() { return []; },
+    rows: () => JSON.parse(JSON.stringify(rows)),
+  };
+}
 
 export const RESUME_CONFIRM_PROVENANCE = "owner confirmed in chat the resume entry shown to them";
 const CONFIRMING = new Set(["career_resume_ingest"]);

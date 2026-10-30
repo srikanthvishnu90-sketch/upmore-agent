@@ -82,7 +82,7 @@ Deno.test("gap 1: agent-chat holds every confirmation (resume, stated, brain) an
   const H = await Deno.readTextFile(`${ROOT}/supabase/functions/agent-chat/handler-career.ts`);
   const B = await Deno.readTextFile(`${ROOT}/supabase/functions/agent-chat/career_brain.ts`);
   ok(H.indexOf("const confirmEvents = heldEvents();") > 0 && H.indexOf("const confirmEvents = heldEvents();") < H.indexOf("await agentTurn({"), "the held store exists before the brain runs");
-  ok(/events, confirmations: confirmEvents, tz,/.test(H), "the brain's confirm_profile_fact writes into it");
+  ok(/hired: hiredSourceFromEnv\(Deno\.env, admin\), confirmations: confirmEvents,/.test(H), "the brain's confirm_profile_fact writes into it");
   ok(/evidence: confirmEvents, standing:/.test(H), "the stated facts' evidence writes into it");
   ok(/confirmations: o\.confirmations \?\? null/.test(B), "agentTurn passes it to the tools");
   ok(/const confirmRows = confirmEvents\.rows\(\);[\s\S]{0,80}saved = await commitTurn\(confirmRows\);/.test(H), "and the save carries them");

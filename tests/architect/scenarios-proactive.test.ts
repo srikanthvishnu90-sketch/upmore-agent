@@ -81,7 +81,6 @@ class Report {
 
 // ------------------------------------------------------------------------------------------------ the oracle
 const ms = (t: string) => Date.parse(t);
-const weekCap = (u: GenPerson) => Math.max(0, Math.min(25, Math.floor(u.prefs.max_per_week ?? 15)));
 const dayCap = (u: GenPerson) => Math.min(10, Math.floor(u.prefs.max_instant_per_day));
 const asRow = (u: GenPerson): AlertRow => ({ id: u.id, tz: u.tz as string, prefs: { ...u.prefs }, last_checked_at: u.last_checked_at, instant_sent_today: u.instant_sent_today, sent_on: u.sent_on, last_report_on: u.last_report_on, held: [...u.held] });
 const posting = (p: GenPosting) => ({ job_id: p.job_id, title: p.title, company: p.company, location: p.location, url: p.url, first_seen_at: p.first_seen_at, ...(p.posted_at ? { posted_at: p.posted_at } : {}), closed_at: p.closed ? p.closed_at : null });
@@ -118,7 +117,7 @@ function checkPlan(s: PlanScenario): { why: string | null; got: unknown } {
     const score = (p: GenPosting) => fit(p)?.score ?? -1;
     const eligible = s.postings.filter((p) => matches(p, u) && news(p) && ms(p.first_seen_at) >= since && floorOk(fit(p), u))
       .sort((a, b) => score(b) - score(a) || ms(b.first_seen_at) - ms(a.first_seen_at));
-    const room = Math.max(0, Math.min(dayCap(u) - u.instant_sent_today, weekCap(u) - u.sent_this_week));
+    const room = Math.max(0, dayCap(u) - u.instant_sent_today);
     const mine = out.filter((x) => x.userId === u.id);
     const alerts = mine.filter((x) => x.kind === "alert") as Extract<typeof out[number], { kind: "alert" }>[];
     const held = mine.filter((x) => x.kind === "held").map((x) => x.job_id);
@@ -201,7 +200,7 @@ async function checkRuns(s: RunScenario): Promise<{ why: string | null; got: unk
     if (k === 0) {
       for (const u of s.people) {
         const eligible = run.postings.filter((p) => matches(p, u) && news(p) && ms(p.first_seen_at) >= ms(u.last_checked_at));
-        const want = Math.min(eligible.length, Math.max(0, Math.min(dayCap(u), weekCap(u))));
+        const want = Math.min(eligible.length, Math.max(0, dayCap(u)));
         const got = store.dump().outbox.filter((o) => o.userId === u.id && o.kind === "alert").length;
         if (got !== want) return { why: `${u.id} (zone ${JSON.stringify(u.tz)}) got ${got} alerts in a clean first run, not ${want}`, got: { people: s.people.map((x) => x.tz) } };
       }
@@ -224,8 +223,6 @@ async function checkRuns(s: RunScenario): Promise<{ why: string | null; got: unk
       perDay.set(d, (perDay.get(d) ?? 0) + 1);
     }
     for (const [d, n] of perDay) if (n > dayCap(u)) return { why: `${u.id} got ${n} alerts on ${d}, over their cap of ${dayCap(u)} a day`, got: s.runs.map((r) => r.fault) };
-    const total = mine.filter((o) => o.kind === "alert").length;
-    if (total > weekCap(u)) return { why: `${u.id} got ${total} alerts in a week, over their cap of ${weekCap(u)}`, got: total };
     const reportDays = mine.filter((o) => o.kind === "report").map((o) => o.key);
     if (new Set(reportDays).size !== reportDays.length) return { why: "two reports for one day", got: reportDays };
   }

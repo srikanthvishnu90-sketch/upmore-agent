@@ -5,8 +5,7 @@
 // last_checked_at moves to this run, so a posting is alerted at most once.
 // WO-037, enforced here rather than trusted from the plan: an alert is queued only if its posting passes the person's
 // own gate again at the moment of queuing (matchPosting: their keywords, place and relevance floor; and news, not
-// backlog), so nothing below the person's threshold is ever sent; and the weekly cap is counted from the outbox (a store
-// that cannot count sends no alerts). Each alert carries its posting's first_seen_at, for the latency report.
+// backlog), so nothing below the person's threshold is ever sent; there is no weekly cap. Each alert carries its posting's first_seen_at, for the latency report.
 import { DEFAULT_PREFS, fitFloorOk, localDay, matchPosting, planProactive, quietAt, zoneOr } from "./career_alerts.ts";
 import { alertFits } from "./career_alert_fit.ts";
 import { freshWhenSeen } from "./career_fresh.ts";
@@ -89,9 +88,7 @@ export async function runAlerts(o: {
   const heldIds = [...new Set(rows.flatMap((r) => r.held || []))].filter((id) => !have.has(id));
   const postings = heldIds.length ? [...recent, ...(await o.postingsById(heldIds.slice(0, 2000)))] : recent;
   stats.postings = postings.length;
-  // A new local day starts the person's count over. The last 7 days' alerts count against the weekly cap; a store that
-  // cannot say how many were sent leaves no room (Infinity), so a counting failure never turns into a flood.
-  const week = o.store.alertsSince ? await o.store.alertsSince(new Date(o.now - 7 * 86400000).toISOString()) : null;
+  // A new local day starts the person's count over. There is no weekly cap (owner rule "no limits").
   // PROACTIVE SCENARIOS (2026-10-29): alerts a run queued and never counted. A run that queues and then dies before saving
   // its counters (a crash, a timeout, a save error) leaves the person's count and last check where they were; the next run
   // plans the same postings again and, freshest first, puts newer ones ahead of them: a cap of 3 a day became 5. The
@@ -109,7 +106,7 @@ export async function runAlerts(o: {
     counted.set(r.id, new Set([...(queued?.get(r.id) ?? [])].filter((k) => (seenAt.get(k) ?? -Infinity) >= since)));
   }
   const users: AlertRow[] = rows.map((r) => ({ ...r, instant_sent_today: (r.sent_on === localDate(o.now, r.tz) ? r.instant_sent_today : 0) + counted.get(r.id)!.size,
-    sent_this_week: week ? week.get(r.id) ?? 0 : Infinity }));
+    }));
   const byId = new Map(postings.map((p) => [p.job_id, p]));
   // F7: the fit to each matching posting, for people whose watch record carries their confirmed facts; ranked and floored
   // by the planner, and the floor checked again below at the moment of queuing.
@@ -150,7 +147,7 @@ export async function runAlerts(o: {
       // WO-091c: only the run's own counters are written, never the settings read at the start of the run, so a "stop my
       // alerts" that lands while the run is going stays stopped. A store without saveCounters writes the whole row.
       if (o.store.saveCounters) await o.store.saveCounters(u.id, counters);
-      else { const { sent_this_week: _week, ...row } = u; await o.store.save({ ...row, ...counters }); }
+      else { await o.store.save({ ...u, ...counters }); }
     } catch (e) {
       failed.push(errText(e));
     }

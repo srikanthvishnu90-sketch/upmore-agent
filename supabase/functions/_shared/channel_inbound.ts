@@ -33,6 +33,17 @@ export const linkAskText = (newChannel: Channel) => `Someone texted Trainee on $
 export const linkPendingReply = (linkedOn: Channel) => `This number already has a Trainee account on ${CHANNEL_NAME[linkedOn]}. Reply yes there and this chat is linked to it.`;
 export const linkedReply = (newChannel: Channel) => `Done: ${CHANNEL_NAME[newChannel]} is linked to your Trainee account. Trainee answers on whichever one you text.`;
 export const LINKED_HERE_REPLY = "This chat is linked to your Trainee account now. Text here any time.";
+// IDENTITY SCENARIOS (2026-10-30): the number's account said STOP, so a question there would be held unseen (STOP is the
+// person's and holds a link question); and a number that is already an account's sign-in phone, with no channel to ask.
+// Neither makes a second account for the number.
+export const linkStoppedReply = (linkedOn: Channel) => `This number already has a Trainee account on ${CHANNEL_NAME[linkedOn]}, and it's stopped there, so I haven't linked this chat or made a new account. Text START on ${CHANNEL_NAME[linkedOn]}, then message me here again to link it.`;
+export const PHONE_TAKEN_REPLY = "This number already belongs to a Trainee account, so I haven't made a second one, and this chat isn't linked to it. Nothing about you was saved except that you texted.";
+// The store's createPerson throws this when Auth already holds the number as another account's phone (GoTrue phone_exists).
+export class PhoneTakenError extends Error {
+  readonly code = "phone_taken";
+  constructor() { super("this number is already an account's phone"); }
+}
+export const isPhoneTaken = (e: unknown) => e instanceof PhoneTakenError || (!!e && typeof e === "object" && (e as { code?: unknown }).code === "phone_taken");
 export const connectTelegramReply = (link: string) => `Open this link where you use Telegram and tap Start. It works once, for the next 10 minutes.\n${link}`;
 export const TELEGRAM_NOT_WIRED_REPLY = "Telegram isn't set up on Trainee's side yet, so there's no link to send.";
 export const ALREADY_TELEGRAM_REPLY = "This chat is already on Telegram, so there's nothing to connect.";
@@ -94,7 +105,11 @@ export interface InboundStore {
   enqueueReply(userId: string, key: string, text: string, at: number, channel?: Channel, part?: { of: string; n: number }, cardId?: string | null): Promise<boolean>;
   // WO-038 (optional, so a store written for WO-013 still runs the LoopMessage path unchanged):
   sawInbound?(contact: string, at: number, o: { alias?: string | null; phone?: string | null }): Promise<void>;
-  linkCandidate?(phone: string, except: Channel): Promise<{ userId: string; contact: string } | null>;
+  // optedOut (IDENTITY SCENARIOS, 2026-10-30): the account is stopped (a STOP on any of its contacts), so a question there
+  // would never be seen.
+  linkCandidate?(phone: string, except: Channel): Promise<{ userId: string; contact: string; optedOut?: boolean } | null>;
+  // IDENTITY SCENARIOS (2026-10-30): the contact an open question for this (not yet linked) contact was asked on, if any.
+  pendingLink?(contact: string, at: number): Promise<string | null>;
   askToLink?(a: { userId: string; contact: string; phone: string; askedOn: string; at: number; text: string }): Promise<string | null>; // the outbox key, or null: asked already
   confirmLink?(a: { userId: string; askedOn: string; at: number; notice: string }): Promise<{ contact: string; key: string | null } | null>;
   issueLinkNonce?(userId: string, at: number): Promise<string>;
@@ -199,11 +214,14 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     return r;
   };
   // A forwarded message, and the words sent with a photo or a video, are never the person's command, yes or link request.
-  const passedOn = !!(msg.forwardedFrom || msg.caption);
+  // IDENTITY SCENARIOS (2026-10-30): WhatsApp's forwarded flag (messages[].context.forwarded) too: a forwarded "yes" linked
+  // the chat that was asked.
+  const passedOn = !!(msg.forwardedFrom || msg.caption || msg.forwarded);
   // The message id is claimed, so a failure past this point is never retried by the provider: say so to the person once
   // (best effort) rather than leave them with silence.
   try {
     let person = await store.person(contact);
+    let released = false; // IDENTITY SCENARIOS: the number was just shown to be someone else's now (a recycled number)
     // CHANNEL DELIVERY ROUND 2 (2026-10-30): a WhatsApp number given to someone else. Meta's business-scoped id is the
     // account's, not the number's: a message from the number with another id is another person. It ran as the number's old
     // owner (their thread, their account) and opened the window for their queued messages, which then went to the new owner.
@@ -211,6 +229,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     if (person && msg.channel === "whatsapp" && msg.alias && person.alias && person.alias !== msg.alias && person.contact === msg.contact && store.releaseContact) {
       await store.releaseContact(msg.contact, now);
       person = null;
+      released = true;
     }
     for (const alias of msg.aliases ?? []) { if (person) break; person = await store.person(alias); }
     if (person?.contact) contact = person.contact;
@@ -275,9 +294,26 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     }
 
     if (!person) {
+      // IDENTITY SCENARIOS (2026-10-30): a Telegram chat waiting for its yes carries no number on a typed message (only the
+      // share did): it went on to sign-up, a second account with sign-up open, and the yes then linked nothing. It is told
+      // again where the yes goes.
+      if (msg.channel === "telegram" && !msg.phone && store.pendingLink) {
+        const on = await store.pendingLink(contact, now);
+        if (on) {
+          const r = await say(contact, d.render(linkPendingReply(channelOf(on))));
+          return ok({ link: "asked already", sent: r.ok });
+        }
+      }
       // The same number already has Trainee on another channel: ask there, never merge on our own.
       if (msg.phone && store.linkCandidate && store.askToLink) {
         const found = await store.linkCandidate(msg.phone, msg.channel);
+        // IDENTITY SCENARIOS (2026-10-30): the number's account is stopped. The question was never asked (a stopped contact
+        // was skipped) and the message went on to sign-up: a second account for the same number (or, with Auth's one phone
+        // per account, "I couldn't answer that" on every message). Now it is said plainly, and nothing is made or linked.
+        if (found?.optedOut) {
+          const r = await say(contact, d.render(linkStoppedReply(channelOf(found.contact))), msg.sharedPhone === "own" ? { removeKeyboard: true } : undefined);
+          return ok({ link: "stopped there", sent: r.ok });
+        }
         if (found) {
           const key = await store.askToLink({ userId: found.userId, contact, phone: msg.phone, askedOn: found.contact, at: now, text: linkAskText(msg.channel) });
           // TELEGRAM SCENARIOS (2026-10-30): the share-phone button tapped again while the question waits got silence. It is
@@ -312,7 +348,21 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
         const r = await say(contact, d.render(SIGNUP_CLOSED_REPLY));
         return ok({ refused: "signup closed", sent: r.ok });
       }
-      person = await store.createPerson(contact, now, msg.phone ?? null);
+      try { person = await store.createPerson(contact, now, msg.phone ?? null); }
+      catch (e) {
+        if (!isPhoneTaken(e)) throw e;
+        // IDENTITY SCENARIOS (2026-10-30): Auth holds the number for an account no channel of Trainee's can ask. A WhatsApp
+        // number just shown to be someone else's now (another business-scoped id) is a new person: their own account, without
+        // the number (it is still the old owner's sign-in). Otherwise no second account is made, and it is said once.
+        if (released && msg.channel === "whatsapp") person = await store.createPerson(contact, now, null);
+        else {
+          if (await store.refusedBefore(contact, now) && msg.sharedPhone !== "own") return ok({ ignored: "number taken (already told)" });
+          const loginUrl = (d.env.get("TELEGRAM_LOGIN_URL") || "").trim();
+          const r = await say(contact, d.render(PHONE_TAKEN_REPLY), msg.sharedPhone === "own" ? { removeKeyboard: true } : undefined);
+          if (msg.channel === "telegram" && /^https:\/\//.test(loginUrl)) await say(contact, d.render(TELEGRAM_LINK_REPLY), { buttons: [[{ text: LINK_BUTTON, loginUrl }]] }).catch(() => ({ ok: false }));
+          return ok({ refused: "number taken", sent: r.ok });
+        }
+      }
       if (store.sawInbound) await store.sawInbound(contact, seenAt, { alias: msg.alias ?? null, phone: msg.phone ?? null });
       // A first Start is the person's first message: the brain welcomes them with what to send first (WO-106).
     }

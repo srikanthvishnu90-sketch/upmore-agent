@@ -34,7 +34,7 @@
 import assertNode from "node:assert/strict";
 import { generate, NOW, NEVER, type Scenario, type PostingSpec, type IdStep } from "./scenarios/telegram-generator.ts";
 import { handleTelegram, jobSenderFor, webhookDeps } from "../../supabase/functions/trainee-telegram/handler.ts";
-import { CHAT_DOWN_REPLY, FILE_NOT_READ_REPLY, handleChannelWebhook, PHONE_ALREADY_REPLY, PHONE_NO_ACCOUNT_REPLY, PHONE_NOT_YOURS_REPLY, SIGNUP_CLOSED_REPLY,
+import { CHAT_DOWN_REPLY, FILE_NOT_READ_REPLY, handleChannelWebhook, MEDIA_CAPTION_NOTE, PHONE_ALREADY_REPLY, PHONE_NO_ACCOUNT_REPLY, PHONE_NOT_YOURS_REPLY, SIGNUP_CLOSED_REPLY,
   VOICE_NOT_READ_REPLY } from "../../supabase/functions/_shared/channel_inbound.ts";
 import { memoryChannelWorld } from "../../supabase/functions/_shared/channel_memory.ts";
 import { adaptersFromEnv } from "../../supabase/functions/_shared/channel_registry.ts";
@@ -285,7 +285,7 @@ Deno.test({ name: "telegram battery: every update shape (edits, channel posts, s
     } else if (["voice", "audio", "video", "video_note"].includes(s.shape)) {
       if (w.chats.length) whys.push("a model turn ran for a voice message");
       if (s.known && JSON.stringify(toChat) !== JSON.stringify([VOICE_NOT_READ_REPLY])) whys.push(`a voice message got ${JSON.stringify(toChat).slice(0, 120)}`);
-    } else if (s.shape === "photo" || s.shape === "caption_only_photo") {
+    } else if (s.shape === "photo") {
       if (w.chats.length) whys.push("a model turn ran for a photo");
       if (s.known && JSON.stringify(toChat) !== JSON.stringify([FILE_NOT_READ_REPLY])) whys.push(`a photo got ${JSON.stringify(toChat).slice(0, 120)}`);
     } else if (s.shape === "document") {
@@ -306,6 +306,9 @@ Deno.test({ name: "telegram battery: every update shape (edits, channel posts, s
         if (!toChat.length) whys.push("silence");
         if (toChat.some((t) => t === CHAT_DOWN_REPLY)) whys.push("I couldn't answer that");
         if (s.shape === "start" && s.known && !toChat[0]?.startsWith(CHANNEL_REPLIES.start.slice(0, 20))) whys.push(`/start from a known person: ${toChat[0]?.slice(0, 80)}`);
+        // TELEGRAM ROUND 2 (2026-10-30, scenarios-telegram-r2.test.ts): the words sent with a photo are read (a job post's flyer
+        // carries the post as its caption); the answer says first that the picture itself was not seen.
+        if (s.shape === "caption_only_photo" && (w.chats[0]?.message !== "my resume" || !toChat[0]?.startsWith(MEDIA_CAPTION_NOTE))) whys.push(`a photo's caption: read ${JSON.stringify(w.chats[0]?.message)}, said ${JSON.stringify(toChat[0]?.slice(0, 80))}`);
       } else {
         if (w.chats.length) whys.push("a stranger's message ran a model turn with sign-up closed");
         if (s.shape === "help" ? toChat.length !== 1 : JSON.stringify(toChat) !== JSON.stringify([SIGNUP_CLOSED_REPLY])) whys.push(`a stranger got ${JSON.stringify(toChat).slice(0, 120)}`);

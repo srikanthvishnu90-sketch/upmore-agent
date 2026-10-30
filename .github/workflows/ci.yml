@@ -115,9 +115,12 @@ jobs:
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
           # Each node suite's seconds (JSON lines for `node scripts/node-shards.cjs update`) where the gate ran node suites
-          # with the durations reporter (core shards, browser).
+          # with the durations reporter (core shards, browser), 45 lines a notice (an annotation keeps only 4,096 characters).
           if [ -s "$RUNNER_TEMP/node-durations.jsonl" ]; then
-            echo "::notice title=node suite durations::$(head -400 "$RUNNER_TEMP/node-durations.jsonl" | sed ':a;N;$!ba;s/\n/%0A/g')"
+            split -l 45 "$RUNNER_TEMP/node-durations.jsonl" "$RUNNER_TEMP/node-durations.part."
+            for part in "$RUNNER_TEMP"/node-durations.part.*; do
+              echo "::notice title=node suite durations::$(sed ':a;N;$!ba;s/\n/%0A/g' "$part")"
+            done
           fi
           exit 0
   gate:
@@ -192,9 +195,12 @@ jobs:
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
           # Each node suite's seconds (JSON lines for `node scripts/node-shards.cjs update`) where the gate ran node suites
-          # with the durations reporter (core shards, browser).
+          # with the durations reporter (core shards, browser), 45 lines a notice (an annotation keeps only 4,096 characters).
           if [ -s "$RUNNER_TEMP/node-durations.jsonl" ]; then
-            echo "::notice title=node suite durations::$(head -400 "$RUNNER_TEMP/node-durations.jsonl" | sed ':a;N;$!ba;s/\n/%0A/g')"
+            split -l 45 "$RUNNER_TEMP/node-durations.jsonl" "$RUNNER_TEMP/node-durations.part."
+            for part in "$RUNNER_TEMP"/node-durations.part.*; do
+              echo "::notice title=node suite durations::$(sed ':a;N;$!ba;s/\n/%0A/g' "$part")"
+            done
           fi
           exit 0
   gate-architect-shard:
@@ -271,13 +277,22 @@ jobs:
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
           # Each node suite's seconds (JSON lines for `node scripts/node-shards.cjs update`) where the gate ran node suites
-          # with the durations reporter (core shards, browser).
+          # with the durations reporter (core shards, browser), 45 lines a notice (an annotation keeps only 4,096 characters).
           if [ -s "$RUNNER_TEMP/node-durations.jsonl" ]; then
-            echo "::notice title=node suite durations::$(head -400 "$RUNNER_TEMP/node-durations.jsonl" | sed ':a;N;$!ba;s/\n/%0A/g')"
+            split -l 45 "$RUNNER_TEMP/node-durations.jsonl" "$RUNNER_TEMP/node-durations.part."
+            for part in "$RUNNER_TEMP"/node-durations.part.*; do
+              echo "::notice title=node suite durations::$(sed ':a;N;$!ba;s/\n/%0A/g' "$part")"
+            done
           fi
-          # This shard's files and their seconds (JSON lines for `deno run -A scripts/architect-shards.ts update`).
-          durations=$(deno run -A scripts/architect-shards.ts durations "$RUNNER_TEMP/gate.log" 2>/dev/null | head -150)
-          [ -n "$durations" ] && echo "::notice title=architect file durations::$(printf '%s' "$durations" | sed ':a;N;$!ba;s/\n/%0A/g')"
+          # This shard's files and their seconds (JSON lines for `deno run -A scripts/architect-shards.ts update`), 45 lines a
+          # notice: an annotation keeps only its first 4,096 characters, which had cut each shard's list at ~58 files.
+          deno run -A scripts/architect-shards.ts durations "$RUNNER_TEMP/gate.log" 2>/dev/null | head -300 > "$RUNNER_TEMP/architect-durations.jsonl" || true
+          if [ -s "$RUNNER_TEMP/architect-durations.jsonl" ]; then
+            split -l 45 "$RUNNER_TEMP/architect-durations.jsonl" "$RUNNER_TEMP/architect-durations.part."
+            for part in "$RUNNER_TEMP"/architect-durations.part.*; do
+              echo "::notice title=architect file durations::$(sed ':a;N;$!ba;s/\n/%0A/g' "$part")"
+            done
+          fi
           exit 0
   gate-architect:
     name: gate (architect)
@@ -378,9 +393,12 @@ jobs:
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
           # Each node suite's seconds (JSON lines for `node scripts/node-shards.cjs update`) where the gate ran node suites
-          # with the durations reporter (core shards, browser).
+          # with the durations reporter (core shards, browser), 45 lines a notice (an annotation keeps only 4,096 characters).
           if [ -s "$RUNNER_TEMP/node-durations.jsonl" ]; then
-            echo "::notice title=node suite durations::$(head -400 "$RUNNER_TEMP/node-durations.jsonl" | sed ':a;N;$!ba;s/\n/%0A/g')"
+            split -l 45 "$RUNNER_TEMP/node-durations.jsonl" "$RUNNER_TEMP/node-durations.part."
+            for part in "$RUNNER_TEMP"/node-durations.part.*; do
+              echo "::notice title=node suite durations::$(sed ':a;N;$!ba;s/\n/%0A/g' "$part")"
+            done
           fi
           # forms-ci coverage diagnostics read-back (2026-10-24): the diag JSONL is appended event-by-event
           # during the drives, so it exists even when a test timeout kills the suite file before its

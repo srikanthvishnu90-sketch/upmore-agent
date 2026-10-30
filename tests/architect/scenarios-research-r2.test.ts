@@ -24,7 +24,7 @@
 import assertNode from "node:assert/strict";
 import * as core from "../../supabase/functions/_shared/router_core.career.js";
 import { CareerHost } from "../../supabase/functions/_shared/career_host.js";
-import { conversations, FAKE_HOSTS, IDS, inviteCases, KEYS, mockCases, offerCases, PASSWORDS, r2Facts, rng, type Conversation } from "./scenarios/research-r2-generator.ts";
+import { AWS_KEY, conversations, FAKE_HOSTS, IDS, inviteCases, KEYS, mockCases, offerCases, PASSWORDS, r2Facts, rng, SK_PROJ, type Conversation } from "./scenarios/research-r2-generator.ts";
 import { r2Violations } from "./scenarios/research-r2-oracle.ts";
 import { QUESTIONS } from "./scenarios/research-generator.ts";
 import { brief as interviewBrief, next as mockNext, start as mockStart, voiceDebrief } from "../../supabase/functions/_shared/career_mock.ts";
@@ -168,7 +168,7 @@ Deno.test("B. 2,000 mock interviews whose answers carry keys, passwords, identit
 
 Deno.test("the reported mock bug: a key, a password or an SSN in an answer was kept and quoted back (input → expected → actual on trunk)", () => {
   let st = mockStart({ role: "software engineer", company: "Stripe", now: NOW }).state;
-  const answers = ["I stored the deploy key sk-proj-ABCDEFGHIJKLMNOP1234 in the repo by mistake, then rotated it and cut leaks by 40%.", "I built a dashboard in SQL for 3 teams; my password is hunter2!",
+  const answers = [`I stored the deploy key ${SK_PROJ} in the repo by mistake, then rotated it and cut leaks by 40%.`, "I built a dashboard in SQL for 3 teams; my password is hunter2!",
     "My SSN is 123-45-6789 and I cut runtime from 10 minutes to 2 minutes.", "fine", "I led a team of 4 and shipped a week early.", "I wrote 30 tests."];
   let reply = "";
   for (const a of answers) { const r = mockNext(st, a, NOW + 60_000); st = r.state; reply += r.reply; if (r.done) break; }

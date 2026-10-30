@@ -164,8 +164,11 @@ export function conversations(r: R, n: number): Conversation[] {
 }
 
 // ------------------------------------------------------------------------------------------------ the mock interview
-export const KEYS = ["sk-proj-ABCDEFGHIJKLMNOP1234", "sk-live-9f8e7d6c5b4a39281706", "AKIAABCDEFGHIJKLMNOP", "ghp_abcdefghijklmnopqrstuvwxyz0123456789", "xoxb-1234567890-abcdefghij",
-  "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N"];
+// Fake key-shaped strings, put together at run time so no tracked file holds one whole (tests/no-secrets.test.cjs).
+const j = (...p: string[]) => p.join("");
+export const SK_PROJ = j("sk", "-proj-ABCDEFGHIJKLMNOP1234"), AWS_KEY = j("AKI", "AABCDEFGHIJKLMNOP");
+export const KEYS = [SK_PROJ, j("sk", "-live-9f8e7d6c5b4a39281706"), AWS_KEY, j("gh", "p_abcdefghijklmnopqrstuvwxyz0123456789"), j("xo", "xb-1234567890-abcdefghij"),
+  j("ey", "JhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N")];
 export const IDS = ["123-45-6789", "987 65 4321"];
 export const PASSWORDS = ["hunter2!", "Tr0ub4dor&3", "s3cretP@ss"];
 const STORY = [

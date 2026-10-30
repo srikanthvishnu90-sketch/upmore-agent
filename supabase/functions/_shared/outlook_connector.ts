@@ -259,7 +259,7 @@ export async function outlookChatTurn(d: { admin: Admin; message: string; userId
 
 // ------------------------------------------------------------------------------------------------ the edge function
 export interface OAuthDeps {
-  admin: Admin; env: Env; fetch: typeof fetch; now?: () => number; log?: (l: string) => void; deliver?: (a: { userId: string; key: string; now: number }) => Promise<void>;
+  admin: Admin; env: Env; fetch: typeof fetch; now?: () => number; log?: (l: string) => void; deliver?: (a: { userId: string; key: string; now: number }) => Promise<unknown>;
   // The connector framework (connectors.ts afterConnect): once the grant is stored and the person told, the tasks that
   // were waiting for Outlook resume. Its failure never undoes the connection.
   afterConnect?: (a: { userId: string; email: string | null; scopes: string[] }) => Promise<unknown>;

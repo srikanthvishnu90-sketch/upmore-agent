@@ -363,7 +363,7 @@ export interface AfterDeps extends Deps {
   // Re-runs a parked task's ask as the person (agent-chat's service-role path, chatThroughAgent), with a stable turn key,
   // so a retried resume replays instead of acting twice. persisted: the turn wrote its own reply into the thread.
   runTurn: (a: { userId: string; threadId: string | null; message: string; turnKey: string }) => Promise<TurnResult>;
-  deliver?: (a: { userId: string; key: string; now: number }) => Promise<void>;
+  deliver?: (a: { userId: string; key: string; now: number }) => Promise<unknown>;
   log?: (l: string) => void;
 }
 // Says something in the place a link or a task came from: the web thread, or the channel's outbox.

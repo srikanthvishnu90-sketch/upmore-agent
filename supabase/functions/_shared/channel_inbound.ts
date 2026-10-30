@@ -84,7 +84,8 @@ export interface CoreDeps {
   // replyToMessageId (optional): the provider's id of the message the person replied to (SERIAL-1462). cardId (optional,
   // in the answer): the card this reply shows, so the outbox row that carries it is recorded against the card.
   chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null; channel?: string; screenTap?: { qid: string; answer: string } | null }) => Promise<{ status: number; reply: string; shape?: { attachments: ShapedFile[]; links: string[]; more?: string[] }; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null; postings?: unknown[]; screenButtons?: boolean; screenQid?: string | null; artifacts?: { ref: string; filename: string; mime: string }[] }>;
-  deliver: (a: { userId: string; key: string; now: number }) => Promise<void>; // a head start on the every-minute run
+  // a head start on the every-minute run; what it did (deliverDue's counts), when the deliverer says (the #301 rest waits for its head)
+  deliver: (a: { userId: string; key: string; now: number }) => Promise<unknown>;
   // FEATURE 16 (Telegram; optional, so the other channels run unchanged):
   // resumeFile: a document the person sent, downloaded, read and stored as their upload (channel_resume_upload.ts); ok
   //   gives the message the chat receives for it, else the plain reply to say. Absent: the file is not read (WO-106 reply).
@@ -146,6 +147,7 @@ const YES = /^yes[.!]*$/i, CONNECT_TELEGRAM = /^connect telegram[.!]*$/i;
 export const screenButtons = (qid: string) => [[{ text: "Yes", data: `scr:${qid}:yes` }, { text: "No", data: `scr:${qid}:no` }]];
 export const SCREEN_TAP = /^scr:([0-9a-f]{8}):(yes|no)$/;
 export const SCREEN_REPLY_YES_NO = "Reply yes or no.";
+const MORE_ONE_MESSAGE = 4000; // #301's second message, whole (Telegram takes 4,096; channel_shape.ts MORE_MAX_CHARS is 3,000)
 export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out> {
   const now = d.now(), store = d.store;
   if (!(await store.claimMessage(msg.messageId, now, msg.provider))) return ok({ ignored: "duplicate webhook" });
@@ -212,6 +214,13 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
         const found = await store.linkCandidate(msg.phone, msg.channel);
         if (found) {
           const key = await store.askToLink({ userId: found.userId, contact, phone: msg.phone, askedOn: found.contact, at: now, text: linkAskText(msg.channel) });
+          // TELEGRAM SCENARIOS (2026-10-30): the share-phone button tapped again while the question waits got silence. It is
+          // the person's own tap, so they are told again where the yes goes (no second question is asked). A WhatsApp
+          // message carries the number on every text, and those stay quiet until the yes (WO-038).
+          if (!key && msg.sharedPhone === "own") {
+            const r = await d.reply(contact, d.render(linkPendingReply(channelOf(found.contact))), { removeKeyboard: true });
+            return ok({ link: "asked already", sent: r.ok });
+          }
           if (!key) return ok({ ignored: "link asked already" });
           try { await d.deliver({ userId: found.userId, key, now }); } catch (e) { console.error("inbound: the link question waits in the outbox:", e instanceof Error ? e.message : String(e)); }
           const r = await d.reply(contact, d.render(linkPendingReply(channelOf(found.contact))));
@@ -333,7 +342,10 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     try {
       const turnKey = await turnKeyFor(msg.provider === "loopmessage" ? msg.messageId : `${msg.provider}:${msg.messageId}`);
       // Telegram's /start and /help come as a command with no text; the brain reads them as the command itself.
-      const said = fileMessage ?? (msg.text || (command ? `/${command}` : ""));
+      // TELEGRAM SCENARIOS (2026-10-30): a shared phone that made the account (sign-up open, or the number allow-listed) has no
+      // words at all; the turn ran with an empty message, agent-chat refused it, and the person read "I couldn't answer that
+      // just now" for their first tap. It is their first message, as a first /start is.
+      const said = fileMessage ?? (msg.text || (command ? `/${command}` : msg.sharedPhone === "own" ? "/start" : ""));
       // The brain gets the person, the thread, the words and a turn key, and the reply-to id only when the platform gave one.
       const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}), ...(screenTap ? { screenTap } : {}) });
       reply = out.reply.trim() || CHAT_DOWN_REPLY;
@@ -360,10 +372,23 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     // The reply is queued; sending it now is a head start on the every-minute run, never a second path. A failure there may
     // come after the provider took it, so it must not reach the catch below (which would also say "couldn't answer").
     // A reply in parts is one row per part (reply:<id>:<n>), each whole, sent in order.
-    const rows = parts ? parts.map((text, i) => ({ key: `${key}:${i + 1}`, text, part: { of: key, n: i + 1 } })) : [{ key, text: fitReply(reply), part: undefined }];
+    // #301 (TELEGRAM SCENARIOS, 2026-10-30): a long answer's rest (shape.more) follows its head as ONE message, and only after
+    // the head. It was sent at once, through the channel's 1,500-character packing (a 3,000-character rest arrived as two or
+    // three messages), and before the head when Telegram refused the head (429): the rest first, the answer a minute later.
+    // Now the head is part 1 of the reply; when it went out, the rest goes as one message; when it did not, the rest waits
+    // in the outbox as part 2, behind the head, in order (the outbox's own parts rule).
+    const more = !parts && shape?.more?.length ? String(shape.more[0] ?? "").trim() : "";
+    const rows = parts ? parts.map((text, i) => ({ key: `${key}:${i + 1}`, text, part: { of: key, n: i + 1 } as { of: string; n: number } | undefined }))
+      : more ? [{ key: `${key}:1`, text: fitReply(reply), part: { of: key, n: 1 } as { of: string; n: number } | undefined }]
+      : [{ key, text: fitReply(reply), part: undefined }];
     for (const r of rows) await store.enqueueReply(person.userId, r.key, r.text, now, msg.channel, r.part, cardId);
-    try { for (const r of rows) await d.deliver({ userId: person.userId, key: r.key, now }); }
-    catch (e) { console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
+    let headWent = true;
+    try {
+      for (const r of rows) {
+        const went = await d.deliver({ userId: person.userId, key: r.key, now });
+        if (r === rows[0] && went && typeof went === "object" && "delivered" in went) headWent = Number((went as { delivered: unknown }).delivered) > 0;
+      }
+    } catch (e) { headWent = false; console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
     // F09: the screen's yes/no question gets Yes / No buttons where the channel has them (Telegram), else the plain words.
     if (screenQidOut) {
       const buttons = msg.channel === "telegram" ? screenButtons(screenQidOut) : undefined;
@@ -384,10 +409,19 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     }
     // REPLY SHAPE: the answer went first; now each file, then each link, one message each, in that order. A step that fails is said.
     let shaped: { files: number; links: number } | null = null;
-    if (shape?.more?.length) for (const m of shape.more.slice(0, 1)) await d.reply(contact, d.render(m)).catch(() => ({ ok: false }));
+    if (more && headWent) {
+      const bubbles = d.render(more), one = bubbles.join("\n\n");
+      await d.reply(contact, bubbles.length > 1 && one.length <= MORE_ONE_MESSAGE ? [one] : bubbles).catch(() => ({ ok: false }));
+    } else if (more) {
+      // The head did not go out now: the rest and the answer's links wait behind it in the outbox, in order (a link sent now
+      // arrived before the answer it belongs to).
+      await store.enqueueReply(person.userId, `${key}:2`, fitReply(more), now, msg.channel, { of: key, n: 2 }, null);
+      let n = 2;
+      for (const url of shape?.links ?? []) { n++; await store.enqueueReply(person.userId, `${key}:${n}`, url, now, msg.channel, { of: key, n }, null); }
+    } else if (shape?.more?.length) for (const m of shape.more.slice(0, 1)) await d.reply(contact, d.render(m)).catch(() => ({ ok: false }));
     if (shape && (d.sendFile || d.sendLink)) {
       const sf = d.sendFile, sl = d.sendLink;
-      const r = await deliverShaped({ answer: "", attachments: shape.attachments, links: shape.links, notes: [] }, {
+      const r = await deliverShaped({ answer: "", attachments: shape.attachments, links: more && !headWent ? [] : shape.links, notes: [] }, {
         document: async (f) => sf ? await sf({ contact, ...f }) : { ok: false }, link: async (url) => sl ? await sl({ contact, url }) : { ok: false } }, { includeAnswer: false });
       shaped = { files: r.files, links: r.links };
       if (r.files < shape.attachments.length) await d.reply(contact, d.render(DOC_NOT_SENT_REPLY)).catch(() => ({ ok: false }));

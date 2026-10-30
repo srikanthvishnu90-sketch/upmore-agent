@@ -1064,7 +1064,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (longRest?.full && src && (Deno.env.get("TRAINEE_FILE_BASE_URL") || "").trim()) {
           const made = await createFileService({ store: supabaseFileKindStore(admin), env: Deno.env, now: Date.now }).create(user.id, "research_brief", {
             title: "More on your question", subject: "Your question", findings: chunkSentences(longRest.full, PAGE_CHUNK_CHARS, PAGE_MAX_CHUNKS).chunks.map((value, i) => ({ label: i ? `The rest of the answer (${i + 1})` : "The rest of the answer", value, source: "Reported, not verified" })), sources: [{ title: new URL(src).hostname, url: src }] }).catch(() => null);
-          if (made && made.ok && (made.url ?? made.webApp)) overflowLink = (made.url ?? made.webApp) as string;
+          // TELEGRAM SCENARIOS (2026-10-30): only the signed link. A Mini App URL (webApp) opens only from Telegram's own button;
+          // sent as a plain link it opened in the browser signed out, and the rest of the answer (not sent as a second message)
+          // was lost. Without the signed link the rest goes as the second message.
+          if (made && made.ok && made.url) overflowLink = made.url;
         }
         const sh = shapeForTurn({ overflowLink, on: replyWriterOn(Deno.env), channel: writerChannel((body as any)?.channel), reply: out.reply, attachments: turnAttachments, allowedLinks: turnLinks,
           writable: writable(out, agentMeta, { structured: !!(careerTask || careerBatch) }) });

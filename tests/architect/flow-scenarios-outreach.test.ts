@@ -54,7 +54,14 @@ Deno.test({ name: "outreach end to end: ~80 flows through the rail's functions, 
     const outreachDeps = { ...rpc, drafts: draftsReader(db) };
     const sentTo = (g: FakeGmail, addr: string) => g.sent.filter((m) => m.to === addr);
     // Workers run until nothing is due at `now` (each pass claims again); the clock is passed, never read here.
-    const drain = async (d: WorkerDeps, worker: string, passes = 6) => { let n = 0; for (let i = 0; i < passes; i++) { const s = await runSendWorker(d, { worker, deadlineMs: 30_000 }); n += s.sent + s.already_sent; if (!s.claims) break; } return n; };
+    // Until nothing is left to claim (a slow CI runner can end a pass on its deadline with work still due), bounded.
+    const drain = async (d: WorkerDeps, worker: string, passes = 40) => { let n = 0; for (let i = 0; i < passes; i++) { const s = await runSendWorker(d, { worker, deadlineMs: 120_000 }); n += s.sent + s.already_sent; if (!s.claims) break; } return n; };
+    // The first email to an address, or a failure that says what the queue holds instead of a TypeError.
+    const firstTo = async (gmail: FakeGmail, addr: string, u: string) => {
+      const m = gmail.to(addr)[0];
+      if (!m) throw new Error(`nothing was sent to ${addr}; queue: ${JSON.stringify(await rows(db, `select state, attempts, result, send_at from public.career_send_queue where user_id = '${u}'`))}`);
+      return m;
+    };
 
     await t.step("A. exactly once under failure (12 flows)", async () => {
       const modes = ["lost_answer", "throw_before", "500", "429", "403_daily_words", "died_after_accept"] as const;
@@ -153,7 +160,7 @@ Deno.test({ name: "outreach end to end: ~80 flows through the rail's functions, 
         const first = msg("Coffee chat?", `Hi, would you have 15 minutes? (${f})`);
         const [r0] = await queueApproved(rpc, u, [{ kind: "general", sourceId: crypto.randomUUID(), approvalHash: await payloadHash(first), ...first }]);
         await drain(deps, `w-d0-${f}`);
-        let threadOf = gmail.to(a)[0].threadId;
+        let threadOf = (await firstTo(gmail, a, u)).threadId;
         if (onSecond) {
           const fu1 = msg("Re: Coffee chat?", `Following up once (${f}).`);
           await queueApproved(rpc, u, [{ kind: "general", sourceId: crypto.randomUUID(), approvalHash: await payloadHash(fu1), ...fu1, followUpOf: r0.id }]);
@@ -196,7 +203,7 @@ Deno.test({ name: "outreach end to end: ~80 flows through the rail's functions, 
         const later = { to: x, subject: "Introduction", text: `A separate note (${f}).` };
         await queueApproved(rpc, b, [{ kind: "general", sourceId: crypto.randomUUID(), approvalHash: await payloadHash(later), ...later, sendAt: new Date(Date.now() + 5 * DAY).toISOString() }]);
         await drain(railDeps(db, conn, gmail), `w-e-${f}`);
-        const th = gmail.to(x)[0].threadId;
+        const th = (await firstTo(gmail, x, a)).threadId;
         if (kind === "stop") gmail.reply(th, x, "Re: A quick question 1", "Not interested, please remove me.");
         else gmail.reply(th, "postmaster@example.test", "Undeliverable: A quick question 1", "Delivery has failed to these recipients.");
         await runReplyCheck(railDeps(db, conn, gmail), { limit: 1000, recheckSeconds: 0 });

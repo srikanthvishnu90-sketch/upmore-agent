@@ -342,6 +342,9 @@
     "tests/architect/wo-102-paths.test.ts": 0.1,
     "tests/architect/wo-102-submission-quality.test.ts": 0.1,
     "tests/architect/wo-106-agent-slice.test.ts": 0.1,
-    "tests/architect/wo-107-standing.test.ts": 0.1
+    "tests/architect/wo-107-standing.test.ts": 0.1,
+    "tests/architect/scenarios-networking-r2.test.ts": 22,
+    "tests/architect/scenarios-networking-r2-2.test.ts": 28,
+    "tests/architect/flow-scenarios-networking-r2.test.ts": 150
   }
 }

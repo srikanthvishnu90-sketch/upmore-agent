@@ -111,10 +111,21 @@ export interface RepliesStore {
   wantingCall(limit: number): Promise<ThreadRow[]>;
   mailboxes(userId: string): Promise<{ provider: Provider; last_error: string | null; last_ok_at: string | null }[]>; // threads that want a call and have no scheduling reply yet, any person
   lastAssistantIntent(chatThreadId: string): Promise<string | null>;
+  // NETWORKING R2 (2026-10-30): which batch a chat last showed ("show outreach approvals"), so a "send all" there answers
+  // exactly that batch, never one drafted after it was shown. A store without these answers the newest batch (as before).
+  shownBatch?(userId: string, chatThreadId: string): Promise<string | null>;
+  markShown?(userId: string, chatThreadId: string, batchId: string): Promise<void>;
+  batch?(userId: string, batchId: string): Promise<Action[]>;
+  // "stop emailing <address>": every email and follow-up of this person's to that address that has not gone yet is
+  // cancelled (queued on the rail, approved drafts, follow-ups shown or approved), and no follow-up is drafted to it again.
+  stopAddress?(userId: string, email: string): Promise<StopResult>;
+  // The addresses of this person's outreach whose name matches (for "stop emailing Maya Chen").
+  addressesNamed?(userId: string, name: string): Promise<{ email: string; name: string }[]>;
   // The sending rail's row of the outreach email this conversation began with (career_send_queue, kind outreach), if the
   // rail sent it: follow-ups name it so the rail keeps the sequence in order and stops it on a reply.
   railRoot(userId: string, draftId: string): Promise<string | null>;
 }
+export interface StopResult { queued: number; drafts: number; actions: number; threads: number; sent: number }
 export interface Outbox { enqueue(userId: string, m: { key: string; kind: "status" | "followup"; text: string; at: number }): Promise<boolean> }
 
 const DAY = 86_400_000;
@@ -746,6 +757,47 @@ export function intervalAsk(message: string): IntervalAsk | null {
 export const stepsOf = (days: number[]) => days.map((d, i) => d - (i ? days[i - 1] : 0));
 export const daysOf = (steps: number[]) => steps.reduce((out: number[], g) => [...out, (out[out.length - 1] ?? 0) + g], []);
 
+// ------------------------------------------------------------------------------------------------ "stop emailing X"
+// NETWORKING R2 (2026-10-30): the person's own "stop emailing maya@acme.com" / "stop emailing Maya Chen" / "don't email
+// X anymore" / "cancel all emails to X" / "stop following up with X". Before, nothing answered it (only "cancel N" for one
+// draft): queued emails, approved drafts and follow-ups to that address still went. Now every one of this person's that
+// has not gone is cancelled in one step (career_send_stop_address), no follow-up is drafted to them again, and the reply
+// says exactly what was stopped and what had already gone. It is the person's choice about their own emails: it does not
+// put the contact on anyone's do-not-contact list, and a new email to them is drafted only if the person asks again.
+export const STOP_INTENT = "career_outreach_stop_address";
+const STOP_ADDR = /[a-z0-9._%+-]{1,64}@(?:[a-z0-9-]{1,63}\.)+[a-z]{2,24}/i;
+export function stopAsk(message: string): { email: string } | { name: string } | null {
+  const t = String(message ?? "").replace(/[’]/g, "'").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").trim();
+  if (t.length > 200 || /\?\s*$/.test(t)) return null;
+  const m = /^(?:(?:please|pls|ok|okay|hey|actually)[, ]+)*(?:stop|quit|cease|don'?t|do not|never|no more|cancel(?: all| every| any)?(?: (?:the|my))?|halt)\s+(?:(?:all |every |any )?(?:e-?mailing|emailing|writing to|contacting|messaging|sending (?:e-?mails?|anything|follow-?ups?|messages?) to|following up with|follow(?:ing)?-?ups? (?:to|with|for)|(?:e-?mails?|follow-?ups?|messages?|outreach)(?: (?:to|for))?|e-?mail|email|write to|contact)\s+)(.+?)(?:\s+(?:any ?more|again|from now on|please|for me|altogether|entirely|completely|yet|now|for now|today))*$/i.exec(t);
+  if (!m) return null;
+  const who = m[1].trim().replace(/^(?:to|with|for)\s+/i, "").replace(/^<|>$/g, "").trim();
+  if (!who || /^(?:me|us|myself|anyone|everyone|people|them|him|her|it|all|everybody)$/i.test(who)) return null;
+  const a = STOP_ADDR.exec(who);
+  if (a) return { email: a[0].toLowerCase() };
+  if (!/^[\p{L}][\p{L}'.-]*(?: [\p{L}][\p{L}'.-]*){0,3}$/u.test(who)) return null;
+  return { name: who };
+}
+async function stopTurn(o: { userId: string; store: RepliesStore }, ask: { email: string } | { name: string }): Promise<{ reply: string; intent: string; status: string } | null> {
+  if (!o.store.stopAddress) return null;
+  let email: string, label: string;
+  if ("email" in ask) { email = ask.email; label = email; }
+  else {
+    const found = o.store.addressesNamed ? await o.store.addressesNamed(o.userId, ask.name) : [];
+    if (!found.length) return { reply: `I don't have any email of yours to someone named ${ask.name}, so there's nothing to stop. If they're under another name, say "stop emailing" and their address.`, intent: STOP_INTENT, status: "not_found" };
+    if (found.length > 1) return { reply: `More than one of your contacts is named ${ask.name}: ${found.slice(0, 10).map((f) => `${f.name} <${f.email}>`).join(", ")}. Nothing was stopped: say "stop emailing" and the address.`, intent: STOP_INTENT, status: "which" };
+    email = found[0].email; label = `${found[0].name} <${email}>`;
+  }
+  const r = await o.store.stopAddress(o.userId, email);
+  const n = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
+  const stopped = [r.queued ? n(r.queued, "queued email") : "", r.drafts ? n(r.drafts, "approved draft") : "", r.actions ? n(r.actions, "follow-up waiting for your approval", "follow-ups waiting for your approval") : ""].filter(Boolean);
+  const none = !stopped.length;
+  if (none && !r.threads && !r.sent) return { reply: `Nothing of yours is waiting to go to ${label}, and I have no email to them on record, so nothing changed.`, intent: STOP_INTENT, status: "nothing" };
+  const head = none ? `Nothing was waiting to go to ${label}.` : `Stopped: ${stopped.join(", ")} to ${label} won't be sent.`;
+  const gone = r.sent ? ` ${n(r.sent, "email")} to them already went and can't be unsent.` : "";
+  return { reply: `${head}${gone} No follow-up will be drafted to them. This doesn't tell them anything or add them to a do-not-contact list; I'll only write to them again if you ask me to.`, intent: STOP_INTENT, status: none ? "nothing_waiting" : "stopped" };
+}
+
 // The chat turn: approvals of the latest batch while it is the thread's last word; the interval; the summaries.
 export async function repliesTurn(o: { message: string; userId: string; chatThreadId: string; now: number; store: RepliesStore; tz?: string | null }): Promise<{ reply: string; intent: string; status: string } | null> {
   const tz = o.tz || "America/New_York";
@@ -765,16 +817,37 @@ export async function repliesTurn(o: { message: string; userId: string; chatThre
     return { reply: summaryText(threads, s, { tz, waiting, mailboxes }), intent: "career_outreach_summary", status: s };
   }
   const t = String(o.message ?? "").toLowerCase().replace(/\s+/g, " ").trim().replace(/[.!?]+$/, "").trim();
+  const stop = stopAsk(o.message);
+  if (stop) return await stopTurn(o, stop);
   const show = /^(?:show|see|list)(?: me)?(?: my| the)? outreach approvals$/.test(t);
-  if (!show && (await o.store.lastAssistantIntent(o.chatThreadId)) !== ACTIONS_INTENT) return null;
-  const batch = await o.store.latestBatch(o.userId);
+  // NETWORKING R2 (2026-10-30): the answer binds to the batch this chat showed: the batch the scheduled run pushed here
+  // (the delivered text is the chat's last word, career_outbox_to_thread), or the one "show outreach approvals" showed
+  // here. Before, "send all" read the person's newest batch, so one drafted between showing and the yes was approved
+  // unseen; and a "send all" answering the pushed batch itself was never read (that text's intent is career_proactive),
+  // so the yes the push asked for approved nothing.
+  const last = show ? null : await o.store.lastAssistantIntent(o.chatThreadId);
+  const bound = !show && !!o.store.shownBatch && !!o.store.batch;
+  const shownId = bound ? await o.store.shownBatch!(o.userId, o.chatThreadId) : null;
+  if (!show && last !== ACTIONS_INTENT && !shownId) return null;
+  const latest = await o.store.latestBatch(o.userId);
+  if (bound && !shownId) {
+    // Nothing on record as shown in this chat: nothing is approved; what is waiting is shown, and the next answer binds to it.
+    if (latest[0]) await o.store.markShown!(o.userId, o.chatThreadId, latest[0].batch_id);
+    return { reply: `Nothing was approved: I can't tell which batch that answers here. ${actionsText(latest, await threadsMap(o.store, o.userId, latest))}`, intent: ACTIONS_INTENT, status: "reshown" };
+  }
+  const batch = shownId ? await o.store.batch!(o.userId, shownId) : latest;
   const threads = await threadsMap(o.store, o.userId, batch);
-  if (show) return { reply: actionsText(batch, threads), intent: ACTIONS_INTENT, status: "shown" };
+  if (show) {
+    if (latest[0] && o.store.markShown) await o.store.markShown(o.userId, o.chatThreadId, latest[0].batch_id);
+    return { reply: actionsText(batch, threads), intent: ACTIONS_INTENT, status: "shown" };
+  }
+  const newer = shownId && latest[0] && latest[0].batch_id !== shownId ? latest.filter((a) => a.status === "shown").length : 0;
+  const newerLine = newer ? ` ${newer} more drafted since ${newer === 1 ? "is" : "are"} waiting and ${newer === 1 ? "was" : "were"} not approved: say "show outreach approvals" to see ${newer === 1 ? "it" : "them"}.` : "";
   const ns = batch.map((a) => a.n);
   let want: number[] | null = null;
   if (/^(?:send none|none|don'?t send(?: any)?|cancel(?: all)?|no)$/.test(t)) {
     const done = await o.store.cancel(o.userId, batch[0]?.batch_id ?? "", batch.filter((a) => a.status === "shown").map((a) => a.n)); // what is still waiting; an approval already given stands
-    return { reply: done.length ? `Nothing will be sent or created from these ${done.length}.` : "Nothing was waiting.", intent: "career_outreach_actions_answer", status: "none" };
+    return { reply: `${done.length ? `Nothing will be sent or created from these ${done.length}.` : "Nothing was waiting."}${newerLine}`, intent: "career_outreach_actions_answer", status: "none" };
   }
   const ambiguous = { reply: `Nothing was approved: say "send all", "send 1,3" or "send none".`, intent: ACTIONS_INTENT, status: "ambiguous" };
   // Owner rules (2026-10-29): a number left out that is not in this batch ("all except 9") approves nothing.
@@ -822,13 +895,13 @@ export async function repliesTurn(o: { message: string; userId: string; chatThre
   if (changed.length) lines.push(`Not approved (changed since shown): ${changed.join(", ")}.`);
   const left = batch.filter((a) => !want!.includes(a.n) && a.status === "shown").map((a) => a.n);
   if (left.length) lines.push(`Still waiting: ${left.join(", ")}.`);
-  return { reply: lines.join(" "), intent: left.length ? ACTIONS_INTENT : "career_outreach_actions_answer", status: ok.length ? "approved" : "none_approved" };
+  return { reply: lines.join(" ") + newerLine, intent: left.length ? ACTIONS_INTENT : "career_outreach_actions_answer", status: ok.length ? "approved" : "none_approved" };
 }
 
 // ------------------------------------------------------------------------------------------------ stores
 export function memoryRepliesStore() {
   const threads: ThreadRow[] = [], turns: (TurnRow & { user_id: string })[] = [], sync: (SyncRow & { lease_owner: string | null; lease_until: number | null })[] = [];
-  const prefs: Record<string, FollowupPrefs> = {}, actions: Action[] = [], dnc = new Set<string>(), intents: Record<string, string | null> = {};
+  const prefs: Record<string, FollowupPrefs> = {}, actions: Action[] = [], dnc = new Set<string>(), intents: Record<string, string | null> = {}, shown: Record<string, string> = {}, pushedTo: Record<string, string> = {};
   const aliases: { thread_id: string; provider_thread: string }[] = [];
   const leases: Record<string, { owner: string; until: number }> = {}, actionLease: Record<string, { owner: string; until: number; at: number }> = {};
   let seq = 0;
@@ -837,7 +910,13 @@ export function memoryRepliesStore() {
   const self = {
     // test hooks
     dump: () => copy({ threads, turns, sync, prefs, actions, dnc: [...dnc] }),
-    setIntent(id: string, v: string | null) { intents[id] = v; },
+    // The chat's last word: ACTIONS_INTENT means the actions message showing each person's newest batch at this moment.
+    setIntent(id: string, v: string | null) {
+      intents[id] = v;
+      if (v === ACTIONS_INTENT) for (const a of actions) shown[`${a.user_id}|${id}`] = a.batch_id;
+    },
+    // The scheduled run's batch delivered into this chat (career_outbox_to_thread: intent career_proactive).
+    pushed(u: string, id: string, b: string) { intents[id] = "career_proactive"; pushedTo[`${u}|${id}`] = b; },
     addDnc(email: string) { dnc.add(lower(email)); },
     // The rail sent a follow-up or a reply with times as a new message on its own provider thread (career_outreach_threads_adopt).
     alias(threadId: string, providerThread: string) { aliases.push({ thread_id: threadId, provider_thread: providerThread }); },
@@ -1027,6 +1106,27 @@ export function memoryRepliesStore() {
     async mailboxes(u: string) { return copy(sync.filter((x) => x.user_id === u).map((x) => ({ provider: x.provider, last_error: x.last_error ?? null, last_ok_at: null }))); },
     async wantingCall(limit: number) { return copy(threads.filter((t) => t.status === "wants_call" && !actions.some((a) => a.thread_id === t.id && a.kind === "schedule_reply" && ["shown", "approved", "running", "done"].includes(a.status))).slice(0, limit)); },
     async lastAssistantIntent(id: string) { return intents[id] ?? null; },
+    async shownBatch(u: string, chat: string) {
+      if (intents[chat] === "career_proactive") return pushedTo[`${u}|${chat}`] ?? null;
+      return intents[chat] === ACTIONS_INTENT ? shown[`${u}|${chat}`] ?? null : null;
+    },
+    async markShown(u: string, chat: string, b: string) { shown[`${u}|${chat}`] = b; },
+    async batch(u: string, b: string) { return copy(actions.filter((a) => a.user_id === u && a.batch_id === b).sort((x, y) => x.n - y.n)); },
+    async stopAddress(u: string, email: string) {
+      const e = lower(email);
+      const out: StopResult = { queued: 0, drafts: 0, actions: 0, threads: 0, sent: 0 };
+      for (const t of threads.filter((x) => x.user_id === u && x.recipient_email === e)) {
+        out.threads++;
+        if (t.followup_state !== "done") t.followup_state = "off";
+        out.sent += 1 + (t.followups_sent ?? 0);
+        for (const a of actions.filter((x) => x.thread_id === t.id && (x.status === "shown" || x.status === "approved"))) { a.status = "cancelled"; a.result = "cancelled: you said stop emailing them"; out.actions++; }
+      }
+      return out;
+    },
+    async addressesNamed(u: string, name: string) {
+      const want = name.toLowerCase().replace(/\s+/g, " ").trim();
+      return [...new Map(threads.filter((t) => t.user_id === u && (t.recipient_name.toLowerCase() === want || t.recipient_name.toLowerCase().split(" ")[0] === want)).map((t) => [t.recipient_email, { email: t.recipient_email, name: t.recipient_name }])).values()];
+    },
     async railRoot() { return null; },
   };
   return self;
@@ -1093,6 +1193,31 @@ export function supabaseRepliesStore(admin: any): RepliesStore {
     async lastAssistantIntent(id) {
       const rows = must(await admin.from("agent_messages").select("meta").eq("thread_id", id).eq("role", "assistant").order("id", { ascending: false }).limit(1), "read the last reply");
       return rows?.[0]?.meta?.intent ?? null;
+    },
+    // The batch a chat showed lives in the person's own key-value row (career_watch_kv), one key per chat.
+    async shownBatch(u, chat) {
+      const last = must(await admin.from("agent_messages").select("meta").eq("thread_id", chat).eq("role", "assistant").order("id", { ascending: false }).limit(1), "read the last reply");
+      const meta = last?.[0]?.meta ?? {};
+      // The scheduled run's batch, delivered here as the chat's last word.
+      const pushed = /^(?:followup|status):outreach-actions:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?::\d+)?$/.exec(String(meta.outbox_key ?? ""));
+      if (meta.proactive && pushed) return pushed[1];
+      if (meta.intent !== ACTIONS_INTENT) return null;
+      const rows = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", `outreach:actions-shown:${chat}`).limit(1), "read the batch shown");
+      const b = rows?.[0]?.value?.batch_id;
+      return typeof b === "string" ? b : null;
+    },
+    async markShown(u, chat, b) {
+      must(await admin.from("career_watch_kv").upsert({ user_id: u, key: `outreach:actions-shown:${chat}`, value: { batch_id: b }, updated_at: new Date().toISOString() }, { onConflict: "user_id,key" }), "remember the batch shown");
+    },
+    batch: async (u, b) => must(await admin.from("career_outreach_actions").select(ACOLS).eq("user_id", u).eq("batch_id", b).order("n"), "read the batch") ?? [],
+    async stopAddress(u, email) {
+      const r = must(await admin.rpc("career_send_stop_address", { p: { user: u, email: email.trim().toLowerCase() } }), "stop emailing an address") ?? {};
+      return { queued: Number(r.queued) || 0, drafts: Number(r.drafts) || 0, actions: Number(r.actions) || 0, threads: Number(r.threads) || 0, sent: Number(r.sent) || 0 };
+    },
+    // The person's conversations and their drafts not sent yet (career_outreach_addresses_named, 20261030080000).
+    async addressesNamed(u, name) {
+      const rows = (await rpc("career_outreach_addresses_named", { p: { user: u, name } }, "read your outreach")) ?? [];
+      return (Array.isArray(rows) ? rows : []).map((r: any) => ({ email: String(r.email), name: String(r.name) }));
     },
   };
 }

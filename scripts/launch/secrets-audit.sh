@@ -43,7 +43,7 @@ fn|SUPABASE_ACCESS_TOKEN|O|ops-monitor 5xx counts (not measured without it)
 fn|SUPABASE_PROJECT_REF|O|ops-monitor 5xx counts (not measured without it)
 fn|OPS_DAILY_CAP_USD|O|ops-monitor spend alerts when no budget row exists
 fn|TRAINEE_ALLOWED_CONTACTS|O|who may sign up (closed by default)
-fn|TRAINEE_CONNECT_LINK_SECRET|O|connect links (Gmail/Outlook sign-in pages)
+fn|TRAINEE_CONNECT_LINK_SECRET|O|connect links (falls back to TRAINEE_FILE_LINK_SECRET when unset)
 fn|GOOGLE_OAUTH_CLIENT_ID|O|Gmail connect
 fn|GOOGLE_OAUTH_CLIENT_SECRET|O|Gmail connect
 fn|OAUTH_STATE_SECRET|O|Gmail/Outlook connect state

@@ -43,7 +43,7 @@ Creates `ops-monitor-check` (every 5 minutes) and `ops-monitor-digest` (13:00 UT
 | `OPS_DAILY_CAP_USD` | FN | spend alerts when no daily budget row exists |
 | `TRAINEE_ALLOWED_CONTACTS` | FN | who may sign up (closed by default) |
 | `CAREER_PREPARE_AHEAD_URL` + `CAREER_PREPARE_AHEAD_TOKEN` (both) | FN | phone-only preparation for real Apply (`docs/launch/CLOUD-RUNNER.md`) |
-| `TRAINEE_CONNECT_LINK_SECRET`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `OAUTH_STATE_SECRET`; `TRAINEE_CONNECT_UPSTREAM` (VERCEL) | FN / VERCEL | Gmail connect pages |
+| `TRAINEE_CONNECT_LINK_SECRET` (falls back to `TRAINEE_FILE_LINK_SECRET`), `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `OAUTH_STATE_SECRET`; `TRAINEE_CONNECT_UPSTREAM` (VERCEL) | FN / VERCEL | Gmail connect pages |
 | `HUNTER_API_KEY`, `PDL_API_KEY` | FN | outreach email checks, hired-candidate aggregates |
 | `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_BOT_USERNAME` | FN | Telegram channel (read the Telegram section of `TRAINEE-GO-LIVE.md` before setting: it re-points a live webhook) |
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` | FN | WhatsApp channel |

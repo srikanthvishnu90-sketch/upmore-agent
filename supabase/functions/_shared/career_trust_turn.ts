@@ -22,12 +22,13 @@
 // ("is my data safe? find me jobs") goes on to the router, so the rest is never dropped. No model, no send, no write.
 import type { Connection } from "./career_capabilities.ts";
 
-export type TrustKind = "identity" | "privacy_sell" | "privacy_store" | "access" | "referral" | "ack";
+export type TrustKind = "safety" | "identity" | "privacy_sell" | "privacy_store" | "access" | "referral" | "ack";
 export const TRUST_INTENTS: Record<TrustKind, string> = {
-  identity: "career_identity", privacy_sell: "career_privacy", privacy_store: "career_privacy",
+  safety: "safety_support", identity: "career_identity", privacy_sell: "career_privacy", privacy_store: "career_privacy",
   access: "career_account_access", referral: "career_out_of_domain", ack: "conversation_ack",
 };
-export interface TrustAnswer { kind: TrustKind; intent: string; reply: string; status: "completed"; meta?: Record<string, unknown> }
+// rest: the person's other ask in the same message (a referral answered first); the caller runs it on, never drops it.
+export interface TrustAnswer { kind: TrustKind; intent: string; reply: string; status: "completed"; meta?: Record<string, unknown>; rest?: string }
 // What Trainee holds for this person right now; null in a field: that record could not be read.
 export interface StoredRecord { resume: boolean | null; facts: number | null; tracker: number | null; applications: number | null }
 export interface TrustDeps {
@@ -47,7 +48,11 @@ const LEAD = String.raw`^(?:(?:hey|hi|hello|so|wait|ok|okay|lol|honestly|real qu
 const END = String.raw`[?.!]*$`;
 const MAX_CHARS = 300; // a longer text carries more than one of these questions: the router reads it
 
-const DISTRESS = /\b(suicid\w*|kill (my ?self|me)|end (it all|my life)|self[- ]?harm|hurt(ing)? my ?self|want to die|don'?t want to (live|be here)|no reason to live)\b/;
+// Distress is answered first, before every other check and at any length, with the crisis answer the router's own safety
+// screen gives (125 respondToRequest; the test holds the two equal). Wide on purpose: a false alarm costs one kind
+// message, a miss costs everything. The router's own screen missed "I want to die" (2026-10-31), so this one never defers.
+export const DISTRESS = /\b(suicid\w*|kill(?:ing)? (?:my ?self|me)|end(?:ing)? (?:it all|my life|things)|take my (?:own )?life|self[- ]?harm\w*|hurt(?:ing)? my ?self|cut(?:ting)? my ?self|(?:(?:want|going|ready) to|wanna) die|wish i (?:was|were) dead|better off dead|don'?t want to (?:live|be alive|be here|exist|wake up)|no (?:reason|point) (?:to|in) (?:live|living|going on)|not worth living|can'?t go on|overdose)\b/;
+export const SAFETY_REPLY = "I hear you, and the career stuff can wait. Please reach out now: in the US you can call or text 988 (Suicide and Crisis Lifeline) any time, or text HOME to 741741. If you might act on this, call 911. You matter more than any application. When you're ready, I'm here — no grilling, at your pace.";
 const JOB_WORDS = /\b(jobs?|roles?|positions?|internships?|openings?|postings?|hiring|careers?|apply|applying|applications?|interviews?|resume)\b/;
 const WORK_AUTH = /\b(authori[sz]ed|authori[sz]ation|sponsor\w*|visas?|opt|cpt|h-?1b|work permit|green card|citizen\w*)\b/;
 // An offer or a negotiation is career advice the router gives (negotiation, offer benchmark), never a lawyer's question.
@@ -91,26 +96,40 @@ const LAUGH = /^(?:lol+|lmao+|haha+|hah|hehe+|ha(?: ha)+|(?:😂|🤣)+)[\s!.]*$
 // One question, nothing else: a second sentence, or a second clause that asks for something, is something else the
 // person wants, and the router reads the whole message.
 const SECOND_ASK = /,\s*(?:and |also |then |plus |now |but )?(?:find|show|apply|search|send|draft|tailor|get|give|help|tell|check|look|what|can|could|how|where|who|when|do|does|did|is|are|will|i)\b/;
+// The clauses of one message: its sentences, each split again where a second ask is joined on with a comma or with
+// "and", "also" or "plus" ("do I owe taxes on my bonus and should I counter").
+const ASK_WORD = String.raw`(?:should|can|could|how|what|which|where|when|who|do|does|did|is|are|will|would|help|find|show|apply|search|send|draft|tailor|get|give|tell|check|look|write|make|prep)\b`;
+const CLAUSE_SPLIT = new RegExp(String.raw`\s*,\s*(?:(?:and|also|plus|then|but|now)\s+)?(?=(?:${ASK_WORD}|i\b))|\s+(?:and|also|plus)\s+(?:also\s+)?(?=${ASK_WORD})`);
+export function clauses(t: string): string[] {
+  const body = t.replace(new RegExp(LEAD), "");
+  return body.split(/[.?!\n;]+/).flatMap((x) => x.split(CLAUSE_SPLIT)).map((x) => x.trim()).filter(Boolean);
+}
 export function oneQuestion(t: string): boolean {
   const body = t.replace(new RegExp(LEAD), ""); // "ok, are you a bot?" is one question: the lead word is not an ask
   const sentences = body.split(/[.?!\n;]+/).map((s) => s.trim()).filter(Boolean);
   return sentences.length <= 1 && !SECOND_ASK.test(body);
 }
 
-export function trustKind(message: string): TrustKind | null {
+// The kind of the message and, for a referral asked beside something else, that something else (the rest).
+export function trustRead(message: string): { kind: TrustKind; rest?: string } | null {
   const t = norm(message);
-  if (!t || t.length > MAX_CHARS) return null;
-  if (DISTRESS.test(t)) return null;
-  if (THANKS.test(t) || LAUGH.test(t)) return "ack";
-  if (!oneQuestion(t)) return null;
-  if (IDENTITY.some((r) => r.test(t))) return "identity";
-  if (SELL.some((r) => r.test(t))) return "privacy_sell";
-  if (STORE.some((r) => r.test(t))) return "privacy_store";
-  if (ACCESS.some((r) => r.test(t))) return "access";
-  if (JOB_WORDS.test(t) || WORK_AUTH.test(t)) return null;
-  if ((LEGAL.test(t) && !OFFER_WORDS.test(t)) || TAX.test(t) || MEDICAL.test(t)) return "referral";
-  return null;
+  if (!t) return null;
+  if (DISTRESS.test(t)) return { kind: "safety" }; // before the length limit and every other check
+  if (t.length > MAX_CHARS) return null;
+  if (THANKS.test(t) || LAUGH.test(t)) return { kind: "ack" };
+  if (oneQuestion(t)) {
+    if (IDENTITY.some((r) => r.test(t))) return { kind: "identity" };
+    if (SELL.some((r) => r.test(t))) return { kind: "privacy_sell" };
+    if (STORE.some((r) => r.test(t))) return { kind: "privacy_store" };
+    if (ACCESS.some((r) => r.test(t))) return { kind: "access" };
+  }
+  // A referral is judged on its own clause; anything asked beside it is the rest, answered after it, never dropped.
+  const [first, ...more] = clauses(t);
+  if (!first || JOB_WORDS.test(first) || WORK_AUTH.test(first)) return null;
+  if (!((LEGAL.test(first) && !OFFER_WORDS.test(first)) || TAX.test(first) || MEDICAL.test(first))) return null;
+  return more.length ? { kind: "referral", rest: more.join(". ") } : { kind: "referral" };
 }
+export function trustKind(message: string): TrustKind | null { return trustRead(message)?.kind ?? null; }
 
 function professional(t: string): string {
   if (TAX.test(t)) return "a tax professional";
@@ -136,8 +155,12 @@ export function connectionLines(conns: Connection[]): string[] {
   });
 }
 
+// What is always kept for an account (the policy's "Contact and account details" and "What you tell Trainee"): the
+// number or messaging account they text from, the name and email if they gave them, and the messages. Then what else is
+// saved for this person now.
+export const ALWAYS_KEPT = "your contact details (the number or messaging account you text from, and your name and email if you gave them) and our messages";
 export function storedLine(s: StoredRecord | null): string {
-  if (!s) return "I couldn't read what's saved for you just now, so I won't guess.";
+  if (!s) return `I keep ${ALWAYS_KEPT}. I couldn't read what else is saved for you just now, so I won't guess.`;
   const have: string[] = [];
   if (s.resume) have.push("your resume");
   if (s.facts) have.push(`${s.facts} confirmed fact${s.facts === 1 ? "" : "s"} about you`);
@@ -145,8 +168,8 @@ export function storedLine(s: StoredRecord | null): string {
   if (s.applications) have.push(`${s.applications} application${s.applications === 1 ? "" : "s"} sent or queued through Trainee`);
   const lost = (["resume", "facts", "tracker", "applications"] as const).filter((k) => s[k] === null);
   const lostNote = lost.length ? ` I couldn't read your ${lost.join(" and ")} just now.` : "";
-  if (!have.length) return `Nothing about you is saved yet beyond our messages.${lostNote}`;
-  return `Saved for you now: ${have.join(", ")}.${lostNote}`;
+  if (!have.length) return `Saved for you now: ${ALWAYS_KEPT}. Nothing else yet.${lostNote}`;
+  return `Saved for you now: ${ALWAYS_KEPT}, plus ${have.join(", ")}.${lostNote}`;
 }
 
 async function accessReply(d: TrustDeps): Promise<string> {
@@ -160,11 +183,13 @@ async function accessReply(d: TrustDeps): Promise<string> {
 }
 
 export async function trustTurn(o: { message: string; deps: TrustDeps }): Promise<TrustAnswer | null> {
-  const kind = trustKind(o.message);
-  if (!kind) return null;
-  const t = norm(o.message);
+  const read = trustRead(o.message);
+  if (!read) return null;
+  const kind = read.kind, t = norm(o.message);
   const answer = (reply: string, meta?: Record<string, unknown>): TrustAnswer => ({ kind, intent: TRUST_INTENTS[kind], reply, status: "completed", ...(meta ? { meta } : {}) });
   switch (kind) {
+    case "safety":
+      return answer(SAFETY_REPLY, { safety: true });
     case "ack":
       return answer(LAUGH.test(t) ? "Ha." : "Anytime.", { ack: true });
     case "identity":
@@ -186,6 +211,8 @@ export async function trustTurn(o: { message: string; deps: TrustDeps }): Promis
     case "access":
       return answer(await accessReply(o.deps));
     case "referral":
+      // Asked beside something else: the referral in one line, and the rest goes on (the caller answers it).
+      if (read.rest) return { ...answer(`The ${TAX.test(t) ? "tax" : MEDICAL.test(t) ? "medical" : "legal"} part is a question for ${professional(t)}, and I won't guess at it.`), rest: read.rest };
       return answer(`That's a question for ${professional(t)}, and I won't guess at it. If there's a job-search side to it, like a message to HR or your next role, tell me and I'll take that part.`);
   }
 }

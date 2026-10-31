@@ -50,7 +50,7 @@ Deno.test({ name: "REQS DOC 1: trust questions answered by code at the real hand
     await t.step("Q235 (review R1, R2): what it can see and holds follows the person's own rows", async () => {
       const none = await say("can you see my other apps?");
       eq(none.intent, "career_account_access", none.reply);
-      assert(/No account is connected/.test(none.reply) && /Nothing about you is saved yet/.test(none.reply), none.reply);
+      assert(/No account is connected/.test(none.reply) && /your contact details/.test(none.reply) && /Nothing else yet/.test(none.reply), none.reply);
       // R1: a send-only Outlook connection is a connection, named from its own scopes.
       await pg.sql(`insert into public.user_oauth_connections (user_id, provider, vault_name, email, scopes) values ('${me}', 'microsoft', 'oauth_microsoft_${me}', 'me@outlook.example', 'openid https://graph.microsoft.com/Mail.Send');`);
       const out = await say("can you see my other apps?");
@@ -73,6 +73,25 @@ Deno.test({ name: "REQS DOC 1: trust questions answered by code at the real hand
       const legal = await say("is it legal for my employer to fire me for this?");
       eq(legal.intent, "career_out_of_domain", legal.reply);
       assert(/lawyer/.test(legal.reply), legal.reply);
+    });
+
+    await t.step("re-review 3: a tax question with a counter question keeps the counter question", async () => {
+      const r = await say("do I owe taxes on my signing bonus and should I counter");
+      assert(/^The tax part is a question for a tax professional/.test(r.reply), r.reply);
+      assert(String(r.intent).startsWith("negotiation_") && !FALLBACK.test(r.reply), `the counter ask is answered: ${r.intent}: ${r.reply}`);
+    });
+
+    await t.step("re-review 1: distress gets the crisis answer at the real handler, also mid mock interview", async () => {
+      for (const m of ["should I see a therapist because I want to die", "I want to die, should I see a doctor", "should I talk to a counselor, I've been thinking about killing myself", "wanna die lol"]) {
+        const r = await say(m);
+        eq(r.intent, "safety_support", `${m}: ${r.reply}`);
+        assert(/988/.test(r.reply) && !/doctor|therapist|won't guess/.test(r.reply), r.reply);
+      }
+      const mock = await say("mock me for data analyst at Acme");
+      eq(mock.intent, "career_mock", mock.reply);
+      const r = await say("I can't do this anymore, I want to die");
+      eq(r.intent, "safety_support", `a waiting mock question never takes it as an answer: ${r.intent}: ${r.reply}`);
+      await say("end mock");
     });
 
     await t.step("Q84/Q127: a bare thanks is a short acknowledgment, marked so a channel can react instead", async () => {
@@ -101,6 +120,8 @@ Deno.test({ name: "REQS DOC 1: trust questions answered by code at the real hand
       assert(!FALLBACK.test(p.reply), p.reply);
       const r = await say("are you a bot?");
       assert(r.intent !== "career_identity", `while paused the host answers: ${r.intent}: ${r.reply}`);
+      const d = await say("I want to kill myself");
+      eq(d.intent, "safety_support", `distress outranks the pause: ${d.intent}: ${d.reply}`);
     });
   } finally {
     handler?.restore();

@@ -5,7 +5,8 @@
 // Outcome assertions on meaning (kind, the facts a reply rests on), not on exact wording.
 // Review of #354 (R1-R7) each has its own test below.
 import assertNode from "node:assert/strict";
-import { ERASE_SENTENCE, POLICY_SERVICES, type StoredRecord, TRUST_INTENTS, type TrustDeps, trustKind, trustTurn } from "../../supabase/functions/_shared/career_trust_turn.ts";
+import { createRequire } from "node:module";
+import { ALWAYS_KEPT, ERASE_SENTENCE, POLICY_SERVICES, SAFETY_REPLY, type StoredRecord, TRUST_INTENTS, type TrustDeps, trustKind, trustRead, trustTurn } from "../../supabase/functions/_shared/career_trust_turn.ts";
 import type { Connection } from "../../supabase/functions/_shared/career_capabilities.ts";
 import { CAREER_READ_SCOPE, CAREER_SEND_SCOPE } from "../../supabase/functions/_shared/career_mail_gmail.ts";
 
@@ -70,9 +71,11 @@ Deno.test("Q244 + R3: 'what do you keep about me' answers from this person's rec
   const r = (await say("what do you keep about me?", deps([], { resume: true, facts: 4, tracker: 2, applications: 3 }))).reply;
   assert(/your resume/.test(r) && /4 confirmed facts/.test(r) && /2 applications on your tracker/.test(r) && /3 applications sent or queued/.test(r), r);
   const none = (await say("what do you keep about me?", deps([], EMPTY))).reply;
-  assert(/Nothing about you is saved yet/.test(none) && !/Saved for you now/.test(none), none);
+  // Re-review 2: never "nothing saved": the contact details and the messages are always kept (the policy's own list).
+  assert(none.includes(ALWAYS_KEPT) && /Nothing else yet/.test(none) && !/Nothing about you is saved/.test(none), none);
   const lost = (await say("what do you keep about me?", deps([], null))).reply;
-  assert(/couldn't read what's saved/.test(lost), lost);
+  assert(lost.includes(ALWAYS_KEPT) && /couldn't read what else is saved/.test(lost), lost);
+  for (const w of [/the name and phone number you give us when you sign up, the messaging account you use/, /your email address if you give it to Trainee/, /What you tell Trainee:<\/strong> your messages/]) assert(w.test(POLICY), String(w));
   // R3: not about the person's own data.
   for (const m of ["what did you save about the Stripe application?", "what do you collect from employers", "what data do you keep on companies?", "does Acme sell my data to recruiters"]) eq(trustKind(m), null, m);
 });
@@ -101,7 +104,7 @@ Deno.test("Q235 + R1: every connection on the account is named from its own scop
 Deno.test("R2: access answers from what Trainee actually holds, never 'only this chat' or 'can't see your files'", async () => {
   for (const m of ["do you have access to my resume?", "can you see my tracker", "can you see my applications?", "can you see my files?"]) eq(trustKind(m), "access", m);
   const r = (await say("do you have access to my resume?", deps([], { resume: true, facts: 2, tracker: 1, applications: 0 }))).reply;
-  assert(/Saved for you now: your resume, 2 confirmed facts about you, 1 application on your tracker/.test(r), r);
+  assert(/plus your resume, 2 confirmed facts about you, 1 application on your tracker/.test(r), r);
   assert(!/only this chat|can't see[^.]*files|haven't connected any account/i.test(r), r);
   const partial = (await say("can you see my tracker", deps([], { resume: true, facts: 0, tracker: null, applications: null }))).reply;
   assert(/your resume/.test(partial) && /couldn't read your tracker and applications/.test(partial), partial);
@@ -112,7 +115,12 @@ Deno.test("R4: a privacy or access question with another ask in it is left whole
     "do you sell my data. apply to the Stripe role", "who can see my messages, and can you draft a note to Maya", "can you see my other apps\nfind me jobs in Austin"]) eq(trustKind(m), null, m);
   for (const m of ["is my data safe?", "ok, are you a bot?"]) assert(trustKind(m) !== null, m);
   // The referral checks are not anchored to the whole text, so the one-question rule is what keeps the rest of these.
-  for (const m of ["can my boss withhold my last paycheck? draft a note to HR for me", "should I see a doctor about stress, and what should I tell my manager"]) eq(trustKind(m), null, m);
+  // A referral asked beside something else keeps the something else (re-review 3): the referral first, the rest after.
+  for (const [m, rest] of [["can my boss withhold my last paycheck? draft a note to HR for me", /^draft a note to hr for me$/], ["should I see a doctor about stress, and what should I tell my manager", /^what should i tell my manager$/]] as [string, RegExp][]) {
+    const r = trustRead(m)!;
+    eq(r.kind, "referral", m);
+    assert(rest.test(r.rest ?? ""), `${m}: rest ${r.rest}`);
+  }
 });
 
 Deno.test("Q202 + R5: a personal legal, tax or medical question gets a referral; an offer or negotiation question does not", async () => {
@@ -132,7 +140,7 @@ Deno.test("Q202 + R5: a personal legal, tax or medical question gets a referral;
   for (const m of ["can my employer rescind my offer if I ask for more money", "can they rescind the offer if I counter?", "can my employer rescind my start date if I push it back?", "is it legal for them to lowball my salary offer",
     "find me tax associate jobs in Chicago", "any nursing roles near me", "paralegal internships", "help me negotiate my signing bonus",
     "I want to become a lawyer", "is it legal to apply to two jobs at the same company", "I am legally authorized to work in the U.S.", "is it legal for me to work on OPT?",
-    "do I need a lawyer for my H-1B?", "I want to kill myself", "should I see a therapist? I want to die", "medical assistant openings"]) eq(trustKind(m), null, m);
+    "do I need a lawyer for my H-1B?", "medical assistant openings"]) eq(trustKind(m), null, m);
 });
 
 Deno.test("a text over 300 characters is the router's even when it opens with one of these questions", () => {
@@ -168,6 +176,41 @@ Deno.test("career asks and everyday texts are left to the router", () => {
   for (const m of ["find me data analyst jobs in Chicago", "what do you know about me?", "what's connected?", "do you have my resume?", "hi",
     "apply to the Stripe role", "where are my applications?", "forget everything", "can you tailor my resume", "who are you?", "what can you do",
     "can you check my email for replies", "can you read my email from Acme and tell me what they said", "can you go through my inbox"]) eq(trustKind(m), null, m);
+});
+
+Deno.test("re-review 1: distress always gets the crisis answer, never the doctor referral, at any length or with anything else in it", async () => {
+  const Intel = createRequire(import.meta.url)("../../packages/domain/125-career-intel.js");
+  eq(SAFETY_REPLY, Intel.respondToRequest("I want to kill myself").text, "the router's own crisis answer, word for word");
+  const msgs = ["should I see a therapist because I want to die", "should I see a therapist? I want to die", "I want to die, should I see a doctor",
+    "should I talk to a counselor, I've been thinking about killing myself", "my meds aren't working and I want to end my life", "do I owe taxes on my bonus and honestly I want to kill myself",
+    "is it legal for them to fire me, I don't want to live anymore", "thanks. i'm better off dead", "I keep thinking about suicide", "wanna die lol", "Should I see a doctor? I've been cutting myself",
+    "I want to kill myself " + "x ".repeat(200)];
+  for (const m of msgs) {
+    eq(trustKind(m), "safety", m);
+    const a = await say(m);
+    eq(a.intent, "safety_support", m);
+    eq(a.reply, SAFETY_REPLY, m);
+    assert(!/doctor|therapist|lawyer|tax professional|won't guess/.test(a.reply), `${m}: never the referral line`);
+    eq(a.rest, undefined, `${m}: nothing else is answered`);
+  }
+});
+
+Deno.test("re-review 3: a referral with a second ask joined by and / also / plus keeps the second ask", async () => {
+  const cases: [string, RegExp, RegExp][] = [
+    ["do I owe taxes on my signing bonus and should I counter", /tax/, /^should i counter$/],
+    ["is my relocation stipend taxable, also how do I ask for more equity", /tax/, /^how do i ask for more equity$/],
+    ["can my boss withhold my last paycheck plus can you draft a note to HR", /legal/, /^can you draft a note to hr$/],
+  ];
+  for (const [m, part, rest] of cases) {
+    const a = await say(m);
+    eq(a.kind, "referral", m);
+    assert(rest.test(a.rest ?? ""), `${m}: rest ${a.rest}`);
+    assert(new RegExp(`^The ${part.source} part is a question for`).test(a.reply) && a.reply.split(/(?<=[.!?])\s/).length === 1, `one line: ${a.reply}`);
+  }
+  // Without a second ask the full referral line stands.
+  const solo = await say("do I owe taxes on my signing bonus?");
+  eq(solo.rest, undefined);
+  assert(/job-search side/.test(solo.reply), solo.reply);
 });
 
 function eq(a: unknown, b: unknown, m?: string) { assertNode.deepStrictEqual(a, b, m); }

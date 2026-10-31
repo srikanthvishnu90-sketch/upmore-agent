@@ -110,7 +110,7 @@ import { supabaseFileStore } from "../trainee-file/store.ts";
 import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts"; // FILE KINDS
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
 import { vaultRefreshWrite } from "../_shared/oauth_vault_refresh.ts";
-import { trustTurn } from "../_shared/career_trust_turn.ts"; // REQS DOC 1: what Trainee is, privacy, what it sees, referrals, thanks
+import { trustKind, trustTurn } from "../_shared/career_trust_turn.ts"; // REQS DOC 1: what Trainee is, privacy, what it sees, referrals, thanks
 import { readConnections } from "../_shared/career_capabilities.ts"; // REQS DOC 1: every connection on the account
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
@@ -475,13 +475,16 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await outlookChatTurn({ admin, message, userId: user.id, threadId: tid, bridge: isBridgeCall, now: Date.now(), env: Deno.env })
           .catch((e) => { console.error("outlook turn:", e?.message ?? e); return null; })
         : null;
-      const card = !tapIn && !connAns && !outlookAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      // REQS DOC 1: a message in distress gets the crisis answer (career_trust_turn.ts), never read as a card's answer or a mock
+      // interview's answer, and even on a paused account.
+      const distress = !tapIn && !careerTask && !careerBatch && trustKind(message) === "safety";
+      const card = !distress && !tapIn && !connAns && !outlookAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         // FEATURE 16: OWNER RULE (2026-10-26): no card without a confirmed resume on file (resumeReady).
         ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
         : null;
       // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
       // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
-      const mock = !card && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const mock = !distress && !card && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await mockTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseMockStore(admin) })
         : null;
       // Ask once: "what do you need from me" shows the questions only the person can answer, and the text right after
@@ -783,7 +786,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // live connections, after every code-first turn above and before any brain or the router. Pure; nothing is changed.
       // The record is read only when the question needs it: every connection row, and what is saved for this person (the
       // resume on file, confirmed facts, the tracker and the queue, through the status read model); a failed read is null.
-      const trustAns = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const trustAns = !careerTask && !careerBatch && (distress || !host.isHostControlled(message, ctx))
         ? await trustTurn({ message, deps: {
             connections: () => readConnections(admin, user.id).catch(() => null),
             stored: async () => {
@@ -883,6 +886,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (offerAns.card) agentMeta = { offer_card: offerAns.card };
       } else if (outreachStatus) {
         out = { reply: outreachStatus.reply, intent: outreachStatus.intent, resultStatus: outreachStatus.status, contained: false, handler: "outreach_status" };
+      } else if (trustAns?.rest) {
+        // A referral asked beside something else: the referral line, then the router's answer to the message for the rest
+        // ("and should I counter"); the other ask is never dropped. A router that cannot place the whole message gets the rest.
+        let restOut = host.runTurn(message, ctx) as CareerTurnResult;
+        if (CareerReply.isFallbackText(restOut.reply) || restOut.intent === "career_catchall") restOut = host.runTurn(trustAns.rest, ctx) as CareerTurnResult;
+        out = { ...restOut, reply: `${trustAns.reply}\n${restOut.reply}`, ...(restOut.parts ? { parts: [`${trustAns.reply}\n${restOut.parts[0]}`, ...restOut.parts.slice(1)] } : {}) };
+        agentMeta = { ...(agentMeta || {}), referral: trustAns.intent };
       } else if (trustAns) {
         out = { reply: trustAns.reply, intent: trustAns.intent, resultStatus: trustAns.status, contained: false, handler: "trust" };
         if (trustAns.meta) agentMeta = { ...(agentMeta || {}), ...trustAns.meta };

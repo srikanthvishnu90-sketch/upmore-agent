@@ -9,6 +9,9 @@ import { CARD_NEEDS_REPLY_STATUS, needsReplyTextFor } from "./career_apply_cards
 // Linking never trusts message text alone:
 // - Telegram: "/start <nonce>" binds the chat only when the nonce was issued to a signed-in account (the app's Connect
 //   Telegram, or "connect telegram" texted on a channel already linked), unused, under 10 minutes old; stored hashed.
+//   TELEGRAM LINK OWNERSHIP (2026-10-31): and only on a YES from the account's own channel. Opening the link proves nothing
+//   about who opened it (it may be forwarded, pasted or leaked): it asks the channel the person already uses, and the new
+//   chat stays no one's (no private data, no approvals) until that YES (20261031040000_telegram_link_confirm.sql).
 // - Same phone on another channel (WhatsApp and iMessage): nothing is merged. The channel already linked is asked, and only
 //   a yes from it links the new one.
 import { channelCommand, CHANNEL_REPLIES } from "./channel.ts";
@@ -50,6 +53,16 @@ export const ALREADY_TELEGRAM_REPLY = "This chat is already on Telegram, so ther
 export const TELEGRAM_LINKED_REPLY = "Telegram is linked to your Trainee account. Text here any time; Trainee answers on whichever channel you text.";
 export const TELEGRAM_LINK_INVALID_REPLY = "That link has expired or was already used. Text \"connect telegram\" to Trainee where you already use it for a new one.";
 export const TELEGRAM_LINKED_ELSEWHERE_REPLY = "This Telegram account is already linked to a different Trainee account, so nothing changed.";
+// TELEGRAM LINK OWNERSHIP (2026-10-31; owner rule of 2026-10-29: a forwarded or copied link must not let another person read
+// the account or act as it). Opening the link asks the account's own channel; this chat is linked only on the YES there.
+// Neither reply names that channel, a number or an email: whoever opened the link may not be the account's person.
+export const LINK_CODE_ASK_MS = 15 * 60000; // the YES counts for 15 minutes after the question
+export const telegramLinkAskText = (handle?: string | null) =>
+  `Someone wants to link Telegram ${handle && /^[A-Za-z0-9_]{5,32}$/.test(handle) ? `@${handle}` : "(an account with no username)"} to your Trainee. Reply YES to allow; ignore if this wasn't you. Nothing is linked without your YES, and it counts for 15 minutes.`;
+export const TELEGRAM_LINK_CONFIRM_REPLY = "Almost done. To link this chat, reply YES in the Trainee chat you already use, within 15 minutes. Until then this chat can't see or do anything in a Trainee account.";
+export const TELEGRAM_LINK_WAITING_REPLY = "This chat isn't linked yet: it's waiting for a YES in the Trainee chat you already use. Until then it can't see or do anything in a Trainee account.";
+export const TELEGRAM_LINK_CANT_ASK_REPLY = "I couldn't ask for a YES in the Trainee chat you already use (there isn't one, or Trainee is stopped there), so this chat isn't linked. If you stopped Trainee there, text START there, then text \"connect telegram\" for a new link.";
+export const LINK_AMBIGUOUS_REPLY = "Two different chats asked to link to your Trainee account at the same time, so I linked neither. If one of them was you, text \"connect telegram\" for a new link and open it yourself.";
 export const FILE_NOT_READ_REPLY = "I can't open files sent here yet, so I haven't read that one. Paste your resume as text in this chat and I'll read it now.";
 // FEATURE 16 (Telegram, where a PDF or Word file is read): what a photo or a voice message is told instead.
 export const PHOTO_NOT_READ_REPLY = "I can't read photos, so I haven't read that one. Send your resume as a PDF or Word file, or paste the text here.";
@@ -102,7 +115,10 @@ export const LINK_ASK_MS = 60 * 60000; // a yes counts for an hour after the que
 
 // alias (CHANNEL DELIVERY ROUND 2): the WhatsApp business-scoped id recorded for the contact, when there is one.
 export interface Person { userId: string; threadId: string | null; contact?: string; alias?: string | null }
-export type Redeemed = { ok: true; userId: string; threadId: string | null } | { ok: false; why: "invalid" | "linked_elsewhere" };
+// TELEGRAM LINK OWNERSHIP (2026-10-31): ok only when the chat already is the account's; "asked": the account's own channel was
+// asked (the question queued under key, for the account userId), and this chat is linked only on the YES there.
+export type Redeemed = { ok: true; userId: string; threadId: string | null } | { ok: false; why: "invalid" | "linked_elsewhere" | "cant_ask" }
+  | { ok: false; why: "asked"; userId: string; key: string };
 export interface InboundStore {
   claimMessage(id: string, at: number, provider?: Provider): Promise<boolean>; // false: this provider's message id was handled before
   person(contact: string): Promise<Person | null>; // a linked account, if any (by contact key or recorded alias)
@@ -119,9 +135,12 @@ export interface InboundStore {
   // IDENTITY SCENARIOS (2026-10-30): the contact an open question for this (not yet linked) contact was asked on, if any.
   pendingLink?(contact: string, at: number): Promise<string | null>;
   askToLink?(a: { userId: string; contact: string; phone: string; askedOn: string; at: number; text: string }): Promise<string | null>; // the outbox key, or null: asked already
-  confirmLink?(a: { userId: string; askedOn: string; at: number; notice: string }): Promise<{ contact: string; key: string | null } | null>;
+  // ambiguous (TELEGRAM LINK OWNERSHIP): two questions were open on this contact, one a link code's: neither is linked.
+  confirmLink?(a: { userId: string; askedOn: string; at: number; notice: string }): Promise<{ contact: string; key: string | null } | { ambiguous: true } | null>;
   issueLinkNonce?(userId: string, at: number): Promise<string>;
-  redeemLinkNonce?(nonce: string, contact: string, at: number): Promise<Redeemed>;
+  // askText: the question for the account's own channel (telegramLinkAskText), queued only when the chat is no one's.
+  redeemLinkNonce?(nonce: string, contact: string, at: number, askText: string): Promise<Redeemed>;
+  pendingCodeLink?(contact: string, at: number): Promise<boolean>; // a link code's question waits for its YES for this chat
   reholdSent?(providerMessageId: string, at: number, error: string): Promise<number>; // a sent message that failed for the window
   unlinkTelegram?(userId: string, at: number): Promise<number>; // FEATURE 16: "unlink telegram"; how many contacts let go
   // CHANNEL DELIVERY ROUND 2 (2026-10-30), optional:
@@ -285,10 +304,19 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       return ok({ phone: "already_linked", sent: r.ok });
     }
     if (msg.startPayload && store.redeemLinkNonce) {
-      const r = await store.redeemLinkNonce(msg.startPayload, contact, now);
-      const text = r.ok ? TELEGRAM_LINKED_REPLY : r.why === "linked_elsewhere" ? TELEGRAM_LINKED_ELSEWHERE_REPLY : person ? TELEGRAM_LINK_INVALID_LINKED_REPLY : TELEGRAM_LINK_INVALID_REPLY;
+      // TELEGRAM LINK OWNERSHIP (2026-10-31): opening the link asks the account's own channel; nothing is linked here.
+      const r = await store.redeemLinkNonce(msg.startPayload, contact, now, telegramLinkAskText(msg.senderHandle));
+      if (!r.ok && r.why === "asked") {
+        try { await d.deliver({ userId: r.userId, key: r.key, now }); } catch (e) { console.error("inbound: the link question waits in the outbox:", e instanceof Error ? e.message : String(e)); }
+        const s = await say(contact, d.render(TELEGRAM_LINK_CONFIRM_REPLY));
+        return ok({ link: "asked", sent: s.ok });
+      }
+      // The same chat opening its link again (or a used one) while its question waits is told what it waits for.
+      const waiting = !r.ok && r.why === "invalid" && !person && !!store.pendingCodeLink && await store.pendingCodeLink(contact, now);
+      const text = r.ok ? TELEGRAM_LINKED_REPLY : waiting ? TELEGRAM_LINK_WAITING_REPLY : r.why === "linked_elsewhere" ? TELEGRAM_LINKED_ELSEWHERE_REPLY
+        : r.why === "cant_ask" ? TELEGRAM_LINK_CANT_ASK_REPLY : person ? TELEGRAM_LINK_INVALID_LINKED_REPLY : TELEGRAM_LINK_INVALID_REPLY;
       const s = await say(contact, d.render(text));
-      return ok({ link: r.ok ? "linked" : r.why, sent: s.ok });
+      return ok({ link: r.ok ? "linked" : waiting ? "waiting" : r.why, sent: s.ok });
     }
     // CHANNEL DELIVERY ROUND 2: a LoopMessage text that came over SMS reads the carrier keywords (CANCEL, REVOKE, ARRET...).
     const command = passedOn ? null : msg.command ?? channelCommand(msg.text, msg.sms ? "sms" : msg.channel);
@@ -309,6 +337,13 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     }
 
     if (!person) {
+      // TELEGRAM LINK OWNERSHIP (2026-10-31): a chat that opened a link code waits for the YES on the account's own channel: it
+      // reads nothing, signs up to nothing and approves nothing meanwhile; it is told what it waits for (STOP, above, still
+      // stops it).
+      if (msg.channel === "telegram" && store.pendingCodeLink && await store.pendingCodeLink(contact, now)) {
+        const r = await say(contact, d.render(TELEGRAM_LINK_WAITING_REPLY));
+        return ok({ link: "waiting", sent: r.ok });
+      }
       // IDENTITY SCENARIOS (2026-10-30): a Telegram chat waiting for its yes carries no number on a typed message (only the
       // share did): it went on to sign-up, a second account with sign-up open, and the yes then linked nothing. It is told
       // again where the yes goes.
@@ -442,6 +477,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     // A yes to "Reply yes to link it", within the hour, on the channel that was asked.
     if (!tapped && !passedOn && YES.test(msg.text.trim()) && store.confirmLink) {
       const linked = await store.confirmLink({ userId: person.userId, askedOn: contact, at: now, notice: LINKED_HERE_REPLY });
+      if (linked && "ambiguous" in linked) return await answer(LINK_AMBIGUOUS_REPLY, { linked: null, ambiguous: true });
       if (linked) {
         if (linked.key) { try { await d.deliver({ userId: person.userId, key: linked.key, now }); } catch { /* the outbox has it */ } }
         return await answer(linkedReply(channelOf(linked.contact)), { linked: channelOf(linked.contact) });

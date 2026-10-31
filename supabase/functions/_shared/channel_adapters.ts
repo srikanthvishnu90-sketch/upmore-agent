@@ -61,6 +61,9 @@ export interface InboundMessage {
   movedTo?: string | null;
   command?: "start" | "stop" | "help" | null; // a platform command (Telegram /start, /stop, /help)
   startPayload?: string | null; // Telegram /start <payload> (a link nonce)
+  // TELEGRAM LINK OWNERSHIP (2026-10-31): the sender's Telegram @username (letters, digits and _ only, 5 to 32), read only with
+  // "/start <payload>", so the question on the account's own channel can name who asked to link. Absent: they have none.
+  senderHandle?: string | null;
   // SERIAL-1462: the provider's id of the message the person replied to, when the platform says so (Telegram
   // message.reply_to_message.message_id; WhatsApp Cloud messages[].context.id). For iMessage this integration has no
   // verified reply-id path (LoopMessage's recorded payloads carry none, and its documentation could not be reached from

@@ -155,7 +155,10 @@ export function parseTelegramUpdate(u: any): { message: InboundMessage | null; i
   if (cmd) {
     const command = cmd[1].toLowerCase() as "start" | "stop" | "help";
     const payload = command === "start" && cmd[2] && /^[A-Za-z0-9_-]{1,64}$/.test(cmd[2]) ? cmd[2] : null;
-    return { message: { ...base, kind: "text", text: m.text, command, startPayload: payload } };
+    // TELEGRAM LINK OWNERSHIP (2026-10-31): who opened a link code, as Telegram names them (message.from.username), for the
+    // question asked on the account's own channel; anything not shaped like a username is left out (it is the opener's text).
+    const handle = payload && typeof m.from?.username === "string" && /^[A-Za-z0-9_]{5,32}$/.test(m.from.username) ? m.from.username : null;
+    return { message: { ...base, kind: "text", text: m.text, command, startPayload: payload, ...(handle ? { senderHandle: handle } : {}) } };
   }
   // TELEGRAM ROUND 2: "Apply here" as a link (a text_link entity: the words show, the URL rides beside them) reached the
   // brain as the bare words, the URL lost. Each such link is written after its words.

@@ -14,6 +14,7 @@
 //                   Confirm queues exactly it, once
 //   edit            "yes" edited into "no" after Trainee answered: no turn, one answer saying the edit changed nothing
 //   deeplink        someone else's chat opens the owner's link: nothing linked, and the owner's own chat can still use it
+//                   (linked on the owner's YES in their chat: TELEGRAM LINK OWNERSHIP, 2026-10-31)
 //   ratelimit       an answer in parts, the 2nd refused with 429 retry_after 61 three times: every part once, in order
 //   more-429        the #301 rest refused with 429: the rest and the links after it arrive later, in order, once
 //   blocked         a 403 (blocked) on part 2 of 4: the person's STOP; nothing after it is tried
@@ -238,11 +239,15 @@ Deno.test({
           const k = B.to(other).length;
           await post(text(other, `/start ${code}`));
           if (!said(other, k).includes(IN.TELEGRAM_LINKED_ELSEWHERE_REPLY)) fail(who, `another account's chat was answered ${JSON.stringify(said(other, k)).slice(0, 160)}`);
+          // TELEGRAM LINK OWNERSHIP (2026-10-31): opening the link asks the owner's chat; the owner's YES there links the new chat.
           const mine = c + 2;
           await post(text(mine, `/start ${code}`));
+          if (!said(mine, 0).includes(IN.TELEGRAM_LINK_CONFIRM_REPLY)) fail(who, `the owner's new chat was answered ${JSON.stringify(said(mine, 0)).slice(0, 160)}`);
+          const y = B.to(mine).length;
+          await post(text(c, "yes"));
           const linked = await sql(`select coalesce((select user_id::text from public.channel_contacts where contact = 'tg:${mine}'), '')`);
           if (linked !== owner) fail(who, "the owner's own chat could not use their link after another account's chat opened it");
-          if (!said(mine, 0).includes(IN.TELEGRAM_LINKED_REPLY)) fail(who, `the owner's chat was answered ${JSON.stringify(said(mine, 0)).slice(0, 160)}`);
+          if (!said(mine, y).includes(IN.LINKED_HERE_REPLY)) fail(who, `after the YES the owner's chat was answered ${JSON.stringify(said(mine, y)).slice(0, 160)}`);
         } else if (kind === "ratelimit" || kind === "blocked" || kind === "timeout" || kind === "more-429") {
           const u = await person(c);
           const want = kind === "timeout" ? null : kind === "more-429" ? null : parts(n, 4);

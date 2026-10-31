@@ -117,6 +117,11 @@ const MEASURE = `(() => {
     notes: [...document.querySelectorAll(".top-note")].map((el) => rgb(getComputedStyle(el).color).c),
     apply: (() => { const a = [...document.querySelectorAll(".apply,.primary")].filter(visible)[0]; if (!a) return null; const r = a.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })() };
 })()`;
+const DISABLED = `(() => {
+  const rgb = (s) => { const m = /rgba?\\(([^)]+)\\)/.exec(s); const p = m[1].split(/[ ,\\/]+/).filter(Boolean).map(Number); return { c: p.slice(0, 3), a: p.length > 3 ? p[3] : 1 }; };
+  const ground = (el) => { for (let e = el; e; e = e.parentElement) { const b = rgb(getComputedStyle(e).backgroundColor); if (b.a > 0.5) return b.c; } return [255,255,255]; };
+  return [...document.querySelectorAll("button")].filter((b) => b.getBoundingClientRect().height > 0).map((b) => { b.disabled = true; const s = getComputedStyle(b); return { el: "button '" + b.textContent.trim().slice(0, 30) + "'", color: rgb(s.color).c, ground: ground(b) }; });
+})()`;
 const lum = (c: number[]) => { const f = (v: number) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
 const ratio = (a: number[], b: number[]) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 // A fact is what a person reads to decide: the role, its description, the key details, the fit line, a status note, a paragraph.
@@ -176,6 +181,9 @@ Deno.test({
                 const c = img.px(m.apply.x, m.apply.y), edge = img.px(m.apply.x, m.apply.y - 10);
                 check(near(c, plum, 6) || near(edge, plum, 6), `the primary action in the screenshot is ${edge}, not the plum ${tok.accent}`);
               }
+              // Disabled buttons (the page disables a button while its request runs): still AA against their own ground.
+              const dis = await pg.evaluate(DISABLED);
+              for (const x of dis) if (ratio(x.color, x.ground) < 4.5) bad.push(`disabled button under AA contrast: ${x.el} ${ratio(x.color, x.ground).toFixed(2)}:1`);
               assertNode.deepStrictEqual(bad, [], where);
             });
           }

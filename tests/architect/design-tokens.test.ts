@@ -29,7 +29,13 @@ Deno.test("Q540/Q553: every text/ground pair is WCAG AA in light and dark; the a
   eq(contrast("#5C2751", "#5C2751"), 1);
   // The owner's proposed plum (requirements Q540) clears the same bar, so the switch is a value change, not a redesign.
   ok(contrast("#5C2751", "#FFFFFF") >= 7 && contrast("#FFFFFF", "#5C2751") >= 7);
-  // Plum is reserved for actions: neither scheme uses it as the text colour or the ground.
+  // A disabled button is still read (WCAG exempts it; Trainee does not): its words stay AA on its own ground in both schemes.
+  for (const [scheme, t] of [["light", LIGHT], ["dark", DARK]] as const) {
+    const dis = readablePairs(t).filter(([what]) => /disabled/.test(what));
+    ok(dis.length >= 1, `${scheme}: no disabled-button pair is checked`);
+    for (const [what, fg, bg] of dis) ok(contrast(fg, bg) >= 4.5, `${scheme}: ${what} ${contrast(fg, bg).toFixed(2)}:1`);
+  }
+    // Plum is reserved for actions: neither scheme uses it as the text colour or the ground.
   for (const t of [LIGHT, DARK]) ok(t.ink !== t.accent && t.bg !== t.accent);
 });
 
@@ -60,18 +66,34 @@ Deno.test("Q564/Q565/Q726: every page Trainee serves starts from the same tokens
     const csp = r.headers.get("content-security-policy") ?? "";
     ok(/default-src 'none'/.test(csp) && /style-src 'unsafe-inline' https:\/\/fonts\.googleapis\.com/.test(csp) && /font-src https:\/\/fonts\.gstatic\.com/.test(csp) && !/script-src/.test(csp), csp);
   }
+  // Where the connection pages' one form may post: this page itself and the provider's own sign-in, exactly, nothing more.
+  const formAction = (r: Response) => /(?:^|;)\s*form-action ([^;]*)/.exec(r.headers.get("content-security-policy") ?? "")?.[1].trim().split(/\s+/) ?? null;
+  eq(formAction(gmailPage("t", [])), ["'self'", "https://accounts.google.com"]);
+  eq(formAction(outlookPage("t", [])), ["'self'", "https://login.microsoftonline.com"]);
 });
 
 Deno.test("Q576: the freshness line says the posting's own age, else when Trainee first saw it, and warns past 30 days", () => {
+  const now = Date.parse("2026-10-31T12:00:00Z"), NY = "America/New_York";
+  eq(postedLine({ posted_at: "2026-10-28T09:00:00Z", first_seen_at: "2026-10-30T09:00:00Z" }, now, NY), "Posted 3 d ago (Oct 28)");
+  eq(postedLine({ posted_at: "2026-10-31T09:30:00Z" }, now, NY), "Posted 2 h ago (Oct 31)");
+  eq(postedLine({ posted_at: null, first_seen_at: "2026-10-31T11:20:00Z" }, now, NY), "First seen by Trainee 40 min ago (Oct 31); the posting gives no date");
+  eq(postedLine({ posted_at: "2026-09-20T12:00:00Z" }, now, NY), "Posted 41 d ago (Sep 20) · over 30 days old, it may be filled");
+  eq(postedLine({ posted_at: "2026-10-01T12:00:00Z" }, now, NY), "Posted 30 d ago (Oct 1)", "exactly 30 days is not yet over 30");
+  eq(postedLine({ posted_at: "2026-11-02T12:00:00Z" }, now, NY), "Posted on Nov 2", "a date ahead of our clock is its day");
+  eq(postedLine({ posted_at: "not a date", first_seen_at: null }, now, NY), null, "no date, no line: nothing is invented");
+  eq(postedLine({}, now, NY), null);
+});
+
+Deno.test("Q588/Q589: the posting's day is the person's own day; with no zone known it is Chicago's, and says so", () => {
   const now = Date.parse("2026-10-31T12:00:00Z");
-  eq(postedLine({ posted_at: "2026-10-28T09:00:00Z", first_seen_at: "2026-10-30T09:00:00Z" }, now), "Posted 3 d ago (Oct 28)");
-  eq(postedLine({ posted_at: "2026-10-31T09:30:00Z" }, now), "Posted 2 h ago (Oct 31)");
-  eq(postedLine({ posted_at: null, first_seen_at: "2026-10-31T11:20:00Z" }, now), "First seen by Trainee 40 min ago (Oct 31); the posting gives no date");
-  eq(postedLine({ posted_at: "2026-09-20T12:00:00Z" }, now), "Posted 41 d ago (Sep 20) · over 30 days old, it may be filled");
-  eq(postedLine({ posted_at: "2026-10-01T12:00:00Z" }, now), "Posted 30 d ago (Oct 1)", "exactly 30 days is not yet over 30");
-  eq(postedLine({ posted_at: "2026-11-02T12:00:00Z" }, now), "Posted on Nov 2", "a date ahead of our clock is its day");
-  eq(postedLine({ posted_at: "not a date", first_seen_at: null }, now), null, "no date, no line: nothing is invented");
-  eq(postedLine({}, now), null);
+  // 03:00 UTC on Oct 28 is the evening of Oct 27 across the US: never shown as the next day.
+  const evening = { posted_at: "2026-10-28T03:00:00Z" };
+  eq(postedLine(evening, now, "America/Los_Angeles"), "Posted 3 d ago (Oct 27)");
+  eq(postedLine(evening, now, "America/New_York"), "Posted 3 d ago (Oct 27)");
+  eq(postedLine(evening, now, "Asia/Tokyo"), "Posted 3 d ago (Oct 28)");
+  eq(postedLine(evening, now, null), "Posted 3 d ago (Oct 27, Chicago time)");
+  eq(postedLine(evening, now, "Not/AZone"), "Posted 3 d ago (Oct 27, Chicago time)", "an unknown zone is not trusted");
+  eq(postedLine({ posted_at: "2026-11-02T03:00:00Z" }, now, null), "Posted on Nov 1, Chicago time");
 });
 
 // ---------------------------------------------------------------- the jobs page handler, signed in, two postings
@@ -81,7 +103,7 @@ const hit = (n: number) => ({ job_id: `greenhouse:acme:${n}`, company: `Acme ${n
 const posting = (n: number) => ({ job_id: `greenhouse:acme:${n}`, provider: "greenhouse", company: `Acme ${n}`, title: `Data Analyst ${n}`, location: "Austin, TX", url: `https://boards.greenhouse.io/acme/jobs/${n}`,
   description: "<p>Build dashboards for the growth team.</p>", pay: "$90k", closed_at: null, first_seen_at: "2026-10-31T10:00:00Z",
   posted_at: n === 1 ? "2026-10-28T09:00:00Z" : n === 2 ? null : "2026-09-20T12:00:00Z" });
-async function world() {
+async function world(tz?: string | null) {
   const kv = new Map<string, any>();
   const store: FileStore = {
     async remember(u, ref, job, shownAs) { kv.set(`${u}|job|${ref}`, { job, shownAs }); },
@@ -101,17 +123,38 @@ async function world() {
   await store.rememberList(U, LIST, refs);
   const A = signedIn();
   const env: Record<string, string> = { TRAINEE_FILE_LINK_SECRET: SECRET, TRAINEE_FILE_BASE_URL: "https://trainee.example/file", TELEGRAM_BOT_TOKEN: "123456:BOT-TOKEN-for-tests" };
-  const d = { ...A.deps, store, now: () => NOW, env: { get: (k: string) => env[k] }, cards: { async open() { return null; } }, tap: {} as any, userOfTelegram: async () => null } as unknown as FileDeps;
+  const d = { ...A.deps, store, now: () => NOW, env: { get: (k: string) => env[k] }, cards: { async open() { return null; } }, tap: {} as any, userOfTelegram: async () => null, ...(tz === undefined ? {} : { timeZone: async () => tz }) } as unknown as FileDeps;
   return { d, tok: await A.tok(U, LIST, NOW), refs };
 }
 
-Deno.test("Q547/Q576/Q718: the signed-in jobs page shows every posting's freshness in its row, from the stored posting", async () => {
-  const w = await world();
-  const html = await (await handleFile(new Request("https://x.example/f", { headers: { cookie: `tf_s=${w.tok}` } }), w.d)).text();
-  const rowOf = (ref: string) => new RegExp(`<li class="row" id="r-${ref}">([\\s\\S]*?)</li>`).exec(html)?.[1] ?? "";
-  eq(w.refs.map((r) => /<p class="meta posted">([^<]*)<\/p>/.exec(rowOf(r))?.[1] ?? null), [
-    "Posted 3 d ago (Oct 28)",
-    "First seen by Trainee 2 h ago (Oct 31); the posting gives no date",
-    "Posted 41 d ago (Sep 20) · over 30 days old, it may be filled",
-  ]);
+Deno.test("Q547/Q576/Q718: the signed-in jobs page shows every posting's freshness in its row, from the stored posting, in the person's zone", async () => {
+  for (const [tz, day, note] of [["America/Chicago", "Oct 28", ""], [null, "Oct 28", ", Chicago time"]] as const) {
+    const w = await world(tz);
+    const html = await (await handleFile(new Request("https://x.example/f", { headers: { cookie: `tf_s=${w.tok}` } }), w.d)).text();
+    const rowOf = (ref: string) => new RegExp(`<li class="row" id="r-${ref}">([\\s\\S]*?)</li>`).exec(html)?.[1] ?? "";
+    eq(w.refs.map((r) => /<p class="meta posted">([^<]*)<\/p>/.exec(rowOf(r))?.[1] ?? null), [
+      `Posted 3 d ago (${day}${note})`,
+      `First seen by Trainee 2 h ago (Oct 31${note}); the posting gives no date`,
+      `Posted 41 d ago (Sep 20${note}) · over 30 days old, it may be filled`,
+    ], String(tz));
+  }
+  // An evening posting (03:00 UTC) on the page of a person in Los Angeles is the evening before, never the next day.
+  const la = await world("America/Los_Angeles");
+  la.d.store.postings = async (ids: string[]) => ids.map((id) => ({ ...posting(Number(id.split(":").pop())), posted_at: "2026-10-28T03:00:00Z" }));
+  const html = await (await handleFile(new Request("https://x.example/f", { headers: { cookie: `tf_s=${la.tok}` } }), la.d)).text();
+  ok((html.match(/Posted 3 d ago \(Oct 27\)/g) ?? []).length === 3, "every row shows the Los Angeles day");
+});
+
+Deno.test("D-DESIGN-1: the brand plum is one value everywhere Trainee draws it (pages, site, legal pages)", async () => {
+  const root = new URL("../../", import.meta.url);
+  for (const f of ["site/index.html", "docs/launch/legal-pages/privacy.template.html", "docs/launch/legal-pages/terms.template.html"]) {
+    const html = await Deno.readTextFile(new URL(f, root));
+    ok(html.includes(`--plum:${PLUM};`), `${f}: --plum is not ${PLUM}`);
+    ok(html.includes(`--plum-hover:${LIGHT.accentHover};`), `${f}: --plum-hover is not the brand hover tint`);
+    ok(html.includes(`name="theme-color" content="${PLUM}"`), `${f}: theme colour`);
+    ok(!/#4A2F5E|%234A2F5E/i.test(html), `${f}: the retired plum is still drawn`);
+  }
+  for (const f of ["supabase/functions/_shared/brand.ts", "supabase/functions/_shared/file_page.ts", "supabase/functions/_shared/connect_page.ts", "supabase/functions/_shared/file_kinds.ts"]) {
+    ok(!/["'#%]23?4A2F5E/i.test((await Deno.readTextFile(new URL(f, root))).replace(/It replaced #4A2F5E/, "")), `${f}: the retired plum is used`);
+  }
 });

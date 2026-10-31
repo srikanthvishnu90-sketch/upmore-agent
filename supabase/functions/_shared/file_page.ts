@@ -7,7 +7,7 @@
 // lettermark; posting text is untrusted and always escaped (bidi overrides and isolates removed, links only http and https).
 import type { JobView } from "./telegram_jobs.ts";
 import { reasonWords } from "./career_apply_status.ts";
-import { BODY_FONT, BRAND, FAVICON, FONT_LINKS, PLUM, TOKENS_CSS } from "./brand.ts";
+import { BODY_FONT, BRAND, DISABLED_CSS, FAVICON, FONT_LINKS, PLUM, TOKENS_CSS } from "./brand.ts";
 
 export type Word = "queued" | "preparing" | "sending" | "submitted" | "confirmed" | "failed" | "not submitted" | "needs you" | "unknown" | "in applications";
 export interface Status { word: Word; detail: string }
@@ -45,15 +45,21 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 export const dayOf = (iso: string | null | undefined) => { const t = iso ? Date.parse(iso) : NaN; if (Number.isNaN(t)) return null; const d = new Date(t); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; };
 // Freshness on every posting (Q547, Q576, Q718): the posting's own date, else the day Trainee first saw it (said as that, never as a
 // posted date), in the metadata position. A posting older than STALE_DAYS carries an age warning rather than vanishing.
+// The day is the person's own (Q588, Q589): read in their time zone, so an evening posting never shows as the next day. With no
+// zone known (or one the runtime does not know) it is Chicago's, and the line says so.
 export const STALE_DAYS = 30;
-export function postedLine(job: { posted_at?: string | null; first_seen_at?: string | null }, now: number): string | null {
+export const FALLBACK_ZONE = "America/Chicago";
+const zoneValid = (tz: unknown): tz is string => { if (typeof tz !== "string" || !tz || tz.length > 64) return false; try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; } };
+export function dayIn(iso: string, tz: string): string { return new Intl.DateTimeFormat("en-US", { timeZone: tz, month: "short", day: "numeric" }).format(new Date(Date.parse(iso))); }
+export function postedLine(job: { posted_at?: string | null; first_seen_at?: string | null }, now: number, tz?: string | null): string | null {
+  const known = zoneValid(tz), zone = known ? tz as string : FALLBACK_ZONE, note = known ? "" : ", Chicago time";
   const age = (iso: string | null | undefined) => {
     const t = iso ? Date.parse(iso) : NaN;
     if (Number.isNaN(t)) return null;
-    if (t > now + 60_000) return { words: `on ${dayOf(iso)}`, days: 0 }; // stamped ahead of our clock: its day, never "0 min ago"
+    if (t > now + 60_000) return { words: `on ${dayIn(iso!, zone)}${note}`, days: 0 }; // stamped ahead of our clock: its day, never "0 min ago"
     const mins = Math.max(0, Math.floor((now - t) / 60_000)), days = Math.floor(mins / 1440);
     const rel = mins < 60 ? `${mins} min ago` : mins < 1440 ? `${Math.floor(mins / 60)} h ago` : `${days} d ago`;
-    return { words: `${rel} (${dayOf(iso)})`, days };
+    return { words: `${rel} (${dayIn(iso!, zone)}${note})`, days };
   };
   const p = age(job.posted_at), s = p ? null : age(job.first_seen_at);
   if (!p && !s) return null;
@@ -136,6 +142,7 @@ details[open] .desc{display:block;-webkit-line-clamp:unset}
 .full{white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;margin:8px 0}
 .note a,details a,.top-note a{color:var(--link)}main p>a:not(.apply){display:inline-flex;align-items:center;min-height:44px}.lnk{display:inline;min-height:44px;padding:0 4px;border:0;background:none;color:var(--link);font:inherit;text-decoration:underline;cursor:pointer}.sendh{margin:8px 0 2px;font-weight:600;font-size:15px}.send{margin:0 0 8px;padding-left:20px;font-size:15px;color:var(--mute)}.send li{margin:2px 0;overflow-wrap:anywhere}
 :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:8px}
+${DISABLED_CSS}
 .foot{margin-top:24px;padding-top:14px;border-top:1px solid var(--line);font-size:15px;color:var(--mute)}
 @media (max-width:360px){details,.meta,.why,.note{margin-left:0}.apply{min-width:80px;padding:6px 12px}}
 `;

@@ -14,16 +14,19 @@
 // AAA). It replaced #4A2F5E. The hover tint and the dark-scheme tint are derived for contrast; the base never moves for them.
 export const PLUM = "#5C2751";
 
-export interface Tokens { bg: string; ink: string; mute: string; line: string; accent: string; accentHover: string; accentInk: string; link: string; good: string; bad: string; warn: string; panel: string }
-export const LIGHT: Tokens = { bg: "#FAF8F4", ink: "#141414", mute: "#4F4F57", line: "#E6E3DD", accent: PLUM, accentHover: "#6E3462", accentInk: "#FFFFFF", link: PLUM, good: "#1B6B3A", bad: "#B42318", warn: "#8A5300", panel: "#F1EEE8" };
+export interface Tokens { bg: string; ink: string; mute: string; line: string; accent: string; accentHover: string; accentInk: string; link: string; good: string; bad: string; warn: string; panel: string; disabledBg: string; disabledInk: string }
+export const LIGHT: Tokens = { bg: "#FAF8F4", ink: "#141414", mute: "#4F4F57", line: "#E6E3DD", accent: PLUM, accentHover: "#6E3462", accentInk: "#FFFFFF", link: PLUM, good: "#1B6B3A", bad: "#B42318", warn: "#8A5300", panel: "#F1EEE8", disabledBg: "#E6E3DD", disabledInk: "#4F4F57" };
 // Dark grounds: the plum is lifted to a light plum so it keeps its contrast (Q553), and the action's text turns dark.
-export const DARK: Tokens = { bg: "#000000", ink: "#EDEDF0", mute: "#A6A6B0", line: "#1F1F25", accent: "#D4C2E2", accentHover: "#FFFFFF", accentInk: "#141414", link: "#D4C2E2", good: "#7FB89A", bad: "#E07A6E", warn: "#E3B061", panel: "#16161A" };
+export const DARK: Tokens = { bg: "#000000", ink: "#EDEDF0", mute: "#A6A6B0", line: "#1F1F25", accent: "#D4C2E2", accentHover: "#FFFFFF", accentInk: "#141414", link: "#D4C2E2", good: "#7FB89A", bad: "#E07A6E", warn: "#E3B061", panel: "#16161A", disabledBg: "#1F1F25", disabledInk: "#A6A6B0" };
 
 const vars = (t: Tokens) =>
   `--bg:${t.bg};--ink:${t.ink};--mute:${t.mute};--line:${t.line};--accent:${t.accent};--accent-hover:${t.accentHover};--accent-ink:${t.accentInk};--link:${t.link};--good:${t.good};--bad:${t.bad};--warn:${t.warn}`;
 // The custom properties every Trainee page starts its stylesheet with (both schemes).
-export const TOKENS_CSS = `:root{${vars(LIGHT)};--panel:${LIGHT.panel};color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root{${vars(DARK)};--panel:${DARK.panel}}}`;
+export const TOKENS_CSS = `:root{${vars(LIGHT)};--panel:${LIGHT.panel};--disabled-bg:${LIGHT.disabledBg};--disabled-ink:${LIGHT.disabledInk};color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{${vars(DARK)};--panel:${DARK.panel};--disabled-bg:${DARK.disabledBg};--disabled-ink:${DARK.disabledInk}}}`;
+
+// A disabled action (a button while its request runs): muted, never a plum the person might tap again, still AA (Q553).
+export const DISABLED_CSS = `.apply:disabled{background:var(--disabled-bg);border-color:var(--disabled-bg);color:var(--disabled-ink);cursor:default}.lnk:disabled,.all button:disabled{color:var(--mute);cursor:default}`;
 
 // Type (Q543, Q544): Inter for text, Brygada 1918 for the display heading and the wordmark, system fonts as the fallback; body
 // text 18px, facts never under 16px on a phone.
@@ -56,6 +59,7 @@ export function readablePairs(t: Tokens): [string, string, string, number][] {
     ["error on ground", t.bad, t.bg, 4.5], ["success on ground", t.good, t.bg, 4.5], ["warning on ground", t.warn, t.bg, 4.5],
     ["ink on panel", t.ink, t.panel, 4.5], ["metadata on panel", t.mute, t.panel, 4.5],
     ["action text on plum", t.accentInk, t.accent, 7], ["action text on plum (hover)", t.accentInk, t.accentHover, 4.5],
+    ["disabled button text on its ground", t.disabledInk, t.disabledBg, 4.5], ["disabled link-button text on ground", t.mute, t.bg, 4.5],
   ];
 }
 
@@ -74,7 +78,8 @@ p{overflow-wrap:anywhere}
 .apply{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:6px 20px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer}
 .apply:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:8px}
-@media (max-width:480px){.apply{width:100%}}`;
+@media (max-width:480px){.apply{width:100%}}
+${DISABLED_CSS}`;
 export function systemPage(title: string, paras: string[], form?: { action: string; token: string; label: string }): string {
   const button = form
     ? `<form method="post" action="${escText(form.action)}"><input type="hidden" name="t" value="${escText(form.token)}"><button type="submit" class="apply">${escText(form.label)}</button></form>`

@@ -1,73 +1,121 @@
 // REQS DOC 1 (conversation and trust): the questions a person asks about Trainee itself are answered from what is true,
 // never with the "I may have missed what you meant" banner and never with a confident wrong route. Items: Q33 (what it
-// is), Q234/Q239/Q244 (privacy promise, never sold, what is stored), Q235 (what it can see, from the connected list),
-// Q202 (legal, tax and medical questions get a referral), Q84/Q127 (a thanks or a laugh gets a short reply).
+// is), Q234/Q239/Q244 (privacy promise, never sold, what is stored), Q235 (what it can see and holds, from the person's
+// own rows), Q202 (legal, tax and medical questions get a referral), Q84/Q127 (a thanks or a laugh gets a short reply).
 // Outcome assertions on meaning (kind, the facts a reply rests on), not on exact wording.
+// Review of #354 (R1-R7) each has its own test below.
 import assertNode from "node:assert/strict";
-import { TRUST_INTENTS, trustKind, trustTurn } from "../../supabase/functions/_shared/career_trust_turn.ts";
-import { capabilitiesFrom, type CapabilityRows } from "../../supabase/functions/_shared/career_capabilities.ts";
+import { ERASE_SENTENCE, POLICY_SERVICES, type StoredRecord, TRUST_INTENTS, type TrustDeps, trustKind, trustTurn } from "../../supabase/functions/_shared/career_trust_turn.ts";
+import type { Connection } from "../../supabase/functions/_shared/career_capabilities.ts";
 import { CAREER_READ_SCOPE, CAREER_SEND_SCOPE } from "../../supabase/functions/_shared/career_mail_gmail.ts";
 
 const POLICY = Deno.readTextFileSync(new URL("../../docs/launch/legal-pages/privacy.template.html", import.meta.url));
+const HOST = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_host.js", import.meta.url));
+const HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler-career.ts", import.meta.url));
+const ROUTER = Deno.readTextFileSync(new URL("../../packages/domain/142-career-router.js", import.meta.url));
 const FALLBACK = /I may have missed what you meant|I didn't catch that/i;
-// Q91's banned list (and Q119's opener).
 const BANNED = /I'?d be happy to|great question|absolutely!|let me know if you need anything else|I hope this helps|how can I help you today/i;
-const caps = (over: Partial<CapabilityRows> = {}) => capabilitiesFrom({ connections: [], extension_seen_at: null, cloud: null, alerts: null, channel: null, unreadable: [], ...over });
+const EMPTY: StoredRecord = { resume: false, facts: 0, tracker: 0, applications: 0 };
+const deps = (conns: Connection[] | null = [], stored: StoredRecord | null = EMPTY): TrustDeps => ({ connections: () => Promise.resolve(conns), stored: () => Promise.resolve(stored) });
+const say = async (m: string, d: TrustDeps = deps()) => (await trustTurn({ message: m, deps: d }))!;
+const google = (...scopes: string[]): Connection => ({ provider: "google_career", scopes, connected_at: null });
+const outlook = (...scopes: string[]): Connection => ({ provider: "microsoft", scopes, connected_at: null });
 
-Deno.test("Q33: 'are you a bot / AI / a real person' is answered plainly: an AI career agent, not a person", () => {
+Deno.test("Q33: 'are you a bot / AI / a real person' is answered plainly: an AI career agent, not a person", async () => {
   for (const m of ["are you a bot?", "Are you an AI?", "r u a real person", "am I talking to a real person?", "is this a bot", "wait are you human?", "who am I texting with?", "are you a bot or a person"]) {
     eq(trustKind(m), "identity", m);
-    const a = trustTurn({ message: m, capabilities: null })!;
+    const a = await say(m);
     eq(a.intent, TRUST_INTENTS.identity, m);
     assert(/\bAI\b/.test(a.reply) && /not a (real )?person/i.test(a.reply) && /Trainee/.test(a.reply), a.reply);
   }
 });
 
-Deno.test("Q234/Q239: 'do you sell my data' gets the policy's own promise, and every claim is in the policy", () => {
+Deno.test("Q234/Q239: 'do you sell my data' gets the policy's own promise", async () => {
   for (const m of ["do you sell my data?", "will you sell my information", "who can see my messages?", "is my data safe", "do you share my info with employers?", "do you train on my data", "what happens with my data"]) {
     eq(trustKind(m), "privacy_sell", m);
-    const a = trustTurn({ message: m, capabilities: null })!;
+    const a = await say(m);
     eq(a.intent, "career_privacy", m);
-    assert(/don't sell/i.test(a.reply) && /advertis/i.test(a.reply), a.reply);
-    assert(/approve the exact/i.test(a.reply), `who it goes to, and only on approval: ${a.reply}`);
-    assert(/forget everything/.test(a.reply), `how to delete it: ${a.reply}`);
+    assert(/don't sell/i.test(a.reply) && /advertis/i.test(a.reply) && /approve the exact/i.test(a.reply), a.reply);
   }
-  // The claims are the policy's, not invented.
   assert(/We do not sell your information, use it for advertising/.test(POLICY));
-  assert(/sends nothing without your yes to the exact content/.test(POLICY));
-  assert(/Supabase \(our database and servers\), OpenAI \(the AI model/.test(POLICY));
-  assert(/Saying "forget everything" to Trainee deletes your profile, confirmed facts, tracker, tailored resumes/.test(POLICY));
+  assert(/Employers, when you approve an application:<\/strong> the exact answers and resume you approved/.test(POLICY));
 });
 
-Deno.test("Q244: 'what do you store' lists the policy's categories and how to see and delete them", () => {
-  for (const m of ["what do you store about me?", "what data do you keep", "do you save my messages?", "what do you collect"]) {
-    eq(trustKind(m), "privacy_store", m);
-    const r = trustTurn({ message: m, capabilities: null })!.reply;
-    for (const w of [/resume/, /tracker/, /messages/, /what do you know about me/, /forget everything/]) assert(w.test(r), `${m}: ${w} in ${r}`);
+Deno.test("R6: the services named are the policy's list, derived from its text, none missing and none added", async () => {
+  const li = POLICY.match(/<li><strong>Service providers that run Trainee for us,<\/strong>([\s\S]*?)<\/li>/)![1];
+  // Every capitalized company name the policy's list carries: "Supabase (", "OpenAI (", "Vercel (", "Telegram, LoopMessage (", "Meta (".
+  const named = [...new Set([...li.matchAll(/\b([A-Z][A-Za-z]+)\b(?= \(|,| or )/g)].map((m) => m[1]))].filter((w) => !["Trainee", "SMS"].includes(w));
+  eq([...named].sort(), [...POLICY_SERVICES].sort(), `policy list: ${named}`);
+  const r = (await say("who can see my messages?")).reply;
+  for (const n of named) assert(r.includes(n), `${n} named: ${r}`);
+  for (const other of ["Anthropic", "Google", "Stripe", "Twilio", "Amazon", "Microsoft"]) assert(!r.includes(other), `${other} is not in the policy's list: ${r}`);
+});
+
+Deno.test("R7: 'forget everything' is described as what the erase does, never as deleting the messages", async () => {
+  for (const m of ["do you sell my data?", "what do you keep about me?"]) {
+    const r = (await say(m)).reply;
+    assert(r.includes(ERASE_SENTENCE), r);
+    assert(!/(delete|erase)[^.]*\bmessages\b/i.test(r.replace(ERASE_SENTENCE, "")) && /messages stay in the chat record/.test(ERASE_SENTENCE), r);
   }
-  for (const w of [/What you tell Trainee:<\/strong> your messages, the jobs you want, and the facts you confirm/, /the tailored versions Trainee makes/]) assert(w.test(POLICY), String(w));
+  // What the erase sentence claims is the code's: the host keeps the chat record and pauses work; the handler removes the
+  // tailored resumes; the router's erase names the watches and the tracker.
+  assert(/Existing chat\/audit records may retain earlier text; it is excluded from active context/.test(HOST));
+  assert(/_hostPatch = \{ erase: true, paused: true \}/.test(HOST));
+  assert(/erase === true\) await supabaseResumeStore\(admin\)\.removeAll/.test(HANDLER));
+  assert(/your job watches and alerts, your application tracker/.test(ROUTER));
 });
 
-Deno.test("Q235: 'can you see my other apps' is answered from the person's live connections, never guessed", () => {
+Deno.test("Q244 + R3: 'what do you keep about me' answers from this person's record; questions about other things pass", async () => {
+  for (const m of ["what do you store about me?", "what data do you have on me", "do you save my messages?", "what do you keep about me"]) eq(trustKind(m), "privacy_store", m);
+  const r = (await say("what do you keep about me?", deps([], { resume: true, facts: 4, tracker: 2, applications: 3 }))).reply;
+  assert(/your resume/.test(r) && /4 confirmed facts/.test(r) && /2 applications on your tracker/.test(r) && /3 applications sent or queued/.test(r), r);
+  const none = (await say("what do you keep about me?", deps([], EMPTY))).reply;
+  assert(/Nothing about you is saved yet/.test(none) && !/Saved for you now/.test(none), none);
+  const lost = (await say("what do you keep about me?", deps([], null))).reply;
+  assert(/couldn't read what's saved/.test(lost), lost);
+  // R3: not about the person's own data.
+  for (const m of ["what did you save about the Stripe application?", "what do you collect from employers", "what data do you keep on companies?", "does Acme sell my data to recruiters"]) eq(trustKind(m), null, m);
+});
+
+Deno.test("Q235 + R1: every connection on the account is named from its own scopes, never 'nothing connected' when one is", async () => {
   const m = "can you see my other apps?";
   eq(trustKind(m), "access");
-  const none = trustTurn({ message: m, capabilities: caps() })!.reply;
-  assert(/haven't connected any account/i.test(none) && !/You connected Gmail/.test(none), none);
-  const read = trustTurn({ message: m, capabilities: caps({ connections: [{ provider: "google_career", scopes: [CAREER_READ_SCOPE], connected_at: null }] }) })!.reply;
-  assert(/You connected Gmail/.test(read) && /can't send email/i.test(read), read);
-  const both = trustTurn({ message: m, capabilities: caps({ connections: [{ provider: "google_career", scopes: [CAREER_READ_SCOPE, CAREER_SEND_SCOPE], connected_at: null }] }) })!.reply;
-  assert(/You connected Gmail/.test(both) && /only after your yes/.test(both), both);
-  // A read that failed is said, never a guess either way.
-  for (const c of [null, caps({ unreadable: ["connections"] })]) {
-    const r = trustTurn({ message: m, capabilities: c })!.reply;
-    assert(/couldn't read your connections/.test(r) && !/You connected Gmail|haven't connected/.test(r), r);
+  const none = (await say(m, deps([]))).reply;
+  assert(/No account is connected/.test(none), none);
+  const cases: [Connection[], RegExp[], RegExp[]][] = [
+    [[google(CAREER_READ_SCOPE)], [/Gmail: I read your job mail/, /can't send/], [/No account is connected/]],
+    [[google(CAREER_READ_SCOPE, CAREER_SEND_SCOPE)], [/Gmail: I read your job mail[^\n]*only after your yes/], [/No account/]],
+    [[google(CAREER_SEND_SCOPE)], [/Gmail: I can send an email only after your yes/, /can't read your mail/], [/No account is connected/, /I read your job mail/]],
+    [[outlook("openid", "https://graph.microsoft.com/Mail.Read", "Mail.Send")], [/Outlook: I read your job mail[^\n]*only after your yes/], [/No account is connected/, /Gmail/]],
+    [[google(CAREER_READ_SCOPE), outlook("Mail.Send")], [/Gmail: I read/, /Outlook: I can send/], [/No account/]],
+  ];
+  for (const [conns, want, never] of cases) {
+    const r = (await say(m, deps(conns))).reply;
+    for (const w of want) assert(w.test(r), `${w} in ${r}`);
+    for (const n of never) assert(!n.test(r), `${n} not in ${r}`);
   }
-  for (const q of ["can you read my emails", "do you have access to my contacts?", "can u see my texts", "what can you see?", "can you look at my linkedin"]) eq(trustKind(q), "access", q);
-  // Requests to do something with the inbox belong to the inbox and connector turns.
-  for (const q of ["can you check my email for replies", "can you read my email from Acme and tell me what they said", "can you go through my inbox"]) eq(trustKind(q), null, q);
+  const unread = (await say(m, deps(null))).reply;
+  assert(/couldn't read your connected accounts/.test(unread) && !/No account is connected|Gmail:/.test(unread), unread);
 });
 
-Deno.test("Q202: a personal legal, tax or medical question gets a referral, never a confident answer", () => {
+Deno.test("R2: access answers from what Trainee actually holds, never 'only this chat' or 'can't see your files'", async () => {
+  for (const m of ["do you have access to my resume?", "can you see my tracker", "can you see my applications?", "can you see my files?"]) eq(trustKind(m), "access", m);
+  const r = (await say("do you have access to my resume?", deps([], { resume: true, facts: 2, tracker: 1, applications: 0 }))).reply;
+  assert(/Saved for you now: your resume, 2 confirmed facts about you, 1 application on your tracker/.test(r), r);
+  assert(!/only this chat|can't see[^.]*files|haven't connected any account/i.test(r), r);
+  const partial = (await say("can you see my tracker", deps([], { resume: true, facts: 0, tracker: null, applications: null }))).reply;
+  assert(/your resume/.test(partial) && /couldn't read your tracker and applications/.test(partial), partial);
+});
+
+Deno.test("R4: a privacy or access question with another ask in it is left whole to the router", () => {
+  for (const m of ["is my data safe? find me jobs", "is my data safe, find me data analyst jobs", "are you a bot? also tailor my resume", "can you see my email? what did Acme say",
+    "do you sell my data. apply to the Stripe role", "who can see my messages, and can you draft a note to Maya", "can you see my other apps\nfind me jobs in Austin"]) eq(trustKind(m), null, m);
+  for (const m of ["is my data safe?", "ok, are you a bot?"]) assert(trustKind(m) !== null, m);
+  // The referral checks are not anchored to the whole text, so the one-question rule is what keeps the rest of these.
+  for (const m of ["can my boss withhold my last paycheck? draft a note to HR for me", "should I see a doctor about stress, and what should I tell my manager"]) eq(trustKind(m), null, m);
+});
+
+Deno.test("Q202 + R5: a personal legal, tax or medical question gets a referral; an offer or negotiation question does not", async () => {
   const cases: [string, RegExp][] = [
     ["is it legal for my employer to fire me for this?", /lawyer/], ["can my boss withhold my last paycheck?", /lawyer/],
     ["should I sue my old company", /lawyer/], ["is my non-compete enforceable?", /lawyer/],
@@ -77,32 +125,39 @@ Deno.test("Q202: a personal legal, tax or medical question gets a referral, neve
   ];
   for (const [m, who] of cases) {
     eq(trustKind(m), "referral", m);
-    const a = trustTurn({ message: m, capabilities: null })!;
+    const a = await say(m);
     eq(a.intent, "career_out_of_domain", m);
     assert(who.test(a.reply) && /won't guess/.test(a.reply), `${m}: ${a.reply}`);
   }
-  // A job search in those fields, a negotiation ask, and distress are not referrals.
-  for (const m of ["find me tax associate jobs in Chicago", "any nursing roles near me", "paralegal internships", "help me negotiate my signing bonus",
-    "I want to become a lawyer", "is it legal to apply to two jobs at the same company", "I am legally authorized to work in the U.S.", "is it legal for me to work on OPT?", "do I need a lawyer for my H-1B?", "I want to kill myself", "should I see a therapist? I want to die", "medical assistant openings"]) eq(trustKind(m), null, m);
+  for (const m of ["can my employer rescind my offer if I ask for more money", "can they rescind the offer if I counter?", "can my employer rescind my start date if I push it back?", "is it legal for them to lowball my salary offer",
+    "find me tax associate jobs in Chicago", "any nursing roles near me", "paralegal internships", "help me negotiate my signing bonus",
+    "I want to become a lawyer", "is it legal to apply to two jobs at the same company", "I am legally authorized to work in the U.S.", "is it legal for me to work on OPT?",
+    "do I need a lawyer for my H-1B?", "I want to kill myself", "should I see a therapist? I want to die", "medical assistant openings"]) eq(trustKind(m), null, m);
 });
 
-Deno.test("Q84/Q127: a bare thanks or laugh gets one short word back, marked as an acknowledgment", () => {
+Deno.test("a text over 300 characters is the router's even when it opens with one of these questions", () => {
+  const long = "is it legal for my landlord to keep my deposit " + "when the apartment was left clean and every receipt was kept ".repeat(5);
+  assert(long.length > 300 && long.length < 400);
+  eq(trustKind(long), null);
+  eq(trustKind(long.slice(0, 120)), "referral", "the same question, short");
+});
+
+Deno.test("Q84/Q127: a bare thanks or laugh gets one short word back, marked as an acknowledgment", async () => {
   for (const m of ["thanks", "Thank you!", "ty", "thx", "ok thanks", "appreciate it", "lol", "haha", "lmao", "😂"]) {
     eq(trustKind(m), "ack", m);
-    const a = trustTurn({ message: m, capabilities: null })!;
+    const a = await say(m);
     eq(a.intent, "conversation_ack", m);
     eq(a.meta?.ack, true, m);
     assert(a.reply.split(/\s+/).length <= 2, `short: ${a.reply}`);
   }
-  // Words that can answer a card or carry an ask are never taken as a bare acknowledgment.
   for (const m of ["ok", "yes", "cool", "👍", "sure", "thanks, now find me data analyst jobs", "lol find me jobs"]) assert(trustKind(m) !== "ack", m);
 });
 
-Deno.test("every trust reply: no fallback banner, no banned phrase, no em-dash or semicolon, at most 3 sentences a bubble", () => {
-  const msgs = ["are you a bot?", "do you sell my data?", "what do you store?", "can you see my other apps?", "do I owe taxes on my bonus?", "thanks"];
-  const capSets = [null, caps(), caps({ connections: [{ provider: "google_career", scopes: [CAREER_READ_SCOPE], connected_at: null }] })];
-  for (const m of msgs) for (const c of capSets) {
-    const r = trustTurn({ message: m, capabilities: c })!.reply;
+Deno.test("every trust reply: no fallback banner, no banned phrase, no em-dash or semicolon, at most 3 sentences a bubble", async () => {
+  const msgs = ["are you a bot?", "do you sell my data?", "what do you keep about me?", "can you see my other apps?", "do I owe taxes on my bonus?", "thanks"];
+  const depSets = [deps(null, null), deps([]), deps([google(CAREER_READ_SCOPE), outlook("Mail.Read")], { resume: true, facts: 3, tracker: 1, applications: 1 })];
+  for (const m of msgs) for (const d of depSets) {
+    const r = (await say(m, d)).reply;
     assert(!FALLBACK.test(r) && !BANNED.test(r), r);
     assert(!/[—;]/.test(r), `no em-dash or semicolon (Q101): ${r}`);
     for (const bubble of r.split("\n")) assert((bubble.match(/[.!?](\s|$)/g) ?? []).length <= 3, `Q66: ${bubble}`);
@@ -111,7 +166,8 @@ Deno.test("every trust reply: no fallback banner, no banned phrase, no em-dash o
 
 Deno.test("career asks and everyday texts are left to the router", () => {
   for (const m of ["find me data analyst jobs in Chicago", "what do you know about me?", "what's connected?", "do you have my resume?", "hi",
-    "apply to the Stripe role", "where are my applications?", "forget everything", "can you tailor my resume", "who are you?", "what can you do"]) eq(trustKind(m), null, m);
+    "apply to the Stripe role", "where are my applications?", "forget everything", "can you tailor my resume", "who are you?", "what can you do",
+    "can you check my email for replies", "can you read my email from Acme and tell me what they said", "can you go through my inbox"]) eq(trustKind(m), null, m);
 });
 
 function eq(a: unknown, b: unknown, m?: string) { assertNode.deepStrictEqual(a, b, m); }

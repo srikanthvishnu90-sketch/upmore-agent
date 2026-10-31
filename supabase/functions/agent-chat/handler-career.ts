@@ -111,6 +111,7 @@ import { createFileService, supabaseFileKindStore } from "../_shared/file_servic
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
 import { vaultRefreshWrite } from "../_shared/oauth_vault_refresh.ts";
 import { trustTurn } from "../_shared/career_trust_turn.ts"; // REQS DOC 1: what Trainee is, privacy, what it sees, referrals, thanks
+import { readConnections } from "../_shared/career_capabilities.ts"; // REQS DOC 1: every connection on the account
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -780,7 +781,18 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // REQS DOC 1 (_shared/career_trust_turn.ts): "are you a bot", "do you sell my data", "what do you store", "can you see my
       // other apps", a personal legal/tax/medical question, a bare thanks: answered by code from the privacy policy and the
       // live connections, after every code-first turn above and before any brain or the router. Pure; nothing is changed.
-      const trustAns = !careerTask && !careerBatch && !host.isHostControlled(message, ctx) ? trustTurn({ message, capabilities: situation?.capabilities ?? null }) : null;
+      // The record is read only when the question needs it: every connection row, and what is saved for this person (the
+      // resume on file, confirmed facts, the tracker and the queue, through the status read model); a failed read is null.
+      const trustAns = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await trustTurn({ message, deps: {
+            connections: () => readConnections(admin, user.id).catch(() => null),
+            stored: async () => {
+              const [resume, rows] = await Promise.all([resumeOnFileReader(admin, user.id)(), supabaseStanding(admin)(user.id).catch(() => null)]);
+              const lost = (k: string) => !rows || rows.unreadable.includes(k);
+              return { resume, facts: CareerProfile.confirmedFacts((ctx as any).profile ?? {}).length,
+                tracker: lost("tracker") ? null : (rows!.tracker ?? []).length, applications: lost("applications") ? null : (rows!.jobs ?? []).length };
+            } } }).catch((e) => { console.error("trust turn:", e?.message ?? e); return null; })
+        : null;
       // FEATURE 13: staged brain release. With CAREER_BRAIN=staged, a turn that every code-first turn above passed on, and
       // that the router itself would answer only with advice or conversation, goes to the brain (career_staged.ts); every
       // action stays code's and the router still answers a model failure. Unset or CAREER_BRAIN=router, it is never

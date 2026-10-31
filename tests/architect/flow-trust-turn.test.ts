@@ -47,14 +47,23 @@ Deno.test({ name: "REQS DOC 1: trust questions answered by code at the real hand
       assert(/resume/.test(store.reply) && /tracker/.test(store.reply), store.reply);
     });
 
-    await t.step("Q235: what it can see follows the person's connection rows", async () => {
+    await t.step("Q235 (review R1, R2): what it can see and holds follows the person's own rows", async () => {
       const none = await say("can you see my other apps?");
       eq(none.intent, "career_account_access", none.reply);
-      assert(/haven't connected any account/i.test(none.reply) && !/You connected Gmail/.test(none.reply), none.reply);
+      assert(/No account is connected/.test(none.reply) && /Nothing about you is saved yet/.test(none.reply), none.reply);
+      // R1: a send-only Outlook connection is a connection, named from its own scopes.
+      await pg.sql(`insert into public.user_oauth_connections (user_id, provider, vault_name, email, scopes) values ('${me}', 'microsoft', 'oauth_microsoft_${me}', 'me@outlook.example', 'openid https://graph.microsoft.com/Mail.Send');`);
+      const out = await say("can you see my other apps?");
+      assert(/Outlook: I can send an email only after your yes/.test(out.reply) && !/No account is connected/.test(out.reply), out.reply);
       await pg.sql(`insert into public.user_oauth_connections (user_id, provider, vault_name, email, scopes) values ('${me}', 'google_career', 'oauth_google_career_${me}', 'me@gmail.example', 'openid email https://www.googleapis.com/auth/gmail.readonly');`);
-      const read = await say("can you see my other apps?");
-      eq(read.intent, "career_account_access", read.reply);
-      assert(/You connected Gmail/.test(read.reply) && /can't send email/i.test(read.reply), read.reply);
+      const both = await say("can you see my other apps?");
+      assert(/Gmail: I read your job mail[^\n]*can't send/.test(both.reply) && /Outlook: I can send/.test(both.reply), both.reply);
+      // R2: what Trainee holds is read from the record: an application the person logged in chat is on the tracker.
+      const logged = await say("I applied to Vandelay Industries for the Data Analyst role");
+      assert(/Vandelay/.test(logged.reply), logged.reply);
+      const held = await say("can you see my tracker?");
+      eq(held.intent, "career_account_access", held.reply);
+      assert(/1 application on your tracker/.test(held.reply) && !/only this chat/.test(held.reply), held.reply);
     });
 
     await t.step("Q202: a tax question about a bonus is referred, not answered with the negotiation script", async () => {
@@ -80,6 +89,9 @@ Deno.test({ name: "REQS DOC 1: trust questions answered by code at the real hand
     });
 
     await t.step("career asks still reach the router", async () => {
+      // Review R4: a privacy question with a job search in it is the router's whole, never cut to the privacy answer.
+      const mixed = await say("is my data safe? find me data analyst jobs");
+      assert(mixed.intent !== "career_privacy", `${mixed.intent}: ${mixed.reply}`);
       const r = await say("find me data analyst jobs in Chicago");
       assert(!["career_identity", "career_privacy", "career_account_access", "career_out_of_domain", "conversation_ack"].includes(String(r.intent)), `${r.intent}: ${r.reply}`);
     });

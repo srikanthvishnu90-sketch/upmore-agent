@@ -21,6 +21,7 @@ import { telegramDeepLink } from "./telegram.ts";
 import { deliverShaped, type ShapedFile } from "./channel_shape.ts";
 import { safeCut } from "./channel_text.ts";
 import { redactIdentity } from "./identity_redact.ts";
+import { ackFor, ackOnce, typingLoop } from "./channel_voice.ts";
 
 export const SIGNUP_CLOSED_REPLY = "Trainee is invite-only right now, so I can't set you up yet. Nothing about you was saved except that you texted.";
 // PHONE LOGIN (owner, 2026-10-28): Telegram's own verified number, shared with one tap. Trainee never asks for a password or a
@@ -185,6 +186,15 @@ export interface CoreDeps {
   sendFile?: (a: { contact: string; filename: string; mime: string; bytes: Uint8Array }) => Promise<{ ok: boolean }>;
   sendLink?: (a: { contact: string; url: string }) => Promise<{ ok: boolean }>;
   sendArtifacts?: (a: { userId: string; threadId: string | null; contact: string; artifacts: { ref: string; filename: string; mime: string }[] }) => Promise<{ sent: number; failed: number }>;
+  // N12/N13 (channel_voice.ts LATENCY_BUDGET; optional, so a channel without them runs unchanged):
+  // typing: the platform's typing indicator to this address, shown as soon as a message arrives and every typingEveryMs
+  //   while it is handled (best effort: a failure never touches the turn).
+  // ackAfterMs: a turn (reading a file, then the chat) still running after this long gets ONE interim line (ackFor), sent
+  //   straight out before the answer; null or absent: none. timers: the clock the two run on (tests inject one).
+  typing?: (address: string) => Promise<unknown>;
+  typingEveryMs?: number;
+  ackAfterMs?: number | null;
+  timers?: { set: (fn: () => void, ms: number) => unknown; clear: (h: unknown) => void };
 }
 type Out = { status: number; body: Record<string, unknown> };
 const ok = (body: Record<string, unknown>): Out => ({ status: 200, body: { ok: true, ...body } });
@@ -232,6 +242,11 @@ const MORE_ONE_MESSAGE = 4000; // #301's second message, whole (Telegram takes 4
 export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out> {
   const now = d.now(), store = d.store;
   if (!(await store.claimMessage(msg.messageId, now, msg.provider))) return ok({ ignored: "duplicate webhook" });
+  // N12: the typing indicator goes out as soon as the message is claimed (a retried update shows nothing), and again every
+  // typingEveryMs until it is handled (the answer delivered). Not for a block or an edit, which answer nothing.
+  const typing = d.typing && (msg.kind === "text" || msg.kind === "callback" || (msg.kind === "seen" && !!(msg.file || msg.media)))
+    ? typingLoop({ typing: () => d.typing!(msg.address), everyMs: d.typingEveryMs, ...(d.timers ? { setTimer: d.timers.set, clearTimer: d.timers.clear } : {}) })
+    : null;
   let contact = msg.contact;
   // TELEGRAM ROUND 2 (2026-10-30): a fixed answer sent straight back (not through the outbox) that Telegram refused because
   // the person blocked the bot or deleted their account (403) is that person's STOP, as it is on the outbox's sends.
@@ -239,6 +254,13 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     const r = await d.reply(to, bubbles, opts);
     if ((r as { optOut?: boolean }).optOut) await store.setOptOut(to, true, now).catch(() => {});
     return r;
+  };
+  // N12: the one interim line of a slow turn (armed by interim(), at most once per message; stopped before the answer).
+  let working: ReturnType<typeof ackOnce> | null = null;
+  const interim = (text: string) => {
+    const w = ackOnce({ afterMs: d.ackAfterMs, ack: () => say(contact, d.render(text)), ...(d.timers ? { setTimer: d.timers.set, clearTimer: d.timers.clear } : {}) });
+    w.start();
+    return w;
   };
   // A forwarded message, and the words sent with a photo or a video, are never the person's command, yes or link request.
   // IDENTITY SCENARIOS (2026-10-30): WhatsApp's forwarded flag (messages[].context.forwarded) too: a forwarded "yes" linked
@@ -470,8 +492,9 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     let fileMessage: string | null = null;
     if (msg.document) {
       if (!d.resumeFile) return await answer(FILE_NOT_READ_REPLY, { ignored: "a file (not read here)" });
+      working = interim(ackFor("resume"));
       const got = await d.resumeFile({ userId: person.userId, doc: msg.document, now });
-      if (!got.ok) return await answer(got.reply, { file: "not read" });
+      if (!got.ok) { await working.stop(); return await answer(got.reply, { file: "not read" }); }
       fileMessage = got.message;
     }
     // A yes to "Reply yes to link it", within the hour, on the channel that was asked.
@@ -520,6 +543,8 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       const fitted = !fileMessage && msg.forwardedFrom ? forwardedMessage(msg.forwardedFrom, said) : cutForChat(said);
       if (fitted.cut) notes.push(longCutNote(msg.forwardedFrom ? fitted.text.slice(0, -1) : fitted.text));
       if (msg.caption && msg.media && !fileMessage) notes.unshift(MEDIA_CAPTION_NOTE);
+      // N12: one interim if the turn runs past the budget (already armed when a file was being read: still one).
+      working ??= interim(ackFor(said));
       // The brain gets the person, the thread, the words and a turn key, and the reply-to id only when the platform gave one.
       const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: fitted.text, turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}), ...(screenTap ? { screenTap } : {}) });
       reply = out.reply.trim() || CHAT_DOWN_REPLY;
@@ -547,6 +572,8 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       console.error("inbound: chat failed:", e instanceof Error ? e.message : String(e));
       reply = CHAT_DOWN_REPLY;
     }
+    // The turn is over: no interim after this point, and one already going reaches the person before the answer.
+    if (working) await working.stop();
     // The reply is queued; sending it now is a head start on the every-minute run, never a second path. A failure there may
     // come after the provider took it, so it must not reach the catch below (which would also say "couldn't answer").
     // A reply in parts is one row per part (reply:<id>:<n>), each whole, sent in order.
@@ -634,8 +661,12 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     return ok({ replied: true, ...(shaped ? { shaped } : {}), ...(cardsShown ? { cards: cardsShown } : {}), ...(parts ? { parts: parts.length } : {}), ...(docs ? { documents: docs } : {}) });
   } catch (e) {
     console.error("inbound failed:", e instanceof Error ? e.message : String(e));
+    if (working) await working.stop();
     try { await say(contact, d.render(CHAT_DOWN_REPLY)); } catch { /* already logged */ }
     return { status: 500, body: { ok: false, error: "internal" } };
+  } finally {
+    if (working) await working.stop();
+    if (typing) await typing.stop();
   }
 }
 

@@ -48,11 +48,11 @@ jobs:
           persist-credentials: false
       - uses: denoland/setup-deno@v2
         with: { deno-version: "v2.9.6" }
-      - name: The brain eval's score log (ci/brain-eval)
+      - name: The brain eval's score log (ci/brain-eval) and the approvals ledger at the trunk tip
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git -c "http.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" fetch --no-tags origin +refs/heads/ci/brain-eval:refs/remotes/origin/ci/brain-eval
+          git -c "http.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" fetch --no-tags origin +refs/heads/ci/brain-eval:refs/remotes/origin/ci/brain-eval +refs/heads/trunk:refs/remotes/origin/trunk
       - name: S1-S4 on this SHA (waits up to 90 minutes for its CI to finish; decides nothing by waiting)
         id: judge
         env:
@@ -63,7 +63,9 @@ jobs:
     needs: standard
     runs-on: ubuntu-24.04
     environment: production
-    timeout-minutes: 90
+    # Every step that can leave the project half-deployed has its own timeout well inside the job's, so a hung go-live or
+    # smoke ends as that step's failure and the rollback below still has 35 minutes to run (a job timeout would cancel it).
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
         with:
@@ -83,11 +85,11 @@ jobs:
           psql --version
           supabase --version
           deno --version
-      - name: The brain eval's score log (ci/brain-eval)
+      - name: The brain eval's score log (ci/brain-eval) and the approvals ledger at the trunk tip
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git -c "http.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" fetch --no-tags origin +refs/heads/ci/brain-eval:refs/remotes/origin/ci/brain-eval
+          git -c "http.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" fetch --no-tags origin +refs/heads/ci/brain-eval:refs/remotes/origin/ci/brain-eval +refs/heads/trunk:refs/remotes/origin/trunk
       - name: The deploy standard, S1-S5, at the moment of deploy (S5 reads the project's secret names, never a value)
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -96,6 +98,7 @@ jobs:
         run: deno run -A scripts/launch/deploy-standard.ts --sha "$GITHUB_SHA" --exclude-run "$GITHUB_RUN_ID"
       - name: Go live at the pushed commit
         id: golive
+        timeout-minutes: 75
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -154,6 +157,7 @@ jobs:
       # (UPMORE_TEST_JWT). Its FAIL rolls back below.
       - name: S6 live smoke after deploy
         id: smoke
+        timeout-minutes: 15
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -170,19 +174,21 @@ jobs:
         run: |
           set -o pipefail
           bash scripts/launch/trainee-go-live.sh --sha "$GITHUB_SHA" --only-smoke --no-wait --non-interactive --label "github-actions run ${{ github.run_id }} smoke"
-      # Rollback: go-live or the smoke failed after the standard passed. The previous successful production deploy's SHA
+      # Rollback: go-live started and the commit did not end live and smoked (go-live or the smoke failed, was cancelled or
+      # timed out) after the standard passed. The previous successful production deploy's SHA
       # (the standard job read it from this workflow's runs) is deployed again from its own checkout, exactly as
       # docs/launch/TRAINEE-GO-LIVE.md "Everything back to an earlier commit" says, migrations skipped (they are additive;
       # nothing is dropped). The run stays failed either way.
       - name: Rollback checkout (the previous deployed SHA)
-        if: failure() && (steps.golive.outcome == 'failure' || steps.smoke.outcome == 'failure') && needs.standard.outputs.deployed_sha != ''
+        if: always() && steps.golive.outcome != '' && steps.golive.outcome != 'skipped' && !(steps.golive.outcome == 'success' && steps.smoke.outcome == 'success') && needs.standard.outputs.deployed_sha != ''
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.standard.outputs.deployed_sha }}
           path: rollback-tree
           persist-credentials: false
       - name: Roll back to the previous deployed SHA
-        if: failure() && (steps.golive.outcome == 'failure' || steps.smoke.outcome == 'failure')
+        if: always() && steps.golive.outcome != '' && steps.golive.outcome != 'skipped' && !(steps.golive.outcome == 'success' && steps.smoke.outcome == 'success')
+        timeout-minutes: 35
         env:
           PREVIOUS_SHA: ${{ needs.standard.outputs.deployed_sha }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -203,6 +209,7 @@ jobs:
           echo "::error::rolling back to $PREVIOUS_SHA (go-live: ${{ steps.golive.outcome }}, smoke: ${{ steps.smoke.outcome }})"
           bash rollback-tree/scripts/launch/trainee-go-live.sh --sha "$PREVIOUS_SHA" --skip-migrations --no-wait --non-interactive --label "github-actions run ${{ github.run_id }} rollback"
           echo "::error::rolled back to $PREVIOUS_SHA; this run is failed: $GITHUB_SHA did not stay live"
+          exit 1
       - name: Collect the provenance manifest, the rollback copy and the log, secrets masked
         if: always()
         env:

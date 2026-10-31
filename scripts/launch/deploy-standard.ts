@@ -6,23 +6,28 @@
 //
 //   S1 every required CI check on that exact SHA concluded success. The required list is read from the workflows AT that
 //      SHA: every job of .github/workflows/ci.yml (matrix jobs expanded) and of deploy-preflight.yml (which
-//      deploy-production.yml also calls, so its checks exist on every deployed SHA; a check named "<caller> / <name>"
-//      counts for <name>). The latest run of each name decides.
-//   S2 every PR merged (first-parent commits of trunk) since the last successful production deploy has an APPROVED review
-//      at its merged head SHA, or a line `<PR> <40-hex head SHA> <reviewer note>` in docs/architect/approvals.txt at the
-//      candidate SHA. A first-parent commit that names no PR, or whose PR does not own it, fails.
+//      deploy-production.yml also calls as job "preflight", so its checks exist on every deployed SHA). Names match exactly:
+//      a ci.yml job by its own name, a preflight job by its own name or "preflight / <name>", nothing else. The latest run
+//      of each name decides.
+//   S2 every PR merged (first-parent commits of trunk) since the last successful production deploy has an APPROVED review at
+//      its merged head SHA by an owner, member or collaborator who is not the PR's author, or a line
+//      `<PR> <40-hex merged head SHA> <reviewer> [note]` in docs/architect/approvals.txt read from the TRUNK TIP at check time
+//      (so the ledger may approve PRs merged before the line was written) whose reviewer is not the PR's author. A PR whose
+//      diff only adds lines to approvals.txt is exempt (it is the approval record itself). A first-parent commit that names
+//      no PR, or whose PR does not own it, fails.
 //   S3 reply quality does not regress: on ci/brain-eval's evals/career/SCORE-LOG.md, the live brain's (DEPLOY_STANDARD_BRAIN,
 //      default router) pass rate measured for the candidate >= the rate measured for the deployed SHA, on the same set and
 //      set size. A measurement counts for a SHA when its brain commit is that SHA, or a first-parent ancestor within 10
 //      commits with no change under supabase/functions/ since, or a measurement-branch commit descending from one of those
 //      whose supabase/functions/ tree is identical. Rows that stopped, or are NOT A SCORE, are not measurements. The rate of
-//      one measurement is the mean over the passes of its latest CI run. No measurement on either side: FAIL.
+//      one measurement is the mean over the passes of its latest CI run. No measurement on either side: FAIL. No tolerance:
+//      the means are compared exactly (integer cross-multiplication); a tolerance needs a written owner ruling.
 //   S4 the Telegram acceptance suite (tests/architect/telegram-acceptance.test.ts) passed in CI on that SHA (its check,
 //      "acceptance (telegram)", concluded success: every step not in KNOWN_GAP passed), and its KNOWN_GAP list did not grow
-//      against the deployed SHA's (shrink-only). Where the deployed SHA predates the suite, the baseline is the list as the
-//      suite was first committed.
+//      against the deployed SHA's (shrink-only), and its STEPS list did not lose a step (removing a failing step is not a
+//      pass). Where the deployed SHA predates the suite, the baseline is the suite as first committed.
 //   S5 scripts/launch/secrets-audit.sh --features: no feature both enabled and NOT_WIRED (a feature without its secrets stays
-//      off; it is never faked). The audit not able to read the names (exit 2) is a FAIL.
+//      off; it is never faked). Any non-zero exit of the audit, or no feature lines, is a FAIL.
 //
 //   deno run -A scripts/launch/deploy-standard.ts --sha <40-hex> [--checks S1,S2,S3,S4,S5] [--exclude-run <run id>]
 //                                                 [--wait-checks <minutes>]
@@ -37,8 +42,9 @@ import { parse as parseYaml } from "npm:yaml@2.9.1";
 export type CheckId = "S1" | "S2" | "S3" | "S4" | "S5";
 export const ALL_CHECKS: CheckId[] = ["S1", "S2", "S3", "S4", "S5"];
 export interface CheckRun { name: string; status: string; conclusion: string | null; id: number; completed_at?: string | null }
-export interface Pull { number: number; merged: boolean; merge_commit_sha: string | null; head_sha: string; base: string }
-export interface Review { state: string; commit_id: string; user: string }
+export interface Pull { number: number; merged: boolean; merge_commit_sha: string | null; head_sha: string; base: string; author: string }
+export interface Review { state: string; commit_id: string; user: string; association: string }
+export interface PullFile { filename: string; status: string; additions: number; deletions: number }
 export interface Commit { sha: string; subject: string }
 export interface Sources {
   checkRuns(sha: string): Promise<CheckRun[]>;
@@ -47,6 +53,8 @@ export interface Sources {
   firstParent(from: string, to: string): Promise<Commit[]>; // commits in from..to on to's first-parent line, newest first
   pull(n: number): Promise<Pull | null>;
   reviews(n: number): Promise<Review[]>;
+  pullFiles(n: number): Promise<PullFile[]>;
+  ledger(): Promise<string | null>; // docs/architect/approvals.txt at the trunk tip, now
   scoreLog(): Promise<string | null>;
   resolve(rev: string): Promise<string | null>; // full sha of a (short) commit, or null
   parent(sha: string): Promise<string | null>; // first parent
@@ -61,7 +69,10 @@ export interface Result { id: CheckId; pass: boolean; summary: string; evidence:
 export const REPLY_CODE = "supabase/functions";
 export const ACCEPTANCE_FILE = "tests/architect/telegram-acceptance.test.ts";
 export const ACCEPTANCE_CHECK = "acceptance (telegram)";
-export const REQUIRED_WORKFLOWS = [".github/workflows/ci.yml", ".github/workflows/deploy-preflight.yml"];
+export const CI_WORKFLOW = ".github/workflows/ci.yml", PREFLIGHT_WORKFLOW = ".github/workflows/deploy-preflight.yml";
+export const PREFLIGHT_CALLER = "preflight"; // the job in deploy-production.yml that calls deploy-preflight.yml
+export const LEDGER = "docs/architect/approvals.txt";
+export const REVIEWER_ASSOCIATIONS = ["OWNER", "MEMBER", "COLLABORATOR"];
 const SHA40 = /^[0-9a-f]{40}$/;
 const short = (s: string | null | undefined) => (s ?? "").slice(0, 10);
 
@@ -81,39 +92,43 @@ export function jobCheckNames(yaml: string): string[] {
   return out;
 }
 
+// Each required check and the exact check-run names that stand for it.
+export interface Required { name: string; accept: string[] }
+export async function requiredChecks(src: Sources, sha: string): Promise<Required[] | null> {
+  const ci = await src.fileAt(sha, CI_WORKFLOW), pre = await src.fileAt(sha, PREFLIGHT_WORKFLOW);
+  if (ci === null || pre === null) return null;
+  const out = new Map<string, Required>();
+  for (const n of [...jobCheckNames(ci), ACCEPTANCE_CHECK]) out.set(n, { name: n, accept: [n] });
+  for (const n of jobCheckNames(pre)) out.set(n, { name: n, accept: [n, `${PREFLIGHT_CALLER} / ${n}`] });
+  return [...out.values()];
+}
+export function latestOf(runs: CheckRun[], accept: string[]): CheckRun | undefined {
+  return runs.filter((r) => accept.includes(r.name)).sort((a, b) => b.id - a.id)[0]; // check run ids only grow
+}
+const verdictOf = (r: CheckRun | undefined) => !r ? "NO RUN" : r.status !== "completed" ? r.status : r.conclusion ?? "none";
+
 export async function s1(src: Sources, sha: string): Promise<Result> {
   const evidence: string[] = [];
-  const required: string[] = [];
-  for (const wf of REQUIRED_WORKFLOWS) {
-    const text = await src.fileAt(sha, wf);
-    if (text === null) return { id: "S1", pass: false, summary: `${wf} is not in ${short(sha)}: the required list cannot be read`, evidence };
-    required.push(...jobCheckNames(text));
-  }
-  if (!required.includes(ACCEPTANCE_CHECK)) evidence.push(`missing from the workflows: ${ACCEPTANCE_CHECK} (S4's suite is not a CI job at this SHA)`);
+  const required = await requiredChecks(src, sha);
+  if (required === null) return { id: "S1", pass: false, summary: `a workflow is not in ${short(sha)}: the required list cannot be read`, evidence };
   const runs = await src.checkRuns(sha);
   const bad: string[] = [];
-  for (const name of [...new Set([...required, ACCEPTANCE_CHECK])]) {
-    const mine = runs.filter((r) => r.name === name || r.name.endsWith(` / ${name}`)).sort((a, b) => b.id - a.id); // check run ids only grow: the highest is the latest
-    const latest = mine[0];
-    const verdict = !latest ? "NO RUN" : latest.status !== "completed" ? latest.status : latest.conclusion ?? "none";
-    evidence.push(`${verdict === "success" ? "ok  " : "BAD "} ${name}: ${verdict}${latest ? ` (check run ${latest.id})` : ""}`);
-    if (verdict !== "success") bad.push(`${name} (${verdict})`);
+  for (const req of required) {
+    const latest = latestOf(runs, req.accept);
+    const verdict = verdictOf(latest);
+    evidence.push(`${verdict === "success" ? "ok  " : "BAD "} ${req.name}: ${verdict}${latest ? ` (check run ${latest.id}, "${latest.name}")` : ""}`);
+    if (verdict !== "success") bad.push(`${req.name} (${verdict})`);
   }
-  const total = new Set([...required, ACCEPTANCE_CHECK]).size;
   return bad.length
-    ? { id: "S1", pass: false, summary: `${bad.length}/${total} required checks are not success on ${short(sha)}: ${bad.slice(0, 6).join(", ")}${bad.length > 6 ? ", ..." : ""}`, evidence }
-    : { id: "S1", pass: true, summary: `all ${total} required checks are success on ${short(sha)}`, evidence };
+    ? { id: "S1", pass: false, summary: `${bad.length}/${required.length} required checks are not success on ${short(sha)}: ${bad.slice(0, 6).join(", ")}${bad.length > 6 ? ", ..." : ""}`, evidence }
+    : { id: "S1", pass: true, summary: `all ${required.length} required checks are success on ${short(sha)}`, evidence };
 }
 
 // The required checks whose latest run has not finished (or not started) on the SHA: what --wait-checks waits for.
 export async function unfinished(src: Sources, sha: string): Promise<string[]> {
-  const required: string[] = [ACCEPTANCE_CHECK];
-  for (const wf of REQUIRED_WORKFLOWS) required.push(...jobCheckNames((await src.fileAt(sha, wf)) ?? "jobs: {}"));
+  const required = (await requiredChecks(src, sha)) ?? [{ name: ACCEPTANCE_CHECK, accept: [ACCEPTANCE_CHECK] }];
   const runs = await src.checkRuns(sha);
-  return [...new Set(required)].filter((name) => {
-    const latest = runs.filter((r) => r.name === name || r.name.endsWith(` / ${name}`)).sort((a, b) => b.id - a.id)[0];
-    return !latest || latest.status !== "completed";
-  });
+  return required.filter((req) => latestOf(runs, req.accept)?.status !== "completed").map((r) => r.name);
 }
 
 // ------------------------------------------------------------------------------------------------ S2
@@ -121,17 +136,22 @@ export function prOf(subject: string): number | null {
   const m = /^Merge pull request #(\d+) /.exec(subject) ?? /\(#(\d+)\)\s*$/.exec(subject);
   return m ? Number(m[1]) : null;
 }
-export function parseLedger(text: string | null): Map<number, { sha: string; note: string }[]> {
-  const out = new Map<number, { sha: string; note: string }[]>();
+export interface LedgerEntry { sha: string; reviewer: string; note: string }
+export function parseLedger(text: string | null): Map<number, LedgerEntry[]> {
+  const out = new Map<number, LedgerEntry[]>();
   for (const raw of (text ?? "").split("\n")) {
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
-    const m = /^(\d+)\s+([0-9a-f]{40})\s+(\S.*)$/.exec(line);
+    const m = /^(\d+)\s+([0-9a-f]{40})\s+([A-Za-z0-9][A-Za-z0-9._@-]*)(?:\s+(.*))?$/.exec(line);
     if (!m) continue; // a malformed line approves nothing
     const n = Number(m[1]);
-    out.set(n, [...(out.get(n) ?? []), { sha: m[2], note: m[3] }]);
+    out.set(n, [...(out.get(n) ?? []), { sha: m[2], reviewer: m[3], note: (m[4] ?? "").trim() }]);
   }
   return out;
+}
+// A PR whose whole diff is lines added to the ledger: the approval record itself, exempt from needing one.
+export function ledgerOnly(files: PullFile[]): boolean {
+  return files.length > 0 && files.every((f) => f.filename === LEDGER && f.deletions === 0 && f.additions > 0 && (f.status === "modified" || f.status === "added"));
 }
 
 export async function s2(src: Sources, sha: string, deployed: string | null): Promise<Result> {
@@ -139,7 +159,9 @@ export async function s2(src: Sources, sha: string, deployed: string | null): Pr
   if (!deployed) return { id: "S2", pass: false, summary: "no successful production deploy found: the PRs to review cannot be bounded", evidence };
   if (deployed === sha) return { id: "S2", pass: true, summary: `${short(sha)} is the deployed SHA: no PR merged since`, evidence };
   if (!(await src.isAncestor(deployed, sha))) return { id: "S2", pass: false, summary: `the deployed ${short(deployed)} is not an ancestor of ${short(sha)}`, evidence };
-  const ledger = parseLedger(await src.fileAt(sha, "docs/architect/approvals.txt"));
+  const ledgerText = await src.ledger();
+  evidence.push(ledgerText === null ? `${LEDGER} is not on the trunk tip: no ledger approvals` : `${LEDGER} read from the trunk tip`);
+  const ledger = parseLedger(ledgerText);
   const commits = await src.firstParent(deployed, sha);
   const bad: string[] = [];
   for (const c of commits) {
@@ -151,14 +173,22 @@ export async function s2(src: Sources, sha: string, deployed: string | null): Pr
       evidence.push(`BAD  #${n}: ${!pr ? "not found" : !pr.merged ? "not merged" : `its merge commit is ${short(pr.merge_commit_sha)}, not ${short(c.sha)}`}`);
       continue;
     }
-    const review = (await src.reviews(n)).find((r) => r.state === "APPROVED" && r.commit_id === pr.head_sha);
-    const entry = (ledger.get(n) ?? []).find((e) => e.sha === pr.head_sha);
-    if (review) evidence.push(`ok   #${n} head ${short(pr.head_sha)}: APPROVED by ${review.user}`);
-    else if (entry) evidence.push(`ok   #${n} head ${short(pr.head_sha)}: approvals.txt, ${entry.note.slice(0, 80)}`);
+    const author = pr.author.toLowerCase();
+    const reviews = await src.reviews(n);
+    const review = reviews.find((r) => r.state === "APPROVED" && r.commit_id === pr.head_sha && r.user.toLowerCase() !== author && REVIEWER_ASSOCIATIONS.includes(r.association));
+    const lines = ledger.get(n) ?? [];
+    const entry = lines.find((e) => e.sha === pr.head_sha && e.reviewer.toLowerCase() !== author);
+    if (review) evidence.push(`ok   #${n} head ${short(pr.head_sha)}: APPROVED by ${review.user} (${review.association})`);
+    else if (entry) evidence.push(`ok   #${n} head ${short(pr.head_sha)}: ${LEDGER}, reviewer ${entry.reviewer}${entry.note ? `: ${entry.note.slice(0, 70)}` : ""}`);
+    else if (ledgerOnly(await src.pullFiles(n))) evidence.push(`ok   #${n}: exempt, its diff only adds lines to ${LEDGER}`);
     else {
-      const stale = (ledger.get(n) ?? []).map((e) => short(e.sha));
+      const why: string[] = [];
+      const ignored = reviews.filter((r) => r.state === "APPROVED" && r.commit_id === pr.head_sha);
+      if (ignored.length) why.push(`APPROVED at the head only by ${ignored.map((r) => `${r.user} (${r.user.toLowerCase() === author ? "the author" : r.association})`).join(", ")}, not counted`);
+      if (lines.some((e) => e.sha === pr.head_sha)) why.push(`the ${LEDGER} line names the author as reviewer`);
+      else if (lines.length) why.push(`${LEDGER} names ${lines.map((e) => short(e.sha)).join(", ")}, not the merged head`);
       bad.push(`#${n}`);
-      evidence.push(`BAD  #${n} head ${short(pr.head_sha)}: no APPROVED review at the merged head${stale.length ? `; approvals.txt names ${stale.join(", ")}, not the merged head` : ", and no approvals.txt line"}`);
+      evidence.push(`BAD  #${n} head ${short(pr.head_sha)}: no independent approval at the merged head${why.length ? `; ${why.join("; ")}` : `, and no ${LEDGER} line`}`);
     }
   }
   return bad.length
@@ -180,7 +210,7 @@ export function parseScoreLog(text: string): ScoreRow[] {
   }
   return rows;
 }
-export interface Measurement { set: string; size: number; run: string; rate: number; passes: number; commit: string }
+export interface Measurement { set: string; size: number; run: string; rate: number; passes: number; passed: number; commit: string }
 
 // The SHAs a measurement may stand for: sha and its first-parent ancestors within 10 commits, up to the first one whose
 // reply code differs from sha's.
@@ -221,8 +251,8 @@ export async function measurementOf(src: Sources, sha: string, rows: ScoreRow[],
   const run = mine.filter((r) => r.run === latestRun);
   const set = run[0].set, size = run[0].size;
   const same = run.filter((r) => r.set === set && r.size === size);
-  const rate = same.reduce((a, r) => a + r.passed / r.size, 0) / same.length;
-  return { m: { set, size, run: latestRun, rate, passes: same.length, commit: same[0].commit }, why: "" };
+  const passed = same.reduce((a, r) => a + r.passed, 0);
+  return { m: { set, size, run: latestRun, rate: passed / size / same.length, passes: same.length, passed, commit: same[0].commit }, why: "" };
 }
 
 export async function s3(src: Sources, sha: string, deployed: string | null, brain: string): Promise<Result> {
@@ -238,7 +268,8 @@ export async function s3(src: Sources, sha: string, deployed: string | null, bra
   const dep = await measurementOf(src, deployed, rows.filter((r) => r.set === cand.m!.set && r.size === cand.m!.size), brain);
   if (!dep.m) return { id: "S3", pass: false, summary: `deployed: ${dep.why} on set ${cand.m.set}/${cand.m.size}`, evidence };
   evidence.push(`deployed  ${short(deployed)}: ${(dep.m.rate * 100).toFixed(1)}% (${brain}, ${dep.m.set}/${dep.m.size}, mean of ${dep.m.passes} passes of CI run ${dep.m.run}, brain commit ${dep.m.commit})`);
-  const pass = cand.m.rate + 1e-9 >= dep.m.rate;
+  // Same size on both sides: mean(c) >= mean(d)  <=>  sum(c) * passes(d) >= sum(d) * passes(c). Exact, no tolerance.
+  const pass = cand.m.passed * dep.m.passes >= dep.m.passed * cand.m.passes;
   return { id: "S3", pass, summary: `${brain} pass rate ${(cand.m.rate * 100).toFixed(1)}% ${pass ? ">=" : "<"} deployed ${(dep.m.rate * 100).toFixed(1)}%`, evidence };
 }
 
@@ -250,37 +281,47 @@ export function knownGaps(text: string): string[] | null {
   return [...body.matchAll(/"([^"]+)"|'([^']+)'/g)].map((x) => x[1] ?? x[2]);
 }
 
+export function stepIds(text: string): string[] | null {
+  const m = /export const STEPS\b[^=]*=\s*\[([\s\S]*?)\]/.exec(text);
+  if (!m) return null;
+  const body = m[1].split("\n").map((l) => l.replace(/\/\/.*$/, "")).join("\n");
+  return [...body.matchAll(/"([^"]+)"|'([^']+)'/g)].map((x) => x[1] ?? x[2]);
+}
+
 export async function s4(src: Sources, sha: string, deployed: string | null): Promise<Result> {
   const evidence: string[] = [];
   const now = await src.fileAt(sha, ACCEPTANCE_FILE);
   if (now === null) return { id: "S4", pass: false, summary: `${ACCEPTANCE_FILE} is not in ${short(sha)}`, evidence };
   const gaps = knownGaps(now);
   if (gaps === null) return { id: "S4", pass: false, summary: "the suite has no readable KNOWN_GAP list", evidence };
-  const runs = (await src.checkRuns(sha)).filter((r) => r.name === ACCEPTANCE_CHECK || r.name.endsWith(` / ${ACCEPTANCE_CHECK}`))
-    .sort((a, b) => b.id - a.id);
-  const latest = runs[0];
-  const verdict = !latest ? "NO RUN" : latest.status !== "completed" ? latest.status : latest.conclusion ?? "none";
+  const steps = stepIds(now);
+  if (steps === null || !steps.length) return { id: "S4", pass: false, summary: "the suite has no readable STEPS list", evidence };
+  const latest = latestOf(await src.checkRuns(sha), [ACCEPTANCE_CHECK]);
+  const verdict = verdictOf(latest);
   evidence.push(`${ACCEPTANCE_CHECK} on ${short(sha)}: ${verdict}${latest ? ` (check run ${latest.id})` : ""}`);
   evidence.push(`KNOWN_GAP at ${short(sha)} (${gaps.length}): ${gaps.join(", ") || "none"}`);
-  let base: string[] | null = null, baseFrom = "";
+  let baseText: string | null = null, baseFrom = "";
   if (deployed) {
-    const then = await src.fileAt(deployed, ACCEPTANCE_FILE);
-    if (then !== null) { base = knownGaps(then); baseFrom = `the deployed ${short(deployed)}`; }
+    baseText = await src.fileAt(deployed, ACCEPTANCE_FILE);
+    if (baseText !== null) baseFrom = `the deployed ${short(deployed)}`;
   }
-  if (base === null) {
+  if (baseText === null) {
     const added = await src.firstAdded(sha, ACCEPTANCE_FILE);
-    const first = added ? await src.fileAt(added, ACCEPTANCE_FILE) : null;
-    if (first !== null) { base = knownGaps(first); baseFrom = `the suite as first committed (${short(added)}; the deployed SHA predates it)`; }
+    baseText = added ? await src.fileAt(added, ACCEPTANCE_FILE) : null;
+    if (baseText !== null) baseFrom = `the suite as first committed (${short(added)}; the deployed SHA predates it)`;
   }
-  if (base === null) return { id: "S4", pass: false, summary: "no baseline KNOWN_GAP list to compare with", evidence };
-  evidence.push(`baseline KNOWN_GAP from ${baseFrom} (${base.length}): ${base.join(", ") || "none"}`);
-  const grown = gaps.filter((g) => !base!.includes(g));
+  const base = baseText === null ? null : knownGaps(baseText), baseSteps = baseText === null ? null : stepIds(baseText);
+  if (base === null || baseSteps === null) return { id: "S4", pass: false, summary: "no baseline KNOWN_GAP and STEPS lists to compare with", evidence };
+  evidence.push(`baseline from ${baseFrom}: KNOWN_GAP (${base.length}) ${base.join(", ") || "none"}; STEPS ${baseSteps.length}`);
+  const grown = gaps.filter((g) => !base.includes(g));
+  const dropped = baseSteps.filter((x) => !steps.includes(x));
   const problems: string[] = [];
   if (verdict !== "success") problems.push(`the suite is ${verdict} on ${short(sha)}`);
   if (grown.length) problems.push(`KNOWN_GAP grew: ${grown.join(", ")}`);
+  if (dropped.length) problems.push(`steps removed from STEPS: ${dropped.join(", ")}`);
   return problems.length
     ? { id: "S4", pass: false, summary: problems.join("; "), evidence }
-    : { id: "S4", pass: true, summary: `the suite passed on ${short(sha)}; KNOWN_GAP ${gaps.length} <= baseline ${base.length}, none added`, evidence };
+    : { id: "S4", pass: true, summary: `the suite passed on ${short(sha)}; KNOWN_GAP ${gaps.length} <= baseline ${base.length}, none added; STEPS ${steps.length}, none removed`, evidence };
 }
 
 // ------------------------------------------------------------------------------------------------ S5
@@ -288,10 +329,12 @@ export async function s5(src: Sources): Promise<Result> {
   const { code, out } = await src.secretsAudit();
   const lines = out.split("\n").filter((l) => /^FEATURE /.test(l));
   const evidence = lines.map((l) => l.replace(/^FEATURE /, ""));
-  if (code === 2 || !lines.length) return { id: "S5", pass: false, summary: `the secrets audit could not run (exit ${code}): ${out.trim().split("\n").pop() ?? ""}`.slice(0, 300), evidence };
   const bad = lines.filter((l) => /\bENABLED\b/.test(l) && /\bNOT_WIRED\b/.test(l)).map((l) => l.split(/\s+/)[1]);
+  const last = out.trim().split("\n").pop() ?? "";
+  // Exit 0 is the only pass; every other exit (1: something enabled and NOT_WIRED, 2: names unreadable, anything else) fails.
+  if (code !== 0) return { id: "S5", pass: false, summary: `the secrets audit exited ${code}${bad.length ? `; enabled and NOT_WIRED: ${bad.join(", ")}` : `: ${last}`}`.slice(0, 300), evidence };
+  if (!lines.length) return { id: "S5", pass: false, summary: `the secrets audit printed no feature lines: ${last}`.slice(0, 300), evidence };
   if (bad.length) return { id: "S5", pass: false, summary: `enabled and NOT_WIRED: ${bad.join(", ")}`, evidence };
-  if (code !== 0) return { id: "S5", pass: false, summary: `the secrets audit exited ${code}`, evidence };
   return { id: "S5", pass: true, summary: `${lines.length} features: none enabled and NOT_WIRED`, evidence };
 }
 
@@ -324,7 +367,7 @@ async function git(args: string[]): Promise<{ code: number; out: string }> {
   const r = await new Deno.Command("git", { args, stdout: "piped", stderr: "piped" }).output();
   return { code: r.code, out: new TextDecoder().decode(r.stdout) };
 }
-export function liveSources(o: { repo: string; token: string; excludeRun?: string; scoreRef?: string; audit?: string[] }): Sources {
+export function liveSources(o: { repo: string; token: string; excludeRun?: string; scoreRef?: string; trunkRef?: string; audit?: string[] }): Sources {
   const api = async (path: string): Promise<any> => {
     const res = await fetch(`https://api.github.com/repos/${o.repo}${path}`, { headers: { authorization: `Bearer ${o.token}`, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" } });
     if (res.status === 404) return null;
@@ -360,17 +403,27 @@ export function liveSources(o: { repo: string; token: string; excludeRun?: strin
     },
     async pull(n) {
       const j = await api(`/pulls/${n}`);
-      return j ? { number: j.number, merged: !!j.merged, merge_commit_sha: j.merge_commit_sha, head_sha: j.head.sha, base: j.base.ref } : null;
+      return j ? { number: j.number, merged: !!j.merged, merge_commit_sha: j.merge_commit_sha, head_sha: j.head.sha, base: j.base.ref, author: j.user?.login ?? "" } : null;
     },
     async reviews(n) {
       const out: Review[] = [];
       for (let page = 1; page < 10; page++) {
         const j = (await api(`/pulls/${n}/reviews?per_page=100&page=${page}`)) ?? [];
-        out.push(...j.map((r: any) => ({ state: r.state, commit_id: r.commit_id, user: r.user?.login ?? "" })));
+        out.push(...j.map((r: any) => ({ state: r.state, commit_id: r.commit_id, user: r.user?.login ?? "", association: r.author_association ?? "" })));
         if (j.length < 100) break;
       }
       return out;
     },
+    async pullFiles(n) {
+      const out: PullFile[] = [];
+      for (let page = 1; page < 40; page++) {
+        const j = (await api(`/pulls/${n}/files?per_page=100&page=${page}`)) ?? [];
+        out.push(...j.map((f: any) => ({ filename: f.filename, status: f.status, additions: f.additions, deletions: f.deletions })));
+        if (j.length < 100) break;
+      }
+      return out;
+    },
+    async ledger() { const r = await git(["show", `${o.trunkRef ?? "origin/trunk"}:${LEDGER}`]); return r.code === 0 ? r.out : null; },
     async scoreLog() { const r = await git(["show", `${o.scoreRef ?? "origin/ci/brain-eval"}:evals/career/SCORE-LOG.md`]); return r.code === 0 ? r.out : null; },
     async resolve(rev) { const r = await git(["rev-parse", "--verify", "--quiet", `${rev}^{commit}`]); return r.code === 0 ? r.out.trim() : null; },
     async parent(sha) { const r = await git(["rev-parse", "--verify", "--quiet", `${sha}^1`]); return r.code === 0 ? r.out.trim() : null; },

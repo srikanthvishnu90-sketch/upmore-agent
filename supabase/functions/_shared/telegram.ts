@@ -250,7 +250,7 @@ export function telegramAdapter(o: {
     ...(o.native ? { htmlText: true } : {}),
     typingEveryMs: 4000,
     async typing(address): Promise<boolean> {
-      const r = await call("sendChatAction", { chat_id: Number(address), action: "typing" });
+      const r = await call("sendChatAction", { chat_id: Number(address), action: "typing" }, 0); // N12: never waits on a 429
       return !("error" in r) && r.status === 200 && r.body?.ok === true;
     },
     async parseInbound(req): Promise<ParseResult> {

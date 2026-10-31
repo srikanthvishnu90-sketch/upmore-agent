@@ -110,6 +110,7 @@ import { supabaseFileStore } from "../trainee-file/store.ts";
 import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts"; // FILE KINDS
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
 import { vaultRefreshWrite } from "../_shared/oauth_vault_refresh.ts";
+import { trustTurn } from "../_shared/career_trust_turn.ts"; // REQS DOC 1: what Trainee is, privacy, what it sees, referrals, thanks
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -776,6 +777,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
             return ids.length - onRail.size;
           } }).catch((e) => { console.error("outreach status turn:", e?.message ?? e); return null; })
         : null;
+      // REQS DOC 1 (_shared/career_trust_turn.ts): "are you a bot", "do you sell my data", "what do you store", "can you see my
+      // other apps", a personal legal/tax/medical question, a bare thanks: answered by code from the privacy policy and the
+      // live connections, after every code-first turn above and before any brain or the router. Pure; nothing is changed.
+      const trustAns = !careerTask && !careerBatch && !host.isHostControlled(message, ctx) ? trustTurn({ message, capabilities: situation?.capabilities ?? null }) : null;
       // FEATURE 13: staged brain release. With CAREER_BRAIN=staged, a turn that every code-first turn above passed on, and
       // that the router itself would answer only with advice or conversation, goes to the brain (career_staged.ts); every
       // action stays code's and the router still answers a model failure. Unset or CAREER_BRAIN=router, it is never
@@ -866,6 +871,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (offerAns.card) agentMeta = { offer_card: offerAns.card };
       } else if (outreachStatus) {
         out = { reply: outreachStatus.reply, intent: outreachStatus.intent, resultStatus: outreachStatus.status, contained: false, handler: "outreach_status" };
+      } else if (trustAns) {
+        out = { reply: trustAns.reply, intent: trustAns.intent, resultStatus: trustAns.status, contained: false, handler: "trust" };
+        if (trustAns.meta) agentMeta = { ...(agentMeta || {}), ...trustAns.meta };
       } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || staged.toBrain()) && !host.isHostControlled(message, ctx)) {
         const meter = ledger.track(newMeter());
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };

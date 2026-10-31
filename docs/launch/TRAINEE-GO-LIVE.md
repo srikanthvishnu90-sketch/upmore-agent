@@ -210,7 +210,9 @@ Telegram works like iMessage once the person has pressed Start: no window, no co
 sends at most 1,500 and splits longer text on purpose, one message a second to one chat). The bot is never told a phone
 number, so a person reaches their account one of two ways: they text **connect telegram** where they already use Trainee
 (or tap Connect Telegram in the app, `channel_link_telegram_start()`, once the app has the button) and open the one-time
-link it sends; or, if their chat is on the allow list (`TRAINEE_ALLOWED_CONTACTS` entries like `telegram:<chat id>`) or
+link it sends, then reply **YES** where they already use Trainee when it asks "Someone wants to link Telegram @name to your
+Trainee" (opening the link alone links nothing: a forwarded or copied link is not proof of who opened it;
+20261031040000_telegram_link_confirm.sql); or, if their chat is on the allow list (`TRAINEE_ALLOWED_CONTACTS` entries like `telegram:<chat id>`) or
 sign-up is open, pressing Start makes a new account.
 
 1. In Telegram, message **@BotFather**: `/newbot`, a name (`Trainee`), a username ending in `bot`. BotFather shows the

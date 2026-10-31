@@ -28,14 +28,15 @@
 //   boundary   replies of exactly 4,096 / 4,095 / 4,097 / 1,500 / 1,501 characters with emoji, flags, ZWJ families, skin tones,
 //              RTL and combining marks at the split boundary
 //   entities   company names and titles carrying & < > * _ ` [x](y) and entity look-alikes, texting voice on and off
-//   deeplink   /start <payload>: forged, malformed, expired, used, someone else's token (a chat linked elsewhere must not burn it)
+//   deeplink   /start <payload>: forged, malformed, expired, used, someone else's token (a chat linked elsewhere must not burn it);
+//              a chat is linked only on the YES of the account's own chat (TELEGRAM LINK OWNERSHIP, 2026-10-31)
 //   group      group, supergroup and channel posts, commands, taps and member updates: nothing to any group, no effect
 // Run: deno test -A --no-check tests/architect/scenarios-telegram-r3.test.ts   (TG3_ONLY=tapper,dup runs those categories alone)
 import assertNode from "node:assert/strict";
 import { NOW, type Prep, rng, SECRET, TOKEN, world, type World } from "./scenarios/telegram-r3-world.ts";
 import { plainOf } from "./scenarios/telegram-bot-api.ts";
 import * as IN from "../../supabase/functions/_shared/channel_inbound.ts";
-const { TELEGRAM_LINK_INVALID_REPLY, TELEGRAM_LINKED_ELSEWHERE_REPLY, TELEGRAM_LINKED_REPLY } = IN;
+const { LINKED_HERE_REPLY, TELEGRAM_LINK_INVALID_REPLY, TELEGRAM_LINKED_ELSEWHERE_REPLY } = IN;
 // round 3: the answer to an edited message (a namespace read, so this file runs against the code before the fix too)
 const EDIT_NOT_READ_REPLY = (IN as Record<string, unknown>).EDIT_NOT_READ_REPLY as string ?? "(no answer to an edit)";
 import { GROUP_TAP_ANSWER } from "../../supabase/functions/_shared/telegram.ts";
@@ -380,8 +381,11 @@ async function forwardScenario(id: number, r: ReturnType<typeof rng>): Promise<s
   if (w.turns.length - turns0 !== 1) whys.push(`${variant}: ${w.turns.length - turns0} turns, want 1 (read as someone else's words)`);
   else if (!/^Forwarded from /.test(w.turns.at(-1)!.message)) whys.push(`${variant}: the turn read it as the person's own words: ${w.turns.at(-1)!.message.slice(0, 80)}`);
   // the code still works for its owner's own chat
+  // (TELEGRAM LINK OWNERSHIP, 2026-10-31: opening it asks the owner's chat, and the owner's own YES there links the new chat.)
   const other = A + 3;
   res.push((await w.post(text(w, other, `/start ${code}`))).text);
+  if (w.userOf(other) === own.u) whys.push(`${variant}: the new chat was linked before the owner's YES`);
+  res.push((await w.post(text(w, A, "yes"))).text);
   if (w.userOf(other) !== own.u) whys.push(`${variant}: the owner's link code was used up by a forwarded message`);
   common(w, whys, res);
   return whys;
@@ -510,8 +514,11 @@ async function entitiesScenario(id: number, r: ReturnType<typeof rng>): Promise<
 async function deeplinkScenario(id: number, r: ReturnType<typeof rng>): Promise<string[]> {
   const w = world({ native: r.chance(0.5) }), whys: string[] = [], res: string[] = [];
   const owner = w.W.newUser();
-  w.W.link(`+1555${String(3000000 + id).slice(-7)}`, owner, w.clock.t - 3600000, { home: true });
-  const C = 910000000 + id * 4, other = C + 1, own = C + 2;
+  // TELEGRAM LINK OWNERSHIP (2026-10-31): the account's own channel (here its earlier Telegram chat, `home`) is asked when a link
+  // is opened, and its YES links the new chat.
+  const C = 910000000 + id * 4, other = C + 1, own = C + 2, home = C + 3;
+  w.W.link(`tg:${home}`, owner, w.clock.t - 3600000, { home: true, lastInboundAt: w.clock.t - 3600000 });
+  const yesAtHome = async () => { res.push((await w.post(text(w, home, "yes"))).text); };
   const variant = r.pick(["forged", "malformed", "expired", "used", "elsewhere-then-owner", "already-mine", "group"] as const);
   const code = await w.W.inbound.issueLinkNonce!(owner, w.clock.t);
   const said = (c: number, from: number) => w.B.to(c).slice(from).map(plainOf);
@@ -531,6 +538,7 @@ async function deeplinkScenario(id: number, r: ReturnType<typeof rng>): Promise<
   } else if (variant === "used") {
     res.push((await w.post(text(w, own, `/start ${code}`))).text);
     res.push((await w.post(text(w, C, `/start ${code}`))).text);
+    await yesAtHome();
     if (w.userOf(C) === owner) whys.push("a used code linked a second chat");
     if (w.userOf(own) !== owner) whys.push("the first use did not link");
   } else if (variant === "elsewhere-then-owner") {
@@ -542,10 +550,12 @@ async function deeplinkScenario(id: number, r: ReturnType<typeof rng>): Promise<
     if (w.userOf(other) === owner) whys.push("someone else's code moved a linked chat");
     if (!said(other, b0).includes(TELEGRAM_LINKED_ELSEWHERE_REPLY)) whys.push(`elsewhere was answered ${JSON.stringify(said(other, b0)).slice(0, 160)}`);
     res.push((await w.post(text(w, own, `/start ${code}`))).text);
+    await yesAtHome();
     if (w.userOf(own) !== owner) whys.push("the owner's own link was used up by another account's chat that it never linked");
-    else if (!said(own, 0).includes(TELEGRAM_LINKED_REPLY)) whys.push("the owner's chat was not told it is linked");
+    else if (!said(own, 0).includes(LINKED_HERE_REPLY)) whys.push("the owner's chat was not told it is linked");
   } else if (variant === "already-mine") {
     res.push((await w.post(text(w, own, `/start ${code}`))).text);
+    await yesAtHome();
     const b0 = w.B.to(own).length;
     res.push((await w.post(text(w, own, `/start ${code}`))).text);
     const s = said(own, b0);
@@ -556,6 +566,7 @@ async function deeplinkScenario(id: number, r: ReturnType<typeof rng>): Promise<
     res.push((await w.post({ update_id: ++UPD, message: { message_id: 5, chat: { id: -100900000000 - id, type: "group", title: "TEST" }, from: { id: C, is_bot: false }, date: 1, text: `/start ${code}` } })).text);
     if (w.userOf(C) === owner || w.userOf(-100900000000 - id) === owner) whys.push("a /start in a group linked something");
     res.push((await w.post(text(w, own, `/start ${code}`))).text);
+    await yesAtHome();
     if (w.userOf(own) !== owner) whys.push("a /start in a group used up the code");
   }
   common(w, whys, res);

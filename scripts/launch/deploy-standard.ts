@@ -19,11 +19,17 @@
 //      enforcement needs a second reviewer account plus trunk branch protection (owner decision, open).
 //   S3 reply quality does not regress: on ci/brain-eval's evals/career/SCORE-LOG.md, the live brain's (DEPLOY_STANDARD_BRAIN,
 //      default router) pass rate measured for the candidate >= the rate measured for the deployed SHA, on the same set and
-//      set size. A measurement counts for a SHA when its brain commit is that SHA, or a first-parent ancestor within 10
-//      commits with no change under supabase/functions/ since, or a measurement-branch commit descending from one of those
-//      whose supabase/functions/ tree is identical. Rows that stopped, or are NOT A SCORE, are not measurements. The rate of
-//      one measurement is the mean over the passes of its latest CI run. No measurement on either side: FAIL. No tolerance:
-//      the means are compared exactly (integer cross-multiplication); a tolerance needs a written owner ruling.
+//      set size. "Reply code" is the one list in scripts/launch/reply-code.ts (the router bundle and packages/domain,
+//      agent-chat, the brain under _shared/agent, and the _shared modules the reply path imports). A measurement counts for
+//      a SHA when its brain commit is that SHA, or a first-parent ancestor within 10 commits with no reply-code change
+//      since, or a measurement commit on ci/brain-eval whose second parent is one of those (the brain-eval convention: a
+//      measurement commit merges the measured commit as its second parent) and whose reply code is identical, or a
+//      measurement-branch commit descending from one of those whose reply code is identical. Rows that stopped, or are NOT
+//      A SCORE, are not measurements. The rate of one measurement is the mean over the passes of its latest CI run. No
+//      measurement on either side: FAIL. No tolerance: the means are compared exactly (integer cross-multiplication); a
+//      tolerance needs a written owner ruling. --missing-measurement prints the SHA S3 still lacks a measurement for (the
+//      candidate first, then the deployed SHA on the candidate's set), which deploy-production.yml then measures
+//      (scripts/launch/measure-reply.sh) before it judges.
 //   S4 the Telegram acceptance suite (tests/architect/telegram-acceptance.test.ts) passed in CI on that SHA (its check,
 //      "acceptance (telegram)", concluded success: every step not in KNOWN_GAP passed), and its KNOWN_GAP list did not grow
 //      against the deployed SHA's (shrink-only), and its STEPS list did not lose a step (removing a failing step is not a
@@ -33,6 +39,8 @@
 //
 //   deno run -A scripts/launch/deploy-standard.ts --sha <40-hex> [--checks S1,S2,S3,S4,S5] [--exclude-run <run id>]
 //                                                 [--wait-checks <minutes>]
+//   deno run -A scripts/launch/deploy-standard.ts --sha <40-hex> --missing-measurement [--exclude-run <run id>]
+//     prints `measure=<sha>` (empty when S3 has both measurements) and writes it to GITHUB_OUTPUT; judges nothing.
 // --wait-checks: first wait (polling each minute, at most that long) until every required check on the SHA has finished,
 // so a push to release/production right after a merge is judged on finished CI, not on runs still going. Waiting decides
 // nothing: a check still unfinished at the deadline is judged as it stands (not success: FAIL).
@@ -40,6 +48,7 @@
 // PR and Actions APIs, read only); for S5, what secrets-audit.sh needs (SUPABASE_PROJECT_REF, the supabase CLI logged in).
 // It changes nothing anywhere. Exit 0: the SHA meets the standard; 1: it does not; 2: usage.
 import { parse as parseYaml } from "npm:yaml@2.9.1";
+import { REPLY_CODE as REPLY_CODE_PATHS } from "./reply-code.ts";
 
 export type CheckId = "S1" | "S2" | "S3" | "S4" | "S5";
 export const ALL_CHECKS: CheckId[] = ["S1", "S2", "S3", "S4", "S5"];
@@ -60,15 +69,16 @@ export interface Sources {
   scoreLog(): Promise<string | null>;
   resolve(rev: string): Promise<string | null>; // full sha of a (short) commit, or null
   parent(sha: string): Promise<string | null>; // first parent
+  secondParent?(sha: string): Promise<string | null>; // the second parent of a merge (a measurement commit's measured SHA)
   isAncestor(a: string, b: string): Promise<boolean>;
-  changed(a: string, b: string, path: string): Promise<boolean>; // any difference under path between a and b
-  tree(sha: string, path: string): Promise<string | null>;
+  changed(a: string, b: string, paths: readonly string[]): Promise<boolean>; // any difference under the paths between a and b
+  tree(sha: string, paths: readonly string[]): Promise<string | null>; // one identity of the content under the paths; null: none
   firstAdded(sha: string, path: string): Promise<string | null>; // the commit (on sha's history) that added path
   secretsAudit(): Promise<{ code: number; out: string }>;
 }
 export interface Result { id: CheckId; pass: boolean; summary: string; evidence: string[] }
 
-export const REPLY_CODE = "supabase/functions";
+export const REPLY_CODE: readonly string[] = REPLY_CODE_PATHS;
 export const ACCEPTANCE_FILE = "tests/architect/telegram-acceptance.test.ts";
 export const ACCEPTANCE_CHECK = "acceptance (telegram)";
 export const CI_WORKFLOW = ".github/workflows/ci.yml", PREFLIGHT_WORKFLOW = ".github/workflows/deploy-preflight.yml";
@@ -255,7 +265,10 @@ export async function measurementOf(src: Sources, sha: string, rows: ScoreRow[],
     if (full) {
       if (lineage.includes(full)) yes = true;
       else if (tree && (await src.tree(full, REPLY_CODE)) === tree) {
-        for (const a of lineage) if (await src.isAncestor(a, full)) { yes = true; break; }
+        // A measurement commit: its second parent is the commit it measured (and its reply code is that commit's).
+        const measured = src.secondParent ? await src.secondParent(full) : null;
+        if (measured && lineage.includes(measured)) yes = true;
+        else for (const a of lineage) if (await src.isAncestor(a, full)) { yes = true; break; }
       }
     }
     cache.set(short, yes);
@@ -288,6 +301,19 @@ export async function s3(src: Sources, sha: string, deployed: string | null, bra
   // Same size on both sides: mean(c) >= mean(d)  <=>  sum(c) * passes(d) >= sum(d) * passes(c). Exact, no tolerance.
   const pass = cand.m.passed * dep.m.passes >= dep.m.passed * cand.m.passes;
   return { id: "S3", pass, summary: `${brain} pass rate ${(cand.m.rate * 100).toFixed(1)}% ${pass ? ">=" : "<"} deployed ${(dep.m.rate * 100).toFixed(1)}%`, evidence };
+}
+
+// The SHA S3 still needs a measurement for: the candidate when it has none; else the deployed SHA when it has none on the
+// candidate's set and size; else null. deploy-production.yml measures it (measure-reply.sh) and asks again.
+export async function missingMeasurement(src: Sources, sha: string, deployed: string | null, brain: string): Promise<{ sha: string | null; why: string }> {
+  const log = await src.scoreLog();
+  const rows = log === null ? [] : parseScoreLog(log);
+  const cand = await measurementOf(src, sha, rows, brain);
+  if (!cand.m) return { sha, why: `candidate: ${cand.why}` };
+  if (!deployed) return { sha: null, why: "no successful production deploy found: S3 fails whatever is measured" };
+  const dep = await measurementOf(src, deployed, rows.filter((r) => r.set === cand.m!.set && r.size === cand.m!.size), brain);
+  if (!dep.m) return { sha: deployed, why: `deployed: ${dep.why} on set ${cand.m.set}/${cand.m.size}` };
+  return { sha: null, why: `both measured: candidate by CI run ${cand.m.run}, deployed by CI run ${dep.m.run}` };
 }
 
 // ------------------------------------------------------------------------------------------------ S4
@@ -445,13 +471,21 @@ export function liveSources(o: { repo: string; token: string; excludeRun?: strin
     async scoreLog() { const r = await git(["show", `${o.scoreRef ?? "origin/ci/brain-eval"}:evals/career/SCORE-LOG.md`]); return r.code === 0 ? r.out : null; },
     async resolve(rev) { const r = await git(["rev-parse", "--verify", "--quiet", `${rev}^{commit}`]); return r.code === 0 ? r.out.trim() : null; },
     async parent(sha) { const r = await git(["rev-parse", "--verify", "--quiet", `${sha}^1`]); return r.code === 0 ? r.out.trim() : null; },
+    async secondParent(sha) { const r = await git(["rev-parse", "--verify", "--quiet", `${sha}^2`]); return r.code === 0 ? r.out.trim() : null; },
     async isAncestor(a, b) { return (await git(["merge-base", "--is-ancestor", a, b])).code === 0; },
-    async changed(a, b, path) {
-      const r = await git(["diff", "--quiet", a, b, "--", path]);
+    async changed(a, b, paths) {
+      const r = await git(["diff", "--quiet", a, b, "--", ...paths]);
       if (r.code > 1) throw new Error(`git diff ${short(a)} ${short(b)} failed`);
       return r.code === 1;
     },
-    async tree(sha, path) { const r = await git(["rev-parse", "--verify", "--quiet", `${sha}:${path}`]); return r.code === 0 ? r.out.trim() : null; },
+    async tree(sha, paths) {
+      // Every blob under the paths (mode, id, path): equal output is equal content. None of the paths at sha: null.
+      const r = await git(["ls-tree", "-r", "--full-tree", sha, "--", ...paths]);
+      if (r.code !== 0) throw new Error(`git ls-tree ${short(sha)} failed`);
+      if (!r.out.trim()) return null;
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(r.out));
+      return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    },
     async firstAdded(sha, path) {
       const r = await git(["log", "--diff-filter=A", "--format=%H", sha, "--", path]);
       const all = r.out.split("\n").filter(Boolean);
@@ -470,12 +504,21 @@ if (import.meta.main) {
   const sha = opt("--sha") ?? "";
   const checks = (opt("--checks") ?? ALL_CHECKS.join(",")).split(",").map((s) => s.trim().toUpperCase()) as CheckId[];
   if (!SHA40.test(sha) || !checks.length || checks.some((c) => !ALL_CHECKS.includes(c))) {
-    console.error("usage: deploy-standard.ts --sha <40-hex> [--checks S1,S2,S3,S4,S5] [--exclude-run <run id>]");
+    console.error("usage: deploy-standard.ts --sha <40-hex> [--checks S1,S2,S3,S4,S5] [--exclude-run <run id>] [--wait-checks <min>] | --missing-measurement");
     Deno.exit(2);
   }
   const repo = Deno.env.get("GITHUB_REPOSITORY") ?? "", token = Deno.env.get("GITHUB_TOKEN") ?? "";
   if (!repo || !token) { console.error("GITHUB_REPOSITORY and GITHUB_TOKEN are required (read-only API calls)"); Deno.exit(2); }
   const src = liveSources({ repo, token, excludeRun: opt("--exclude-run") });
+  if (args.includes("--missing-measurement")) {
+    const deployed = await src.lastDeployedSha();
+    const need = await missingMeasurement(src, sha, deployed, Deno.env.get("DEPLOY_STANDARD_BRAIN") || "router");
+    console.log(`S3 measurements for ${sha} (deployed: ${deployed ?? "none found"}): ${need.sha ? `missing for ${need.sha}: ${need.why}` : need.why}`);
+    console.log(`measure=${need.sha ?? ""}`);
+    const out = Deno.env.get("GITHUB_OUTPUT");
+    if (out) await Deno.writeTextFile(out, `measure=${need.sha ?? ""}\n`, { append: true });
+    Deno.exit(0);
+  }
   const waitMin = Number(opt("--wait-checks") ?? 0);
   if (waitMin > 0 && checks.includes("S1")) {
     const deadline = Date.now() + waitMin * 60_000;

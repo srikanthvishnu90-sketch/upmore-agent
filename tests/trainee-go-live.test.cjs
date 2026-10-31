@@ -290,7 +290,7 @@ test('main: one line per check and a summary, waits for the schedules when asked
   assert.equal(polls, 3, 'polled until every schedule had fired');
   assert.match(out, /waiting up to 120 s/);
   assert.match(out, /^summary: 17 PASS, 0 WARN, 0 FAIL, 0 NOT RUN$/m);
-  for (const l of lines.filter((l) => !/^summary|^waiting/.test(l))) assert.match(l, /^(PASS|FAIL|WARN|NOT RUN) /);
+  for (const l of lines.filter((l) => !/^summary|^waiting/.test(l))) assert.match(l, /^(PASS|FAIL|WARN|NOT RUN|CERT|NOTE) /);
   for (const v of SECRET_VALUES) assert.ok(!out.includes(v) && !out.includes(encodeURIComponent(v)), `${v.slice(0, 12)}… is not printed`);
 
   const bare = [];
@@ -676,4 +676,60 @@ test('--verify with no project ref: the gated-secrets lookup is skipped (no secr
   assert.doesNotMatch(log, /secrets list/, 'no lookup without a ref');
   assert.doesNotMatch(out, /could not read the project's secret names/);
   assert.match(out, /gated: trainee-file SKIPPED \(secrets list unavailable: no project ref\)/, out);
+});
+
+// ---- OPS: certification, explicit NOT RUN reasons, and the recorded smoke result ----
+const FILE_URL = 'https://app.example.test/file';
+test('checkFilePage: a made-up link refused with a 4xx page passes; 404, 503 not-set-up, and an open page fail with the fix named', async () => {
+  const f = fakeFetch(() => [410, { error: 'expired' }]);
+  assert.equal((await smoke.checkFilePage({ url: FILE_URL, fetchFn: f })).status, 'PASS');
+  assert.match(f.calls[0].url, /^https:\/\/app\.example\.test\/file\?t=smoke-/);
+  const nf = await smoke.checkFilePage({ url: FILE_URL, fetchFn: fakeFetch(() => [404, {}]) });
+  assert.equal(nf.status, 'FAIL'); assert.match(nf.detail, /not deployed/);
+  const ns = await smoke.checkFilePage({ url: FILE_URL, fetchFn: fakeFetch(() => [503, { error: 'File pages are not set up yet.' }]) });
+  assert.equal(ns.status, 'FAIL'); assert.match(ns.detail, /TRAINEE_FILE_UPSTREAM/); assert.match(ns.detail, /TRAINEE_FILE_LINK_SECRET/);
+  assert.equal((await smoke.checkFilePage({ url: FILE_URL, fetchFn: fakeFetch(() => [200, {}]) })).status, 'FAIL');
+  assert.equal((await smoke.checkFilePage({ url: 'http://plain.test/file', fetchFn: fakeFetch(() => [410, {}]) })).status, 'FAIL');
+});
+
+test('certify: only a live PASS certifies; real Apply is never certified by a smoke; every uncertified line says why', () => {
+  const p = (check) => ({ status: 'PASS', check, detail: '' });
+  const all = [p('file page (TRAINEE_FILE_BASE_URL) refuses a made-up link'), p('trainee-inbound refuses a wrong secret'), p('trainee-inbound answers the right secret'),
+    p('trainee-inbound answers HELP (texted to TRAINEE_SMOKE_CONTACT)'), p('schedule trainee-deliver'), p('preparation host (phone-only preparation) is up')];
+  const c = Object.fromEntries(smoke.certify(all).map((x) => [x.feature, x]));
+  assert.ok(c['file endpoint'].certified && c.inbound.certified && c['phone login'].certified);
+  assert.equal(c['real Apply'].certified, false); assert.match(c['real Apply'].reason, /confirmed by the employer/);
+  const none = Object.fromEntries(smoke.certify([{ status: 'NOT RUN', check: 'trainee-inbound answers HELP', detail: 'skipped' }, { status: 'WARN', check: 'trainee-inbound answers HELP (texted to X)', detail: 'HTTP 503, not wired yet: NOT_WIRED: LOOPMESSAGE_API_KEY is not set' }]).map((x) => [x.feature, x]));
+  for (const f of ['file endpoint', 'inbound', 'phone login', 'real Apply']) { assert.equal(none[f].certified, false, f); assert.ok(none[f].reason.length > 20, f); }
+  assert.match(none.inbound.reason, /LOOPMESSAGE_API_KEY/); assert.match(none['file endpoint'].reason, /TRAINEE_FILE_BASE_URL/);
+  const failed = smoke.certify([{ status: 'FAIL', check: 'file page (TRAINEE_FILE_BASE_URL) refuses a made-up link', detail: 'HTTP 404' }, p('trainee-inbound answers HELP (x)')]);
+  assert.equal(failed.find((x) => x.feature === 'phone login').certified, false);
+});
+
+test('main: prints a certified / not certified line per feature, names why each NOT RUN, records one counts-only row, and survives an unrecordable result', async () => {
+  const env = { SUPABASE_URL: BASE, ...FAKE, GITHUB_SHA: '0768a16' + 'a'.repeat(33), TRAINEE_FILE_BASE_URL: FILE_URL };
+  const fetchFn = fakeFetch((c) => c.fn === 'file' ? [410, {}] : c.fn === 'agent-chat' ? (c.init.headers.Authorization ? [200, { reply: 'hello there' }] : [401, {}]) : c.fn === 'trainee-inbound' && c.body && c.body.text ? [503, { error: 'NOT_WIRED: LOOPMESSAGE_API_KEY is not set; no turn was run' }] : handlerLike(c));
+  const lines = [], sqls = [];
+  const sql = async (q) => { sqls.push(q); return q.includes('cron.job') ? goodJobs.map((j) => j.join('|')).join('\n') : q.startsWith('insert') ? '' : fakeSql(goodJobs, goodRuns)(q); };
+  const code = await smoke.main(['--allow-send'], env, { fetch: fetchFn, sql, log: (s) => lines.push(s) });
+  const out = lines.join('\n');
+  assert.equal(code, 0, out);
+  assert.match(out, /^CERT +CERTIFIED file endpoint: /m);
+  assert.match(out, /^CERT +NOT CERTIFIED inbound: .*LOOPMESSAGE_API_KEY/m);
+  assert.match(out, /^CERT +NOT CERTIFIED phone login: /m);
+  assert.match(out, /^CERT +NOT CERTIFIED real Apply: .*confirmed by the employer/m);
+  const ins = sqls.filter((q) => q.startsWith('insert'));
+  assert.equal(ins.length, 1);
+  assert.match(ins[0], /'deploy_smoke'/); assert.match(ins[0], /"fail":0/); assert.match(ins[0], /"sha":"0768a16/);
+  for (const v of Object.values(FAKE)) assert.ok(!ins[0].includes(v) && !out.includes(v), 'no secret in the row or the log');
+  const bare = [];
+  await smoke.main([], { SUPABASE_URL: BASE, ...FAKE }, { fetch: fakeFetch((c) => c.fn === 'agent-chat' ? [401, {}] : handlerLike(c)), sql: async () => { throw new Error('db down'); }, log: (s) => bare.push(s) });
+  const b = bare.join('\n');
+  assert.match(b, /^NOT RUN file page \(TRAINEE_FILE_BASE_URL\): NOT_WIRED: .*TRAINEE_FILE_LINK_SECRET.*TRAINEE_FILE_UPSTREAM/m);
+  assert.match(b, /^CERT +NOT CERTIFIED file endpoint: .*TRAINEE_FILE_BASE_URL/m);
+});
+
+test('recordSql: only counts, booleans and a validated sha reach the row', () => {
+  const q = smoke.recordSql({ pass: 1, warn: 0, fail: 2, not_run: 3 }, [{ feature: 'phone login', certified: false, reason: "x'; drop table founder_alerts; --" }], "0768a16'; drop");
+  assert.ok(!q.includes('drop') && q.includes('"sha":""') && q.includes('"phone_login":false'));
 });

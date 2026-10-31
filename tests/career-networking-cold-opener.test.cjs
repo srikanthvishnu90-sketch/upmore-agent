@@ -84,17 +84,25 @@ test("a fact stated this sitting still rides into a plan; one from an old sittin
   assert.ok(!/Chicago/.test(turn("find 40 analysts at Google", stale).reply));
 });
 
-test("per-firm cap wording matches the code: no send cap, a 15-name list pass", () => {
-  // The 15-per-firm list pass itself is pinned by tests/career-outreach.test.cjs (OUTE-002/004); the send rail has no firm limit.
-  const src = require("node:fs").readFileSync(path.join(ROOT, "packages/domain/124-career-outreach.js"), "utf8");
-  assert.ok(/perFirmPer30Days: 15/.test(src) && /firmCount\[fk\] \|\| 0\) >= CAPS\.perFirmPer30Days\) \{ reserve\.push/.test(src), "list pass: 15 per firm, rest to reserve");
-  assert.ok(!/firm/i.test(require("node:fs").readFileSync(path.join(ROOT, "supabase/functions/_shared/career_send_rail.ts"), "utf8").split("\n").filter((l) => /cap|limit/i.test(l) && !/^\/\//.test(l)).join("\n")), "send rail has no firm limit");
+test("per-firm cap wording and code agree: the reply says there is none, and no code limits a firm", () => {
+  const fs = require("node:fs");
+  const O = D("124-career-outreach.js");
+  const NAMES = ["Aaron Voss", "Bianca Reed", "Carlos Mendez", "Dana Whitfield", "Elias Ford", "Farah Iqbal", "Gavin Holt", "Hana Sato", "Ivan Petrov", "Julia Brandt", "Kwame Mensah", "Lena Fischer", "Marco Ruiz", "Nadia Rahman", "Owen Delacroix", "Priya Natarajan", "Quentin Walsh", "Rosa Lindgren", "Samir Haddad", "Tessa Okafor"];
+  const cand = (i) => ({ person_id: "p" + i, full_name: NAMES[i], current_firm: "Goldman Sachs", title: "Analyst", seniority_band: "analyst", geography: "NYC", office: "New York", country: "US", schools: ["DePaul University"], work_email: `p${i}@goldmansachs.com`, email_confidence: 0.9, email_verification: "verified", last_verified_at: "2026-10-01T00:00:00Z" });
+  const pool = Array.from({ length: 20 }, (_, i) => cand(i));
+  const built = O.buildList(pool, O.parseTarget("20 bulge bracket investment bankers"), { profile: { school: "DePaul University" }, nowMs: Date.parse("2026-10-12T15:00:00Z") });
+  assert.equal(built.selected.length, 20, "a list takes every name asked for at one firm");
+  const camp = O.createCampaign({ id: "c", userId: "u1", approved: true });
+  const res = O.enqueue(camp, pool.map((c) => ({ candidate: c, draft: { subject: "s", body: "b" } })));
+  assert.equal(res.filter((r) => r.status === "queued").length, 20, "the queue takes the 16th and 20th at one firm");
+  assert.ok(!res.some((r) => /firm_cap/.test(String(r.reason))));
+  const src = fs.readFileSync(path.join(ROOT, "packages/domain/124-career-outreach.js"), "utf8");
+  assert.ok(!/perFirm/.test(src) && !/per_firm_cap/.test(src), "no per-firm limit in 124");
+  assert.equal(O.safetyPlan(camp, null, {}).per_firm_per_30_days, null);
+  const g = fs.readFileSync(path.join(ROOT, "packages/domain/135-career-graph.js"), "utf8");
+  assert.ok(!/15 sends to one firm/.test(g));
   for (const q of ["is there a per-firm cap?", "what's the per-firm cap"]) {
     const o = turn(q, []);
-    assert.ok(/no per-firm cap on sending/i.test(o.reply), o.reply);
-    assert.ok(/at most 15 names at one firm/.test(o.reply) && /reserve/.test(o.reply), o.reply);
+    assert.ok(/no per-firm cap/i.test(o.reply) && !/at most 15|15 names|reserve/.test(o.reply), o.reply);
   }
-  const g = D("135-career-graph.js");
-  assert.ok(!/15 sends to one firm/.test(require("node:fs").readFileSync(path.join(ROOT, "packages/domain/135-career-graph.js"), "utf8")));
-  assert.ok(g);
 });

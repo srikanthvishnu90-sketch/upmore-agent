@@ -3829,12 +3829,12 @@ const CareerRouter = (() => {
   }
 
   function handleFirmCap(text, ctx) {
-    // What the code does (checked 2026-10-30): the send rail (career_send_rail.ts) has no per-firm limit, so every email you
-    // approve can go; the list builder (124 buildList) takes at most 15 names at one firm into a pass and keeps the rest in
-    // reserve, so a long list does not pile on one desk. The reply says both, and neither as a send limit it does not have.
-    const reply = compose({ headline: "There is no per-firm cap on sending.", facts: ["Trainee sets no volume limit of its own: every email you approve to one firm can go, from your own Gmail.", "One thing does limit a list: when I build it, a single pass takes at most 15 names at one firm and keeps the rest in reserve, so no one desk gets everything at once.", "What stays: each email goes only as you approved it, nobody who said stop is written to again, and a bounced address is never retried."], nextStep: "Want the per-firm breakdown of the current list?" });
+    // What the code does (2026-10-30): no per-firm limit anywhere. The send rail (career_send_rail.ts) has none, and the list
+    // builder (124 buildList) and the queue (124 enqueue) no longer hold names back at a firm. tests/career-networking-cold-opener
+    // fails if a per-firm limit returns to the code while this reply says there is none.
+    const reply = compose({ headline: "There is no per-firm cap.", facts: ["Trainee sets no volume limit of its own: every email you approve to one firm can go, from your own Gmail.", "What stays: each email goes only as you approved it, nobody who said stop is written to again, and a bounced address is never retried."], nextStep: "Want the per-firm breakdown of the current list?" });
     // BUG-108: the locked cap values are the typed record.
-    const cap = { kind: "firm_cap", per_firm_cap: null, window_days: null, enforced_at: [], queue_refuses_nth: null, send_limit: null, list_pass_per_firm: 15 };
+    const cap = { kind: "firm_cap", per_firm_cap: null, window_days: null, enforced_at: [], queue_refuses_nth: null };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: cap, artifact: cap };
   }
 

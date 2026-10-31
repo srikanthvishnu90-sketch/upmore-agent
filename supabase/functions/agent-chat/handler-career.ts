@@ -113,6 +113,9 @@ import { vaultRefreshWrite } from "../_shared/oauth_vault_refresh.ts";
 import { trustKind, trustTurn } from "../_shared/career_trust_turn.ts"; // REQS DOC 1: what Trainee is, privacy, what it sees, referrals, thanks
 import { readConnections } from "../_shared/career_capabilities.ts"; // REQS DOC 1: every connection on the account
 
+// REQS DOC 1: what holds the card's place for a message in distress (see `distress` below); never shown or saved as a card.
+const DISTRESS_HOLD = { reply: "", status: "distress_hold" } as any;
+
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
   const { data, error } = await admin.from("user_oauth_connections").select("scopes").eq("user_id", userId).eq("provider", "google_career").maybeSingle();
@@ -475,16 +478,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await outlookChatTurn({ admin, message, userId: user.id, threadId: tid, bridge: isBridgeCall, now: Date.now(), env: Deno.env })
           .catch((e) => { console.error("outlook turn:", e?.message ?? e); return null; })
         : null;
-      // REQS DOC 1: a message in distress gets the crisis answer (career_trust_turn.ts), never read as a card's answer or a mock
-      // interview's answer, and even on a paused account.
+      // REQS DOC 1: a message in distress gets the crisis answer (career_trust_turn.ts), never read as a card's answer, a mock
+      // interview's answer or any other waiting turn's, and even on a paused account. It holds the card's place, so every turn
+      // below that waits on "!card" stands down, and its own branch answers first.
       const distress = !tapIn && !careerTask && !careerBatch && trustKind(message) === "safety";
-      const card = !distress && !tapIn && !connAns && !outlookAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const card = distress ? DISTRESS_HOLD : !tapIn && !connAns && !outlookAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         // FEATURE 16: OWNER RULE (2026-10-26): no card without a confirmed resume on file (resumeReady).
         ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
         : null;
       // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
       // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
-      const mock = !distress && !card && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const mock = !card && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await mockTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseMockStore(admin) })
         : null;
       // Ask once: "what do you need from me" shows the questions only the person can answer, and the text right after
@@ -812,6 +816,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       } else if (outlookAns) {
         out = { reply: outlookAns.reply, intent: outlookAns.intent, resultStatus: outlookAns.resultStatus, contained: false, handler: outlookAns.handler };
         if (outlookAns.meta) agentMeta = { ...(agentMeta || {}), ...outlookAns.meta };
+      } else if (distress && trustAns) {
+        out = { reply: trustAns.reply, intent: trustAns.intent, resultStatus: trustAns.status, contained: false, handler: "trust" };
+        if (trustAns.meta) agentMeta = { ...(agentMeta || {}), ...trustAns.meta };
       } else if (card) {
         // A card still waiting for its answer stays this thread's last word (D-MS-1: also after "wait", an unclear reply
         // or a number not on it); an answered one does not.

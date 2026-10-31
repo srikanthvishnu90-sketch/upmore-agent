@@ -89,7 +89,10 @@ Deno.test({ name: "REQS DOC 1: trust questions answered by code at the real hand
       }
       const mock = await say("mock me for data analyst at Acme");
       eq(mock.intent, "career_mock", mock.reply);
-      const r = await say("I can't do this anymore, I want to die");
+      const answers = async () => Number(await pg.sql(`select coalesce(sum(jsonb_array_length(coalesce(value->'answers', '[]'::jsonb))), 0) from public.career_watch_kv where user_id = '${me}' and value ? 'answers'`));
+      const before = await answers();
+      const r = await say("In my last internship I built the weekly sales dashboard in SQL and cut reporting time in half, but honestly I want to die");
+      eq(await answers(), before, "the mock never recorded the message as an answer");
       eq(r.intent, "safety_support", `a waiting mock question never takes it as an answer: ${r.intent}: ${r.reply}`);
       await say("end mock");
     });

@@ -2,7 +2,7 @@
 // over packages/domain/118-agent-bureaus.js. The submissions are the person's own taps at each bureau;
 // the reply carries the real steps and says so. No bureau is connected, so nothing here reads rows.
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
-import handler from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const handler = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 import { bureauReply, isBureauAsk } from "../../supabase/functions/agent-chat/_shared/bureau_answer.ts";
 
 const TODAY = "2026-10-12";

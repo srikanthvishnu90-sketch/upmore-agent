@@ -79,11 +79,11 @@ Deno.test("find me money with only ordinary subscriptions lists them with their 
 // Megadoc Q03, Q04, Q06, Q08: account and privacy asks answered from the app's real screens and the privacy policy.
 // Every app path named here is checked against the app source itself, and the processors against /privacy, so a
 // renamed button or a changed policy fails this test instead of the chat quoting something that isn't there.
-import SRC_APP from "../../src/upmore-app-template.html" with { type: "text" };
-import SRC_PRIVACY from "../../privacy.html" with { type: "text" };
+const SRC_APP = Deno.readTextFileSync(new URL("../../src/upmore-app-template.html", import.meta.url));
+const SRC_PRIVACY = Deno.readTextFileSync(new URL("../../privacy.html", import.meta.url));
 const { accountPrivacyReply, whoSeesReply, ACCOUNT_NUMBER_NONE, DELETE_DATA_STEPS, PHONE_NONE, EMAIL_NONE, FEES_REPLY } = DirectAnswers;
-import SRC_TERMS from "../../terms.html" with { type: "text" };
-import SRC_TRADE from "../../packages/domain/66-agent-trade.js" with { type: "text" };
+const SRC_TERMS = Deno.readTextFileSync(new URL("../../terms.html", import.meta.url));
+const SRC_TRADE = Deno.readTextFileSync(new URL("../../packages/domain/66-agent-trade.js", import.meta.url));
 
 Deno.test("show my full account number: none is held or shown; the brokerage's last four only (Q03)", () => {
   for (const t of ["show my full account number", "whats my account number", "can you give me my routing number", "send me my full card number", "what is my checking account number?", "i need my full account number"]) assertEquals(accountPrivacyReply(t, "openai"), ACCOUNT_NUMBER_NONE, t);
@@ -153,8 +153,8 @@ Deno.test("what are your fees: the Terms' own price, billing not live, no Upmore
 });
 
 // Megadoc Q07 "do this while I'm asleep": the standing rules and the person's own quiet hours, nothing set up.
-import SRC_FLOWS from "../../supabase/functions/_shared/flow_router.ts" with { type: "text" };
-import SRC_PROACTIVE from "../../supabase/functions/_shared/proactive.ts" with { type: "text" };
+const SRC_FLOWS = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/flow_router.ts", import.meta.url));
+const SRC_PROACTIVE = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/proactive.ts", import.meta.url));
 Deno.test("do this while I'm asleep: every money move waits for a yes, cards expire, quiet hours are the person's own (Q07)", () => {
   const { sleepReply } = DirectAnswers;
   const def = sleepReply("can you do this while i'm asleep", { start: 22, end: 7 })!;
@@ -208,7 +208,7 @@ Deno.test("traveling in Japan: no travel notice filed, alerts as usual, the time
 
 // Megadoc N02-N15: everyday scams answered by ScamCheck (packages/domain/109-scam-check.js, depth packet SCAM-CHECK)
 // among the early guards, before the direct answers, the flows and the model.
-import SRC_HANDLER_SCAM from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_HANDLER_SCAM = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 import { ScamCheck } from "../../supabase/functions/_shared/router_core.js";
 Deno.test("everyday scams run among the early guards, ahead of every other answer (N02-N15)", () => {
   const guard = SRC_HANDLER_SCAM.indexOf("?? tryScamGuard(message) ?? (ScamCheck as any).answer(message) ?? tryServerGuards(message)");
@@ -281,7 +281,7 @@ Deno.test("hard moments: calm, no advice, one offer that reaches a real answer (
 });
 
 // Megadoc K12 "what are the terms of this merchant": never summarized from memory; the merchant's own page when on file.
-import SRC_MERCHANT_TERMS from "../../packages/connectors/merchant-terms.json" with { type: "text" };
+const SRC_MERCHANT_TERMS = Deno.readTextFileSync(new URL("../../packages/connectors/merchant-terms.json", import.meta.url));
 Deno.test("merchant terms: the page on file, never a summary; not on file is said; this merchant is asked (K12)", () => {
   const { termsReply } = DirectAnswers;
   const book = JSON.parse(SRC_MERCHANT_TERMS);
@@ -294,7 +294,7 @@ Deno.test("merchant terms: the page on file, never a summary; not on file is sai
 });
 
 // Megadoc I06 "am I accredited": never decided; the SEC's tests from the offer book with source and date; the person attests.
-import SRC_TERMS_BOOK from "../../packages/offers/terms.json" with { type: "text" };
+const SRC_TERMS_BOOK = Deno.readTextFileSync(new URL("../../packages/offers/terms.json", import.meta.url));
 Deno.test("am I accredited: never decided, the SEC tests from the offer book with source and date, the person attests (I06)", () => {
   const { accreditedReply } = DirectAnswers;
   const a = accreditedReply("am I accredited", "2026-10-12")!;

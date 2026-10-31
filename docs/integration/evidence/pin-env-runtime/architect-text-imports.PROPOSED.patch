@@ -1,0 +1,351 @@
+--- a/tests/architect/wo-100-situation.test.ts
++++ b/tests/architect/wo-100-situation.test.ts
+@@ -12,7 +12,7 @@
+ import { redactIdentity } from "../../supabase/functions/_shared/identity_redact.ts";
+ import { memoryWantStore } from "../../supabase/functions/_shared/career_apply_want.ts";
+ import { memoryPostingsDb } from "../../supabase/functions/_shared/career_ingest.ts";
+-import HANDLER from "../../supabase/functions/agent-chat/handler-career.ts" with { type: "text" };
++const HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler-career.ts", import.meta.url));
+ // New in WO-100: imported so that each test fails on its own on trunk, rather than the file failing to load.
+ const S: any = await import("../../supabase/functions/_shared/career_situation.ts").catch(() => null);
+ const C: any = await import("../../supabase/functions/_shared/career_capabilities.ts").catch(() => null);
+
+--- a/tests/architect/wo-096-email-code.test.ts
++++ b/tests/architect/wo-096-email-code.test.ts
+@@ -8,14 +8,14 @@
+ import { CODE_MAX_WAIT_MS, CODE_POLL_DELAYS_MS, pollForCode } from "../../supabase/functions/_shared/career_email_code_poll.ts";
+ import { classifyMail } from "../../supabase/functions/_shared/career_mail.ts";
+ import { CAREER_READ_SCOPE } from "../../supabase/functions/_shared/career_mail_gmail.ts";
+-import FN_SRC from "../../supabase/functions/career-email-code/index.ts" with { type: "text" };
+-import CORE_SRC from "../../supabase/functions/_shared/career_email_code.ts" with { type: "text" };
+-import CONFIG from "../../supabase/config.toml" with { type: "text" };
+-import GATE from "../../scripts/gate.sh" with { type: "text" };
+-import APPLY_SRC from "../../scripts/apply.ts" with { type: "text" };
+-import BACKGROUND from "../../extension/background.js" with { type: "text" };
+-import CONTENT from "../../extension/content.js" with { type: "text" };
+-import DOM_SRC from "../../extension/src/dom.ts" with { type: "text" };
++const FN_SRC = Deno.readTextFileSync(new URL("../../supabase/functions/career-email-code/index.ts", import.meta.url));
++const CORE_SRC = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_email_code.ts", import.meta.url));
++const CONFIG = Deno.readTextFileSync(new URL("../../supabase/config.toml", import.meta.url));
++const GATE = Deno.readTextFileSync(new URL("../../scripts/gate.sh", import.meta.url));
++const APPLY_SRC = Deno.readTextFileSync(new URL("../../scripts/apply.ts", import.meta.url));
++const BACKGROUND = Deno.readTextFileSync(new URL("../../extension/background.js", import.meta.url));
++const CONTENT = Deno.readTextFileSync(new URL("../../extension/content.js", import.meta.url));
++const DOM_SRC = Deno.readTextFileSync(new URL("../../extension/src/dom.ts", import.meta.url));
+ import { createRequire } from "node:module";
+ import { runApproved } from "../../workers/career-browser/approve-first.ts";
+ import { cardOutcome } from "../../extension/src/apply_core.ts";
+
+--- a/tests/architect/wo-054-answer-once.test.ts
++++ b/tests/architect/wo-054-answer-once.test.ts
+@@ -6,10 +6,10 @@
+   answerOnceQuestions, answerOnceRows, beforeSession, cardLines, MASKED, planForm, type PreparedPosting, reviewPayload, type SnapField,
+ } from "../../extension/src/apply_core.ts";
+ import { factsWithTextAnswers } from "../../workers/career-browser/ask-once.ts";
+-import BACKGROUND from "../../extension/background.js" with { type: "text" };
+-import CONTENT from "../../extension/content.js" with { type: "text" };
+-import PANEL from "../../extension/panel.js" with { type: "text" };
+-import PANEL_HTML from "../../extension/panel.html" with { type: "text" };
++const BACKGROUND = Deno.readTextFileSync(new URL("../../extension/background.js", import.meta.url));
++const CONTENT = Deno.readTextFileSync(new URL("../../extension/content.js", import.meta.url));
++const PANEL = Deno.readTextFileSync(new URL("../../extension/panel.js", import.meta.url));
++const PANEL_HTML = Deno.readTextFileSync(new URL("../../extension/panel.html", import.meta.url));
+ 
+ function assert(v: unknown, m = "assertion failed"): asserts v {
+   if (!v) throw new Error(m);
+
+--- a/tests/architect/wo-051-mail-model.test.ts
++++ b/tests/architect/wo-051-mail-model.test.ts
+@@ -9,10 +9,10 @@
+ import { memoryAlertStore } from "../../supabase/functions/_shared/career_alert_store.ts";
+ import { runMail } from "../../supabase/functions/_shared/career_proactive_run.ts";
+ import { allSplits, HELD_OUT, selection, withModel } from "../../evals/career/mail-model-eval.ts";
+-import MODEL_SRC from "../../supabase/functions/_shared/career_mail_model.ts" with { type: "text" };
+-import INDEX_SRC from "../../supabase/functions/career-proactive/index.ts" with { type: "text" };
+-import MIGRATION from "../../supabase/migrations/20261021130000_career_mail_model_calls.sql" with { type: "text" };
+-import DECISIONS from "../../docs/architect/DECISIONS.md" with { type: "text" };
++const MODEL_SRC = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_mail_model.ts", import.meta.url));
++const INDEX_SRC = Deno.readTextFileSync(new URL("../../supabase/functions/career-proactive/index.ts", import.meta.url));
++const MIGRATION = Deno.readTextFileSync(new URL("../../supabase/migrations/20261021130000_career_mail_model_calls.sql", import.meta.url));
++const DECISIONS = Deno.readTextFileSync(new URL("../../docs/architect/DECISIONS.md", import.meta.url));
+ 
+ function eq(a: unknown, b: unknown, m = "") {
+   const x = JSON.stringify(a), y = JSON.stringify(b);
+
+--- a/tests/architect/wo-049-essay-card.test.ts
++++ b/tests/architect/wo-049-essay-card.test.ts
+@@ -4,7 +4,7 @@
+ // No model, no network, no database.
+ import CI_A from "../../evals/apply/questions-ci.json" with { type: "json" };
+ import CI_B from "../../evals/apply/questions-ci-b.json" with { type: "json" };
+-import REPORT from "../../docs/apply/fill-coverage.md" with { type: "text" };
++const REPORT = Deno.readTextFileSync(new URL("../../docs/apply/fill-coverage.md", import.meta.url));
+ import { fillCoverage } from "../../evals/apply/fill-coverage.ts";
+ import {
+   type CardReply, DAILY_DRAFTS, type DraftCounter, essayCardDraft, type EssayCardDeps, essayModelConfig, factLabel, handleEssayDraft,
+@@ -15,12 +15,12 @@
+   type SnapField,
+ } from "../../extension/src/apply_core.ts";
+ import { answerKey } from "../../supabase/functions/_shared/question_map.ts";
+-import FN_SRC from "../../supabase/functions/career-essay-draft/index.ts" with { type: "text" };
+-import CORE_SRC from "../../supabase/functions/_shared/career_essay_card.ts" with { type: "text" };
+-import CONFIG from "../../supabase/config.toml" with { type: "text" };
+-import BACKGROUND from "../../extension/background.js" with { type: "text" };
+-import CONTENT from "../../extension/content.js" with { type: "text" };
+-import PANEL from "../../extension/panel.js" with { type: "text" };
++const FN_SRC = Deno.readTextFileSync(new URL("../../supabase/functions/career-essay-draft/index.ts", import.meta.url));
++const CORE_SRC = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_essay_card.ts", import.meta.url));
++const CONFIG = Deno.readTextFileSync(new URL("../../supabase/config.toml", import.meta.url));
++const BACKGROUND = Deno.readTextFileSync(new URL("../../extension/background.js", import.meta.url));
++const CONTENT = Deno.readTextFileSync(new URL("../../extension/content.js", import.meta.url));
++const PANEL = Deno.readTextFileSync(new URL("../../extension/panel.js", import.meta.url));
+ 
+ function assert(v: unknown, m = "assertion failed"): asserts v {
+   if (!v) throw new Error(m);
+
+--- a/tests/architect/wo-046-mail-languages.test.ts
++++ b/tests/architect/wo-046-mail-languages.test.ts
+@@ -17,7 +17,7 @@
+ import blind160 from "../../evals/career/mail-blind160.json" with { type: "json" };
+ import blind200 from "../../evals/career/mail-blind200.json" with { type: "json" };
+ import blind240 from "../../evals/career/mail-blind240.json" with { type: "json" };
+-import LANGS_SRC from "../../supabase/functions/_shared/career_mail_langs.ts" with { type: "text" };
++const LANGS_SRC = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_mail_langs.ts", import.meta.url));
+ 
+ function eq(a: unknown, b: unknown, m = "") {
+   const x = JSON.stringify(a), y = JSON.stringify(b);
+
+--- a/tests/architect/wo-043-mail-generalise.test.ts
++++ b/tests/architect/wo-043-mail-generalise.test.ts
+@@ -11,7 +11,7 @@
+ import labels from "../../evals/career/mail-labels.json" with { type: "json" };
+ import dev4 from "../../evals/career/mail-dev4.json" with { type: "json" };
+ import blind160 from "../../evals/career/mail-blind160.json" with { type: "json" };
+-import SRC from "../../supabase/functions/_shared/career_mail.ts" with { type: "text" };
++const SRC = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_mail.ts", import.meta.url));
+ 
+ function eq(a: unknown, b: unknown, m = "") {
+   const x = JSON.stringify(a), y = JSON.stringify(b);
+
+--- a/tests/architect/wo-042-sixty.test.ts
++++ b/tests/architect/wo-042-sixty.test.ts
+@@ -5,10 +5,10 @@
+ import { type Answer, type FormField, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+ import { chooseOption, placeQuery } from "../../supabase/functions/_shared/answer_options.ts";
+ import { chooseWidgetOption, formAnswersToKeep, MASKED } from "../../extension/src/apply_core.ts";
+-import CONTENT from "../../extension/content.js" with { type: "text" };
+-import DOM from "../../extension/src/dom.ts" with { type: "text" };
+-import BACKGROUND from "../../extension/background.js" with { type: "text" };
+-import GRADE from "../fixtures/extension/grade.cjs" with { type: "text" };
++const CONTENT = Deno.readTextFileSync(new URL("../../extension/content.js", import.meta.url));
++const DOM = Deno.readTextFileSync(new URL("../../extension/src/dom.ts", import.meta.url));
++const BACKGROUND = Deno.readTextFileSync(new URL("../../extension/background.js", import.meta.url));
++const GRADE = Deno.readTextFileSync(new URL("../fixtures/extension/grade.cjs", import.meta.url));
+ 
+ const fact = (value: string, id = "f-" + value): Answer => ({ value, factId: id });
+ const opts = (xs: string[]) => xs.map((l) => ({ label: l, value: l }));
+
+--- a/tests/architect/wo-040-mail-accuracy.test.ts
++++ b/tests/architect/wo-040-mail-accuracy.test.ts
+@@ -13,8 +13,8 @@
+ import { evaluate, splitsOf } from "../../evals/career/mail-eval.ts";
+ import labels from "../../evals/career/mail-labels.json" with { type: "json" };
+ import blind from "../../evals/career/mail-blind.json" with { type: "json" };
+-import MODEL_SRC from "../../supabase/functions/_shared/career_mail_model.ts" with { type: "text" };
+-import INDEX_SRC from "../../supabase/functions/career-proactive/index.ts" with { type: "text" };
++const MODEL_SRC = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_mail_model.ts", import.meta.url));
++const INDEX_SRC = Deno.readTextFileSync(new URL("../../supabase/functions/career-proactive/index.ts", import.meta.url));
+ 
+ function eq(a: unknown, b: unknown, m = "") {
+   const x = JSON.stringify(a), y = JSON.stringify(b);
+
+--- a/tests/architect/wo-035-voice-mock.test.ts
++++ b/tests/architect/wo-035-voice-mock.test.ts
+@@ -37,11 +37,11 @@
+ import { CareerPrep } from "../../supabase/functions/_shared/router_core.career.js";
+ import { HYGIENE } from "../../evals/career/compare.ts";
+ import PATTERNS from "../../packages/career-data/interview-patterns.json" with { type: "json" };
+-import HANDLER from "../../supabase/functions/_shared/career_voice.ts" with { type: "text" };
+-import INDEX from "../../supabase/functions/career-voice/index.ts" with { type: "text" };
+-import PAGE from "../../voice/mock.html" with { type: "text" };
+-import MIGRATION from "../../supabase/migrations/20261021020000_career_voice_mock.sql" with { type: "text" };
+-import CONFIG from "../../supabase/config.toml" with { type: "text" };
++const HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_voice.ts", import.meta.url));
++const INDEX = Deno.readTextFileSync(new URL("../../supabase/functions/career-voice/index.ts", import.meta.url));
++const PAGE = Deno.readTextFileSync(new URL("../../voice/mock.html", import.meta.url));
++const MIGRATION = Deno.readTextFileSync(new URL("../../supabase/migrations/20261021020000_career_voice_mock.sql", import.meta.url));
++const CONFIG = Deno.readTextFileSync(new URL("../../supabase/config.toml", import.meta.url));
+ 
+ function eq(a: unknown, b: unknown, m = "") {
+   const x = JSON.stringify(a), y = JSON.stringify(b);
+
+--- a/tests/architect/wo-033-outreach.test.ts
++++ b/tests/architect/wo-033-outreach.test.ts
+@@ -13,14 +13,14 @@
+ import { REFERRAL_ASK, referralMap, targetFirms } from "../../supabase/functions/_shared/career_referrals.ts";
+ import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
+ import { memoryEventStore } from "../../supabase/functions/_shared/agent/timeline.ts";
+-import APOLLO from "../fixtures/wo-033/apollo-export.csv" with { type: "text" };
+-import LINKEDIN from "../fixtures/wo-033/linkedin-connections.csv" with { type: "text" };
+-import SRC_CONTACTS from "../../supabase/functions/_shared/career_contacts.ts" with { type: "text" };
+-import SRC_OUTREACH from "../../supabase/functions/_shared/career_outreach.ts" with { type: "text" };
+-import SRC_GMAIL from "../../supabase/functions/_shared/career_outreach_gmail.ts" with { type: "text" };
+-import SRC_REFERRALS from "../../supabase/functions/_shared/career_referrals.ts" with { type: "text" };
+-import SRC_TOOLS from "../../supabase/functions/_shared/agent/career_tools.ts" with { type: "text" };
+-import SRC_PROACTIVE from "../../supabase/functions/career-proactive/index.ts" with { type: "text" };
++const APOLLO = Deno.readTextFileSync(new URL("../fixtures/wo-033/apollo-export.csv", import.meta.url));
++const LINKEDIN = Deno.readTextFileSync(new URL("../fixtures/wo-033/linkedin-connections.csv", import.meta.url));
++const SRC_CONTACTS = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_contacts.ts", import.meta.url));
++const SRC_OUTREACH = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_outreach.ts", import.meta.url));
++const SRC_GMAIL = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_outreach_gmail.ts", import.meta.url));
++const SRC_REFERRALS = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_referrals.ts", import.meta.url));
++const SRC_TOOLS = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/agent/career_tools.ts", import.meta.url));
++const SRC_PROACTIVE = Deno.readTextFileSync(new URL("../../supabase/functions/career-proactive/index.ts", import.meta.url));
+ 
+ function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }
+ function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
+
+--- a/tests/architect/wo-031-extension.test.ts
++++ b/tests/architect/wo-031-extension.test.ts
+@@ -8,17 +8,17 @@
+ } from "../../extension/src/apply_core.ts";
+ import { planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+ import { bindFields } from "../../scripts/career/form-bind.ts";
+-import BACKGROUND from "../../extension/background.js" with { type: "text" };
+-import CONTENT from "../../extension/content.js" with { type: "text" };
+-import PANEL from "../../extension/panel.js" with { type: "text" };
+-import PANEL_HTML from "../../extension/panel.html" with { type: "text" };
+-import BUNDLE from "../../extension/lib/trainee-core.js" with { type: "text" };
++const BACKGROUND = Deno.readTextFileSync(new URL("../../extension/background.js", import.meta.url));
++const CONTENT = Deno.readTextFileSync(new URL("../../extension/content.js", import.meta.url));
++const PANEL = Deno.readTextFileSync(new URL("../../extension/panel.js", import.meta.url));
++const PANEL_HTML = Deno.readTextFileSync(new URL("../../extension/panel.html", import.meta.url));
++const BUNDLE = Deno.readTextFileSync(new URL("../../extension/lib/trainee-core.js", import.meta.url));
+ import MANIFEST from "../../extension/manifest.json" with { type: "json" };
+-import README from "../../extension/README.md" with { type: "text" };
+-import RUN_SH from "../db/run.sh" with { type: "text" };
+-import GO_LIVE from "../../scripts/launch/trainee-go-live.sh" with { type: "text" };
+-import GO_LIVE_DOC from "../../docs/launch/TRAINEE-GO-LIVE.md" with { type: "text" };
+-import MIGRATION from "../../supabase/migrations/20261021000000_career_apply_extension.sql" with { type: "text" };
++const README = Deno.readTextFileSync(new URL("../../extension/README.md", import.meta.url));
++const RUN_SH = Deno.readTextFileSync(new URL("../db/run.sh", import.meta.url));
++const GO_LIVE = Deno.readTextFileSync(new URL("../../scripts/launch/trainee-go-live.sh", import.meta.url));
++const GO_LIVE_DOC = Deno.readTextFileSync(new URL("../../docs/launch/TRAINEE-GO-LIVE.md", import.meta.url));
++const MIGRATION = Deno.readTextFileSync(new URL("../../supabase/migrations/20261021000000_career_apply_extension.sql", import.meta.url));
+ import KEY from "../fixtures/extension/answer-key.json" with { type: "json" };
+ 
+ function assert(v: unknown, m = "assertion failed"): asserts v {
+
+--- a/tests/architect/wo-030-essay-drafts.test.ts
++++ b/tests/architect/wo-030-essay-drafts.test.ts
+@@ -26,10 +26,10 @@
+ import { planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+ import { callModel, modelConfig } from "../../supabase/functions/_shared/model_gateway.ts";
+ import { factsWithTextAnswers, questionsToStore } from "../../workers/career-browser/approve-first.ts";
+-import HANDLER from "../../supabase/functions/agent-chat/handler-career.ts" with { type: "text" };
+-import APPLY from "../../scripts/apply.ts" with { type: "text" };
+-import ESSAY_SRC from "../../supabase/functions/_shared/essay_draft.ts" with { type: "text" };
+-import POLICY_SRC from "../../supabase/functions/_shared/ai_policy.ts" with { type: "text" };
++const HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler-career.ts", import.meta.url));
++const APPLY = Deno.readTextFileSync(new URL("../../scripts/apply.ts", import.meta.url));
++const ESSAY_SRC = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/essay_draft.ts", import.meta.url));
++const POLICY_SRC = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/ai_policy.ts", import.meta.url));
+ 
+ function assert(v: unknown, m = "assertion failed"): asserts v {
+   if (!v) throw new Error(m);
+
+--- a/tests/architect/wo-029-ask-once.test.ts
++++ b/tests/architect/wo-029-ask-once.test.ts
+@@ -16,8 +16,8 @@
+ import { planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+ import { summarizePipeline, personBlock } from "../../supabase/functions/_shared/agent/memory.ts";
+ import { factsWithTextAnswers, questionsToStore } from "../../workers/career-browser/approve-first.ts";
+-import HANDLER from "../../supabase/functions/agent-chat/handler-career.ts" with { type: "text" };
+-import APPROVE from "../../workers/career-browser/approve-first.ts" with { type: "text" };
++const HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler-career.ts", import.meta.url));
++const APPROVE = Deno.readTextFileSync(new URL("../../workers/career-browser/approve-first.ts", import.meta.url));
+ 
+ function assert(v: unknown, m = "assertion failed"): asserts v {
+   if (!v) throw new Error(m);
+
+--- a/tests/architect/wo-027-timeline.test.ts
++++ b/tests/architect/wo-027-timeline.test.ts
+@@ -14,11 +14,11 @@
+ import { CARD_INTENT, type CardStore, cardTurn } from "../../supabase/functions/_shared/career_apply_cards.ts";
+ import { runReceipts } from "../../supabase/functions/_shared/career_proactive_run.ts";
+ import { handleProactive } from "../../supabase/functions/career-proactive/handler.ts";
+-import HANDLER from "../../supabase/functions/agent-chat/handler-career.ts" with { type: "text" };
+-import PROACTIVE_INDEX from "../../supabase/functions/career-proactive/index.ts" with { type: "text" };
+-import STATED from "../../supabase/migrations/20261016120000_career_account_stated_facts.sql" with { type: "text" };
+-import ERASE from "../../supabase/migrations/20261020120100_career_events_erase.sql" with { type: "text" };
+-import TABLE from "../../supabase/migrations/20261020120000_career_events.sql" with { type: "text" };
++const HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler-career.ts", import.meta.url));
++const PROACTIVE_INDEX = Deno.readTextFileSync(new URL("../../supabase/functions/career-proactive/index.ts", import.meta.url));
++const STATED = Deno.readTextFileSync(new URL("../../supabase/migrations/20261016120000_career_account_stated_facts.sql", import.meta.url));
++const ERASE = Deno.readTextFileSync(new URL("../../supabase/migrations/20261020120100_career_events_erase.sql", import.meta.url));
++const TABLE = Deno.readTextFileSync(new URL("../../supabase/migrations/20261020120000_career_events.sql", import.meta.url));
+ 
+ function eq(a: unknown, b: unknown, m = "") {
+   const x = JSON.stringify(a), y = JSON.stringify(b);
+
+--- a/tests/architect/wo-025-mock.test.ts
++++ b/tests/architect/wo-025-mock.test.ts
+@@ -25,8 +25,8 @@
+ } from "../../supabase/functions/_shared/career_mock.ts";
+ import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
+ import { HYGIENE } from "../../evals/career/compare.ts";
+-import HANDLER from "../../supabase/functions/agent-chat/handler-career.ts" with { type: "text" };
+-import ERASE from "../../supabase/migrations/20261016120000_career_account_stated_facts.sql" with { type: "text" };
++const HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler-career.ts", import.meta.url));
++const ERASE = Deno.readTextFileSync(new URL("../../supabase/migrations/20261016120000_career_account_stated_facts.sql", import.meta.url));
+ 
+ function eq(a: unknown, b: unknown, m = "") {
+   const x = JSON.stringify(a), y = JSON.stringify(b);
+
+--- a/tests/architect/wo-023-memory.test.ts
++++ b/tests/architect/wo-023-memory.test.ts
+@@ -9,7 +9,7 @@
+ import { agentTurn } from "../../supabase/functions/agent-chat/career_brain.ts";
+ import { memoryAlertStore, validPrefs } from "../../supabase/functions/_shared/career_alert_store.ts";
+ import { DEFAULT_PREFS } from "../../supabase/functions/_shared/career_alerts.ts";
+-import HANDLER from "../../supabase/functions/agent-chat/handler-career.ts" with { type: "text" };
++const HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler-career.ts", import.meta.url));
+ 
+ function eq(a: unknown, b: unknown, m = "") {
+   const x = JSON.stringify(a), y = JSON.stringify(b);
+
+--- a/tests/architect/wo-020-question-map.test.ts
++++ b/tests/architect/wo-020-question-map.test.ts
+@@ -9,7 +9,7 @@
+ import labels from "../../evals/apply/question-labels.json" with { type: "json" };
+ import A from "../../evals/apply/questions-ci.json" with { type: "json" };
+ import B from "../../evals/apply/questions-ci-b.json" with { type: "json" };
+-import REPORT from "../../docs/apply/question-map.md" with { type: "text" };
++const REPORT = Deno.readTextFileSync(new URL("../../docs/apply/question-map.md", import.meta.url));
+ 
+ function assert(v: unknown, m = "assertion failed"): asserts v {
+   if (!v) throw new Error(m);
+
+--- a/tests/architect/wo-020-fill.test.ts
++++ b/tests/architect/wo-020-fill.test.ts
+@@ -6,7 +6,7 @@
+ import { prepare } from "../../workers/career-browser/approve-first.ts";
+ import A from "../../evals/apply/questions-ci.json" with { type: "json" };
+ import B from "../../evals/apply/questions-ci-b.json" with { type: "json" };
+-import REPORT from "../../docs/apply/fill-coverage.md" with { type: "text" };
++const REPORT = Deno.readTextFileSync(new URL("../../docs/apply/fill-coverage.md", import.meta.url));
+ 
+ function eq(a: unknown, b: unknown, m = "") {
+   const x = JSON.stringify(a), y = JSON.stringify(b);
+
+--- a/tests/architect/frs-cover-letter.test.ts
++++ b/tests/architect/frs-cover-letter.test.ts
+@@ -6,7 +6,7 @@
+ import * as AC from "../../extension/src/apply_core.ts";
+ import type { SnapField } from "../../extension/src/apply_core.ts";
+ import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
+-import CONTENT from "../../extension/content.js" with { type: "text" };
++const CONTENT = Deno.readTextFileSync(new URL("../../extension/content.js", import.meta.url));
+ 
+ const {
+   answerOnceQuestions, batchPlan, cardLines, contractFill, draftFactId, essayQuestions, evidenceRecord, OWN_WORDS_BANNED, planForm, questionsForTrainee,

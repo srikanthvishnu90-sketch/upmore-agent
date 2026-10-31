@@ -41,10 +41,17 @@ import {
 } from "../../supabase/functions/_shared/router_core.career.js";
 import { assert, TEST_USER } from "./lib/channel_fixture.ts";
 import { createRequire } from "node:module";
+import { Buffer } from "node:buffer";
 
 // Parsing oracle only (see header) — never the source of the bytes.
-// @ts-ignore: CJS domain module loaded for its extractors
-const RenderOracle = createRequire(import.meta.url)("../../packages/domain/148-career-render.js");
+// Use an explicit CommonJS realm: Deno 2.1.4 does not infer this
+// domain module's exports. Buffer stays local to the parsing oracle;
+// the production bundle and Buffer-shadowed child remain untouched.
+const oracleModule = { exports: {} as any };
+new Function("module", "require", "Buffer", Deno.readTextFileSync(new URL("../../packages/domain/148-career-render.js", import.meta.url)))(
+  oracleModule, createRequire(import.meta.url), Buffer,
+);
+const RenderOracle = oracleModule.exports;
 
 // The tailor core of battery execution CB-0495. The full sentence's
 // "…and send me the PDF as a file in this chat" clause routes through

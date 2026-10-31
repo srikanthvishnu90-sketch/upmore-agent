@@ -1,7 +1,7 @@
 // A sign-in code or link is taken only from mail that arrived in the last 15 minutes. Gmail search has no minutes unit
 // (`newer_than:15m` is 15 MONTHS), so the search asks for a day and the message's own internalDate decides.
 import { CODE_WINDOW_MS, freshForCode, gmailCodeQuery } from "../../supabase/functions/_shared/gmail_code_window.ts";
-import EXEC from "../../supabase/functions/agent-exec/index.ts" with { type: "text" };
+const EXEC = Deno.readTextFileSync(new URL("../../supabase/functions/agent-exec/index.ts", import.meta.url));
 
 function assert(v: unknown, m = "assertion failed"): asserts v {
   if (!v) throw new Error(m);

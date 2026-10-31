@@ -1,0 +1,8 @@
+{
+  "patch_sha256": "17ffc1974573fa560e16c28eaab02e7c404fa316b9aec95022708887631e0baf",
+  "compressed_sha256": "01d0ee249effaf3e03d248c3e9dfa79dca3db07a60a145b6f05af7ccdf709e19",
+  "patch_bytes": 1398286,
+  "status": "NOT_APPLIED; not a complete pinned-environment outcome",
+  "tests": "7/7 guard tests; frozen Edge graph 895/895; full SDK graph and architect 2.1.4 NOT_VERIFIED",
+  "new_spend_usd": 0
+}

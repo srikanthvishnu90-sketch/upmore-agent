@@ -3,7 +3,7 @@
 // made-up score. No bureau or score feed is connected (capability items 37 and 101), so the answer comes from code and
 // says so. How-to questions about credit still go to the model with the FICO facts; credit cards are not a score.
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
-import handler from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const handler = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 import { creditScoreReply, connectReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
 
 const ASKS = ["what is my credit score", "whats my credit score?", "what's my fico score", "did my credit score go up", "did my credit score drop this month",

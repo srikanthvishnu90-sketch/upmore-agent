@@ -3,7 +3,7 @@
 // the same zone. A 9 p.m. question in New York on Oct 11 is Oct 11 (UTC already says Oct 12).
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { localClock } from "../../supabase/functions/_shared/proactive.ts";
-import HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 Deno.test("the handler's today is the person's local date, and the money answers get their zone", () => {
   assert(HANDLER.includes('supabase.from("agent_proactive_settings").select("*").eq("user_id", user.id)'), "reads the person's zone");

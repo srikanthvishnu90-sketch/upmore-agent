@@ -5,7 +5,7 @@ import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
 import { moneyKind, moneyReply, MONEY_UNAVAILABLE, type AccountRow, type MoneyTxRow } from "../../supabase/functions/agent-chat/_shared/money_answers.ts";
 import { NO_ACCOUNTS, noDataReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
 // Read as text so the suite runs without file permissions (the evidence recorder runs it with none).
-import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 const TZ = "America/New_York";
 const NOW = new Date("2026-10-13T03:30:00Z"); // 11:30 p.m. Oct 12 in New York; the bank's UTC date is Oct 13

@@ -1,0 +1,22 @@
+{
+  "head": "5f2b49646d09283f7d9cbc4aedc7df6873ac0479",
+  "source": "committed runtime source plus unapplied toolchain proposal (deno.json/lock/vendor)",
+  "exit_code": 0,
+  "seconds": 55.082,
+  "command": [
+    "/tmp/deno-2.1.4-tools/node_modules/.bin/deno",
+    "test",
+    "--cached-only",
+    "--lock=deno.lock",
+    "--frozen",
+    "--allow-read",
+    "--allow-write=/tmp",
+    "--allow-run",
+    "--allow-env",
+    "--allow-net=127.0.0.1,localhost",
+    "--no-check",
+    "tests/edge"
+  ],
+  "provider_credentials": "not inherited",
+  "new_spend_usd": 0
+}

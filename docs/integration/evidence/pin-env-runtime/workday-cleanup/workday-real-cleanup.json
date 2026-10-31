@@ -1,0 +1,8 @@
+{
+  "exit_code": 0,
+  "seconds": 16.816,
+  "scope": "real local Chromium on synthetic fixture; extension behavior NOT_RUN when service worker is unavailable",
+  "external_cleanup_watcher": false,
+  "completed_grandchildren_reaped": 4,
+  "new_spend_usd": 0
+}

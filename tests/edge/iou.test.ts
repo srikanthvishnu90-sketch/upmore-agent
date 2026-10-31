@@ -5,7 +5,7 @@ import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
 import { parseCommand, settingsMessage } from "../../supabase/functions/_shared/proactive.ts";
 import { ANSWERS, ORDER } from "./lib/direct_chain.ts";
 import { connectReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
-import MIGRATION from "../../supabase/migrations/20261012050000_ious.sql" with { type: "text" };
+const MIGRATION = Deno.readTextFileSync(new URL("../../supabase/migrations/20261012050000_ious.sql", import.meta.url));
 
 const NOW = Date.parse("2026-10-12T15:00:00Z");
 const db = (settings: any) => {

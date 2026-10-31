@@ -3,7 +3,7 @@
 // through to the model, which could offer a practice account; code answers it now. Other uses of "paper" are not taken.
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { paperTradingReply, connectReply, creditScoreReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
-import handler from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const handler = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 const ASKS = ["let me test ideas with paper trading", "can I paper trade first?", "i want to practice trading with fake money", "is there a paper account", "do you have a demo account for trading",
   "set me up with a practice brokerage account", "can i simulate a trade before buying", "paper trading mode please", "turn on paper mode"];

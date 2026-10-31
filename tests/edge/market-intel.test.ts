@@ -8,7 +8,7 @@ import { plan, settingsMessage } from "../../supabase/functions/_shared/proactiv
 import { marketReply } from "../../supabase/functions/agent-chat/_shared/market_answer.ts";
 import { MARKET_DATA_JSON } from "../../supabase/functions/_shared/router_core.js";
 import DATA from "../../packages/offers/market-data.json" with { type: "json" };
-import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 const at = (iso: string) => Date.parse(iso);
 const NY = "America/New_York";

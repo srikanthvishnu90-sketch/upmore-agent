@@ -6,7 +6,7 @@ import { moneyOwedKind, moneyOwedReply, readOwedAccounts } from "../../supabase/
 import type { TxRow } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
 import type { AccountRow } from "../../supabase/functions/agent-chat/_shared/money_answers.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
-import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 const TODAY = "2026-10-12";
 const CANT = "I can't confirm this is real; never pay a fee or give a password to claim a refund.";

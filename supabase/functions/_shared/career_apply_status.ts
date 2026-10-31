@@ -98,12 +98,30 @@ const CODE_WORDS: [RegExp, string][] = [
   [/^(CARD_CLOUD_[A-Z_]+|NO_ENGINE_APPROVAL|NOT_APPROVED|not_approved|stale|INCOMPLETE_CLOUD_CARD|posting_closed)$/, `the last check before Submit did not pass (your approval, your account or the posting changed); ${NOTHING_SENT}`],
   [/^(worker_stopping|WORKER_STOPPING|not_started_in_lease|NOT_STARTED_IN_LEASE|host_held|journal_unwritable|JOURNAL_BAD_ID|APPLY_CLAIM_CLOSED)$/, `it could not start in time; ${NOTHING_SENT}`],
 ];
+// The apply VM worker's own stop codes (workers/career-browser): a required question it will not guess (the question follows the
+// code: "missing_required_answer: Why Acme?"), a page it could not read or is not allowed to send to. Nothing was sent for any.
+CODE_WORDS.push(
+  [/^missing_required_answer$/, `the form asks a required question you have not answered; Trainee asked you instead of guessing, and ${NOTHING_SENT}`],
+  [/^field_not_filled$/, `a required question could not be filled in and checked on the employer's form; Trainee did not guess, and ${NOTHING_SENT}`],
+  [/^(host_not_allowed|host_denied|site_not_supported|invalid_url)$/, `Trainee does not apply on this site; ${NOTHING_SENT}`],
+  [/^no_application_form_found$/, `no application form was found on the employer's page; ${NOTHING_SENT}`],
+  [/^(retries_exhausted|page_load_\d+)$/, `the employer's page did not load; ${NOTHING_SENT}`],
+  [/^WORKER_ERROR$/, `something went wrong on our side before it was sent; ${NOTHING_SENT}`],
+  [/^(redirect_not_allowed|form_action_not_allowed)$/, `the employer's page pointed somewhere Trainee does not send to; ${NOTHING_SENT}`],
+  [/^(resume_mismatch|invalid_payload)$/, `what was approved could not be read back exactly; ${NOTHING_SENT}`],
+);
+const NAMES_THE_QUESTION = /^(missing_required_answer|field_not_filled)$/;
 const RAW_CODE = /\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b|^[a-z]+(?:_[a-z0-9]+)+$/;
 // Why an application ended, in the person's words (no trailing period); `state` decides what a code nobody named means.
 export function reasonWords(state: string, reason: string | null | undefined): string {
   const r = String(reason ?? "").replace(/\s+/g, " ").trim();
   const code = r.split(/[:\s]/)[0];
-  for (const [re, words] of CODE_WORDS) if (re.test(code) || re.test(r)) return words;
+  for (const [re, words] of CODE_WORDS) {
+    if (!(re.test(code) || re.test(r))) continue;
+    // The question the worker would not guess is named: required question "Why do you want to work at Acme?".
+    const q = NAMES_THE_QUESTION.test(code) ? r.slice(code.length).replace(/^:\s*/, "").slice(0, 90) : "";
+    return q ? `${words} (the question: "${q}")` : words;
+  }
   // Already prose (the database's own reasons): kept, without a "not sent:" the line already says.
   if (r && /\s/.test(r) && !RAW_CODE.test(r)) return r.replace(/^not sent:\s*/i, "").replace(/[.\s]+$/, "");
   if (state === "failed") return "the employer's site did not accept it";

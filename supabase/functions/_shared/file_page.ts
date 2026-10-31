@@ -6,6 +6,7 @@
 // Not submitted / Needs you / Unknown) and "applied" is never written; the logo comes only from the employer's own domain, else a
 // lettermark; posting text is untrusted and always escaped (bidi overrides and isolates removed, links only http and https).
 import type { JobView } from "./telegram_jobs.ts";
+import { reasonWords } from "./career_apply_status.ts";
 
 export type Word = "queued" | "preparing" | "sending" | "submitted" | "confirmed" | "failed" | "not submitted" | "needs you" | "unknown" | "in applications";
 export interface Status { word: Word; detail: string }
@@ -56,9 +57,9 @@ export function statusOf(o: { app: AppRow | null; wanted: boolean }): Status | n
       case "needs_user": return { word: "needs you", detail: a.reason === "email_code" ? `Sent, but not finished: ${who} emailed you a code to finish it. Type it on their page yourself.`
         : a.reason === "captcha" || a.reason === "bot_check" ? `Stopped before it was sent: a verification check on ${who}'s page. Trainee never solves one; finish it yourself at the link.`
         : a.reason === "login_required" ? `Stopped before it was sent: ${who}'s site asks you to sign in first. Trainee never signs in for you.`
-        : a.reason ?? "It stopped and needs you." };
-      case "failed": return { word: "failed", detail: a.reason ?? "No reason was recorded." };
-      case "not_submitted": return { word: "not submitted", detail: a.reason ?? "It was not sent." };
+        : a.reason ? `Stopped before it was sent: ${reasonWords(a.state, a.reason)}.` : "It stopped and needs you." };
+      case "failed": return { word: "failed", detail: `Not sent: ${reasonWords(a.state, a.reason)}.` };
+      case "not_submitted": return { word: "not submitted", detail: `Not sent: ${reasonWords(a.state, a.reason)}.` };
       case "unknown_outcome": return { word: "unknown", detail: `We can't tell whether it reached ${who}. It won't be sent again.` };
       default: return { word: "unknown", detail: `Recorded as ${a.state}; not known to be sent.` };
     }

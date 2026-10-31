@@ -81,8 +81,7 @@ class Report {
 
 // ------------------------------------------------------------------------------------------------ the oracle
 const ms = (t: string) => Date.parse(t);
-// weekCap is the database's career_alert_enqueue (still held there, mirrored by the memory store); the planner has none.
-const weekCap = (u: GenPerson) => Math.max(0, Math.min(25, Math.floor(u.prefs.max_per_week ?? 15)));
+// No weekly count anywhere (career_alert_enqueue dropped it in 20261030180000); only the day's pacing.
 const dayCap = (u: GenPerson) => Math.min(10, Math.floor(u.prefs.max_instant_per_day));
 const asRow = (u: GenPerson): AlertRow => ({ id: u.id, tz: u.tz as string, prefs: { ...u.prefs }, last_checked_at: u.last_checked_at, instant_sent_today: u.instant_sent_today, sent_on: u.sent_on, last_report_on: u.last_report_on, held: [...u.held] });
 const posting = (p: GenPosting) => ({ job_id: p.job_id, title: p.title, company: p.company, location: p.location, url: p.url, first_seen_at: p.first_seen_at, ...(p.posted_at ? { posted_at: p.posted_at } : {}), closed_at: p.closed ? p.closed_at : null });
@@ -203,7 +202,7 @@ async function checkRuns(s: RunScenario): Promise<{ why: string | null; got: unk
       const after = store.dump().outbox; // read once (a deep copy each call; nothing runs between the people below)
       for (const u of s.people) {
         const eligible = run.postings.filter((p) => matches(p, u) && news(p) && ms(p.first_seen_at) >= ms(u.last_checked_at));
-        const want = Math.min(eligible.length, Math.max(0, Math.min(dayCap(u), weekCap(u))));
+        const want = Math.min(eligible.length, Math.max(0, dayCap(u)));
         const got = after.filter((o) => o.userId === u.id && o.kind === "alert").length;
         if (got !== want) return { why: `${u.id} (zone ${JSON.stringify(u.tz)}) got ${got} alerts in a clean first run, not ${want}`, got: { people: s.people.map((x) => x.tz) } };
       }

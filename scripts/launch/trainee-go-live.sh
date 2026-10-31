@@ -240,6 +240,8 @@ MIGRATIONS=(
   20261030140000_career_apply_submit_worker.sql
   20261030150000_career_ingest_reread_gap.sql
   20261030160000_referral_credit_service_only.sql
+  20261030180000_career_alert_no_weekly_cap.sql
+  20261030190000_approval_rate.sql
   20261031020000_career_outreach_r3.sql
 )
 MIGRATION_MARK=(
@@ -360,6 +362,8 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_close_unsendable') and exists (select 1 from pg_proc where proname = 'career_apply_submit_worker_install') and exists (select 1 from pg_proc where proname = 'career_apply_confirm_as' and prosrc like '%''driving''%')"
   "exists (select 1 from pg_proc where proname = 'career_board_state_claim' and pronargs = 4 and pg_get_functiondef(oid) like '%p_reread_gap_ms%')"
   "exists (select 1 from pg_proc where proname = 'credit_pending_referral' and pg_get_functiondef(oid) like '%service-role only%')"
+  "exists (select 1 from pg_proc where proname = 'career_alert_enqueue' and prosrc not like '%max_per_week%' and prosrc not like '%week_cap%' and prosrc not like '%p_week_since%' and prosrc like '%today >= cap%')"
+  "to_regclass('public.approval_rate_v') is not null and exists (select 1 from pg_proc where proname = 'approval_rate') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_outreach_drafts' and column_name = 'accepted_unchanged_at')"
   "exists (select 1 from pg_proc where proname = 'career_send_go' and pg_get_functiondef(oid) like '%career_send_bad_addresses%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

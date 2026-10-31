@@ -3047,11 +3047,15 @@ const CareerRouter = (() => {
       const task = remindM[2].replace(/\s+(?:tomorrow|tonight|today|later|next week|on \w+day|\w+day)$/i, "");
       const whenM = raw.match(/\b(tomorrow|tonight|today|later today|next week|this week(?:end)?|(?:on |next )?(?:mon|tues|wednes|thurs|fri|satur|sun)day|in \d+ (?:hours?|days?|weeks?))\b/i);
       const coM = task.match(/\bapply\s+(?:to|at|for)\s+([a-z0-9&.' -]{2,30}?)\s*$/i);
-      const co = coM ? coM[1].replace(/\b[a-z]/g, (c) => c.toUpperCase()) : null;
+      // REVIEW #350: "the top 3", "the first one", "those jobs" point at a list, never at a firm
+      const listRef = coM && /^(?:the|my|those|these|them|that|this|all|some|a few|\d|one|two|three|four|five)\b|\b(?:top|first|second|third|last|best|ones?|jobs?|roles?|positions?|internships?|postings?)\b/i.test(coM[1].trim());
+      const co = coM && !listRef ? coM[1].trim().replace(/\b[a-z]/g, (c) => c.toUpperCase()) : null;
       const [nextStep, run] = /\bfollow(?:\s|-)?up\b|\bcheck in\b|\bnudge\b/i.test(task) ? ["Want me to draft the follow-up now so it's ready when you are?", "draft a nudge to the recruiter"]
         : /\bapply\b/i.test(task) ? [`Want me to look for roles${co ? ` you could apply to instead of waiting on ${co}` : " to apply to"} now?`, "find jobs"]
         : /\b(prep|practice|interview)\b/i.test(task) ? ["Want to start the prep now instead?", "give me a practice question"]
-        : ["Want to do it now instead?", task];
+        // REVIEW #350: a task the router cannot run ("call my mom") is not offered back as "do it now"; the offer is a
+        // step a yes really runs.
+        : ["Want me to find roles for you in the meantime?", "find jobs"];
       markFrame(ctx, "declined", { label: "reminder", ask: raw.slice(0, 140) });
       offerNext(ctx, run);
       return { intent: "honest_unavailable", resultStatus: "awaiting_user", reply: compose({ headline: `I can't do that yet — I can't set reminders, so nothing is scheduled${whenM ? ` for ${whenM[1].toLowerCase()}` : ""}.`, facts: [], nextStep }) };
@@ -4946,7 +4950,13 @@ const CareerRouter = (() => {
     if (ordM) { const k = ordM[1]; const idx = k === "last" ? list.length : (ORD[k] || Number(k)); slice = idx >= 1 && idx <= list.length ? [list[idx - 1]] : []; if (!slice.length) return done(`Your last search showed ${list.length} role${list.length === 1 ? "" : "s"}, so there's no ${k} one.`, [], `Which of the ${list.length} do you mean?`); }
     else { const n = /^\d$/.test(topM[1]) ? Number(topM[1]) : WN[topM[1]]; slice = list.slice(0, n); }
     const applyAsk = /\bapply\b|\bsubmit\b/.test(t);
-    if (applyAsk && hasResume) return null; // with a resume, the shortlist apply seam owns it (handleShortlistApply)
+    // With a resume, the shortlist apply seam (handleShortlistApply, earlier) owns an apply whose posting resolves; one that
+    // reaches here could not be resolved in the current open postings, so that is said — the resume is never asked for again.
+    if (applyAsk && hasResume) {
+      const again = disc.lastParams && disc.lastParams.ask ? s(disc.lastParams.ask) : "find jobs";
+      offerNext(ctx, again);
+      return done(`${slice.map((r) => `${r.title} at ${r.company}`).join("; ")} ${slice.length === 1 ? "isn't" : "aren't"} in the open postings I can see right now, so I haven't started anything.`, [], "Want me to run that search again?");
+    }
     // the picked role becomes the tailoring target, so confirming a resume next tailors for it (handleResumeConfirm)
     const pick = slice[0];
     const wmir = threadMirrorForWrite(ctx);
@@ -14480,13 +14490,20 @@ const CareerRouter = (() => {
       // a materials instruction ("put on my cover letter that my GPA is 3.9") is not the person stating a fact (BUG-177)
       const materialsAsk = /\b(put|write|add|say|state|claim|list|mark|include|change|make)\b[^.]*\b(resume|cv|cover letter|application|form|letter|profile)\b/i.test(u);
       // a short chat line only: a pasted resume's "graduating May 2028" is a document entry, read by resume intake
-      if (u.length <= 200 && u.split(/\n/).length <= 2 && !materialsAsk && !/\?/.test(u) && !/\b(?:his|her|their|roommate'?s?|friend'?s?)\s+(?:gpa|e-?mail|graduat)/i.test(u)) {
+      if (u.length <= 200 && u.split(/\n/).length <= 2 && !materialsAsk && !/\?/.test(u)) {
+        // REVIEW #350 (D-007): a fact is the PERSON's only when they are the subject of its own sentence ("my brother will
+        // graduate in may 2027", "my friend said i graduate ..." are not), and only when definite: a negation ("i dont
+        // graduate in 2027") or a hypothetical ("if i graduate", "i might graduate") records nothing.
+        const LEAD = "^(?:(?:so|and|also|btw|oh|well|yeah|yes|ok|okay|actually|correction|sorry|wait|no|hi|hey)[\\s,:!-]+)*";
+        const sentences = u.split(/[.!;]+(?=\s|$)|\n|\s+[—–-]\s+/).map((x) => x.trim()).filter(Boolean);
+        const definite = (x) => !/\b(?:not|never|no longer|don'?t|dont|doesn'?t|won'?t|wont|didn'?t|can'?t|cant|isn'?t|aren'?t)\b|n't\b/i.test(x) && !/\b(?:if|unless|might|could|would|maybe|perhaps|probably|hope|hoping|hopefully|ideally|assuming|supposedly|wish|plan(?:ning)? to|trying to|supposed to|should)\b/i.test(x);
         let m2;
         // Contact details said in chat are never written or claimed saved (tests/architect/handler-submit-path b1): they
         // reach a form only through the person's own "use N". The statement is acknowledged, nothing more.
-        if ((m2 = u.match(/\bmy\s+(?:e-?mail(?:\s+address)?)\s+is\s+(?:actually\s+|now\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})\b/i))) ctx._contactStatedThisTurn = { kind: "email", value: m2[1] };
+        if ((m2 = sentences.map((x) => x.match(new RegExp(`${LEAD}my\\s+(?:e-?mail(?:\\s+address)?)\\s+is\\s+(?:actually\\s+|now\\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b`, "i"))).find(Boolean))) ctx._contactStatedThisTurn = { kind: "email", value: m2[1] };
         const MON = "(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|spring|summer|fall|winter)";
-        if ((m2 = u.match(new RegExp(`\\b(?:i(?:'?ll| will|'?m| am)?\\s+)?(?:graduate|graduating|grad)\\s+(?:in\\s+|on\\s+)?(${MON}\\s+20\\d\\d|20\\d\\d)\\b`, "i"))) || (m2 = u.match(/\b(?:i'?m|i am|im)\s+(?:in\s+)?(?:the\s+)?class\s+of\s+(20\d\d)\b/i))) {
+        const GRAD = new RegExp(`${LEAD}(?:i(?:'?ll| will|'?m| am)?|im|ill)\\s+(?:(?:be\\s+)?(?:graduate|graduating|grad(?:uating)?)|(?:in\\s+)?(?:the\\s+)?class\\s+of)\\s+(?:in\\s+|on\\s+)?(${MON}\\s+20\\d\\d|20\\d\\d)\\b`, "i");
+        if ((m2 = sentences.filter(definite).map((x) => x.match(GRAD)).find(Boolean))) {
           push("graduation", m2[1].replace(/\b[a-z]/g, (c) => c.toUpperCase()), m2[0]);
         }
       }
@@ -14926,7 +14943,7 @@ const CareerRouter = (() => {
       const said = ctx._contactStatedThisTurn;
       if (said && said.kind === "email") return { intent: "profile_correction", resultStatus: "awaiting_user", sends: 0, reply: compose({
         headline: `Got it — ${said.value}.`,
-        facts: ["When an application asks for your email, I'll show you those exact words to use, and nothing goes on a form without your OK."],
+        facts: ["I don't keep contact details from chat, so nothing was kept from that message, and nothing goes on a form without your OK."],
         nextStep: hasResume ? "What role should I look for?" : (offerNext(ctx, "upload resume"), "Want to send me your resume next?") }) };
     }
     const added = ctx._factsAddedThisTurn;

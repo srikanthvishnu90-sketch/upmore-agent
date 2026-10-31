@@ -29,8 +29,9 @@ const POSTINGS = [
 // A person whose thread snapshot and account record persist across turns, as agent-chat's host commit keeps them.
 function person(userId = "u-dead") {
   let snap = null, acct = { version: 0, epoch: 0 };
-  const say = (text) => {
-    const ctx = host.createTurnCtx({ userId, threadId: `t-${userId}`, now: Date.parse("2026-10-31T15:00:00Z"), accountPersistence: true, accountMemory: true, snapshot: copy(snap), account: copy(acct), watchState: {}, postings: POSTINGS });
+  // opts.minutes: how long after 15:00 the turn arrives; opts.postings: the open postings this turn sees
+  const say = (text, opts = {}) => {
+    const ctx = host.createTurnCtx({ userId, threadId: `t-${userId}`, now: Date.parse("2026-10-31T15:00:00Z") + (opts.minutes || 0) * 60000, accountPersistence: true, accountMemory: true, snapshot: copy(snap), account: copy(acct), watchState: {}, postings: opts.postings || POSTINGS });
     const out = host.runTurn(text, ctx);
     snap = copy(host.extractSnapshot(ctx));
     acct = { ...acct, ...copy(ctx._hostPatch || {}), version: acct.version + 1 };
@@ -283,6 +284,80 @@ test("a resume pasted as one paragraph is recognised as a resume, not a company 
   const held = (JSON.stringify(p.snap()).match(/"source":"resume-ingest"/g) || []).length;
   assert.ok(held >= 10, `the re-paste is read into drafts: ${held}`);
   assert.equal(p.say("yes thats my resume").resultStatus, "completed", "the yes confirms them");
+});
+
+// ---------- REVIEW of #350 at 4fa66518 (request changes) ----------
+test("review 1: only the person's own, definite graduation is recorded — not a third person's, a negation or a hypothetical", async () => {
+  await setup();
+  const NOT_THEIRS = [
+    "my brother will graduate in may 2027", "my roommate is graduating in may 2027", "she graduates in may 2027", "he'll graduate in 2027",
+    "they graduate in may 2027", "my friend said i graduate in may 2027", "my sister graduated in may 2027",
+    "i dont graduate in 2027", "i don't graduate in may 2027", "i won't graduate in may 2027", "im not graduating in 2027", "i never graduate in 2027",
+    "if i graduate in may 2027", "i might graduate in may 2027", "maybe i graduate in 2027", "i could graduate in 2027", "i hope to graduate in may 2027",
+    // the subject is the person, but the statement is hedged or conditional
+    "i'll graduate in may 2027 if i pass stats", "im graduating in may 2027 hopefully", "i graduate in 2027 unless i take a gap year", "i will graduate in may 2027, maybe",
+  ];
+  for (const m of NOT_THEIRS) {
+    const p = person();
+    const o = p.say(m);
+    assert.ok(!statedFacts(p).some((f) => f.kind === "graduation"), `${m}: no graduation fact: ${JSON.stringify(statedFacts(p))}`);
+    assert.ok(!/\brecorded\b|on your record/i.test(String(o.reply)), `${m}: nothing called recorded: ${o.reply}`);
+  }
+  for (const [m, v] of [["i graduate may 2027", "May 2027"], ["i'll graduate in december 2026", "December 2026"], ["actually im graduating in 2027", "2027"], ["im class of 2028", "2028"]]) {
+    const p = person();
+    p.say(m);
+    const f = statedFacts(p).find((x) => x.kind === "graduation");
+    assert.ok(f && f.value === v, `${m}: ${JSON.stringify(statedFacts(p))}`);
+  }
+});
+
+test("review 2: an email said in chat is not promised back later — the reply says nothing was kept", async () => {
+  await setup();
+  const p = person();
+  const r = String(p.say("actually my email is jordan.lee22@gmail.com").reply);
+  assert.ok(!/\b(?:I'?ll|I will)\s+(?:show|use|offer|fill|remember|put)\b|\blater\b|\bwhen an application asks\b/i.test(r), `no promise nothing backs: ${r}`);
+  assert.match(r, /\b(?:don'?t|do not|didn'?t|did not)\s+keep\b|\bnothing (?:was|is) kept\b/i, `says it is not kept: ${r}`);
+});
+
+test("review 3: every reminder offer runs on yes; a list reference is never read as a firm", async () => {
+  await setup();
+  for (const m of ["remind me tomorrow to call my mom", "remind me friday to update my linkedin", "remind me later to email my professor"]) {
+    const p = person();
+    p.say("i want a data analyst internship");
+    const first = p.say(m);
+    assert.equal(questions(first.reply), 1, `${m}: one next step: ${first.reply}`);
+    const o = p.say("yes");
+    assert.ok(!isDeadEnd(o) && !/yes to what/i.test(String(o.reply)), `${m} -> yes: [${o.intent}] ${String(o.reply).slice(0, 160)}`);
+    assert.notEqual(o.intent, "career_catchall", `${m} -> yes ran a step, not the catch-all: ${String(o.reply).slice(0, 160)}`);
+  }
+  for (const m of ["remind me friday to apply to the top 3", "remind me tomorrow to apply to the first one", "remind me to apply to those jobs"]) {
+    const r = String(person().say(m).reply);
+    assert.ok(!/\b(?:The )?(?:Top|First|Those|Them)\b/.test(r.replace(/^[^.]*\./, "")) && !/waiting on (?:the|those|them|my)/i.test(r), `${m}: no firm made of a list reference: ${r}`);
+  }
+});
+
+test("review 4a: an offer lapses after 30 minutes; inside the window a yes still runs it", async () => {
+  await setup();
+  for (const [mins, runs] of [[29, true], [31, false]]) {
+    const p = person();
+    p.say("i want a data analyst internship");
+    p.say("remind me tomorrow to follow up with the recruiter");
+    const o = p.say("yes", { minutes: mins });
+    assert.equal(o.intent === "tracking_status", runs, `${mins} min: [${o.intent}] ${String(o.reply).slice(0, 120)}`);
+  }
+});
+
+test("review 4b: with a resume on record, 'apply to the first one' never asks for a resume, even when the posting has left the list", async () => {
+  await setup();
+  const p = person("u-apply-gone");
+  p.say(`here is my resume:\n${RESUME}`); p.say("yes thats my resume");
+  p.say("find data analyst jobs in chicago");
+  const o = p.say("apply to the first one", { postings: [] });
+  const r = String(o.reply);
+  assert.ok(!isDeadEnd(o), `[${o.intent}] ${r}`);
+  assert.ok(!/need your resume|send (?:me )?your resume|paste your resume/i.test(r), `the resume on record is not asked for again: ${r}`);
+  assert.ok(!o.batchRun && !(o.sends > 0), "nothing started or sent");
+  assert.equal(questions(r), 1, r);
 });
 
 module.exports = { FIRST_WEEK, isDeadEnd };

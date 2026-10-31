@@ -11,10 +11,9 @@ import { ingestResumeFile, supabaseUploadRecorder } from "../_shared/channel_res
 import { supabaseTapStore, tapCard } from "../_shared/channel_card_tap.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { fetchArtifactBytes } from "../_shared/channel_artifacts.ts";
-import { type JobDeps, type JobSender, sendJobCards, supabaseAccountStamp, supabaseConfirmedFacts, supabaseJobStore, tapJob } from "../_shared/telegram_jobs.ts";
+import { type JobDeps, type JobSender, sendJobCards, supabaseConfirmedFacts, supabaseJobStore, tapJob } from "../_shared/telegram_jobs.ts";
 import { feedUrlsFor } from "../_shared/file_link.ts";
 import { supabaseCardStore } from "../_shared/career_apply_cards.ts";
-import { escapeHtml, textingNativeOn } from "../_shared/channel_voice.ts";
 
 export interface ProviderWebhookDeps {
   env: { get(k: string): string | undefined };
@@ -27,13 +26,10 @@ export interface ProviderWebhookDeps {
   admin?: any; // FEATURE 16: the service client, for the resume file and the card's buttons
 }
 // The adapter's sends, bound to one chat, as the job cards use them.
-// KNOWN GAPS (2026-10-30, #311): with the texting voice on, the adapter sends text as HTML; a card's text is the posting's
-// own words (an employer's "R&D", "<5 years"), so it is escaped first. A photo's caption and an edit go as plain text.
 export function jobSenderFor(adapter: ChannelAdapter, address: string): JobSender {
-  const asSent = (t: string) => (adapter.htmlText ? escapeHtml(t) : t);
   return {
     photo: async (a) => adapter.sendPhoto ? await adapter.sendPhoto(address, a) : { ok: false },
-    text: async (a) => { const r = await adapter.send(address, [asSent(a.text)], { buttons: a.buttons }); return { ok: r.ok, id: r.ok ? r.id : null }; },
+    text: async (a) => { const r = await adapter.send(address, [a.text], { buttons: a.buttons }); return { ok: r.ok, id: r.ok ? r.id : null }; },
     ...(adapter.editMessage ? { edit: async (a: { messageId: string; text: string; buttons?: any; caption?: boolean }) => await adapter.editMessage!(address, a.messageId, a) } : {}),
   };
 }
@@ -49,7 +45,7 @@ export function webhookDeps(adapter: ChannelAdapter, d: ProviderWebhookDeps): Co
     ...(admin ? { cardTap: async (a: { userId: string; data: string; now: number }) => await tapCard({ ...a, store: supabaseTapStore(admin), events: supabaseEventStore(admin) }) } : {}),
     ...(admin ? (() => {
       const jd = (): JobDeps => ({ store: supabaseJobStore(admin), cards: supabaseCardStore(admin), tap: supabaseTapStore(admin), now: d.now, env: d.env, events: supabaseEventStore(admin),
-        facts: supabaseConfirmedFacts(admin), account: supabaseAccountStamp(admin), feedLinks: (userId, listId) => feedUrlsFor(d.env, userId, listId, d.now()) });
+        facts: supabaseConfirmedFacts(admin), feedLinks: (userId, listId) => feedUrlsFor(d.env, userId, listId, d.now()) });
       return {
         jobTap: async (a: { userId: string; data: string; messageId: string | null; contact: string }) =>
           await tapJob({ userId: a.userId, data: a.data, messageId: a.messageId, deps: jd(), send: jobSenderFor(adapter, addressOf(a.contact)) }),
@@ -77,8 +73,6 @@ export function webhookDeps(adapter: ChannelAdapter, d: ProviderWebhookDeps): Co
 }
 
 export async function handleTelegram(req: Request, d: ProviderWebhookDeps): Promise<Response> {
-  // KNOWN GAPS (2026-10-30, #311): the webhook's own replies (a fixed answer, the #301 second message, job cards) get the
-  // texting voice too when CAREER_TEXTING_NATIVE=on, like the outbox's delivery (channel_registry.ts); off, unchanged.
-  const adapter = d.adapter ? d.adapter(d.env) : telegramAdapter({ token: d.env.get("TELEGRAM_BOT_TOKEN") || "", webhookSecret: d.env.get("TELEGRAM_WEBHOOK_SECRET") || "", native: textingNativeOn(d.env) });
+  const adapter = d.adapter ? d.adapter(d.env) : telegramAdapter({ token: d.env.get("TELEGRAM_BOT_TOKEN") || "", webhookSecret: d.env.get("TELEGRAM_WEBHOOK_SECRET") || "" });
   return await handleChannelWebhook(req, adapter, webhookDeps(adapter, d));
 }

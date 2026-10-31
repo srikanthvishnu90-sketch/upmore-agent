@@ -26,7 +26,7 @@
 // "unrecorded" when the sink failed. A missing row is never a zero.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
-import { looksLikePendingSecret, redactionNote, redactPending, secretLeadIn } from "../_shared/identity_redact.ts";
+import { redactionNote } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
@@ -52,7 +52,7 @@ import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWi
 import { STAGED_TOOL_POLICY, stagedRoute } from "./career_staged.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_ANSWER_INTENT, CARD_INTENT, cardTurn, cardWaiting, supabaseCardStore } from "../_shared/career_apply_cards.ts";
-import { billingTurn, PAY_BY_CHECKOUT, stripeFromEnv, supabaseBillingStore } from "../_shared/career_billing.ts";
+import { billingTurn, stripeFromEnv, supabaseBillingStore } from "../_shared/career_billing.ts";
 import { mockTurn, supabaseMockStore as supabaseMockStoreUncapped } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
@@ -64,7 +64,7 @@ import { receiptTurn, supabaseReceipts } from "../_shared/career_apply_receipt_r
 import { chatScreenFacts } from "../_shared/career_apply_gate.ts";
 import { screenAnswerTurn, screenMeta, screenTapTurn, TAP_INTENT, TAP_STALE_REPLY } from "../_shared/career_apply_screen_answer.ts";
 import { APPLY_QUEUE_INTENT, applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerTurn, paceReader, paceTurn, supabaseEmployerAskStore } from "../_shared/career_apply_chat.ts";
-import { confirmNotRecordedReply, type EvidenceResult, evidenceResumeConfirmation, heldEvents, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
+import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 // FEATURE 9: account memory (stated-fact provenance, standing needs on the router path).
 import { accountMemoryAfterTurn, statedFactsBefore } from "../_shared/career_account_memory.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
@@ -109,7 +109,6 @@ import { applyHereTurn } from "../_shared/apply_here.ts"; // APPLY HERE: a paste
 import { supabaseFileStore } from "../trainee-file/store.ts";
 import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts"; // FILE KINDS
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
-import { vaultRefreshWrite } from "../_shared/oauth_vault_refresh.ts";
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -241,11 +240,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // Text, photos, or both (a photo alone is a message: spec 16 item 12).
     const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN, { codePending: codePending(situation) });
     if (!input.ok) return json(cors, { error: input.error }, 400);
-    let { message, userContent } = input;
-    const { imageBlocks } = input;
+    const { message, userContent, imageBlocks } = input;
     flowCtx.note = redactionNote(input.redacted);
-    // Card or bank details in chat (battery 2026-10-30): removed above, never stored; the person is told where paying goes.
-    if (flowCtx.note && input.redacted.some((r: string) => r === "card" || r === "account")) flowCtx.note = `${flowCtx.note} ${PAY_BY_CHECKOUT}`;
     // L4: thread_id must be a string when provided (non-string truthy values
     // would otherwise cause a DB error → noisy 500).
     if (thread_id !== undefined && thread_id !== null && typeof thread_id !== "string")
@@ -262,20 +258,6 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       throw error;
     }
     flowCtx.user = user.id; flowCtx.thread = tid;
-    // ADVERSARIAL ROUND 2 (2026-10-30): the second half of a split secret. When this thread's previous message ended on a
-    // password or code label ("my workday password is"), this message's lone value is that secret: removed before anything
-    // stores it or a model reads it, and the person is told (identity_redact.ts secretLeadIn / redactPending). Read only
-    // for a message shaped like a lone value, in a thread the person owns (ownerThread, above).
-    if (thread_id && !imageBlocks.length && (looksLikePendingSecret(message, "password") || looksLikePendingSecret(message, "code"))) {
-      const prev = await admin.from("agent_messages").select("content").eq("thread_id", tid).eq("role", "user").order("id", { ascending: false }).limit(1);
-      if (prev.error) console.error("split secret check: previous message unreadable:", prev.error.message);
-      const lead = secretLeadIn(String(prev.data?.[0]?.content ?? ""));
-      const red = lead ? redactPending(message, lead) : null;
-      if (red) {
-        message = red.text; userContent = red.text;
-        flowCtx.note = redactionNote([...new Set([...input.redacted, ...red.removed])]);
-      }
-    }
 
     // GO-LIVE FLIP (2026-10-13, owner ruling: "the career version is the
     // final switch" — the money version is gone from live). Career is the
@@ -434,11 +416,6 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       let turnAttachments: unknown[] = [], turnLinks: string[] | null = null, turnFileLinks: string[] = []; // REPLY SHAPE: what the agent staged; the URLs it may show
       let turnPostings: unknown[] = []; // JOB CARDS: what the turn's search found, for channels that show cards
       const events = supabaseEventStore(admin);
-      // RESUME CONFIRM RACE (2026-10-30) / KNOWN GAPS (2026-10-30): every fact_confirmed event this turn makes (the router's
-      // resume confirmation, a fact stated in chat, the brain's confirm_profile_fact) is held here and written by this
-      // turn's own commit (career_host_commit_evidenced), in the transaction that saves the facts they evidence: a refused
-      // save writes none, so no event ever names a confirmation no saved record holds.
-      const confirmEvents = heldEvents();
       // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
       // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
       // controls stay the host's.
@@ -517,7 +494,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (error) throw new Error("read the career grant's vault entry");
           return data ? String(data) : null;
         },
-        writeVault: (name, secret) => vaultRefreshWrite(admin, name, secret, "save the refreshed career grant"),
+        writeVault: async (name, secret) => {
+          const { error } = await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret });
+          if (error) throw new Error("save the refreshed career grant");
+        },
       }, CAREER_SEND_SCOPE);
       // The resume attached is WO-028's, tailored to the posting from confirmed facts, else the person's own file.
       const resumes = supabaseResumes(admin, { profile: () => ((ctx as any).profile ?? {}), tailor: { render: edgeRenderer(), resumes: supabaseResumeStore(admin) } });
@@ -548,7 +528,6 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
               const res = await queueApprovedOutreach({ rpc: (name, args) => admin.rpc(name, args), drafts: (uu, ids) => outreachStore.drafts!(uu, ids) }, u, items);
               const refused = res.filter((r) => r.status === "refused");
               if (refused.length) console.error("send rail: approved drafts not queued:", refused.map((r) => r.reason).join(", "));
-              return refused.map((r) => ({ draftId: r.sourceId, reason: String(r.reason ?? "") }));
             } } : {}) })
           .catch((e) => { console.error("outreach turn:", e?.message ?? e); return null; })
         : null;
@@ -890,7 +869,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const turn = await agentTurn({ message, history, stores: ctx as unknown as Record<string, unknown>, userId: user.id, threadId: tid, now,
           model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: (q) => postingsDb.search(searchWords(q), 150), alerts: alertStore,
           mail: supabaseMailStore(admin), interviews: supabaseInterviewStore(admin), digest: supabaseDigestStore(admin),
-          events, tz, summary, hired: hiredSourceFromEnv(Deno.env, admin), confirmations: confirmEvents,
+          events, tz, summary, hired: hiredSourceFromEnv(Deno.env, admin),
           // WO-033: drafts from the person's lists (the model writes, the fact-lock checks), and Hunter when its key is set.
           outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) },
           conversations: repliesStore,
@@ -951,17 +930,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
               judge: { on: f5JudgeOn, model: (payload) => callModel(f5Cfg, payload, { meter: f5Meter, role: "chat" }), cache: supabaseJudgeCache(admin),
                 n: Number(Deno.env.get("CAREER_JUDGE_N")) || undefined, standing: () => supabaseMemoryStore(admin).standing(user.id) } });
             if (found) {
-              // ONBOARDING ROUND 2: the router's line that nothing is sent before the resume is confirmed (an apply ask with
-              // no confirmed resume) stays with the search's own reply.
-              const prof = (ctx as any).profile, facts: any[] = Array.isArray(prof?.facts) && !prof?._fromStatedFacts ? prof.facts : [];
-              const confirmedResume = facts.some((f) => f && ["education", "experience", "project", "leadership", "skill"].includes(f.kind) && f.needs_confirmation !== true && (f.status == null || f.status === "confirmed"));
-              const askText = String(message ?? "").toLowerCase();
-              const applyAsk = !/\?\s*$/.test(askText) && /\bapply\s+(?:to|for|at|me|on|now)\b|\bapply\b[^.?!]{0,40}\b(?:jobs?|roles?|postings?|positions?|internships?|openings?)\b|\bsubmit (?:my|an?) applications?\b/.test(askText);
-              const resumeLine = f5Said?.append || confirmedResume || !applyAsk || /\bresume\b/i.test(found.reply) ? ""
-                : facts.some((f) => f && f.source === "resume-ingest" && f.needs_confirmation === true)
-                ? "\n\nAnd nothing is sent anywhere before your resume is confirmed: its entries are waiting for your word (reply \"yes, that's my resume\" if they're right)."
-                : "\n\nAnd nothing is sent anywhere before your resume is confirmed: paste or attach it, confirm it, then ask again.";
-              out = { ...out, reply: (f5Said?.append ? `${out.reply}\n\n${found.reply}` : found.reply) + resumeLine, resultStatus: found.status, handler: "search_judge" };
+              out = { ...out, reply: f5Said?.append ? `${out.reply}\n\n${found.reply}` : found.reply, resultStatus: found.status, handler: "search_judge" };
               (ctx as any).discovery = { ...((ctx as any).discovery ?? {}), lastShortlist: found.shortlist, lastSource: found.source };
             }
           } catch (e) { console.error("career search judge: the router's reply stands:", (e as Error)?.message ?? e); }
@@ -973,17 +942,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // ever use it. Each fact this turn confirmed whose words Trainee showed the person, and that is in their own upload,
       // gets its persisted fact_confirmed event and an owner provenance; anything else stays unevidenced. Saved with the
       // turn below. The thread is read only on the router's resume confirm.
-      // RESUME CONFIRM RACE (2026-10-30): the events are held (confirmEvents) and written by this turn's commit, in the same
-      // transaction as the profile they evidence (career_host_commit_evidenced): a refused save writes none.
-      let confirmEv: EvidenceResult | null = null;
       if (out.handler !== "agent" && out.intent === "career_resume_ingest" && out.resultStatus === "completed") {
         const recent = await admin.from("agent_messages").select("id,role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(40);
         if (recent.error) {
           // The thread could not be read, so nothing the router confirmed can be evidenced: held, and said.
           console.error("career evidence: the thread was not read", recent.error.message);
           const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.account as any)?.memory?.profile ?? (loaded.snapshot as any)?.stores?.profile ?? null,
-            after: (ctx as any).profile ?? null, out, shown: null, upload: null, events: confirmEvents });
-          confirmEv = ev;
+            after: (ctx as any).profile ?? null, out, shown: null, upload: null, events });
           const held = heldReply(ev);
           if (held) out = { ...out, reply: held, resultStatus: "not_confirmed" };
         } else {
@@ -993,8 +958,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           seen.upload = await fileUploadFor(admin, user.id, seen.upload);
           // END FEATURE 16
           const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.account as any)?.memory?.profile ?? (loaded.snapshot as any)?.stores?.profile ?? null,
-            after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, said: seen.said, events: confirmEvents });
-          confirmEv = ev;
+            after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, said: seen.said, events });
           if (ev.unshown || ev.untraced || ev.refused) console.error(`career evidence: held as drafts: ${ev.unshown} not shown, ${ev.untraced} not in the upload, ${ev.refused} event not recorded`);
           // A confirmation the host could not evidence is not claimed: those facts are drafts again, and the reply says so.
           const held = heldReply(ev);
@@ -1031,7 +995,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // The profile and the tracker themselves ride the account record through the host seam (career_host.js).
       if (out.handler !== "agent" && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)) {
         const mem = await accountMemoryAfterTurn({ message, userId: user.id, threadId: tid, now: Date.now(), out, ctx,
-          statedBefore: statedFactsBefore(loaded.account, loaded.snapshot), events, evidence: confirmEvents, standing: supabaseMemoryStore(admin) })
+          statedBefore: statedFactsBefore(loaded.account, loaded.snapshot), events, standing: supabaseMemoryStore(admin) })
           .catch((e) => { console.error("career memory:", e?.message ?? e); return null; });
         if (mem?.patch) out = { ...out, ...mem.patch };
       }
@@ -1098,10 +1062,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (longRest?.full && src && (Deno.env.get("TRAINEE_FILE_BASE_URL") || "").trim()) {
           const made = await createFileService({ store: supabaseFileKindStore(admin), env: Deno.env, now: Date.now }).create(user.id, "research_brief", {
             title: "More on your question", subject: "Your question", findings: chunkSentences(longRest.full, PAGE_CHUNK_CHARS, PAGE_MAX_CHUNKS).chunks.map((value, i) => ({ label: i ? `The rest of the answer (${i + 1})` : "The rest of the answer", value, source: "Reported, not verified" })), sources: [{ title: new URL(src).hostname, url: src }] }).catch(() => null);
-          // TELEGRAM SCENARIOS (2026-10-30): only the signed link. A Mini App URL (webApp) opens only from Telegram's own button;
-          // sent as a plain link it opened in the browser signed out, and the rest of the answer (not sent as a second message)
-          // was lost. Without the signed link the rest goes as the second message.
-          if (made && made.ok && made.url) overflowLink = made.url;
+          if (made && made.ok && (made.url ?? made.webApp)) overflowLink = (made.url ?? made.webApp) as string;
         }
         const sh = shapeForTurn({ overflowLink, on: replyWriterOn(Deno.env), channel: writerChannel((body as any)?.channel), reply: out.reply, attachments: turnAttachments, allowedLinks: turnLinks,
           writable: writable(out, agentMeta, { structured: !!(careerTask || careerBatch) }) });
@@ -1137,54 +1098,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { ...out, reply: `${out.reply}\n${spendNote}`, ...(out.parts ? { parts: [...out.parts, spendNote] } : {}) };
         agentMeta = { ...(agentMeta || {}), model_limit: spend.refused() };
       }
+      const reply = (flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply) + (artifactNote ? `\n${artifactNote}` : "");
       const reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
       const reminderLines = reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "").filter(Boolean);
-      const respond = () => {
-        const reply = (flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply) + (artifactNote ? `\n${artifactNote}` : "");
-        const visibleReply = [reply, ...reminderLines].join("\n");
-        // The same reply as separate messages for a texting channel: the note, each part whole, then the reminders.
-        const parts = out.parts ? [...(flowCtx.note ? [flowCtx.note] : []), ...out.parts, ...(artifactNote ? [artifactNote] : []), ...reminderLines] : null;
-        return { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), ...(artifactsField ? { artifacts: artifactsField } : {}), ...(turnPostings.length ? { postings: turnPostings } : {}), ...(shapeField ? { shape: shapeField } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
-      };
-      const commitTurn = (events: unknown[]) => persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response: respond(), taskIntent, batchIntent, events });
-      const confirmRows = confirmEvents.rows();
-      let saved;
-      try {
-        saved = await commitTurn(confirmRows);
-      } catch (error) {
-        // RESUME CONFIRM RACE (2026-10-30): the save and the confirmation's events commit together, so an event that could
-        // not be written failed the whole commit. A refused save (another thread saved first) is still refused and said
-        // ("send it again"). Any other failure of the evidenced commit: the confirmation is not claimed. Its entries go
-        // back to drafts, the turn is saved without them, and the reply says nothing was confirmed (a failure of that
-        // save as well answers as unsaved, below).
-        const code = error && typeof error === "object" && "code" in error ? String((error as any).code) : "storage_unavailable";
-        if (!confirmRows.length || CONFLICT_CODES.includes(code)) throw error;
-        console.error("career evidence: the confirmation's events were not recorded; its entries stay drafts:", (error as Error)?.message ?? error);
-        const ids = new Set(confirmRows.map((e: any) => e?.detail?.confirmation_event_id).filter(Boolean));
-        const unstamped: string[] = [];
-        for (const f of Array.isArray((ctx as any).profile?.facts) ? (ctx as any).profile.facts : []) {
-          if (!f || !ids.has(f.confirmation_event_id)) continue;
-          Object.assign(f, { status: "draft", needs_confirmation: true });
-          for (const k of ["provenance", "confirmation_event_id", "confirmed_at", "source_ref"]) delete f[k];
-          unstamped.push(f.id);
-        }
-        // KNOWN GAPS (2026-10-30): a fact stated in chat whose event was not written stays a statement on the record, never
-        // called confirmed (evidenceStatedFacts' rule for an event that cannot be recorded); its reply is unchanged.
-        for (const f of Array.isArray((ctx as any).statedFacts?.facts) ? (ctx as any).statedFacts.facts : []) {
-          if (!f || !ids.has(f.confirmation_event_id)) continue;
-          for (const k of ["provenance", "confirmation_event_id", "confirmed_at"]) delete f[k];
-        }
-        // The account memory and stated facts the first try put on the patch carried the stamps; extractSnapshot rebuilds them.
-        if (ctx._hostPatch && ("memory" in ctx._hostPatch || "stated_facts" in ctx._hostPatch)) { const { memory: _m, stated_facts: _s, ...rest } = ctx._hostPatch; ctx._hostPatch = rest; }
-        if (confirmEv) {
-          const ev: EvidenceResult = { ...confirmEv, stamped: Math.max(0, confirmEv.stamped - unstamped.length), refused: confirmEv.refused + unstamped.length, held: [...confirmEv.held, ...unstamped] };
-          out = { ...out, reply: (heldReply(ev) ?? out.reply) + (spendNote ? `\n${spendNote}` : ""), parts: undefined, resultStatus: ev.stamped ? "partial" : "not_confirmed" } as typeof out;
-        } else if (unstamped.length) {
-          // The brain's confirm_profile_fact: its reply said the fact was confirmed; it is not, so the reply says so instead.
-          out = { ...out, reply: confirmNotRecordedReply(unstamped.length) + (spendNote ? `\n${spendNote}` : ""), parts: undefined, resultStatus: "not_confirmed" } as typeof out;
-        }
-        saved = await commitTurn([]);
-      }
+      const visibleReply = [reply, ...reminderLines].join("\n");
+      // The same reply as separate messages for a texting channel: the note, each part whole, then the reminders.
+      const parts = out.parts ? [...(flowCtx.note ? [flowCtx.note] : []), ...out.parts, ...(artifactNote ? [artifactNote] : []), ...reminderLines] : null;
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), ...(artifactsField ? { artifacts: artifactsField } : {}), ...(turnPostings.length ? { postings: turnPostings } : {}), ...(shapeField ? { shape: shapeField } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
+      const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent, batchIntent });
       // WO-028: "forget everything" also removes the tailored resumes (they carry the person's name and email); best
       // effort, after the erase is recorded, like the rest of the erase's side effects.
       if (ctx._hostPatch?.erase === true) await supabaseResumeStore(admin).removeAll(user.id).catch((e) => console.error("career erase: resumes", e?.message ?? e));

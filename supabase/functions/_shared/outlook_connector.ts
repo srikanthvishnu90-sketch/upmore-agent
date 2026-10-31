@@ -16,7 +16,6 @@ import {
   type TokenResult, vaultNameOf, verifyState, type Window,
 } from "./outlook_graph.ts";
 import { disconnectOf, outlookConnectOf, outlookStatusOf } from "./connector_words.ts";
-import { vaultRefreshWrite } from "./oauth_vault_refresh.ts";
 
 type Admin = any;
 type Env = { get(k: string): string | undefined };
@@ -29,7 +28,7 @@ export function tokenDeps(admin: Admin, env: Env, f: typeof fetch, now: () => nu
     fetch: f, env, now,
     connection: async (u) => must(await admin.from("user_oauth_connections").select("vault_name,scopes").eq("user_id", u).eq("provider", PROVIDER).maybeSingle(), "read the Outlook connection") ?? null,
     readVault: async (name) => { const d = must(await admin.rpc("oauth_vault_read", { p_name: name }), "read the Outlook access"); return d ? String(d) : null; },
-    writeVault: (name, secret) => vaultRefreshWrite(admin, name, secret, "save the refreshed Outlook access"),
+    writeVault: async (name, secret) => { must(await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret }), "save the refreshed Outlook access"); },
     markReconnect: (u, reason) => markReconnect(admin, u, reason, now()),
     noteExpiry: async (u, exp) => { must(await admin.from("career_outlook_state").update({ token_expires_at: at(exp), updated_at: at(now()) }).eq("user_id", u), "record the token expiry"); },
     isReconnect: async (u) => {
@@ -260,7 +259,7 @@ export async function outlookChatTurn(d: { admin: Admin; message: string; userId
 
 // ------------------------------------------------------------------------------------------------ the edge function
 export interface OAuthDeps {
-  admin: Admin; env: Env; fetch: typeof fetch; now?: () => number; log?: (l: string) => void; deliver?: (a: { userId: string; key: string; now: number }) => Promise<unknown>;
+  admin: Admin; env: Env; fetch: typeof fetch; now?: () => number; log?: (l: string) => void; deliver?: (a: { userId: string; key: string; now: number }) => Promise<void>;
   // The connector framework (connectors.ts afterConnect): once the grant is stored and the person told, the tasks that
   // were waiting for Outlook resume. Its failure never undoes the connection.
   afterConnect?: (a: { userId: string; email: string | null; scopes: string[] }) => Promise<unknown>;

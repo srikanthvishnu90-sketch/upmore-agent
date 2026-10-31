@@ -89,15 +89,10 @@ function closerOf(s: string, from: number, d: string, urls: Map<number, UrlSpan>
   }
   return -1;
 }
-// CHANNEL DELIVERY ROUND 2 (2026-10-30): crossing emphasis. "**a *b** c*" (the italic opens inside the bold and closes
-// after it) showed its asterisks on every channel ("a *b c*" on iMessage). It is read as properly nested pieces: bold "a
-// " with italic "b" inside, then italic " c" (Telegram <b>a <i>b</i></b><i> c</i>; plain "a b c").
-const parseInline = (s: string): Seg[] => parseInlineX(s).segs;
-function parseInlineX(s: string): { segs: Seg[]; open: { at: number; d: string } | null } {
+function parseInline(s: string): Seg[] {
   const segs: Seg[] = [];
   const urls = new Map(findUrls(s).map((u) => [u.start, u]));
-  let buf = "", i = 0, open: { at: number; d: string } | null = null;
-  const node = (d: string, kids: Seg[]): Seg => (d === "***" ? { t: "b", kids: [{ t: "i", kids }] } : { t: d === "~~" ? "s" : d.length === 2 ? "b" : "i", kids });
+  let buf = "", i = 0;
   const flush = () => { if (buf) { segs.push({ t: "text", s: buf }); buf = ""; } };
   while (i < s.length) {
     const u = urls.get(i);
@@ -113,32 +108,20 @@ function parseInlineX(s: string): { segs: Seg[]; open: { at: number; d: string }
       const j = opens ? closerOf(s, i + d.length + 1, d, urls) : -1;
       if (j > 0) {
         flush();
-        const inner = s.slice(i + d.length, j), x = parseInlineX(inner);
-        // An emphasis opened inside and never closed there, closed after this one: both close here, it opens again after.
-        if (x.open && x.open.d !== d) {
-          const rest = s.slice(j + d.length), d2 = x.open.d;
-          const k = closerOf(rest, 1, d2, new Map(findUrls(rest).map((u) => [u.start, u])));
-          if (k > 0 && !isSpace(rest[k - 1])) {
-            segs.push(node(d, [...parseInline(inner.slice(0, x.open.at)), node(d2, parseInline(inner.slice(x.open.at + d2.length)))]));
-            segs.push(node(d2, parseInline(rest.slice(0, k))));
-            i = j + d.length + k + d2.length;
-            continue;
-          }
-        }
-        segs.push(node(d, x.segs));
+        const kids = parseInline(s.slice(i + d.length, j));
+        segs.push(d === "***" ? { t: "b", kids: [{ t: "i", kids }] } : { t: d === "~~" ? "s" : d.length === 2 ? "b" : "i", kids });
         i = j + d.length;
         continue;
       }
-      if (opens && open === null) open = { at: i, d };
       buf += d; i += d.length; // not formatting: the person's characters, all of them
       continue;
     }
     buf += ch; i++;
   }
   flush();
-  return { segs, open };
+  return segs;
 }
-export const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 type Mode = "plain" | "telegram" | "whatsapp";
 function renderSegs(segs: Seg[], mode: Mode): string {
   return segs.map((g) => {
@@ -149,10 +132,7 @@ function renderSegs(segs: Seg[], mode: Mode): string {
     const inner = renderSegs(g.kids, mode);
     if (mode === "plain") return inner;
     if (mode === "telegram") return g.t === "b" ? `<b>${inner}</b>` : g.t === "i" ? `<i>${inner}</i>` : `<s>${inner}</s>`;
-    // WhatsApp reads a mark only against a non-space character: spaces at a piece's edge go outside its marks.
-    const m = g.t === "b" ? "*" : g.t === "i" ? "_" : "~", lead = /^\s*/.exec(inner)![0], trail = /\s*$/.exec(inner.slice(lead.length))![0];
-    const core = inner.slice(lead.length, inner.length - trail.length);
-    return core ? `${lead}${m}${core}${m}${trail}` : inner;
+    return g.t === "b" ? `*${inner}*` : g.t === "i" ? `_${inner}_` : `~${inner}~`;
   }).join("");
 }
 // A heading is bold as a whole; bold inside it is just its text (WhatsApp's "**Title**" was a heading with bold in it).

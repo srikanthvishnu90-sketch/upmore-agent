@@ -51,7 +51,7 @@ jobs:
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          { python3 --version; locale | head -3; python3 scripts/build-router-core.py --check 2>&1 | tail -5; echo "rc=$?"; bash -x scripts/launch/trainee-go-live.sh --dry-run --non-interactive --sha "$HEAD_SHA" 2>&1 | tail -n 25; } 2>&1 | cut -c1-300 | while IFS= read -r l; do echo "::error::${l}"; done
+          { D=$(mktemp -d); git archive --format=tar "$HEAD_SHA" -- supabase scripts packages corpus | tar -x -C "$D"; cd "$D"; python3 scripts/build-router-core.py --check 2>&1 | tail -6; echo "rc=${PIPESTATUS[0]}"; python3 scripts/build-router-core.py --career-only --check 2>&1 | tail -6; echo "rc=${PIPESTATUS[0]}"; } 2>&1 | cut -c1-300 | while IFS= read -r l; do echo "::error::${l}"; done
   rehearsal:
     name: migration rehearsal (live-shaped schema)
     runs-on: ubuntu-24.04

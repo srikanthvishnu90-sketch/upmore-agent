@@ -796,6 +796,10 @@ echo "== billing_r2.test.sql (currency, discount and live count written; the sam
 # drive still recorded as running; the reconcile keeps the rewrites. Twice (idempotent), the claim guards, then its test.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030140000_career_apply_submit_worker.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030140000_career_apply_submit_worker.sql"
+# 20261031000000 (below) before the submit worker's test: its claims order by created_at, and two applications queued in
+# that test's one transaction tied on now() (trunk ebed175d5: "FAIL the oldest first"). Twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261031000000_career_apply_races.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261031000000_career_apply_races.sql"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 echo "== career_apply_submit_worker.test.sql (closed, expired, reset, resume gone: ended with words; paused waits; a not-before holds no place; the worker's millisecond; the email for a running drive; the reconcile keeps it; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_submit_worker.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -808,8 +812,8 @@ echo "== career_ingest_reread_gap.test.sql (two claims back to back, the first r
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_ingest_reread_gap.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # APPLY RACES (20261031000000): applications queued in one transaction are claimed in the order queued (created_at is each
 # insert's own time); the card-bound cloud route's check before Submit ends one whose posting closed as not sent, in the
-# person's words; the reconcile keeps it. Twice (idempotent), the claim guards, then its test.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261031000000_career_apply_races.sql"
+# person's words; the reconcile keeps it. Applied twice above (before the submit worker's test); once more here, after
+# 20261030150000 (idempotent), the claim guards, then its test.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261031000000_career_apply_races.sql"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 echo "== career_apply_races.test.sql (queued together, claimed in the order queued; a closed posting ended at the cloud check before Submit, in the person's words; the reconcile keeps it; service only)"

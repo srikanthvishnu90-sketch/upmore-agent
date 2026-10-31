@@ -6,7 +6,7 @@
 //              first saw it), and an old one carries an age warning instead of a quiet removal. Checked through the page handler.
 // Synthetic data only; no network, no database.
 import assertNode from "node:assert/strict";
-import { BRAND, contrast, DARK, LIGHT, PLUM, readablePairs, TOKENS_CSS } from "../../supabase/functions/_shared/brand.ts";
+import { BRAND, contrast, DARK, DISABLED_CSS, LIGHT, PLUM, readablePairs, TOKENS_CSS } from "../../supabase/functions/_shared/brand.ts";
 import { postedLine, renderFeed, renderLinkState, renderPhoneLogin } from "../../supabase/functions/_shared/file_page.ts";
 import { renderConnect, renderState } from "../../supabase/functions/_shared/connect_page.ts";
 import { page as gmailPage } from "../../supabase/functions/_shared/connectors.ts";
@@ -126,6 +126,36 @@ async function world(tz?: string | null) {
   const d = { ...A.deps, store, now: () => NOW, env: { get: (k: string) => env[k] }, cards: { async open() { return null; } }, tap: {} as any, userOfTelegram: async () => null, ...(tz === undefined ? {} : { timeZone: async () => tz }) } as unknown as FileDeps;
   return { d, tok: await A.tok(U, LIST, NOW), refs };
 }
+
+Deno.test("Q588: a date-only posting date (stored as midnight UTC) is that calendar day in every zone; a real evening time is the local day", () => {
+  const now = Date.parse("2026-10-31T12:00:00Z");
+  // Workable gives only a date ("2026-10-28"), stored as 2026-10-28T00:00:00Z: the employer's day, never shifted.
+  for (const iso of ["2026-10-28T00:00:00Z", "2026-10-28T00:00:00.000Z", "2026-10-28T00:00:00+00:00", "2026-10-28"]) {
+    for (const tz of ["America/Chicago", "America/Los_Angeles", "America/New_York"]) eq(postedLine({ posted_at: iso }, now, tz), "Posted 3 d ago (Oct 28)", `${iso} in ${tz}`);
+    eq(postedLine({ posted_at: iso }, now, null), "Posted 3 d ago (Oct 28)", `${iso}: a calendar date needs no zone note`);
+  }
+  // One second past midnight UTC is a real time: the evening before in the Americas.
+  eq(postedLine({ posted_at: "2026-10-28T00:00:01Z" }, now, "America/Chicago"), "Posted 3 d ago (Oct 27)");
+  eq(postedLine({ posted_at: "2026-10-28T03:00:00Z" }, now, "America/Los_Angeles"), "Posted 3 d ago (Oct 27)");
+  eq(postedLine({ posted_at: "2026-10-28T03:00:00Z" }, now, "America/New_York"), "Posted 3 d ago (Oct 27)");
+  eq(postedLine({ posted_at: "2026-10-28T03:00:00Z" }, now, null), "Posted 3 d ago (Oct 27, Chicago time)");
+  eq(postedLine({ posted_at: null, first_seen_at: "2026-10-31T00:00:00Z" }, now, "America/Chicago"), "First seen by Trainee 12 h ago (Oct 31); the posting gives no date");
+});
+
+Deno.test("Q553: a disabled action is muted from the brand's disabled tokens on every page, never plum", async () => {
+  ok(DISABLED_CSS.includes(".apply:disabled{background:var(--disabled-bg);border-color:var(--disabled-bg);color:var(--disabled-ink);cursor:default}"), DISABLED_CSS);
+  ok(DISABLED_CSS.includes(".lnk:disabled,.all button:disabled{color:var(--mute);cursor:default}"), DISABLED_CSS);
+  for (const t of [LIGHT, DARK]) ok(t.disabledBg !== t.accent && t.disabledInk !== t.accentInk || t.disabledBg !== t.accent, "the disabled ground is not the plum");
+  ok(TOKENS_CSS.includes(`--disabled-bg:${LIGHT.disabledBg};--disabled-ink:${LIGHT.disabledInk}`) && TOKENS_CSS.includes(`--disabled-bg:${DARK.disabledBg};--disabled-ink:${DARK.disabledInk}`));
+  const css = (html: string) => /<style>([\s\S]*?)<\/style>/.exec(html)?.[1] ?? "";
+  for (const [name, html] of [["jobs list", renderFeed({ token: "x", rows: [], setHash: null, setSize: 0 })], ["phone sign-in", renderPhoneLogin({ step: "phone" })],
+    ["gmail connect page", await gmailPage("t", [], 200, { action: "/c", token: "t", label: "Go" }).text()], ["gmail landing", await careerLanding(true).text()]] as const) {
+    const c = css(html);
+    ok(c.includes(DISABLED_CSS), `${name}: the disabled look is not on the page`);
+    const after = c.slice(c.lastIndexOf(DISABLED_CSS) + DISABLED_CSS.length);
+    for (const m of after.matchAll(/\.apply(?::hover)?\{([^}]*)\}/g)) ok(!/background|(^|;)\s*color|border-color/.test(m[1]), `${name}: a later .apply rule repaints the disabled look: ${m[0]}`);
+  }
+});
 
 Deno.test("Q547/Q576/Q718: the signed-in jobs page shows every posting's freshness in its row, from the stored posting, in the person's zone", async () => {
   for (const [tz, day, note] of [["America/Chicago", "Oct 28", ""], [null, "Oct 28", ", Chicago time"]] as const) {

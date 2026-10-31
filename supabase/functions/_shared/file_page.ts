@@ -51,15 +51,19 @@ export const STALE_DAYS = 30;
 export const FALLBACK_ZONE = "America/Chicago";
 const zoneValid = (tz: unknown): tz is string => { if (typeof tz !== "string" || !tz || tz.length > 64) return false; try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; } };
 export function dayIn(iso: string, tz: string): string { return new Intl.DateTimeFormat("en-US", { timeZone: tz, month: "short", day: "numeric" }).format(new Date(Date.parse(iso))); }
+// A date-only source (Workable's published_on, career_ingest_feeds.ts) is stored as midnight UTC: that is a calendar day, not a
+// moment, so it is shown as that day in every zone and needs no zone note. A bare "YYYY-MM-DD" is the same.
+export const isDateOnly = (iso: string) => /^\d{4}-\d{2}-\d{2}(?:T00:00(?::00(?:\.0+)?)?(?:Z|[+-]00:?00))?$/.test(iso.trim());
 export function postedLine(job: { posted_at?: string | null; first_seen_at?: string | null }, now: number, tz?: string | null): string | null {
   const known = zoneValid(tz), zone = known ? tz as string : FALLBACK_ZONE, note = known ? "" : ", Chicago time";
   const age = (iso: string | null | undefined) => {
     const t = iso ? Date.parse(iso) : NaN;
     if (Number.isNaN(t)) return null;
-    if (t > now + 60_000) return { words: `on ${dayIn(iso!, zone)}${note}`, days: 0 }; // stamped ahead of our clock: its day, never "0 min ago"
+    const calendar = isDateOnly(iso!), day = calendar ? dayIn(iso!, "UTC") : dayIn(iso!, zone), tail = calendar ? "" : note;
+    if (t > now + 60_000) return { words: `on ${day}${tail}`, days: 0 }; // stamped ahead of our clock: its day, never "0 min ago"
     const mins = Math.max(0, Math.floor((now - t) / 60_000)), days = Math.floor(mins / 1440);
     const rel = mins < 60 ? `${mins} min ago` : mins < 1440 ? `${Math.floor(mins / 60)} h ago` : `${days} d ago`;
-    return { words: `${rel} (${dayIn(iso!, zone)}${note})`, days };
+    return { words: `${rel} (${day}${tail})`, days };
   };
   const p = age(job.posted_at), s = p ? null : age(job.first_seen_at);
   if (!p && !s) return null;

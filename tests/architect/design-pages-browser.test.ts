@@ -120,7 +120,7 @@ const MEASURE = `(() => {
 const DISABLED = `(() => {
   const rgb = (s) => { const m = /rgba?\\(([^)]+)\\)/.exec(s); const p = m[1].split(/[ ,\\/]+/).filter(Boolean).map(Number); return { c: p.slice(0, 3), a: p.length > 3 ? p[3] : 1 }; };
   const ground = (el) => { for (let e = el; e; e = e.parentElement) { const b = rgb(getComputedStyle(e).backgroundColor); if (b.a > 0.5) return b.c; } return [255,255,255]; };
-  return [...document.querySelectorAll("button")].filter((b) => b.getBoundingClientRect().height > 0).map((b) => { b.disabled = true; const s = getComputedStyle(b); return { el: "button '" + b.textContent.trim().slice(0, 30) + "'", color: rgb(s.color).c, ground: ground(b) }; });
+  return [...document.querySelectorAll("button")].filter((b) => b.getBoundingClientRect().height > 0).map((b) => { b.disabled = true; const s = getComputedStyle(b); return { el: "button '" + b.textContent.trim().slice(0, 30) + "'", apply: b.classList.contains("apply"), bg: rgb(s.backgroundColor).c, color: rgb(s.color).c, ground: ground(b) }; });
 })()`;
 const lum = (c: number[]) => { const f = (v: number) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
 const ratio = (a: number[], b: number[]) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
@@ -183,6 +183,10 @@ Deno.test({
               }
               // Disabled buttons (the page disables a button while its request runs): still AA against their own ground.
               const dis = await pg.evaluate(DISABLED);
+              // ... and visibly muted: a disabled Apply is drawn in the brand's disabled tokens, never still plum.
+              for (const x of dis.filter((x: any) => x.apply)) {
+                if (!near(x.bg, rgbOf(tok.disabledBg)) || !near(x.color, rgbOf(tok.disabledInk))) bad.push(`disabled Apply not muted: ${x.el} ${x.bg} on ${x.color}`);
+              }
               for (const x of dis) if (ratio(x.color, x.ground) < 4.5) bad.push(`disabled button under AA contrast: ${x.el} ${ratio(x.color, x.ground).toFixed(2)}:1`);
               assertNode.deepStrictEqual(bad, [], where);
             });

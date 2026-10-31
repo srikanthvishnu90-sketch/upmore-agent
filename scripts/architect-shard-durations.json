@@ -54,6 +54,8 @@
     "tests/architect/chat-approval-card-binding.test.ts": 0.1,
     "tests/architect/chat-confirmation-provenance.test.ts": 0.1,
     "tests/architect/ci-shard-partition.test.ts": 0.1,
+    "tests/architect/clock-sweep-pg.test.ts": 6,
+    "tests/architect/clock-sweep-property.test.ts": 0.2,
     "tests/architect/cloud-engine-input.test.ts": 0.1,
     "tests/architect/cloud-optin-pace.test.ts": 0.1,
     "tests/architect/cloud-preflight-question-recovery.test.ts": 0.1,

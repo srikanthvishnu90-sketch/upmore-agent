@@ -2561,7 +2561,7 @@ const CareerOutreach = (() => {
   const CAPS = Object.freeze({
     channel: "gmail_oauth_only", startPerDay: 12, startRange: [10, 15], rampStep: 5, rampEveryDays: 3,
     ceilingPerDay: 30, userCanRaise: false, perDomainPerDay: 4, perDomainRange: [3, 5],
-    perFirmPer30Days: 15, perPersonInitial: 1, perPersonMaxFollowUps: 2, perPersonWindowDays: 183,
+    perPersonInitial: 1, perPersonMaxFollowUps: 2, perPersonWindowDays: 183,
     riskyMaxFraction: 0.10, gapMinutes: [2, 8], bounceBreakerRate: 0.03, hostileBreakerCount: 2,
     wave1Size: 40, maxWords: 120, maxLinks: 1,
   });
@@ -2903,7 +2903,6 @@ const CareerOutreach = (() => {
     for (const c of kept) {
       const fk = norm(c.current_firm);
       if (selected.length < want) {
-        if ((firmCount[fk] || 0) >= CAPS.perFirmPer30Days) { reserve.push(c); continue; }
         firmCount[fk] = (firmCount[fk] || 0) + 1; selected.push(c);
       } else reserve.push(c);
     }
@@ -3427,9 +3426,6 @@ const CareerOutreach = (() => {
       if (touch > CAPS.perPersonMaxFollowUps) { reject("per_person_cap"); continue; }
       if (touch > 0 && !opts.isFollowUp) {   }
       if ((e.touch || 0) > 0 && !campaign.followups_continue_tap && !opts.continueTap) { reject("followup_needs_continue_tap"); continue; }
-      const firmRecent = (campaign.firmWindow || []).filter((f) => f.firm === norm(c.current_firm)).length;
-      const firmQueued = campaign.items.filter((i) => i.status === "queued" && norm(i.candidate.current_firm) === norm(c.current_firm)).length;
-      if (firmRecent + firmQueued >= CAPS.perFirmPer30Days) { reject("per_firm_cap_15_per_30d"); continue; }
       const item = Object.assign({}, base, { id: `item-${campaign.items.length + results.length + 1}`, touch, status: "queued",
         idempotencyKey: `${campaign.id}:${base.person_id || base.email}:${touch}`, domain: emailDomain(base.email), scheduledAt: null });
       campaign.items.push(item); results.push(item);
@@ -3877,7 +3873,7 @@ const CareerOutreach = (() => {
     opts = opts || {}; const start = opts.startDateIso ? Date.parse(opts.startDateIso) : Date.now();
     const days = plan && plan.days ? plan.days : 0; const finish = new Date(start + Math.max(0, days - 1) * 86400000).toISOString().slice(0, 10);
     return { channel: CAPS.channel, daily_cap_start: dailyCapForDay(0), daily_cap_ceiling: CAPS.ceilingPerDay, ramp: `+${CAPS.rampStep} every ${CAPS.rampEveryDays} days, never above ${CAPS.ceilingPerDay}`,
-      per_domain_per_day: CAPS.perDomainPerDay, per_firm_per_30_days: CAPS.perFirmPer30Days, per_person: `${CAPS.perPersonInitial} initial + max ${CAPS.perPersonMaxFollowUps} follow-ups per ${CAPS.perPersonWindowDays} days`,
+      per_domain_per_day: CAPS.perDomainPerDay, per_firm_per_30_days: null, per_person: `${CAPS.perPersonInitial} initial + max ${CAPS.perPersonMaxFollowUps} follow-ups per ${CAPS.perPersonWindowDays} days`,
       scheduled: plan ? plan.scheduled : 0, deferred: plan ? plan.deferred.length : 0, days, start_date: new Date(start).toISOString().slice(0, 10), finish_date: finish,
       stop_rules: [`Bounce rate over ${CAPS.bounceBreakerRate * 100}% pauses the campaign`, `${CAPS.hostileBreakerCount} hostile/spam signals pause the campaign`, "Any provider warning pauses the campaign", "Any opt-out suppresses that person instantly, everywhere, forever", "Follow-up waves send only after your continue tap"],
       approval: "an approval covers only the exact messages you reviewed, within the scope you approved, until it lapses after 7 days; never general permission for the campaign, never messages you have not seen" };
@@ -8118,7 +8114,7 @@ const CareerGraph = (() => {
     const cold = (store.people || []).filter((p) => normCo(p.current_firm) === normCo(company) && !paths.some((x) => x.person_id === p.person_id) && !excluded.some((x) => x.person_id === p.person_id) && p.at_company !== false);
     const seq = paths.slice(0, n).map((p, i) => ({ order: i + 1, name: p.name, warmth: p.score, why: p.why, ask: "coffee chat first — referral ask never in email one", status: "queued_not_sent" }));
     for (const c of cold) { if (seq.length >= n) break; const w = rankWarmth(c, profile, opts); seq.push({ order: seq.length + 1, name: c.full_name, warmth: w.score, why: w.why.length ? w.why : ["cold — no shared fact on file"], ask: "coffee chat first — referral ask never in email one", status: "queued_not_sent" }); }
-    return { company, count: seq.length, requested: n, sequence: seq, excluded, rule: `Sequenced warm to cold; one person at a time, replies re-rank the rest; the per-firm cap — 15 sends to one firm in 30 days — is never approached by ${n === 8 ? "an" : "a"} ${n}-person sequence.` };
+    return { company, count: seq.length, requested: n, sequence: seq, excluded, rule: `Sequenced warm to cold; one person at a time, replies re-rank the rest; no per-firm send cap applies to it — every email you approve can go.` };
   }
 
   function referralBonusIntel(cirs, companies) {
@@ -14158,7 +14154,7 @@ const CareerRouter = (() => {
     const q = Outreach && Outreach.parseTarget ? Outreach.parseTarget(text, ctx.profile || {}) : null;
     if (q) {
       const facts = statedFactsOf(ctx);
-      const firmF = facts.find((f) => f.kind === "target_firm");
+      const firmF = facts.find((f) => f.kind === "target_firm" && (() => { const at = Date.parse(f.at); return !Number.isFinite(at) || nowOf(ctx) - at <= 6 * 3600 * 1000; })());
       const askedUniverse = (q.firms_named && q.firms.length) || q.firms_source === "set" || (q.proposed_default && q.proposed_default.kind === "category");
       const prior = ctx.plan && ctx.plan.kind === "campaign_plan" ? ctx.plan : null;
       const pointsBack = !!prior && /\b(?:there|that firm|same firm|same place)\b/i.test(s(text));
@@ -14171,9 +14167,10 @@ const CareerRouter = (() => {
       if (firmF && !askedUniverse && !anchored) {
         q.firms = [firmF.value]; q.firms_named = true; q.firms_source = "named"; q.firm_set = null; q.proposed_default = null; q.vague = false;
       }
-      const geoF = facts.find((f) => f.kind === "geography");
+      const fresh = (f) => { const at = Date.parse(f && f.at); return !Number.isFinite(at) || nowOf(ctx) - at <= 6 * 3600 * 1000; };
+      const geoF = facts.find((f) => f.kind === "geography" && fresh(f));
       if (geoF && !q.geography) q.geography = geoF.value;
-      const lvlF = facts.find((f) => f.kind === "level");
+      const lvlF = facts.find((f) => f.kind === "level" && fresh(f));
       if (lvlF && !q.seniority_band) {
         if (/analyst/i.test(lvlF.value)) q.seniority_band = "analyst";
         else if (/associate/i.test(lvlF.value)) q.seniority_band = "associate";
@@ -15747,6 +15744,39 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "There is no per-firm cap.", facts: ["Trainee sets no volume limit of its own: every email you approve to one firm can go, from your own Gmail.", "What stays: each email goes only as you approved it, nobody who said stop is written to again, and a bounced address is never retried."], nextStep: "Want the per-firm breakdown of the current list?" });
     const cap = { kind: "firm_cap", per_firm_cap: null, window_days: null, enforced_at: [], queue_refuses_nth: null };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: cap, artifact: cap };
+  }
+
+  const COLD_OPENER = /^(?:(?:so|ok|okay|hey|hi|and|now|also|please|pls)[, ]+)*(?:(?:who|which people)\s+(?:should|shall|can|could|do|would|might|ought)\s+i\s+(?:be\s+)?(?:network(?:ing)?|reach(?:ing)?\s+out|connect(?:ing)?|talk(?:ing)?|speak(?:ing)?|get(?:ting)?\s+in\s+touch)(?:\s+(?:with|to))?|(?:i\s+(?:want|need|would\s+like|'d\s+like|wanna)\s+to\s+|help\s+me\s+|can\s+you\s+help\s+me\s+|let'?s\s+)(?:start\s+)?network(?:ing)?(?:\s+(?:with|to))?|find\s+(?:me\s+)?(?:people|someone|contacts)\s+to\s+network\s+with|(?:i\s+(?:want|need|would\s+like|'d\s+like|wanna)\s+to\s+)?(?:reach|contact|connect\s+with|find|get|show)\s+(?:me\s+)?(?:some\s+)?(?=(?:people|someone|somebody|anyone|contacts|connections)\b)|(?:build|make|give)\s+me\s+a\s+networking\s+list)\b(.*)$/i;
+  const COLD_PEOPLE = /^(?:people|persons?|someone|somebody|anyone|anybody|folks|contacts|connections)\s+/i;
+  const COLD_EXTRA = /\d|\b(?:analysts?|associates?|bankers?|engineers?|recruiters?|founders?|alumni|alums|managers?|directors?|partners?|vps?|interns?|first|warm|cold|who|that|which|share|from my|as a|as an|because|so that|before|after|this|next|week|month|summer|fall|spring|winter)\b/i;
+  function handleColdNetworkingAsk(text, ctx) {
+    const raw = s(text).replace(/[\u2018\u2019]/g, "'").replace(/\s+/g, " ").trim().replace(/[?!.]+$/, "");
+    const m = COLD_OPENER.exec(raw);
+    if (!m) return null;
+    let rest = s(m[1]).trim();
+    rest = rest.replace(COLD_PEOPLE, "");
+    let firm = null, field = null;
+    if (rest) {
+      const at = /^(?:at|into|from)\s+(?:the\s+)?(.+)$/i.exec(rest);
+      const fld = /^(?:in|for|about|into)\s+(?:an?\s+|the\s+|my\s+)?(.+)$/i.exec(rest);
+      if (at && (/^at$/i.test(rest.split(" ")[0]) || /^[A-Z0-9]/.test(at[1]))) firm = at[1].trim();
+      else if (fld && /^into\b/i.test(rest)) return null;
+      else if (fld) field = fld[1].trim().replace(/\s+(?:jobs?|roles?|work|careers?|field|industry|internships?)$/i, "").trim();
+      else return null;
+      const target = firm || field;
+      if (!target || target.split(" ").length > 5 || /[,;:@/\\]/.test(target) || COLD_EXTRA.test(target) || /\b(?:in|near|around)\s+[A-Z]/.test(target)) return null;
+      if (field && /\b(?:sf|nyc|la|dc|london|remote)\b/i.test(field)) return null;
+    }
+    const where = firm ? ` at ${firm}` : field ? ` in ${field}` : "";
+    const headline = `I can build that from people you can actually reach${where}: your own LinkedIn export, names you paste, your school's alumni directory${firm ? `, or ${firm}'s team pages` : ", or firms' team pages"}.`;
+    const facts = ["Every name keeps its source, nobody is emailed on a guessed address, and each message waits for your approval before it goes."];
+    const nextStep = firm || field
+      ? "Easiest start: paste a few names you already know, upload your LinkedIn export, or tell me your school."
+      : "Easiest start: tell me a firm or field, paste a few names you already know, or upload your LinkedIn export.";
+    const reply = compose({ headline, facts, nextStep });
+    try { const q = Outreach && Outreach.parseTarget ? Outreach.parseTarget(text, {}) : null; if (q) persistPlan(ctx, text, q, q.count); } catch {   }
+    const rec = { kind: "networking_opener", firm, field, sources: ["linkedin_export", "pasted_names", "school_alumni_directory", "firm_team_pages"], asked_next: "names_or_export_or_school", sends: 0, committed: false };
+    return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec };
   }
 
   function handleFollowUpWave(text, ctx) {
@@ -21909,6 +21939,10 @@ const CareerRouter = (() => {
     if (/\breferral (ask|timing)\b|\bprepare the referral\b|\bask for (a )?referral\b/.test(t)) {
       const gr = handleGraphReferral(text, c);
       if (gr) return gr;
+    }
+    {
+      const cold = handleColdNetworkingAsk(text, c);
+      if (cold) return cold;
     }
     if (/\bdream (50|companies)\b|\bnetwork into\b/.test(t)) {
       const cp = handleCampaignPlan(text, c);

@@ -165,6 +165,7 @@ PY
 # (architect), with its companion Deno check of scripts/apply.ts. Core keeps every other step. Scheduling only,
 # as above: the steps and their commands are unchanged, and the union of core and architect is the old core.
 browser_node_tests=(
+  tests/career-apply-dryrun.test.cjs
   tests/career-approval-card-browser.test.cjs
   tests/career-dashboard-browser.test.cjs
   tests/career-extension-agent-submits.test.cjs

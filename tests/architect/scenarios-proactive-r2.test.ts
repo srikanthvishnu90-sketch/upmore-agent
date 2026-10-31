@@ -211,7 +211,7 @@ async function checkOverlap(s: OverlapScenario): Promise<{ why: string | null; g
     for (const key of keys) if (!eligible.includes(key)) return { why: `${u.id}: an alert for a posting that is not news to them`, got: key };
     const ch = s.change?.who === k ? s.change : null;
     const cap = ch?.what === "cap_down" ? ch.to : u.cap;
-    const room = ch?.what === "alerts_off" ? 0 : Math.max(0, Math.min(cap - u.sentToday, u.week - u.sentWeek));
+    const room = ch?.what === "alerts_off" ? 0 : Math.max(0, cap - u.sentToday);
     const want = Math.min(room, eligible.length);
     if (mine.length > room) return { why: `${u.id}: ${mine.length} alerts queued today; room for ${room} (cap ${cap}${ch ? ` after "${ch.what}"` : ""}, ${u.sentToday} already today; week ${u.week}, ${u.sentWeek} already) across ${s.runs.length} runs at once`, got: keys };
     if (!ch && mine.length < want) return { why: `${u.id}: ${mine.length} alerts, ${want} were due (room ${room}, ${eligible.length} news)`, got: keys };

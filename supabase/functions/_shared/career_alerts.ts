@@ -7,8 +7,7 @@
 //                  hours move an alert to the end of quiet hours in the person's zone; one report per local day at or
 //                  after their hour, with the last day's matches and the held ones, or a plain "no new matches"; a
 //                  posting published days before it was first seen (a new board's backlog) is never news (freshWhenSeen)
-//   no weekly cap (owner rule "no limits"): alerts are paced per day (max_instant_per_day) never by a count per week in the planner (the
-//                  database's career_alert_enqueue still holds a rolling-week count; see FEATURES.md 0a). max_per_week / sent_this_week are accepted and ignored.
+//   no weekly cap (owner rule "no limits"): alerts are paced per day (max_instant_per_day) never by a count per week, in the planner or in the database (career_alert_enqueue, 20261030160000). max_per_week / sent_this_week are accepted and ignored.
 //   F7 (fit)       with the person's fit to each posting (career_alert_fit.ts: 121 scoreFit over their confirmed facts,
 //                  the watch record's scoring_profile), the day's room goes to the best fits first (fit, then freshest),
 //                  and the fit floor holds: a posting their confirmed facts are knocked out of (a license, a clearance,

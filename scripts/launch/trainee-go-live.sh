@@ -239,6 +239,7 @@ MIGRATIONS=(
   20261030130000_billing_r2.sql
   20261030140000_career_apply_submit_worker.sql
   20261030150000_career_ingest_reread_gap.sql
+  20261030160000_referral_credit_service_only.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -357,6 +358,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'billing_sync_subscription' and pronargs = 13) and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'user_subscriptions' and column_name = 'live_subscriptions')"
   "exists (select 1 from pg_proc where proname = 'career_apply_close_unsendable') and exists (select 1 from pg_proc where proname = 'career_apply_submit_worker_install') and exists (select 1 from pg_proc where proname = 'career_apply_confirm_as' and prosrc like '%''driving''%')"
   "exists (select 1 from pg_proc where proname = 'career_board_state_claim' and pronargs = 4 and pg_get_functiondef(oid) like '%p_reread_gap_ms%')"
+  "exists (select 1 from pg_proc where proname = 'credit_pending_referral' and pg_get_functiondef(oid) like '%service-role only%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

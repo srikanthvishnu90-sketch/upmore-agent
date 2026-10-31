@@ -64,16 +64,114 @@ export function routerKept(env: Env): Set<string> {
   return new Set(String(env.get("CAREER_BRAIN_ROUTER_INTENTS") ?? "").split(/[\s,]+/).map((s) => s.trim()).filter(Boolean));
 }
 
-// A disposable copy of a turn's state for the probe: every plain value deep-copied, so nothing the router writes during
-// the probe reaches the real turn. A value that cannot be copied (an object holding a function, such as the batch
-// board seam) is copied one level. The probe's containment records are its own.
-export function probeCtx<T extends Record<string, unknown>>(ctx: T): T {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(ctx)) {
-    if (k === "containmentRecords") { out[k] = []; continue; }
-    try { out[k] = structuredClone(v); } catch { out[k] = v && typeof v === "object" ? (Array.isArray(v) ? [...v] : { ...(v as object) }) : v; }
+// A deep copy of the turn's state: plain objects and arrays all the way down (cycles kept), functions shared (they are
+// seams, not state), anything else structured-cloned or shared as is. The probe's writes can never reach the real
+// turn: probeCtx used to copy an object that holds a function one level only, so a probe of "resume my job alerts" resumed
+// the real alerts through the shared watch state (launch readiness 2026-10-26; tests/career-bundle-reachability.test.cjs
+// caught it on the pool probe).
+export function deepTurnCopy<T>(v: T, seen = new Map<unknown, unknown>()): T {
+  if (v === null || typeof v !== "object") return v;
+  if (seen.has(v)) return seen.get(v) as T;
+  if (Array.isArray(v)) { const out: unknown[] = []; seen.set(v, out); for (const x of v) out.push(deepTurnCopy(x, seen)); return out as T; }
+  const proto = Object.getPrototypeOf(v);
+  if (proto === Object.prototype || proto === null) {
+    const out: Record<string, unknown> = proto === null ? Object.create(null) : {};
+    seen.set(v, out);
+    for (const [k, x] of Object.entries(v as Record<string, unknown>)) out[k] = deepTurnCopy(x, seen);
+    return out as T;
   }
+  try { const c = structuredClone(v); seen.set(v, c); return c; } catch { return v; }
+}
+
+// A disposable copy of a turn's state for the probe: deep, so nothing the router writes during the probe reaches the real
+// turn, nested state included; functions (the batch board seam) are shared. The probe's containment records are its own.
+export function probeCtx<T extends Record<string, unknown>>(ctx: T): T {
+  const out = deepTurnCopy(ctx) as Record<string, unknown>;
+  out.containmentRecords = [];
   return out as T;
+}
+
+// An OPEN entry question ("how do I get hired as an investment banker", "how do I break into consulting", "how do I become
+// a data analyst"), from any stage, naming no company. The router answers it from the library: a posting-requirements
+// definition (company_intel, payload role_kb_stats / role_kb_absent) or a generic path list (path_plan, plan_paths). Neither
+// is a researched answer for this person, so with CAREER_KNOWLEDGE=on (the research tool exists) the brain takes it and calls
+// research_career_question. Company-specific asks never match here: the router gives them a company file or a campaign, and
+// a result carrying a company stays code's. "What do data analyst postings require?" is not an entry question: library.
+const ENTRY_VERB = String.raw`(?:get\s+hired|get\s+a\s+job|get\s+an?\s+(?:internship|offer|entry)|get\s+into|get\s+started\s+(?:as|in)|break\s+into|breaking\s+into|become|becoming|be\s+an?|work\s+as|work\s+in|go\s+into|enter|pursue|qualify\s+as|train\s+as|switch\s+(?:in)?to|land\s+an?|start\s+a\s+career)`;
+const OPEN_ENTRY_RES: RegExp[] = [
+  // "how do I get hired as ...", "how to break into ...", "what should I do to land a job as ..."
+  new RegExp(String.raw`\b(?:how\s+(?:do|can|would|should|could)\s+(?:i|we|someone|a\s+\w+)|how\s+to|what(?:'s|\s+is)\s+the\s+(?:best\s+)?way\s+to|what\s+should\s+i\s+do\s+to|where\s+do\s+i\s+(?:even\s+)?start\s+(?:to|if\s+i\s+want\s+to))\b[^?.!]*\b${ENTRY_VERB}\b`, "i"),
+  // "what does it take to become ...", "how long does it take to become ...", "what's the path to becoming ..."
+  new RegExp(String.raw`\b(?:what\s+(?:does|would|will)\s+it\s+take|how\s+(?:long|hard|much\s+school)\s+(?:does|would|will|is)\s+it(?:\s+take)?|what(?:'s|\s+is)\s+the\s+(?:best\s+)?(?:path|route|road|process|steps?))\b[^?.!]*\b(?:to|into)\s+${ENTRY_VERB}\b`, "i"),
+  new RegExp(String.raw`\bwhat(?:'s|\s+is)\s+the\s+(?:best\s+)?(?:path|route|road|process)\s+(?:to|into)\b[^?.!]*\b(?:becoming|being|a\s+career|an?\s+\w+)`, "i"),
+  // "where do I even start if I want to be a nurse", "I want to become a nurse, where do I start"
+  /\bwhere\s+(?:do\s+i|should\s+i)\s+(?:even\s+)?(?:start|begin)\b[^?.!]*\b(?:want\s+to|trying\s+to|hoping\s+to)\s+(?:be|become|work|get|break)\b/i,
+  new RegExp(String.raw`\b(?:want|wanna|hoping|planning|trying|thinking\s+(?:of|about))\s+(?:to\s+)?${ENTRY_VERB}\b[^?.!]*[?.!]?\s*(?:where|how|what)\b[^?.!]*\b(?:start|begin|first|next)\b`, "i"),
+  // "do I need a degree to be a ...", "is it too late for me to become ...", "how many years of school to be ..."
+  new RegExp(String.raw`\b(?:do\s+i\s+(?:really\s+)?need|does\s+it\s+take|is\s+it\s+too\s+late(?:\s+for\s+me)?|am\s+i\s+too\s+(?:old|late))\b[^?.!]*\bto\s+${ENTRY_VERB}\b`, "i"),
+  // "is nursing worth it", "is a career in law a good bet", "is it worth becoming an electrician"
+  /\bis\s+(?:a\s+career\s+in\s+|being\s+an?\s+|becoming\s+an?\s+)?[a-z][^?.!,]{1,50}?\s+(?:worth\s+(?:it|doing|pursuing)|a\s+good\s+(?:career|field|major|bet|path|choice|job|profession))\b/i,
+  /\bis\s+it\s+worth\s+(?:it\s+)?(?:to\s+)?(?:becoming|become|being|going\s+into|studying|majoring)\b/i,
+  // "should I major in X", "should I go into X", "should I become X"
+  /\bshould\s+i\s+(?:still\s+)?(?:major|minor|study|specialize|concentrate)\s+in\b/i,
+  new RegExp(String.raw`\bshould\s+i\s+(?:still\s+)?(?:go\s+(?:into|to\s+school\s+for)|pursue|become|be\s+an?|enter|switch\s+(?:in)?to|train\s+as)\b`, "i"),
+];
+// The broad shapes ("be a ...", "is ... worth it", "should I go into ...") also fit "be a Googler" and "work at Stripe". A
+// capitalized name is a COMPANY only when (a) it is a known employer or brand, or (b) it follows at/for/with/from and is not a
+// place, school or service branch. Everything else (a state, a city we never listed, "nurse in Wichita Falls", "nursing at Ohio
+// State", "pharmacist in Puerto Rico") stays an open question: when we cannot tell, the brain takes it, and the research tool and
+// the source guard make that safe (no company fact comes from the model). The router still claims real company asks first.
+const words = (s: string) => new Set(s.toLowerCase().split(/\s+/).filter(Boolean));
+const KNOWN_COMPANIES = words(("google alphabet amazon apple microsoft meta facebook instagram whatsapp netflix tesla spacex nvidia intel amd qualcomm broadcom cisco ibm oracle sap salesforce adobe intuit uber lyft doordash instacart airbnb stripe square block paypal venmo coinbase robinhood plaid ramp brex palantir snowflake databricks datadog mongodb openai anthropic deepmind spotify twitter linkedin snap snapchat pinterest reddit tiktok bytedance dropbox slack zoom shopify twilio cloudflare atlassian github gitlab figma notion canva asana okta splunk vmware dell hp lenovo samsung sony ibm " +
+  "goldman sachs morgan stanley jpmorgan chase citi citigroup citibank wells fargo barclays deutsche ubs lazard evercore moelis centerview blackstone kkr carlyle apollo citadel jane street blackrock vanguard fidelity schwab visa mastercard amex capital one mckinsey bain bcg deloitte pwc kpmg accenture capgemini booz allen oliver wyman kearney guidehouse " +
+  "lockheed boeing raytheon northrop grumman spacex airbus ford toyota honda gm chevrolet bmw volkswagen walmart target costco kroger walgreens cvs home depot lowes nike adidas starbucks mcdonalds disney comcast verizon att tmobile " +
+  "unitedhealth kaiser mayo hca cigna aetna humana pfizer moderna merck johnson abbvie genentech exxon chevron shell bp conocophillips ge honeywell caterpillar deere fedex ups usps " +
+  "googler googlers amazonian amazonians microsoftie facebooker stripe stripes metamate").replace(/ (?=\w)/g, " "));
+const SCHOOL_WORD = /^(?:university|college|institute|academy|school|state|tech|polytechnic|seminary|conservatory|cc)$/i;
+const PLACE_WORDS = words(("alabama alaska arizona arkansas california colorado connecticut delaware florida georgia hawaii idaho illinois indiana iowa kansas kentucky louisiana maine maryland massachusetts michigan minnesota mississippi missouri montana nebraska nevada hampshire jersey mexico york carolina dakota ohio oklahoma oregon pennsylvania rhode island tennessee texas utah vermont virginia washington wisconsin wyoming columbia puerto rico guam " +
+  "canada ontario toronto vancouver montreal quebec alberta britain england scotland wales ireland london india australia germany france spain italy china japan korea singapore nigeria brazil netherlands europe asia africa america american canadian british indian united states kingdom emirates zealand philippines pakistan kenya ghana israel turkey poland sweden norway denmark finland switzerland " +
+  "atlanta austin boston chicago dallas denver detroit houston miami nashville orlando philadelphia phoenix pittsburgh portland sacramento seattle tampa angeles francisco diego jose vegas orleans louis paul antonio baltimore charlotte columbus cleveland minneapolis brooklyn manhattan queens bronx fresno wichita falls tucson omaha raleigh richmond memphis louisville milwaukee albuquerque oakland tulsa honolulu anchorage boise spokane tacoma madison buffalo rochester albany syracuse cincinnati indianapolis kansas lincoln lexington savannah charleston jacksonville tallahassee birmingham mobile jackson shreveport lubbock amarillo laredo reno provo salt lake cheyenne billings fargo sioux bismarck duluth akron toledo dayton scranton harrisburg hartford providence newark trenton stamford bridgeport worcester springfield manchester burlington bangor " +
+  "army navy marines marine force guard coast air space military").replace(/\s+/g, " "));
+const CAP_SEQ = /\b[A-Z][a-z]+[A-Z]?\w*(?:\s+(?:of\s+)?[A-Z][a-z]+\w*)*/g;
+// A place, a school or a service branch ("Ohio State", "Puerto Rico", "University of Texas"), never a known employer.
+export function placeOrSchool(name: string): boolean {
+  const toks = name.split(/\s+/).filter((t) => t && t.toLowerCase() !== "of");
+  const lower = toks.map((t) => t.toLowerCase());
+  if (lower.some((t) => KNOWN_COMPANIES.has(t))) return false;
+  return lower.some((t) => PLACE_WORDS.has(t)) || toks.some((t) => SCHOOL_WORD.test(t)) || /\bof\b/i.test(name);
+}
+export function namesSomeone(span: string): boolean {
+  const rest = span.replace(/^\S+\s*/, "");
+  for (const m of rest.matchAll(CAP_SEQ)) {
+    const seq = m[0], toks = seq.split(/\s+/).filter((t) => t !== "of");
+    if (toks.every((t) => t.length < 3)) continue;
+    const lower = toks.map((t) => t.toLowerCase());
+    const stem = (t: string) => t.replace(/(?:ers|er|s)$/, "");
+    if (lower.some((t) => KNOWN_COMPANIES.has(t) || KNOWN_COMPANIES.has(stem(t)))) return true;
+    const before = rest.slice(0, m.index).trimEnd().split(/\s+/).pop()?.toLowerCase() ?? "";
+    const afterPrep = /^(?:at|for|with|from)$/.test(before);
+    if (afterPrep && !placeOrSchool(seq)) return true;
+  }
+  return false;
+}
+const OPEN_ENTRY = { test: (m: string) => OPEN_ENTRY_RES.some((r) => { const x = r.exec(m); return !!x && !namesSomeone(m.slice(x.index).split(/[?.!]/)[0]); }) };
+const OPEN_ENTRY_KINDS = new Set(["role_kb_stats", "role_kb_absent", "plan_paths"]);
+export function openCareerQuestion(env: Env, message: string, intent: string, result: unknown): boolean {
+  if (env.get("CAREER_KNOWLEDGE") !== "on") return false;
+  // career_os_plan ("the path from freshman to null") and profile_recall (a self-statement such as "I'm on F-1" swallows the
+  // question) are the router's generic misses on the same open questions: they carry no library answer, so the brain takes them.
+  const GENERIC_MISS = intent === "career_os_plan" || intent === "profile_recall";
+  if (intent !== "company_intel" && intent !== "path_plan" && !GENERIC_MISS) return false;
+  if (!OPEN_ENTRY.test(message)) return false;
+  const r = (result && typeof result === "object" ? result : {}) as Record<string, any>;
+  // The router sometimes reads "at home" or "at night" as a company ("home has no company file yet"). A company the person never
+  // capitalized and that is an everyday word is not one: the question is still open.
+  const co = typeof r.company === "string" ? r.company : null;
+  const spurious = !!co && String(r.payload?.kind ?? "") === "company_file_absent" && (
+    (co === co.toLowerCase() && /^[a-z]{2,12}$/.test(co) && !new RegExp(`\\b${co[0].toUpperCase()}${co.slice(1)}`).test(message)) || placeOrSchool(co));
+  if ((has(r, "company") && !spurious) || has(r, "comparison") || has(r, "offer")) return false;
+  if (GENERIC_MISS || spurious) return true;
+  return OPEN_ENTRY_KINDS.has(String(r.payload?.kind ?? r.artifact?.kind ?? ""));
 }
 
 export type StagedDecision = { brain: boolean; mode: BrainMode; intent: string | null; reason: string };
@@ -96,6 +194,7 @@ export function stagedDecision(o: { env: Env; message: string; ctx: Record<strin
   } else intent = probe.intent ?? null;
   if (!intent) return { brain: false, mode, intent: null, reason: "router_claimed" };
   if (routerKept(o.env).has(intent)) return { brain: false, mode, intent, reason: "kept_on_router" };
+  if (openCareerQuestion(o.env, o.message, intent, probe.result)) return { brain: true, mode, intent, reason: "open_career_question" };
   if (!STAGED_BRAIN_INTENTS.includes(intent)) return { brain: false, mode, intent, reason: "action" };
   if (codeProduct(intent, probe.result)) return { brain: false, mode, intent, reason: "code_product" };
   return { brain: true, mode, intent, reason: "question" };

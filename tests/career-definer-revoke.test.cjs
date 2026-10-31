@@ -14,7 +14,7 @@ const assert = require("node:assert/strict");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { scan, scanText, definersIn, argTypes, hasReviewedMarker, stripLiterals, REVIEWED_MARKER } = require("../scripts/launch/definer-revoke-scan.cjs");
+const { scan, scanText, definerKeys, definersIn, argTypes, hasReviewedMarker, stripLiterals, REVIEWED_MARKER } = require("../scripts/launch/definer-revoke-scan.cjs");
 
 // FROZEN (2026-10-26): the exact set, not a count. An entry may only be removed, when the scan no longer finds it
 // (the test then requires its removal); nothing may be added; swapping one entry for another fails (the swap test).
@@ -66,6 +66,17 @@ function againstFrozen(dir) {
   const all = scan(dir).map((x) => `${x.file} ${x.key}`);
   return { fresh: all.filter((m) => !GRANDFATHERED.includes(m)), stale: GRANDFATHERED.filter((g) => !all.includes(g)) };
 }
+// The structural rule, one function for the real directory and for every fixture: grandfathered files that sort at or after
+// the lockdown (late), grandfathered files that do not exist (missing), and findings in any file at or after the lockdown,
+// whatever the list says (after).
+function structuralViolations(grandfathered, dir) {
+  const files = grandfathered.map((g) => g.split(" ")[0]);
+  return {
+    late: files.filter((f) => !(f < LOCKDOWN_FILE)),
+    missing: [...new Set(files)].filter((f) => !fs.existsSync(path.join(dir, f))),
+    after: scan(dir).filter((x) => !(x.file < LOCKDOWN_FILE)).map((x) => `${x.file} ${x.key}`),
+  };
+}
 const findings = (sql) => scanText("fixture.sql", sql).map((x) => [x.key, x.why]);
 const DEF = (name = "public.f", args = "p_user uuid") =>
   `create or replace function ${name}(${args}) returns void language plpgsql security definer set search_path = public as $$ begin end $$;\n`;
@@ -79,23 +90,20 @@ test("every migration that makes a SECURITY DEFINER function revokes it from pub
 
 test("the frozen set is structurally closed: every grandfathered file sorts before the lockdown migration, and no later file has a finding", () => {
   assert.ok(fs.existsSync(path.join(MIGRATIONS, LOCKDOWN_FILE)), "the lockdown migration is the line the freeze is drawn at");
-  const files = GRANDFATHERED.map((g) => g.split(" ")[0]);
-  const late = files.filter((f) => !(f < LOCKDOWN_FILE));
-  assert.deepEqual(late, [], `grandfathered files must sort before ${LOCKDOWN_FILE}: ${late.join("; ")}`);
-  for (const f of new Set(files)) assert.ok(fs.existsSync(path.join(MIGRATIONS, f)), `${f} is grandfathered but is not a migration`);
-  // Independent of the list: nothing at or after the lockdown may have a finding at all.
-  const after = scan(MIGRATIONS).filter((x) => !(x.file < LOCKDOWN_FILE));
-  assert.deepEqual(after.map((x) => `${x.file} ${x.key}`), [], "a migration at or after the lockdown carries its own revoke");
+  assert.deepEqual(structuralViolations(GRANDFATHERED, MIGRATIONS), { late: [], missing: [], after: [] });
 });
 
-test("the structural freeze catches a leaky file added after the lockdown even when it is listed as grandfathered", () => {
+test("the structural rule refuses a late or missing grandfathered file, and finds a late leak whatever the list says", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "definer-late-"));
   for (const f of fs.readdirSync(MIGRATIONS)) if (f.endsWith(".sql")) fs.copyFileSync(path.join(MIGRATIONS, f), path.join(dir, f));
   fs.writeFileSync(path.join(dir, "20991231000000_late_leaky.sql"), DEF("public.late_leaky", "p text") + "revoke all on function public.late_leaky(text) from public;\n");
-  const grandfathered = [...GRANDFATHERED, "20991231000000_late_leaky.sql late_leaky(text)"];   // what an editor of the list would do
-  assert.deepEqual(grandfathered.map((g) => g.split(" ")[0]).filter((f) => !(f < LOCKDOWN_FILE)), ["20991231000000_late_leaky.sql"], "the filename rule refuses the entry");
-  assert.deepEqual(scan(dir).filter((x) => !(x.file < LOCKDOWN_FILE)).map((x) => `${x.file} ${x.key}`), ["20991231000000_late_leaky.sql late_leaky(text)"],
-    "and the list-independent scan still finds the leak");
+  // What an editor of the list would do to admit the leak, plus an entry naming a file that is not there.
+  const grandfathered = [...GRANDFATHERED, "20991231000000_late_leaky.sql late_leaky(text)", "20200101000000_gone.sql g()"];
+  assert.deepEqual(structuralViolations(grandfathered, dir), {
+    late: ["20991231000000_late_leaky.sql"],
+    missing: ["20200101000000_gone.sql"],
+    after: ["20991231000000_late_leaky.sql late_leaky(text)"],
+  });
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
@@ -234,4 +242,31 @@ test("strings: a revoke, a marker or a comment opener inside a string or a dolla
   assert.deepEqual(findings("select '-- definer-scan: dynamic function DDL reviewed'; do $$ begin execute 'create function public.z() returns int language sql security definer as ''select 1'''; end $$;"),
     [["(dynamic)", "dynamic SQL creates or alters a function"]], "a marker inside a string is not a review");
   assert.equal(stripLiterals("select 'a -- b', $t$ c /* d $t$, \"e--f\" -- g\n h"), "select '', $t$$t$, \"e--f\"  \n h");
+});
+
+test("a SECURITY DEFINER function made inside a DO block, with no EXECUTE anywhere, is read and needs its revoke", () => {
+  const inDo = "do $$ begin\n  create or replace function public.d(p text) returns text language sql security definer set search_path = public as $f$ select p $f$;\nend $$;\n";
+  assert.doesNotMatch(inDo, /\bexecute\b/i);
+  assert.deepEqual(findings(inDo), [["d(text)", "no revoke from public and anon"]]);
+  assert.deepEqual(findings(inDo + "revoke all on function public.d(text) from public, anon;"), [], "a file-level revoke covers it");
+  assert.deepEqual(findings("do $$ begin\n  create function public.d(p text) returns text language sql security definer as $f$ select p $f$;\n" +
+    "  revoke all on function public.d(text) from public, anon;\nend $$;"), [["d(text)", "no revoke from public and anon"]], "a revoke inside the block does not count");
+  assert.deepEqual(findings("do language plpgsql $b$ begin alter function public.g(text) security definer; end $b$;"), [["g(text)", "no revoke from public and anon"]],
+    "DO LANGUAGE ... and ALTER ... SECURITY DEFINER inside it");
+  assert.deepEqual(findings("do $$ begin if to_regprocedure('public.a(uuid)') is not null then alter function public.a(uuid) rename to a_base; end if; end $$;"), [],
+    "a rename inside a DO block (as three migrations do) is not a definer");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "definer-do-"));
+  fs.writeFileSync(path.join(dir, "20991231000000_do.sql"), inDo);
+  assert.deepEqual(definerKeys(dir), [["20991231000000_do.sql", "public", "d", "text"]], "tests/db/run.sh's definer-keys list has it, so the suite must build it");
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("function DDL inside a function body or a string is refused without an EXECUTE in the file", () => {
+  const body = "create function public.maker() returns void language plpgsql set search_path = public as $m$ begin\n" +
+    "  create function public.made() returns int language sql security definer as $i$ select 1 $i$;\nend $m$;\n";
+  assert.doesNotMatch(body, /\bexecute\b/i);
+  assert.deepEqual(findings(body), [["(dynamic)", "dynamic SQL creates or alters a function"]], "static DDL in a body runs when the function is called");
+  assert.deepEqual(findings("select 'create function public.x() returns int language sql security definer as $$ select 1 $$';"),
+    [["(dynamic)", "dynamic SQL creates or alters a function"]], "in a string");
+  assert.deepEqual(findings("-- definer-scan: dynamic function DDL reviewed (maker builds made; checked)\n" + body), [], "the reviewed marker");
 });

@@ -7,8 +7,7 @@
 //                  hours move an alert to the end of quiet hours in the person's zone; one report per local day at or
 //                  after their hour, with the last day's matches and the held ones, or a plain "no new matches"; a
 //                  posting published days before it was first seen (a new board's backlog) is never news (freshWhenSeen)
-//   WO-037         a weekly cap on top of the daily one: no more than the person's max_per_week (default 15, at most 25)
-//                  alerts in any rolling 7 days (sent_this_week, counted from the outbox by the run); past it, held.
+//   no weekly cap (owner rule "no limits"): alerts are paced per day (max_instant_per_day) never by a count per week, in the planner or in the database (career_alert_enqueue, 20261030180000). max_per_week / sent_this_week are accepted and ignored.
 //   F7 (fit)       with the person's fit to each posting (career_alert_fit.ts: 121 scoreFit over their confirmed facts,
 //                  the watch record's scoring_profile), the day's room goes to the best fits first (fit, then freshest),
 //                  and the fit floor holds: a posting their confirmed facts are knocked out of (a license, a clearance,
@@ -22,7 +21,7 @@ export interface AlertPrefs {
   on: boolean; keywords: string[]; locations: string[]; remote_ok: boolean;
   report_hour: number; quiet_start: number; quiet_end: number; max_instant_per_day: number;
   floor?: Floor; // the person's stated relevance floor (C-04); absent means nothing is hidden
-  max_per_week?: number; // WO-037: alerts in any rolling 7 days; absent means WEEKLY_DEFAULT
+  max_per_week?: number; // ignored: there is no weekly cap
   min_fit?: number; // F7: the lowest fit score (0-100) the person wants alerted; absent means only knockouts are held back
   // The watches the person set by text (career_watch_alerts.ts), each matched on its own: a posting is news when it
   // fits one watch whole (its role, its places, its floor, its firms), never one watch's role in another's city.
@@ -36,6 +35,9 @@ export interface PlanUser {
   last_report_on: string | null; // YYYY-MM-DD in the person's zone
   held?: string[]; // job_ids the daily cap held back
   sent_this_week?: number; // WO-037: alerts queued for delivery in the last 7 days (the run counts them from the outbox)
+  // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): the jobs (twinKey) of alerts already queued for the person: the same job
+  // seen again on another board is not news.
+  alerted_twins?: string[];
 }
 export type Planned =
   | { userId: string; kind: "alert"; key: string; at: number; job_id: string; text: string }
@@ -64,15 +66,45 @@ function byFit(fits: Map<string, AlertFit> | undefined) {
 
 export const DEFAULT_PREFS: AlertPrefs = { on: true, keywords: [], locations: [], remote_ok: true, report_hour: 8, quiet_start: 22, quiet_end: 7, max_instant_per_day: 3 };
 export const MAX_INSTANT_PER_DAY = 10, REPORT_LIMIT = 10;
-export const WEEKLY_DEFAULT = 15, WEEKLY_MAX = 25;
-export const weeklyCap = (p: AlertPrefs) => Math.max(0, Math.min(WEEKLY_MAX, Math.floor(p.max_per_week ?? WEEKLY_DEFAULT)));
+export const WEEKLY_MAX = 25; // only the bound the settings validator still accepts for the ignored max_per_week
 const DAY = 86400000;
 
-const words = (s: unknown) => String(s ?? "").toLowerCase().split(/[^a-z0-9+#]+/).filter(Boolean);
+// PROACTIVE SCENARIOS ROUND 2 (2026-10-30): what a phone does not show is not part of a posting's words. Zero-width and
+// direction characters are dropped before a title is matched or quoted: "Data​Analyst" reads "DataAnalyst", and a
+// right-to-left override (U+202E) in a title turned "gnp.exe" into "exe.png" on the person's screen inside an alert.
+const FORMAT_CHARS = /[­​-‏‪-‮⁠-⁤⁦-⁩﻿]/g;
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/g;
+const words = (s: unknown) => String(s ?? "").replace(FORMAT_CHARS, "").toLowerCase().split(/[^a-z0-9+#]+/).filter(Boolean);
 // Postgres hands timestamps back as "+00:00", the feed as "Z": compare instants, never strings.
 const ms = (t: unknown) => { const n = Date.parse(String(t ?? "")); return Number.isFinite(n) ? n : NaN; };
-// Posting fields are other people's text: one line, bounded, before they go into a message.
-const clean = (s: unknown, n: number) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+// Posting fields are other people's text: one line, bounded, before they go into a message. PROACTIVE SCENARIOS ROUND 2
+// (2026-10-30): and only their visible words. A board's markup ("<b>Data Analyst</b> <a href=...>apply</a>", a <script>,
+// an <img onerror=...>) went into the alert and the daily report as written, and the dashboard's feed reads the same rows;
+// invisible direction and control characters went in too. Markup is dropped (a script or style element with its content),
+// invisible characters are dropped, control characters read as spaces.
+export function postingText(s: unknown, n: number): string {
+  return String(s ?? "")
+    .replace(/<\s*(script|style)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, " ")
+    .replace(/<\s*\/?\s*[a-z][^>]*>/gi, " ")
+    .replace(FORMAT_CHARS, "").replace(CONTROL_CHARS, " ")
+    .replace(/\s+/g, " ").trim().slice(0, n).trim();
+}
+const clean = postingText;
+// The same job on two boards (a company that posts on Greenhouse and on Lever, each with its own id and sometimes its own
+// pay): one job to the person. Its board (provider:board, from the job id) and its company, title and place as the person
+// would read them. Two postings alike on ONE board are two openings (two requisitions), never twins.
+export const twinKey = (p: any) => `${String(p?.job_id ?? "").split(":").slice(0, 2).join(":")}|${[p?.company, p?.title, p?.location].map((x) => clean(x, 200).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()).join("|")}`;
+const sourceOf = (k: string) => k.slice(0, k.indexOf("|"));
+const jobOf = (k: string) => k.slice(k.indexOf("|") + 1);
+// Whether a posting (its twinKey) is the same job as one already taken from another board.
+function twinOf(taken: Map<string, Set<string>>, k: string): boolean {
+  const from = taken.get(jobOf(k));
+  return !!from && [...from].some((s) => s !== sourceOf(k));
+}
+function take(taken: Map<string, Set<string>>, k: string) {
+  if (!taken.has(jobOf(k))) taken.set(jobOf(k), new Set());
+  taken.get(jobOf(k))!.add(sourceOf(k));
+}
 const httpsUrl = (u: unknown) => (/^https:\/\/\S+$/.test(String(u ?? "")) ? String(u) : null);
 
 export function matchPosting(p: any, prefs: AlertPrefs): boolean {
@@ -97,9 +129,47 @@ function fits(p: any, w: { keywords: string[]; locations: string[]; remote_ok: b
   return regionDecision(p, w, placeOk).ok;
 }
 
+// PROACTIVE SCENARIOS (2026-10-29): the zone a person's clock is read in. A zone the runtime does not know ("Pacific Time",
+// a typo, an empty string: the table checks only its length) or none at all is read as the default zone, the one the table
+// and the settings tool start from; it never throws. One person's unknown zone used to throw a RangeError out of the whole
+// alerts run (and the digest, cards, questions and asks rails), so nobody got anything that run.
+export const DEFAULT_ZONE = "America/New_York";
+const zoneOk = new Map<string, boolean>();
+export function zoneOr(tz: unknown, fallback = DEFAULT_ZONE): string {
+  if (typeof tz !== "string" || !tz || tz.length > 64) return fallback;
+  let ok = zoneOk.get(tz);
+  if (ok === undefined) {
+    try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); ok = true; } catch { ok = false; }
+    if (zoneOk.size < 1000) zoneOk.set(tz, ok);
+  }
+  return ok ? tz : fallback;
+}
+// The person's local date (YYYY-MM-DD) at an instant, in their zone (zoneOr).
+export const localDay = (at: number, tz: unknown) => local(at, zoneOr(tz)).date;
+// The first instant of the person's local day (on the minute; a day that starts inside a daylight-saving jump starts at
+// its first minute that exists).
+export function localDayStart(at: number, tz: unknown): number {
+  const zone = zoneOr(tz), day = local(at, zone).date;
+  let t = Math.floor(at / 60000) * 60000;
+  const l = local(t, zone);
+  t -= (l.hour * 60 + l.minute) * 60000;
+  // a daylight-saving change between midnight and `at` leaves t an hour off: step to the day's first minute
+  while (local(t, zone).date === day && local(t - 60000, zone).date === day) t -= 15 * 60000;
+  while (local(t, zone).date !== day) t += 60000;
+  return t;
+}
 // The person's local date, hour and minute at an instant.
+// One formatter per zone, kept (2026-10-30): building an Intl.DateTimeFormat is the expensive part (ICU loads the zone's
+// rules), and nextAwake asks the clock up to ~100 times per person per run; the answer is the same either way.
+const localFmt = new Map<string, Intl.DateTimeFormat>();
 function local(at: number, tz: string): { date: string; hour: number; minute: number } {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(at));
+  const zone = zoneOr(tz);
+  let fmt = localFmt.get(zone);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+    if (localFmt.size < 1000) localFmt.set(zone, fmt);
+  }
+  const parts = fmt.formatToParts(new Date(at));
   const g = (t: string) => parts.find((x) => x.type === t)?.value ?? "0";
   return { date: `${g("year")}-${g("month")}-${g("day")}`, hour: Number(g("hour")) % 24, minute: Number(g("minute")) };
 }
@@ -107,11 +177,14 @@ const isQuiet = (hour: number, p: AlertPrefs) =>
   p.quiet_start === p.quiet_end ? false : p.quiet_start > p.quiet_end ? hour >= p.quiet_start || hour < p.quiet_end : hour >= p.quiet_start && hour < p.quiet_end;
 // Whether an instant falls in the person's quiet hours, in their zone.
 export const quietAt = (at: number, tz: string, p: Pick<AlertPrefs, "quiet_start" | "quiet_end">) => isQuiet(local(at, tz).hour, p as AlertPrefs);
-// The first instant at or after `from` when the person's clock reads hour:00. Steps of 15 minutes, so zones on a half or
+// The first instant at or after `from` outside the person's quiet hours. Steps of 15 minutes, so zones on a half or
 // quarter hour (India, Nepal) land on their own hour, and a daylight-saving jump is crossed rather than assumed.
-function nextLocal(from: number, tz: string, hour: number): number {
+// PROACTIVE SCENARIOS (2026-10-29): it looked for the instant the clock reads quiet_end:00; on the night the clocks spring
+// forward over that hour (quiet until 2, New York, March 8) there is no 2:00, and an alert found at 23:00 waited until
+// 2:00 the night after, 27 hours late. Now the first quarter hour that is not quiet (3:00 that night).
+export function nextAwake(from: number, tz: string, p: Pick<AlertPrefs, "quiet_start" | "quiet_end">): number {
   const start = Math.ceil(from / 900000) * 900000;
-  for (let t = start; t < from + 2 * DAY; t += 900000) { const l = local(t, tz); if (l.hour === hour && l.minute === 0) return t; }
+  for (let t = start; t < from + 2 * DAY; t += 900000) if (!isQuiet(local(t, tz).hour, p as AlertPrefs)) return t;
   return from;
 }
 function ago(mins: number) { return mins < 1 ? "under a minute ago" : mins < 120 ? `${mins} min ago` : `${Math.round(mins / 60)} hours ago`; }
@@ -130,10 +203,16 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
       .filter((p) => ms(p.first_seen_at) >= since && freshWhenSeen(p) && matchPosting(p, prefs) && floorOk(p))
       .sort(byFit(fits));
     const dayRoom = Math.min(MAX_INSTANT_PER_DAY, Math.floor(prefs.max_instant_per_day)) - Math.max(0, u.instant_sent_today | 0);
-    const weekRoom = weeklyCap(prefs) - Math.max(0, Number(u.sent_this_week ?? 0));
-    let room = Math.max(0, Math.min(dayRoom, Number.isFinite(weekRoom) ? weekRoom : 0));
-    const at = isQuiet(l.hour, prefs) ? nextLocal(o.now, u.tz, prefs.quiet_end) : o.now;
+    let room = Math.max(0, dayRoom);
+    const at = isQuiet(l.hour, prefs) ? nextAwake(o.now, u.tz, prefs) : o.now;
+    // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): one alert per job. The same job on two boards (its own id on each, other
+    // pay) was two alerts, and took two of the day's places.
+    const twins = new Map<string, Set<string>>();
+    for (const k of u.alerted_twins ?? []) take(twins, k);
     for (const p of fresh) {
+      const twin = twinKey(p);
+      if (twinOf(twins, twin)) continue;
+      take(twins, twin);
       if (room <= 0) { out.push({ userId: u.id, kind: "held", job_id: p.job_id }); continue; }
       room--;
       const mins = Math.max(0, Math.floor((o.now - ms(p.first_seen_at)) / 60000));
@@ -143,15 +222,20 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
     // The daily report: once per local day, at or after the person's hour.
     if (l.hour >= prefs.report_hour && u.last_report_on !== l.date) {
       const held = new Set(u.held || []);
+      const listed = new Map<string, Set<string>>();
       const day = o.postings
         .filter((p) => matchPosting(p, prefs) && floorOk(p) && ((ms(p.first_seen_at) > o.now - DAY && freshWhenSeen(p)) || held.has(p.job_id)))
-        .sort(byFit(fits));
+        .sort(byFit(fits))
+        .filter((p) => { const t = twinKey(p); if (twinOf(listed, t)) return false; take(listed, t); return true; });
       const text = day.length
         ? [`Your daily job report: ${day.length} match${day.length === 1 ? "" : "es"} in the last day.`,
            ...day.slice(0, REPORT_LIMIT).map((p) => `- ${line(p)}\n  ${httpsUrl(p.url)}`),
            ...(day.length > REPORT_LIMIT ? [`…and ${day.length - REPORT_LIMIT} more. Ask me for the rest.`] : [])].join("\n")
         : "Your daily job report: no new matches in the last day. I'm still watching.";
-      out.push({ userId: u.id, kind: "report", key: `report:${l.date}`, at: o.now, text });
+      // PROACTIVE SCENARIOS (2026-10-29): the report waits out quiet hours like an alert. It went at the run's own time, so
+      // a report hour inside quiet hours (report at 23, quiet from 22), or a run that caught up late in the evening, texted
+      // the person in the middle of their quiet hours.
+      out.push({ userId: u.id, kind: "report", key: `report:${l.date}`, at, text });
     }
   }
   return out;

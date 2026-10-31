@@ -13,7 +13,23 @@
 // Each stamped fact names a persisted fact_confirmed event (this person, now, their own message's hash, the upload's
 // reference and hash, the hash of what was shown) and carries an owner provenance. An event that cannot be recorded stamps
 // nothing: the fact reads as needs-review, never as evidenced (the brain's rule, career_tools.ts confirm_profile_fact).
-import { type EventStore, recordEvent } from "./agent/timeline.ts";
+// agent-chat passes heldEvents() below, so the events persist with the turn's commit or not at all (KNOWN GAPS,
+// 2026-10-30: the stated facts' events below and the brain's confirm_profile_fact are held the same way).
+import { type CareerEvent, type EventStore, recordEvent } from "./agent/timeline.ts";
+
+// RESUME CONFIRM RACE (2026-10-30, migration 20261030060000): the confirmation's events are not written during the turn.
+// They are held here and written by the turn's own commit (career_host_commit_evidenced), in the transaction that saves
+// the profile holding the entries they evidence: a refused save (another thread saved first) writes none, so no record
+// says "resume on file" while the profile still holds drafts, and the resend writes the only set. Nothing is read back.
+export function heldEvents(): EventStore & { rows(): CareerEvent[] } {
+  const rows: CareerEvent[] = [];
+  return {
+    async add(e) { rows.push(JSON.parse(JSON.stringify(e))); },
+    async addMany(es) { for (const e of es) rows.push(JSON.parse(JSON.stringify(e))); },
+    async recall() { return []; },
+    rows: () => JSON.parse(JSON.stringify(rows)),
+  };
+}
 
 export const RESUME_CONFIRM_PROVENANCE = "owner confirmed in chat the resume entry shown to them";
 const CONFIRMING = new Set(["career_resume_ingest"]);
@@ -32,11 +48,20 @@ export async function sha256Hex(s: string) {
 export const words = (s: unknown) => String(s ?? "").toLowerCase().replace(/[‐-―−]/g, "-").replace(/[‘’`]/g, "'").replace(/[“”]/g, '"')
   .replace(/[•·▪●◦*]/g, " ").replace(/\s+/g, " ").trim();
 
+// A corrected entry's corrections ({ from, to }, in the order made), compared as words.
+// deno-lint-ignore no-explicit-any
+const correctionsOf = (f: any): { from: string; to: string }[] => (Array.isArray(f?.corrections) ? f.corrections : [])
+  // deno-lint-ignore no-explicit-any
+  .filter((c: any) => c && typeof c.from === "string" && typeof c.to === "string" && words(c.from) && words(c.to)).map((c: any) => ({ from: words(c.from), to: words(c.to) }));
+const undo = (p: string, fixes: { from: string; to: string }[]) => fixes.slice().reverse().reduce((x, c) => x.split(c.to).join(c.from), p);
+
 // deno-lint-ignore no-explicit-any
 export async function evidenceResumeConfirmation(o: {
   userId: string; now: number; message: string; before: any; after: any;
   out: { intent?: string | null; resultStatus?: string | null } | null | undefined;
   shown: Shown | null | undefined; upload: Upload | null | undefined; events: EventStore | null | undefined;
+  // The person's own messages after the upload (their corrections), from resumeConfirmationContext.
+  said?: string | null;
 }): Promise<EvidenceResult> {
   const r: EvidenceResult = { stamped: 0, unshown: 0, untraced: 0, refused: 0, held: [] };
   if (!o.out || !CONFIRMING.has(String(o.out.intent)) || o.out.resultStatus !== "completed") return r;
@@ -47,7 +72,7 @@ export async function evidenceResumeConfirmation(o: {
   const turned = facts.filter((f: any) => f && drafts.has(f.id) && f.status === "confirmed" && f.needs_confirmation === false &&
     !f.confirmation_event_id && !f.provenance && words(f.text));
   if (!turned.length) return r;
-  const shown = words(o.shown?.text), given = words(o.upload?.text);
+  const shown = words(o.shown?.text), given = words(o.upload?.text), said = words(o.said);
   const at = new Date(o.now).toISOString(), message_sha256 = await sha256Hex(String(o.message ?? ""));
   const shown_sha256 = o.shown ? await sha256Hex(o.shown.text) : null;
   // deno-lint-ignore no-explicit-any
@@ -57,7 +82,12 @@ export async function evidenceResumeConfirmation(o: {
     if (!shown || !shown.includes(w)) { r.unshown++; hold(f); continue; }
     // The entry's own lines are in what they gave; the words that join them (title, then bullets) need not be.
     const parts = [f.title, ...(Array.isArray(f.bullets) ? f.bullets : []), ...(f.title || f.bullets ? [] : [f.text])].map(words).filter(Boolean);
-    if (!o.upload || !given || !parts.length || !parts.every((p) => given.includes(p))) { r.untraced++; hold(f); continue; }
+    // ONBOARDING SCENARIOS (2026-10-29): an entry the person corrected before their yes ("my title was X, not Y") is
+    // traced as their words too: each line, with their corrections undone, is in their upload, and each corrected value
+    // is in a message of theirs after it (`said`). Anything else in it is still untraced.
+    const fixes = correctionsOf(f);
+    const traced = (p: string) => given.includes(p) || (fixes.length > 0 && given.includes(undo(p, fixes)) && fixes.every((c) => said.includes(c.to)));
+    if (!o.upload || !given || !parts.length || !parts.every(traced)) { r.untraced++; hold(f); continue; }
     const event = crypto.randomUUID();
     const kept = await recordEvent(o.events, {
       user_id: o.userId, at: o.now, kind: "fact_confirmed", subject: f.text, source: "chat",
@@ -87,6 +117,12 @@ export function heldReply(r: EvidenceResult): string | null {
     ? `${r.stamped} of your resume entries are confirmed, each as you saw it. ${r.held.length} stay drafts: ${why}.`
     : `Nothing from your resume is confirmed yet: I confirm an entry only when you have seen its words and said yes to them, and ${why}.`;
   return `${head} A draft is never tailored, put on a form or sent.`;
+}
+
+// KNOWN GAPS (2026-10-30): the brain confirmed facts (confirm_profile_fact) but their events could not be written with the
+// turn's save, so they are drafts again; the reply says so in place of the brain's "confirmed".
+export function confirmNotRecordedReply(n: number): string {
+  return `I couldn't record your confirmation just now, so ${n === 1 ? "that fact stays a draft" : `those ${n} facts stay drafts`}: nothing was confirmed, and a draft is never tailored, put on a form or sent. Say yes again in a moment.`;
 }
 
 // FEATURE 9: a fact the person states in chat ("I'm a junior", "I need sponsorship", "my recruiter at Acme is Dana") is
@@ -132,19 +168,30 @@ export async function evidenceStatedFacts(o: {
 // What the person was shown and what they gave, from their thread's messages (newest first, as read): the assistant's
 // replies since their latest message that carries the confirmed entries' words, and that message, as their upload.
 // deno-lint-ignore no-explicit-any
-export async function resumeConfirmationContext(rows: { id: string | number; role: string; content: string }[], after: any): Promise<{ shown: Shown | null; upload: Upload | null }> {
+export async function resumeConfirmationContext(rows: { id: string | number; role: string; content: string }[], after: any): Promise<{ shown: Shown | null; upload: Upload | null; said: string }> {
+  // A corrected entry's lines are looked for as they were given (its corrections undone).
   // deno-lint-ignore no-explicit-any
-  const lines: string[] = (Array.isArray(after?.facts) ? after.facts : []).flatMap((f: any) => [f?.title, ...(Array.isArray(f?.bullets) ? f.bullets : [])]).map(words).filter(Boolean);
-  const shownTexts: string[] = [], ids: string[] = [];
+  const lines: string[] = (Array.isArray(after?.facts) ? after.facts : []).flatMap((f: any) => [f?.title, ...(Array.isArray(f?.bullets) ? f.bullets : [])].map(words).filter(Boolean).map((l: string) => undo(l, correctionsOf(f))));
+  const shownTexts: string[] = [], ids: string[] = [], saidTexts: string[] = [];
   // rows[0] is the person's yes this turn when the host stored it already; it is never the upload.
-  for (const m of rows) {
-    if (m.role === "assistant") { shownTexts.unshift(String(m.content ?? "")); ids.unshift(String(m.id)); continue; }
-    if (m.role !== "user") continue;
+  // ONBOARDING SCENARIOS (2026-10-29): the upload is the message that carries the MOST of the entries' lines, each as
+  // whole words. It was the newest message holding any line as a substring, so with a one-letter or two-letter skill
+  // ("R", "Go") on the resume any later message ("where did I go to school?", a correction) was taken for the upload,
+  // and every entry was then held as "not in the resume you gave me".
+  const holds = (w: string, l: string) => ` ${w.replace(/[^\p{L}\p{N}]+/gu, " ")} `.includes(` ${l.replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `);
+  let best = -1, bestScore = 0;
+  rows.forEach((m, i) => {
+    if (m.role !== "user" || !lines.length) return;
     const w = words(m.content);
-    if (lines.length && lines.some((l) => w.includes(l))) {
-      return { shown: shownTexts.length ? { text: shownTexts.join("\n"), message_ids: ids } : null,
-        upload: { kind: "message", ref: `agent_messages:${m.id}`, sha256: await sha256Hex(String(m.content)), text: String(m.content) } };
-    }
+    const score = lines.filter((l) => holds(w, l)).length;
+    if (score > bestScore) { best = i; bestScore = score; }
+  });
+  if (best < 0) return { shown: null, upload: null, said: "" };
+  for (const m of rows.slice(0, best)) {
+    if (m.role === "assistant") { shownTexts.unshift(String(m.content ?? "")); ids.unshift(String(m.id)); }
+    else if (m.role === "user") saidTexts.unshift(String(m.content ?? ""));
   }
-  return { shown: null, upload: null };
+  const m = rows[best];
+  return { shown: shownTexts.length ? { text: shownTexts.join("\n"), message_ids: ids } : null,
+    upload: { kind: "message", ref: `agent_messages:${m.id}`, sha256: await sha256Hex(String(m.content)), text: String(m.content) }, said: saidTexts.join("\n") };
 }

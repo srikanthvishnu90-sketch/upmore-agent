@@ -174,6 +174,10 @@
           if (typeof el.className === "string" && /requiredInput/.test(el.className)) return;
           const visible2 = type === "file" ? true : el.offsetParent !== null || el.getClientRects().length > 0;
           if (!visible2 && !includeHidden) return;
+          if (/^(text|email|tel|url|search|number|textarea)$/.test(type) && (el.closest("[aria-hidden='true']") || el.getAttribute("tabindex") === "-1")) {
+            const r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+            if (r && (r.right <= 0 || r.bottom <= 0)) return;
+          }
           const gl = clean2(groupLabelFor(el));
           const member = type === "radio" || type === "checkbox";
           const label = labelFor(el) || !member && type !== "search" && gl || weakLabelFor(el);
@@ -1572,8 +1576,14 @@
       (q) => LONG_TYPES.has(String(q.type))
     ]
   ];
+  var HONEYPOT = /\bleave (this |it )?(field |box |blank:? |empty:? )?(blank|empty)\b|\b(leave|keep) (this |it )?(field )?(blank|empty)\b|\b(do not|don'?t) (fill|enter|complete|type)\b|\b(blank|empty) if you(?:'| a)re human\b|\bif you(?:'| a)re (a )?human\b/i;
   function mapQuestion(q) {
     const t = norm(q.label);
+    if (HONEYPOT.test(t)) return {
+      fact: "unknown",
+      kind: "unknown",
+      why: "a field the form asks people to leave blank"
+    };
     for (const [fact, test, when] of RULES) {
       if (!test.test(t)) continue;
       if (when && !when(q, t)) continue;
@@ -1590,7 +1600,7 @@
     };
   }
   var RULE_COUNT = RULES.length;
-  var NEVER_BY_TEXT = /social security|\bssn\b|passport (number|no\b)|driver'?s licen[cs]e (number|no\b)|national (id|insurance) number|\btax(payer)? id|\bitin\b|alien (registration )?number|\ba-number\b|bank account|routing number|card number|\bpassword\b|\bpin\b/i;
+  var NEVER_BY_TEXT = /social security|\bssn\b|passport\s*(#|no\b|num|number)|driver'?s'? licen[cs]e\s*(#|no\b|num|number)|licen[cs]e\s*(#|number)|national (id|identification|identity|insurance)\b|\btax(payer)? id|\btax identification|\bitin\b|alien (registration )?number|\ba-number\b|bank account|routing number|card number|\bpassword\b|\bpin\b|social insurance|\(sin\)|^\s*sin\b(?!\s+(?:experiencia|patrocinio|visa|embargo))|\bsin\s*(#|no\b|num|number)|\b(your|enter|provide) sin\b|\bni (number|no\b)|\bnin\b|tax file number|\btfn\b|aadhaa?r|\bpan (card )?(number|no\b|#)|government[- ]issued( photo)? id|personnummer|\bcpf\b|\bcurp\b|\bpesel\b|\bnric\b|\bbsn\b|\bdni\b|\bnie\b|\bpps (number|no\b)|\b(id|identity|identification) (card |document )?(number|no\b|#)|\biban\b|sort code|account number|\bcvv\b/i;
   function h16(s) {
     let h = 0xcbf29ce484222325n;
     for (const b of new TextEncoder().encode(s)) h = BigInt.asUintN(64, (h ^ BigInt(b)) * 0x100000001b3n);
@@ -2614,6 +2624,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
 
   // supabase/functions/_shared/career_apply.ts
   var SUCCESS = /(application (?:has been |was )?(?:submitted|received)|thank you for (?:applying|your application)|we(?:'ve| have) received your application|successfully submitted|application is complete|your application was sent)/i;
+  var ALREADY = /\b(already (applied|submitted|received|have an application|on file)|(previously|before) applied|applied (to|for) this (job|position|role|posting) before|duplicate (application|submission)|an application (with this [a-z ]+ )?already exists)\b/i;
+  var FAILED = /\b(an? (error|problem) (has )?occurred|something went wrong|could not be (submitted|sent|processed|received|completed)|couldn'?t (submit|send|process)|unable to (submit|send|process|complete)|(was|has) not been (submitted|sent|received)|was not (submitted|sent|received)|(submission|application) (has )?failed|failed to (submit|send)|please try again|server error)\b/i;
   var ID = /(?:application|confirmation|reference|submission|tracking)\s*(?:(?:id|number|no\.?)\s*[:#]?|#)\s*([A-Z0-9][A-Z0-9-]{4,})\b/i;
   function classifyOutcome(o) {
     if (o.captcha) return {
@@ -2638,6 +2650,16 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
     const m = ID.exec(o.page_text || "");
     const id = m && /\d/.test(m[1]) ? m[1] : null;
+    if (ALREADY.test(o.page_text || "")) return {
+      state: "not_submitted",
+      reason: "the employer's page says an application is already on file; whether this one was taken is not known",
+      confirmation_id: null
+    };
+    if (FAILED.test(o.page_text || "")) return {
+      state: "not_submitted",
+      reason: "the employer's page reports an error; whether the application was taken is not known",
+      confirmation_id: null
+    };
     if (SUCCESS.test(o.page_text || "")) return {
       state: "confirmed",
       reason: "employer confirmation on the page",
@@ -2654,7 +2676,6 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       confirmation_id: null
     };
   }
-  var COMPANY_COOLDOWN_DAYS = 30;
   var DAY = 864e5;
   var COUNTED_STATES = /* @__PURE__ */ new Set([
     "queued",
@@ -2694,6 +2715,19 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const st = paceState(l?.daily);
     return st.state === "set" ? st.pace : st.state === "none" ? Infinity : NaN;
   };
+  function postingKey(url) {
+    const m = /^https?:\/\/([^/?#@]+)([^?#]*)(\?[^#]*)?/.exec(String(url ?? "").trim().toLowerCase());
+    if (!m) return null;
+    const h = m[1].replace(/^www\./, "").replace(/:(80|443)$/, "");
+    let p = (m[2] ?? "").replace(/\/+$/, "");
+    if (/^\/[^/]+\/.+\/(apply|application)$/.test(p)) p = p.replace(/\/(apply|application)$/, "").replace(/\/+$/, "");
+    if (/(^|\.)greenhouse\.io$/.test(h)) {
+      const jid = /[?&]gh_jid=([0-9]+)/.exec(m[3] ?? "")?.[1] ?? /\/jobs\/([0-9]+)$/.exec(p)?.[1];
+      if (jid) return "greenhouse.io/jobs/" + jid;
+    }
+    const q = (m[3] ?? "").slice(1).split("&").filter((x) => x !== "" && !/^(utm_[a-z_]*|gh_src|src|source|ref|referrer|lever-[a-z-]*)(=|$)/.test(x)).sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join("&");
+    return h + p + (q ? "?" + q : "");
+  }
   function admitApplication(log, a, now, limits) {
     if (a.approval_hash !== void 0 || a.payload_hash !== void 0) {
       if (!a.approval_hash || a.approval_hash !== a.payload_hash) return {
@@ -2702,14 +2736,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       };
     }
     const mine = log.filter((x) => x.user_id === a.user_id && COUNTED.has(x.state));
-    if (mine.some((x) => x.job_id === a.job_id)) return {
+    const key = postingKey(a.url);
+    if (mine.some((x) => x.job_id === a.job_id || key !== null && postingKey(x.url) === key)) return {
       ok: false,
       reason: "duplicate_job"
-    };
-    const co = normCompany(a.company);
-    if (co && mine.some((x) => normCompany(x.company) === co && now - x.at < COMPANY_COOLDOWN_DAYS * DAY)) return {
-      ok: false,
-      reason: "company_cooldown"
     };
     if (limits?.unreadable !== void 0 || Number.isNaN(dailyLimit(limits))) return {
       ok: false,
@@ -2810,6 +2840,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       "eeo"
     ]
   ];
+  var PAY_HISTORY = /\b(salary|pay|compensation|wage)s? histor|\b(previous|prior|past|last|former|most recent)\b[^?.]{0,30}\b(salary|pay|compensation|wage|earnings)\b|\b(salary|pay|compensation|wage)\b[^?.]{0,40}\b(previous|prior|past|last|former) (job|position|role|employer)/i;
   var CONTACT = /* @__PURE__ */ new Set([
     "first_name",
     "last_name",
@@ -2828,6 +2859,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var SOMEONE_ELSE = /\breferr|\breferen|\bteam member|\breferee|\bemergency|\bmanager|\bsupervisor|\brecruiter|\bspouse|\bparent|\bguardian|\bemployee who/i;
   function classifyField(label, type) {
     const l = String(label || "");
+    if (HONEYPOT.test(l)) return "unknown";
     if (/file/.test(type) && /resume|cv/i.test(l)) return "resume";
     if (type === "checkbox" && l.length > 120 && !l.includes("?")) return "unknown";
     for (const [re, key] of KEYS) {
@@ -2840,7 +2872,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (key === "website" && /\b(academic|program|department|school|university|college|company|employer|organi[sz]ation)\b/i.test(l)) continue;
       if ((key === "email" || key === "phone") && /e-?mail/i.test(l) && /phone|mobile|number/i.test(l)) continue;
       if (key === "phone" && /\b(sms|text messages?|texts)\b/i.test(l)) continue;
-      if (key === "salary_expectation" && (/current|present|monthly|per month|hourly|per hour|range|bracket|band|format|\$00/i.test(l) || VARIABLE_PAY.test(l))) continue;
+      if (key === "salary_expectation" && (/current|present|monthly|per month|hourly|per hour|range|bracket|band|format|\$00/i.test(l) || PAY_HISTORY.test(l) || VARIABLE_PAY.test(l))) continue;
       if ((key === "resume" || key === "cover_letter") && !/file/.test(type)) continue;
       if (key === "sponsorship" && /\bnot\b|without|no longer/i.test(l.split("?")[0])) continue;
       if (key === "sponsorship" && l.includes("?") && !/sponsor|visa/i.test(l.split("?")[0])) continue;
@@ -3596,7 +3628,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const admit = admitApplication(log, {
         user_id: o.userId,
         job_id: p.job_id,
-        company: p.company
+        company: p.company,
+        url: p.url
       }, o.now, o.limits);
       if (!admit.ok) {
         skipped.push({
@@ -3731,6 +3764,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         user_id: o.userId,
         job_id: p.job_id,
         company: p.company,
+        url: p.url,
         at: o.now,
         state: "planned"
       });
@@ -4063,7 +4097,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     ownAnswerOnly: () => ownAnswerOnly,
     payloadText: () => payloadText,
     planForm: () => planForm,
-    postingKey: () => postingKey,
+    postingKey: () => postingKey2,
     postingLinks: () => postingLinks,
     quarantinedFact: () => quarantinedFact2,
     questionsForTrainee: () => questionsForTrainee,
@@ -4277,7 +4311,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
     return null;
   }
-  function postingKey(href) {
+  function postingKey2(href) {
     const p = detectPortal(href);
     if (!p) return null;
     const u = new URL(href), seg = u.pathname.split("/").filter(Boolean);
@@ -4922,7 +4956,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const seen = /* @__PURE__ */ new Set(), out = [];
     for (const m of String(text || "").matchAll(/https:\/\/[^\s<>"')]+/g)) {
       const url = m[0].replace(/[.,;]+$/, "");
-      const key = postingKey(url);
+      const key = postingKey2(url);
       if (!key || seen.has(key)) continue;
       seen.add(key);
       out.push(applyUrl(url));

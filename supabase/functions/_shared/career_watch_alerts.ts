@@ -12,7 +12,7 @@
 //   - forget everything: the settings removed.
 // What a watch carries over: its role's title terms (keywords) and blockers (exclude_words), its places and remote, its
 // bands (intern, new grad) as levels, its firms (only these), the firms it and the opt-out exclude.
-import { type AlertInterest, DEFAULT_PREFS, matchPosting } from "./career_alerts.ts";
+import { type AlertInterest, type AlertPrefs, DEFAULT_PREFS, matchPosting, MAX_INSTANT_PER_DAY } from "./career_alerts.ts";
 import { type AlertRow, type AlertStore, startWatching, validPrefs } from "./career_alert_store.ts";
 import { type Floor, validFloor } from "./career_floor.ts";
 
@@ -80,8 +80,10 @@ export async function syncWatchAlerts(o: {
   if (prev && prev.prefs.on && JSON.stringify(prev.prefs.interests ?? null) === JSON.stringify(interests)) return { action: "unchanged" };
   // The table keeps the watches' words in `keywords` (1 to 10) and their places in `locations` (up to 10); the
   // watches themselves decide the match.
-  const keywords = [...new Set(interests.flatMap((i) => i.keywords))];
-  if (keywords.length > 10) return { action: "refused", reason: `the watches name ${keywords.length} title terms; alerts hold 10` };
+  // NO LIMITS (owner, 2026-10-27; Telegram list #7, 2026-10-28): the column is a summary of the watches' words, and the
+  // match reads each watch's own terms (prefs.interests). It used to refuse the whole save past 10 distinct terms, so an
+  // 11th title term silently turned every watch's alerts off. The summary keeps the first 10; every watch keeps all of its own.
+  const keywords = [...new Set(interests.flatMap((i) => i.keywords))].slice(0, 10);
   const v = validPrefs({ keywords, locations: [...new Set(interests.flatMap((i) => i.locations))].slice(0, 10) }, prev?.prefs ?? DEFAULT_PREFS);
   if (!v.ok) return { action: "refused", reason: v.error };
   const row = startWatching(prev, { userId: o.userId, prefs: { ...v.prefs, interests }, tz: prev?.tz ?? DEFAULT_TZ, now: o.now });
@@ -105,4 +107,14 @@ export function alertStillWanted(key: string, now: { row: Pick<AlertRow, "prefs"
   }
   if (String(key).startsWith("alert:")) return !!now.posting && matchPosting(now.posting, prefs);
   return isAlertKey(key);
+}
+// PROACTIVE SCENARIOS ROUND 2 (2026-10-30): a queued job alert against the person's fit floor and daily cap as they are
+// now. An alert waits in the outbox (quiet hours, a delivery run behind) after it is planned; a person who raised their
+// fit floor or asked for fewer alerts in that time still got everything planned under the old settings. `fit`: the fit
+// the alert was queued with (null: not known, never held back on that account). `sentToday`: alerts already delivered to
+// the person today on their own clock.
+export function alertWithinLimits(prefs: Pick<AlertPrefs, "min_fit" | "max_instant_per_day"> | null | undefined, fit: number | null, sentToday: number): boolean {
+  if (!prefs) return true; // no settings: alertStillWanted holds it
+  if (typeof fit === "number" && typeof prefs.min_fit === "number" && fit < prefs.min_fit) return false;
+  return sentToday < Math.min(MAX_INSTANT_PER_DAY, Math.floor(Number(prefs.max_instant_per_day) || 0));
 }

@@ -13,6 +13,8 @@
 //      failure says so and leaves the question open. Nothing here throws out of the turn.
 import { CareerProfile, CareerWriting } from "./router_core.career.js";
 import { type AiPolicy, readAiPolicy } from "./ai_policy.ts";
+import { claimProblems, selfRole } from "./person_claims.ts";
+import { redactIdentity } from "./identity_redact.ts";
 
 export type ModelFn = (payload: any) => Promise<any>;
 export interface DraftDeps {
@@ -41,7 +43,13 @@ export function confirmedFacts(facts: unknown[]): any[] {
     f && typeof f === "object" && !f.needs_confirmation && (!f.status || f.status === "confirmed") && !unproven(f) && !CareerProfile.quarantinedFact(f)
   );
 }
-const SKIP_KEYS = new Set(["id", "kind", "status", "source", "needs_confirmation", "unproven", "fact_id"]);
+// TAILORING ROUND 2: how a fact was confirmed is not what it says. Its provenance ("owner confirmed in chat the resume entry
+// shown to them (2026-10-29T15:04:00Z)"), its confirmation event's id (a UUID), when it was confirmed and the ids of the
+// facts that evidence it were sources of claims: "I was the owner of the data team" traced to "owner confirmed", "I
+// supported 29 clinics" to the 29th of the month the fact was confirmed, "4000 customers" to a UUID's digits.
+const SKIP_KEYS = new Set(["id", "kind", "status", "source", "needs_confirmation", "unproven", "fact_id", "provenance", "confirmation_event_id", "confirmed_at",
+  "created_at", "updated_at", "added_at", "stated_at", "evidence", "derived_from", "message_sha256", "shown_sha256", "shown_message_ids", "quarantined",
+  "source_key", "source_table", "event_id"]);
 function strings(v: unknown, out: string[] = [], depth = 0): string[] {
   if (depth > 3 || v == null) return out;
   if (typeof v === "string" || typeof v === "number") out.push(String(v));
@@ -150,6 +158,13 @@ export function factLock(text: string, sources: string[]): Lock {
   for (const c of W.extractCheckables(text) as { type: string; value: string; numeric?: number; sentence: string }[]) {
     if (c.type === "entity" && !c.value.includes(" ") && STARTERS.has(c.value.toLowerCase()) && c.sentence.trim().startsWith(c.value)) continue;
     if (c.type === "number") {
+      // TAILORING ROUND 2: 154 reads "thirty-three percent" as "three percent"; the number said is the whole compound.
+      const tens = c.numeric != null && c.numeric < 10 ? new RegExp(`\\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)-${esc(c.value.toLowerCase())}\\b`).exec(c.sentence.toLowerCase()) : null;
+      if (tens) {
+        const whole = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 }[tens[1]]! + c.numeric!;
+        if (!nums.has(String(whole)) && !hasWords(corpus, tens[0])) miss(tens[0]);
+        continue;
+      }
       const ok = c.numeric != null ? nums.has(String(c.numeric)) || hasWords(corpus, c.value) : nums.has(c.value.replace(/[$,%]/g, ""));
       if (!ok) miss(c.value);
     } else if (!hasWords(corpus, c.value)) {
@@ -171,7 +186,9 @@ export function factLock(text: string, sources: string[]): Lock {
   }
   const low = ` ${norm(text)} `;
   for (const list of [TOOLS, TITLES, DEGREES, SCALE]) {
-    for (const w of list) if (low.includes(` ${norm(w)} `) && !hasWords(corpus, w)) miss(w);
+    // TAILORING ROUND 2: a title said of someone else ("my manager said", "reported to the head of sales", "your Google
+    // Cloud Engineer role") is no claim about the person (person_claims.ts roleFraming); said of them, it must be traced.
+    for (const w of list) if (low.includes(` ${norm(w)} `) && !hasWords(corpus, w) && (list !== TITLES || selfRole(text, w))) miss(w);
   }
   const corpusScaled = new Set(scaled(raw)), corpusPct = new Set(percents(raw));
   for (const v of scaled(text)) if (!corpusScaled.has(v)) miss(v);
@@ -195,7 +212,7 @@ function textOf(msg: any): { text: string; cut: boolean } {
 const SYSTEM = [
   "You write one answer to a job application question, for the person applying, in their own plain first-person voice.",
   "Rules that do not bend:",
-  "1. Use ONLY the facts listed. Every employer, school, title, tool, number, date and result you mention must appear in those facts, the question or the company name. If the answer would need something the facts do not say, leave that part out; never fill a gap with something plausible.",
+  "1. Use ONLY the facts listed. Every employer, school, title, degree, tool, number, date and result you say about the person must appear in those facts. The question and the company name are what you answer, never a source of facts about the person: never say the person did, studied, holds or is anything only because the question mentions it. Never state work authorization, citizenship, a visa, sponsorship, salary, or anything about gender, race, ethnicity, veteran status or disability unless a fact says it. If the answer would need something the facts do not say, leave that part out; never fill a gap with something plausible.",
   "2. Stay inside the length limit and finish every sentence.",
   "3. No greeting, sign-off, heading, list or quotation marks. Return only the answer text.",
   "4. Never mention AI, Upmore or that this is a draft. No stock phrases (\"I am excited to apply\", \"passionate\", \"in today's fast-paced world\").",
@@ -247,7 +264,7 @@ export async function draftEssay(o: {
   const facts = factsFor(all, o.q);
   if (facts.length < MIN_FACTS) return { ok: false, why: "thin", policy, detail: [String(facts.length)], tries: 0 };
   const limit = lengthLimit(o.limitText ? `${o.q.label} ${o.limitText}` : o.q.label);
-  const sources = [...facts.map(factText), o.q.company ?? "", o.q.label];
+  const sources = { facts: facts.map(factText), posting: [o.q.company ?? "", o.q.label] };
   let fix: string[] = [], last: Judged | null = null;
   for (let tries = 1; tries <= 2; tries++) {
     let msg: any;
@@ -270,9 +287,26 @@ export async function draftEssay(o: {
 
 // Every check a draft must pass before anyone reads it: each name and number traced to the sources, inside the limit,
 // finished, no stock phrase.
+// TAILORING SCENARIOS (2026-10-29): the posting (the question, the company) may be named in an answer but is never a source
+// of a claim about the person. factLock traces names against facts and posting alike; claimProblems (person_claims.ts)
+// then holds every claim about the person (a degree, a title, a tool, a number, leadership, work authorization, how they
+// identify, a secret, a posting's name as their employer or school) to their confirmed facts alone.
 interface Judged { pass: boolean; lock: Lock; long: string | null; cut: boolean; banned: string[] }
-function judge(text: string, cut: boolean, sources: string[], limit: Limit): Judged {
-  const lock = factLock(text, sources);
+const CLAIM_VOCAB = [...TOOLS, ...TITLES, ...DEGREES, ...SCALE];
+function judge(text: string, cut: boolean, sources: { facts: string[]; posting: string[] }, limit: Limit): Judged {
+  const traced = factLock(text, [...sources.facts, ...sources.posting]);
+  // The company's own name is never a claim, even when it is also a tool's or a word's ("why Stripe", "why Visa").
+  const claims = claimProblems(text, { record: sources.facts, mentionable: sources.posting, vocab: CLAIM_VOCAB, company: sources.posting[0] });
+  // A secret in the text is named as one, never quoted: its digits or words are not repeated in the reply the person
+  // reads, nor in the "write it again" note the model gets.
+  const redacted = redactIdentity(text);
+  const shown = (u: string) => {
+    if (!redacted.removed.length) return true;
+    const v = norm(/"([^"]+)"/.exec(u)?.[1] ?? u);
+    return !v || !norm(text).includes(v) || norm(redacted.text).includes(v);
+  };
+  const untraced = [...traced.untraced, ...claims].filter(shown);
+  const lock: Lock = claims.length || !traced.pass ? { pass: false, untraced } : traced;
   const long = overLimit(text, limit);
   const banned = W.slopGate(text, { factPack: [] }).metrics.banned_phrases.value.hard as string[];
   return { pass: lock.pass && !long && !cut && !banned.length, lock, long, cut, banned };
@@ -296,7 +330,7 @@ export async function checkDraft(o: {
   if (facts.length < MIN_FACTS) return { ok: false, why: "thin", policy, detail: [String(facts.length)], tries: 0 };
   const limit = lengthLimit(o.limitText ? `${o.q.label} ${o.limitText}` : o.q.label);
   const text = String(o.text ?? "").trim();
-  const j = judge(text, !/[.!?]["”')\]]?$/.test(text), [...facts.map(factText), o.q.company ?? "", o.q.label], limit);
+  const j = judge(text, !/[.!?]["”')\]]?$/.test(text), { facts: facts.map(factText), posting: [o.q.company ?? "", o.q.label] }, limit);
   return j.pass ? { ok: true, text, policy, factIds: facts.map(factId).filter(Boolean), limit, tries: 0 } : failed(j, policy, 0);
 }
 

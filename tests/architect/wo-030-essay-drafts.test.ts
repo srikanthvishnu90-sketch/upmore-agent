@@ -408,7 +408,7 @@ Deno.test("WO-030/8 wired: drafts persist on the account, the handler passes the
   assert(/draft: \{ model: \(payload\) => callModel\(draftCfg, payload, \{ meter: draftMeter, role: "chat" \}\), facts: \(\) => \(\(ctx as any\)\.profile\?\.facts \?\? \[\]\) \}/.test(HANDLER));
   assert(HANDLER.includes(`const draftCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };`));
   assert(HANDLER.includes(`asked.status.startsWith("draft")`));
-  assert(/if \(draftMeter\.calls\)[\s\S]{0,200}agent_turn_costs/.test(HANDLER), "a draft's cost is recorded like the brain's");
+  assert(/await ledger\.record\(draftMeter\)/.test(HANDLER), "a draft's cost is recorded like the brain's");
   assert(APPLY.includes("aiPolicyStatements(current.schema.map((f: any) => f.label))"), "the engine carries the whole form's AI words");
   for (const src of [ESSAY_SRC, POLICY_SRC]) assert(!/with \{ type:|assert \{ type:/.test(src), "no JSON import attributes in anything the handler imports");
   assert(!/anthropic/i.test(ESSAY_SRC.replace(/\/\/.*$/gm, "")), "no provider is named in the drafting code; the gateway decides");

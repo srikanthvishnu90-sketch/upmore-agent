@@ -28,6 +28,7 @@ import { checkDraft, type DraftDeps, draftEssay, draftReply, parseDraftCommand }
 import { needsText, type Situation } from "./career_situation.ts";
 import { draftNote, eligibilityDraft, eligibilityFactOf, type Said } from "./eligibility_draft.ts";
 import { contactDraft, isContactFact } from "./contact_draft.ts";
+import { redactIdentity } from "./identity_redact.ts";
 
 export interface OpenQuestion {
   id: string;
@@ -102,6 +103,10 @@ export function checkAnswer(q: OpenQuestion, raw: string): Check {
   if (!value) return { ok: false, why: "had no answer" };
   if (SKIP.test(plain(value))) return { ok: false, why: "left for later", skip: true };
   if (REMOVED.test(value)) return { ok: false, why: "had a number Upmore never keeps; type that one on the form yourself" };
+  // TAILORING SCENARIOS (2026-10-29): the chat input is redacted before it gets here, but a draft saved by "use N" (one
+  // written by a model, or ahead on the person's computer) never passed that redaction. An SSN, card number, password or
+  // one-time code is never saved as an answer, whoever wrote it.
+  if (redactIdentity(value).removed.length) return { ok: false, why: "had a number or password Upmore never keeps; type that one on the form yourself" };
   if (value.length > MAX_ANSWER) return { ok: false, why: `is longer than ${MAX_ANSWER.toLocaleString("en-US")} characters` };
   const shared = q.key.startsWith("fact:");
   const fact = shared ? q.key.slice(5) : mapQuestion({ label: q.label, type }).fact;

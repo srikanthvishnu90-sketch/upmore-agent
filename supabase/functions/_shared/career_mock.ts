@@ -15,10 +15,11 @@
 import { CareerPaths, CareerPrep } from "./router_core.career.js";
 import { supabaseCardStore } from "./career_apply_cards.ts";
 import { hostEnv, supabaseVoiceLinks, type VoiceLinks } from "./career_voice_link.ts";
+import { redactIdentity } from "./identity_redact.ts";
 // FEATURE 11: posting-bound mocks, grading against the answer key and the posting, weak spots kept and drilled.
 import {
   type BoundPosting, debriefTail, drillQuestions, type Fit, fitLine, fitOf, isDrillAsk, isWeakListAsk, judgedFit, mockEvent, type MockPrep,
-  pastedJd, postingPlan, requirementsOf, supabaseMockPrep, weakListText, weakSpots,
+  pastedJd, postingPlan, requirementsOf, supabaseMockPrep, weakListText, weakSpots, type ModelCall,
 } from "./career_mock_prep.ts";
 
 export const MOCK_INTENT = "career_mock"; // the mock asked a question and waits for the answer
@@ -398,6 +399,17 @@ function nudgeFor(g: any): string {
   return "Add a number and how you know it.";
 }
 
+// RESEARCH ROUND 2 (2026-10-30): an answer is kept, scored and quoted without its secrets. A key or token pasted into a
+// practice answer ("I stored the deploy key sk-proj-... in the repo"), and an identity number or password said in a voice
+// call (whose words never pass the chat's input redaction), were saved in the mock's record word for word and quoted back
+// in the debrief ("Strongest: Q4 \"... my password is hunter2!\""). They are removed before anything keeps them
+// (identity_redact.ts, the chat's own input redaction, keys included).
+export function withoutSecrets(text: string): { text: string; removed: boolean } {
+  const r = redactIdentity(String(text ?? ""));
+  return { text: r.text, removed: r.removed.length > 0 };
+}
+const REMOVED_NOTE = "I removed a key, password or ID number from that answer and didn't keep it.";
+
 // One answer (or a skip, when text is null): scored, a one-line nudge, then the next question or, after the last one or
 // past the time, the debrief.
 export function next(s0: MockState, text: string | null, now: number): { state: MockState; reply: string; done: boolean; head: string; rest: string } {
@@ -410,11 +422,12 @@ export function next(s0: MockState, text: string | null, now: number): { state: 
     s.answers.push({ n: i + 1, text: "", skipped: true, scores: null, gaps: [], fix: null, nudge: "Skipped." });
     head = "Skipped.";
   } else {
-    const answer = String(text).trim().slice(0, MAX_ANSWER);
+    const clean = withoutSecrets(String(text).trim().slice(0, MAX_ANSWER));
+    const answer = clean.text;
     const g = graded(answer);
     const nudge = nudgeFor(g);
     s.answers.push({ n: i + 1, text: answer, skipped: false, scores: g.scores, gaps: g.gaps || [], fix: g.fix_first ?? null, nudge });
-    head = `${g.scores.total} of 15. ${nudge}`;
+    head = `${g.scores.total} of 15. ${nudge}${clean.removed ? ` ${REMOVED_NOTE}` : ""}`;
   }
   s.last_at = now;
   if (s.answers.length >= s.questions.length) { const e = end(s, now, "done"); return { state: e.state, reply: `${head}\n\n${e.reply}`, done: true, head, rest: e.reply }; }
@@ -664,7 +677,7 @@ export function voiceDebrief(s0: MockState, turns: Turn[], now: number): { state
   for (let n = 1; n <= reached; n++) {
     const said = answers.get(n);
     if (!said) { s.answers.push({ n, text: "", skipped: true, scores: null, gaps: [], fix: null, nudge: "Skipped." }); continue; }
-    const answer = said.slice(0, MAX_VOICE_ANSWER);
+    const answer = withoutSecrets(said.slice(0, MAX_VOICE_ANSWER)).text;
     const g = graded(answer);
     s.answers.push({ n, text: answer, skipped: false, scores: g.scores, gaps: g.gaps || [], fix: g.fix_first ?? null, nudge: nudgeFor(g) });
   }
@@ -855,7 +868,8 @@ export function validState(v: any): v is MockState {
   return !!v && v.v === 1 && Array.isArray(v.questions) && Array.isArray(v.answers) && typeof v.last_at === "number" &&
     typeof v.started_at === "number" && (v.status === "running" || v.status === "ended");
 }
-export function supabaseMockStore(admin: any): MockStore {
+// callModel: the model call the judge makes (the chat passes its daily-capped call, career_spend_cap.ts).
+export function supabaseMockStore(admin: any, o: { callModel?: ModelCall } = {}): MockStore {
   const cards = supabaseCardStore(admin);
   return {
     async get(userId, threadId) {
@@ -874,7 +888,7 @@ export function supabaseMockStore(admin: any): MockStore {
     lastAssistantIntent: (threadId) => cards.lastAssistantIntent(threadId),
     voice: supabaseVoiceLinks(admin, hostEnv()),
     // FEATURE 11: the posting on file, the weak spots (career_events, kind mock_done), the judge (CAREER_MOCK_JUDGE=on).
-    prep: supabaseMockPrep(admin, { get: (k: string) => (typeof Deno !== "undefined" ? Deno.env.get(k) : undefined) }),
+    prep: supabaseMockPrep(admin, { get: (k: string) => (typeof Deno !== "undefined" ? Deno.env.get(k) : undefined) }, o.callModel ? { callModel: o.callModel } : undefined),
   };
 }
 

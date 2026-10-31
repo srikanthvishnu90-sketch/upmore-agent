@@ -61,6 +61,12 @@ export type RejectReason =
   | "suppressed" | "no_name" | "bad_name" | "no_provenance" | "bad_provenance" | "email_without_basis" | "bad_email" | "bad_email_basis" | "profile_url_source_blocked";
 export interface Rejected { reason: RejectReason; name: string; detail?: string }
 
+// An email basis must fit where the record came from: a page can only publish; a user can only supply; only a licensed
+// provider can verify; EDGAR carries no email at all.
+export const BASIS_BY_KIND: Record<SourceKind, EmailBasis[]> = {
+  user_csv: ["user_supplied"], pasted: ["user_supplied"], sec_edgar: [], team_page: ["published_on_source"], university_directory: ["published_on_source"],
+  conference_speakers: ["published_on_source"], licensed_provider: ["licensed_verifier"],
+};
 const EMAIL_RE = /^[a-z0-9._%+'-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i;
 export function cleanEmail(v: unknown): string | null {
   const e = String(v ?? "").trim().toLowerCase().replace(/^mailto:/, "").split("?")[0];
@@ -138,6 +144,8 @@ export function toContact(c: Candidate): { contact: Contact } | { rejected: Reje
     if (!email) return rej("bad_email");
     if (!c.email_basis) return rej("email_without_basis");
     if (!EMAIL_BASES.includes(c.email_basis)) return rej("bad_email_basis", String(c.email_basis));
+    const allowed = BASIS_BY_KIND[c.provenance.source_kind] ?? [];
+    if (!allowed.includes(c.email_basis)) return rej("bad_email_basis", `${c.email_basis} is not allowed for ${c.provenance.source_kind}`);
     basis = c.email_basis;
   } else if (c.email_basis) return rej("email_without_basis", "basis without an address");
   const firm = c.firm ? String(c.firm).replace(/\s+/g, " ").trim().slice(0, 160) || null : null;

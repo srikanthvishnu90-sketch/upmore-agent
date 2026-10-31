@@ -13,11 +13,11 @@ const NOW = new Date("2026-10-30T12:00:00Z");
 const UA = "TraineeContactBot/1.0 (+https://upmore.example/bot; contact-ops@upmore-agent.dev)";
 const rule = (host: string, over: Partial<SiteRule> = {}): SiteRule => ({ host, org_name: "Fixture Org", terms_url: `https://${host}/terms`, terms_reviewed_on: "2026-09-01", terms_reviewed_by: "owner",
   terms_summary: "Public directory; automated reading of public pages permitted.", license_note: "Public page; names/roles only.", min_delay_ms: 0, ...over });
-function fixtureFetcher(pages: Record<string, { status?: number; text: string; url?: string }>, log: string[] = []): Fetcher {
-  return async (url) => { log.push(url); const p = pages[url]; if (!p) return { status: 404, url, text: "" }; return { status: p.status ?? 200, url: p.url ?? url, text: p.text }; };
+function fixtureFetcher(pages: Record<string, { status?: number; text: string; url?: string; location?: string }>, log: string[] = []): Fetcher {
+  return async (url, init) => { if (init.redirect !== "manual") throw new Error("fetcher must not follow redirects"); log.push(url); const p = pages[url]; if (!p) return { status: 404, url, text: "" }; return { status: p.status ?? 200, url: p.url ?? url, text: p.text, location: p.location }; };
 }
-const gateFor = (rules: SiteRule[], pages: Record<string, { status?: number; text: string; url?: string }>, log: string[] = [], ua = UA) =>
-  new WebGate({ allowlist: rules, fetcher: fixtureFetcher(pages, log), userAgent: ua, robotsToken: "TraineeContactBot", now: () => NOW, sleep: async () => {} });
+const gateFor = (rules: SiteRule[], pages: Record<string, { status?: number; text: string; url?: string; location?: string }>, log: string[] = [], ua = UA, extra: Record<string, unknown> = {}) =>
+  new WebGate({ allowlist: rules, fetcher: fixtureFetcher(pages, log), userAgent: ua, robotsToken: "TraineeContactBot", now: () => NOW, sleep: async () => {}, ...extra });
 
 // ---------- provenance ----------
 Deno.test("provenance is required: no source_url, retrieved_at or license_note means no contact", () => {
@@ -126,7 +126,7 @@ Deno.test("gate: robots Disallow for our agent denies; unreadable robots denies;
   eq((await unreviewed.fetchText("https://firm.example/team") as any).reason, "terms_review_expired");
   const wall = gateFor([rule("firm.example")], { "https://firm.example/team": { text: "", url: "https://firm.example/login?next=/team" } }); eq((await wall.fetchText("https://firm.example/team") as any).reason, "login_wall");
   const pw = gateFor([rule("firm.example")], { "https://firm.example/team": { text: '<form><input type="password"></form>' } }); eq((await pw.fetchText("https://firm.example/team") as any).reason, "login_wall");
-  const off = gateFor([rule("firm.example")], { "https://firm.example/team": { text: "x", url: "https://other.example/team" } }); eq((await off.fetchText("https://firm.example/team") as any).reason, "redirect_off_site");
+  const off = gateFor([rule("firm.example")], { "https://firm.example/team": { text: "x", url: "https://other.example/team" } }); eq((await off.fetchText("https://firm.example/team") as any).reason, "redirect_denied");
   eq((await gateFor([rule("firm.example")], { "https://firm.example/team": { status: 403, text: "" } }).fetchText("https://firm.example/team") as any).reason, "login_wall");
 });
 Deno.test("gate: robots Disallow on the page path blocks it; Crawl-delay is slept; robots read once per host", async () => {
@@ -217,4 +217,81 @@ Deno.test("coverage report built from every fixture", async () => {
   eq(Object.keys(cov.email_by_basis).sort(), ["published_on_source", "user_supplied"]);
   for (const f of ["finance", "tech", "healthcare", "law", "education", "trades"]) assert(cov.by_family[f] > 0, `family ${f} covered by fixtures`);
   console.log("\n" + coverageMarkdown(cov));
+});
+
+// ---------- review fixes: SSRF, redirects, UA, footer, robots encoding, pacing, basis-by-kind ----------
+Deno.test("SSRF: IP literals, localhost, internal names, userinfo and non-443 ports are refused even when allowlisted; nothing is fetched", async () => {
+  const log: string[] = [];
+  const hosts = ["169.254.169.254", "localhost", "127.0.0.1", "10.0.0.5", "[::1]", "metadata.google.internal", "printer.local", "intranet", "2130706433"];
+  const g = gateFor(hosts.map((h) => rule(h)), {}, log);
+  for (const h of hosts) { const r = await g.fetchText(`https://${h}/x`); assert(!r.ok, h); }
+  eq((await g.fetchText("https://169.254.169.254/latest/meta-data/") as any).reason, "unsafe_host");
+  eq((await g.fetchText("https://localhost/x") as any).reason, "unsafe_host");
+  const g2 = gateFor([rule("firm.example")], {}, log);
+  eq((await g2.fetchText("https://user:pass@firm.example/team") as any).reason, "userinfo_not_allowed");
+  eq((await g2.fetchText("https://user@firm.example/team") as any).reason, "userinfo_not_allowed");
+  eq((await g2.fetchText("https://firm.example:8443/team") as any).reason, "port_not_allowed");
+  assert((await g2.fetchText("https://FIRM.example:443/robots-free") as any).reason !== "port_not_allowed", "explicit :443 is the default port");
+  eq((await g2.fetchText("https://sub.firm.example/team") as any).reason, "not_allowlisted", "exact hostname match, no suffix");
+  eq(log.filter((u) => !u.includes("firm.example")).length, 0, "no probe reached the fetcher");
+});
+Deno.test("SSRF: with a resolver, a public-looking name that resolves to a private address is refused", async () => {
+  const log: string[] = [];
+  const g = gateFor([rule("rebind.example")], { "https://rebind.example/team": { text: "x" } }, log, UA, { resolver: async () => ["93.184.216.34", "169.254.169.254"] });
+  eq((await g.fetchText("https://rebind.example/team") as any).reason, "private_address"); eq(log.length, 0);
+  const ok = gateFor([rule("rebind.example")], { "https://rebind.example/team": { text: "x" } }, [], UA, { resolver: async () => ["93.184.216.34"] }); assert((await ok.fetchText("https://rebind.example/team")).ok);
+});
+Deno.test("redirects: followed manually, each hop gated; private IP, localhost and linkedin.com targets refused; hop cap 3; an allowlisted hop is followed", async () => {
+  const mk = (loc: string) => gateFor([rule("firm.example"), rule("cdn.firm.example")], { "https://firm.example/team": { status: 302, text: "", location: loc }, "https://cdn.firm.example/t": { text: "landed" } });
+  for (const loc of ["https://169.254.169.254/latest/meta-data/", "http://localhost/admin", "https://www.linkedin.com/in/someone", "https://evil.example/x", "https://user:p@cdn.firm.example/t", "https://cdn.firm.example:8443/t"]) {
+    const r = await mk(loc).fetchText("https://firm.example/team"); assert(!r.ok && r.reason === "redirect_denied", `${loc} -> ${JSON.stringify(r)}`);
+  }
+  eq(((await mk("https://www.linkedin.com/in/someone").fetchText("https://firm.example/team")) as any).detail, "blocked_site");
+  eq(((await mk("https://169.254.169.254/x").fetchText("https://firm.example/team")) as any).detail, "unsafe_host:169.254.169.254");
+  const good = await mk("https://cdn.firm.example/t").fetchText("https://firm.example/team"); assert(good.ok && good.text === "landed");
+  const loop = gateFor([rule("firm.example")], { "https://firm.example/a": { status: 301, text: "", location: "/b" }, "https://firm.example/b": { status: 301, text: "", location: "/c" },
+    "https://firm.example/c": { status: 301, text: "", location: "/d" }, "https://firm.example/d": { status: 301, text: "", location: "/e" }, "https://firm.example/e": { text: "end" } });
+  eq((await loop.fetchText("https://firm.example/a") as any).reason, "too_many_redirects");
+  const robotsHop = gateFor([rule("firm.example"), rule("cdn.firm.example")], { "https://firm.example/team": { status: 302, text: "", location: "https://cdn.firm.example/t" },
+    "https://cdn.firm.example/robots.txt": { text: "User-agent: *\nDisallow: /" }, "https://cdn.firm.example/t": { text: "no" } });
+  eq((await robotsHop.fetchText("https://firm.example/team") as any).reason, "robots_disallow", "robots applies on the redirect target");
+});
+Deno.test("EDGAR: the validated User-Agent is the one sent", async () => {
+  const sent = new Set<string>();
+  const f: Fetcher = async (url, init) => { sent.add(init.headers["User-Agent"]); return { status: 404, url, text: "" }; };
+  const good = "Trainee Inc ops@upmore-agent.dev";
+  const mk = (ua: string) => new WebGate({ allowlist: secRules("2026-10-01", "owner"), fetcher: f, userAgent: ua, now: () => NOW, sleep: async () => {} });
+  await edgarInsiders({ gate: mk(good), cik: 1 }); eq([...sent], [good]);
+  let threw = 0;
+  try { await edgarInsiders({ gate: mk("curl/8.0 (anything)"), cik: 1, userAgent: good }); } catch { threw++; }
+  try { await edgarInsiders({ gate: mk("curl/8.0 (anything)"), cik: 1 }); } catch { threw++; }
+  try { await edgarInsiders({ gate: mk(good), cik: 1, userAgent: "Other Co x@y.dev" }); } catch { threw++; }
+  eq(threw, 3); eq([...sent], [good], "nothing was sent with an unvalidated agent");
+});
+Deno.test("team page: a footer mailto after the last card is not that person's", () => {
+  const html = '<div class="team-member"><h3 class="name">Lee Park</h3><p class="title">Analyst</p></div><div class="team-member"><h3 class="name">Ann Wu</h3><p class="title">VP</p><a href="mailto:ann@firm.example">e</a></div><footer><a href="mailto:info@firm.example">info@firm.example</a> Contact us</footer>';
+  const c = importContacts(pageCandidatesFrom(html)).contacts;
+  eq(c.map((x) => [x.full_name, x.email]), [["Lee Park", null], ["Ann Wu", "ann@firm.example"]]);
+  const last = importContacts(pageCandidatesFrom('<div class="team-member"><h3 class="name">Zoe Fry</h3></div><footer>sales@firm.example</footer>')).contacts; eq(last[0].email, null);
+});
+import { parseCards, PRESETS } from "../../supabase/functions/_shared/contact_sources/mod.ts";
+const pageCandidatesFrom = (html: string) => parseCards(html, PRESETS.team_page, "https://firm.example/team", NOW.toISOString(), "Firm", "n");
+Deno.test("robots: percent-encoded paths and patterns are decoded before matching", () => {
+  const r = parseRobots("User-agent: *\nDisallow: /pri%76ate/\nDisallow: /a%2Fb", "T");
+  assert(!robotsAllows(r, "/private/x")); assert(!robotsAllows(r, "/%70rivate/x")); assert(!robotsAllows(r, "/pri%76ate/x")); assert(robotsAllows(r, "/a/b"), "%2F is not a slash"); assert(!robotsAllows(r, "/a%2fb"));
+});
+Deno.test("pacing is serialized per host: concurrent fetches never fire inside the delay", async () => {
+  let t = NOW.getTime(); const times: number[] = [];
+  const f: Fetcher = async (url) => { times.push(t); return url.endsWith("robots.txt") ? { status: 404, url, text: "" } : { status: 200, url, text: "ok" }; };
+  const g = new WebGate({ allowlist: [rule("firm.example", { min_delay_ms: 1000 })], fetcher: f, userAgent: UA, now: () => new Date(t), sleep: async (ms) => { await Promise.resolve(); t += ms; } });
+  await Promise.all([1, 2, 3, 4].map((i) => g.fetchText(`https://firm.example/p${i}`)));
+  assert(times.length >= 5); for (let i = 1; i < times.length; i++) assert(times[i] - times[i - 1] >= 1000, `gap ${times[i] - times[i - 1]} at ${i}: ${times}`);
+});
+Deno.test("email basis must fit the source kind", () => {
+  const P = (k: any, u: string) => ({ source_kind: k, source_url: u, retrieved_at: NOW.toISOString(), license_note: "n" });
+  const t = (k: any, u: string, b: any) => toContact({ full_name: "Jane Doe", email: "j@d.example", email_basis: b, provenance: P(k, u) });
+  assert("rejected" in t("team_page", "https://a.example/t", "user_supplied")); assert("rejected" in t("team_page", "https://a.example/t", "licensed_verifier"));
+  assert("rejected" in t("pasted", "user-paste://p", "published_on_source")); assert("rejected" in t("user_csv", "user-upload://f", "licensed_verifier"));
+  assert("rejected" in t("sec_edgar", "https://www.sec.gov/x", "published_on_source")); assert("rejected" in t("licensed_provider", "https://api.p.example/1", "published_on_source"));
+  for (const [k, u, b] of [["team_page", "https://a.example/t", "published_on_source"], ["pasted", "user-paste://p", "user_supplied"], ["licensed_provider", "https://api.p.example/1", "licensed_verifier"]]) assert("contact" in t(k, u, b), k);
 });

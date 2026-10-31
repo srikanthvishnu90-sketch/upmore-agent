@@ -47,9 +47,11 @@ export function recentInsiderFilings(subsJson: string, max = 10): Array<{ cik: s
   for (let i = 0; i < r.form.length && out.length < max; i++) if (["3", "4", "5"].includes(String(r.form[i])) && /\.xml$/i.test(r.primaryDocument?.[i] ?? "")) out.push({ cik, accession: String(r.accessionNumber[i]).replace(/-/g, ""), doc: rawXmlName(r.primaryDocument[i]) });
   return out;
 }
-export async function edgarInsiders(o: { gate: WebGate; cik: string | number; max?: number; userAgent: string }): Promise<{ candidates: Candidate[]; denied: Array<{ url: string; reason: string }> }> {
+export async function edgarInsiders(o: { gate: WebGate; cik: string | number; max?: number; userAgent?: string }): Promise<{ candidates: Candidate[]; denied: Array<{ url: string; reason: string }> }> {
   const candidates: Candidate[] = [], denied: Array<{ url: string; reason: string }> = [];
-  if (!validSecUserAgent(o.userAgent)) throw new Error("SEC requires a User-Agent that names the requester and a real contact email");
+  // The User-Agent that is validated is the one the gate actually sends.
+  if (!validSecUserAgent(o.gate.userAgent)) throw new Error("SEC requires a User-Agent that names the requester and a real contact email");
+  if (o.userAgent !== undefined && o.userAgent !== o.gate.userAgent) throw new Error("userAgent differs from the gate's User-Agent: the gate's is what is sent");
   const cik10 = String(o.cik).replace(/\D/g, "").padStart(10, "0");
   const subsUrl = `https://data.sec.gov/submissions/CIK${cik10}.json`;
   const subs = await o.gate.fetchText(subsUrl); if (!subs.ok) return { candidates, denied: [{ url: subsUrl, reason: subs.reason }] };

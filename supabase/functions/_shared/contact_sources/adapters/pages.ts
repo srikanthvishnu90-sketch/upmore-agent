@@ -28,13 +28,21 @@ function fieldText(seg: string, want: string[]): string | null {
   }
   return null;
 }
+function cardEnd(html: string, from: number, tag: string): number {
+  const re = new RegExp(`<(/?)${tag}\\b[^>]*>`, "gi"); re.lastIndex = from; let depth = 1, m: RegExpExecArray | null;
+  while ((m = re.exec(html))) { depth += m[1] ? -1 : 1; if (depth === 0) return m.index; }
+  return html.length;
+}
 export function parseCards(html: string, preset: Preset, pageUrl: string, retrievedAt: string, firm: string | null, licenseNote: string): Candidate[] {
-  const starts: number[] = [];
-  for (const m of html.matchAll(/<(div|li|article|section|tr)\b([^>]*)>/gi)) if (tokens(m[2]).some((t) => preset.cards.includes(t))) starts.push(m.index!);
+  const starts: Array<{ at: number; tag: string; len: number }> = [];
+  for (const m of html.matchAll(/<(div|li|article|section|tr)\b([^>]*)>/gi)) if (tokens(m[2]).some((t) => preset.cards.includes(t))) starts.push({ at: m.index!, tag: m[1].toLowerCase(), len: m[0].length });
   const prov: Provenance = { source_kind: preset.kind, source_url: pageUrl, retrieved_at: retrievedAt, license_note: licenseNote };
   const out: Candidate[] = [];
   starts.forEach((s, i) => {
-    const seg = html.slice(s, i + 1 < starts.length ? starts[i + 1] : undefined).replace(/^<\w+[^>]*>/, "");
+    // The card is its own element, closed by its matching end tag (nesting counted), and never runs past the next card:
+    // a footer mailto after the last card is not that person's.
+    const limit = i + 1 < starts.length ? starts[i + 1].at : html.length;
+    const seg = html.slice(s.at + s.len, Math.min(limit, cardEnd(html, s.at + s.len, s.tag)));
     const name = fieldText(seg, preset.name) ?? (seg.match(/<h[2-5][^>]*>([\s\S]*?)<\/h[2-5]>/i) ? text(seg.match(/<h[2-5][^>]*>([\s\S]*?)<\/h[2-5]>/i)![1]) : null);
     if (!name) return;
     let email: string | null = null;

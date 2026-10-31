@@ -177,6 +177,7 @@ export function canonicalUrl(u: unknown): string {
 // id, or listed on two boards of one employer).
 export function dupKeys(p: { company?: string; title?: string; location?: string; url?: string }): string[] {
   const keys = [`t:${squash(p.company)}|${squash(p.title)}|${squash(p.location)}`];
-  if (p.url) keys.push(`u:${canonicalUrl(p.url)}`);
+  // A link is a job's identity only when it carries one (a long id or a uuid); a shared careers-page link is not.
+  if (p.url && /\d{5,}|[0-9a-f]{8}-[0-9a-f]{4}-/i.test(canonicalUrl(p.url))) keys.push(`u:${canonicalUrl(p.url)}`);
   return keys;
 }

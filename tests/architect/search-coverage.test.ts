@@ -39,11 +39,11 @@ Deno.test("SC/2 the sentence is read as role + level + place + term", () => {
 
 Deno.test("SC/3 search: level, place and term filters; duplicates once; senior, other city and past term never offered", () => {
   const db = memoryPostingsDb();
-  const mk = (id: string, title: string, location: string, extra: Record<string, unknown> = {}) => ({ job_id: id, provider: "greenhouse", board: "x", ats_id: id, company: "Acme", title, location, url: `https://boards.greenhouse.io/x/jobs/${id}0000`, description: "", department: "", posted_at: null, remote: null, role_family: null, seniority_band: null, apply_email: null, first_seen_at: "2026-10-20T00:00:00Z", last_seen_at: "2026-10-20T00:00:00Z", closed_at: null, ...extra });
+  const mk = (id: string, title: string, location: string, extra: Record<string, unknown> = {}) => ({ job_id: id, provider: "greenhouse", board: "x", ats_id: id, company: "Acme", title, location, url: `https://boards.greenhouse.io/x/jobs/${id.charCodeAt(0)}00000`, description: "", department: "", posted_at: null, remote: null, role_family: null, seniority_band: null, apply_email: null, first_seen_at: "2026-10-20T00:00:00Z", last_seen_at: "2026-10-20T00:00:00Z", closed_at: null, ...extra });
   void db;
   const pool = [
     mk("a", "Software Engineering Intern, Summer 2027", "Chicago, IL"),
-    mk("b", "Software Engineer Intern - Summer 2027", "Chicago, IL", { url: "https://boards.greenhouse.io/x/jobs/a0000?gh_src=li" }),
+    mk("b", "Software Engineer Intern - Summer 2027", "Chicago, IL", { url: "https://boards.greenhouse.io/x/jobs/9700000?gh_src=li" }),
     mk("c", "Software Engineering Intern, Summer 2027", "New York, NY"),
     mk("d", "Senior Software Engineer", "Chicago, IL"),
     mk("e", "Software Engineering Intern, Fall 2027", "Chicago, IL"),
@@ -108,6 +108,11 @@ Deno.test("SC/7 status: closed wording, expired term, scam; an ordinary posting 
 Deno.test("SC/8 duplicates: tracking params and trailing slashes do not make a different link", () => {
   eq(canonicalUrl("https://www.Example.com/jobs/1/?utm_source=x&gh_src=y#top"), "example.com/jobs/1");
   eq(dupKeys({ company: "Acme, Inc.", title: "Intern (Summer)", location: "Chicago, IL", url: "https://a.com/x" })[0], dupKeys({ company: "Acme", title: "Intern", location: "Chicago IL" })[0]);
+});
+
+Deno.test("SC/8b a link shared by many postings (a careers page) is not one job's identity", () => {
+  const mk = (id: string, title: string) => ({ job_id: id, company: "Acme", title, location: "Chicago, IL", url: "https://x.test/1", description: "", closed_at: null, first_seen_at: "2026-10-20T00:00:00Z" });
+  eq(searchPostings([mk("1", "Data Analyst"), mk("2", "Senior Data Analyst")], "data analyst", null, 5, { now: NOW }).postings.length, 2);
 });
 
 Deno.test("SC/9 words: an internship query finds an Intern title; plain queries unchanged; the database form groups the synonyms", async () => {

@@ -126,6 +126,13 @@ Deno.test("source gate: exact kinds and whole-string aliases only; sites and way
   for (const r of ["handshake download", "linkedin profile", "indeed profile page", "LinkedIn Sales Navigator", "scraped list", "linkedin database", "guessed from name", "apollo", "bought list", "handshake", "indeed"]) eq(verdict(r).kind, "refused", r);
   for (const r of ["li export", "export", "own file", "download", "a friend", "page", "directory"]) eq(verdict(r).kind, "ask", r);
   eq(verdict("own download").kind, "ask", "'own' inside 'download' is no longer a match");
+  // Not ASCII: compatibility forms are read as what they spell; anything else that maps to nothing is asked, never the default.
+  eq(verdict("\uff4c\uff49\uff4e\uff4b\uff45\uff44\uff49\uff4e").kind, "refused", "fullwidth linkedin");
+  eq(verdict("\uff4c\uff49\uff4e\uff4b\uff45\uff44\uff49\uff4e \uff45\uff58\uff50\uff4f\uff52\uff54").kind, "ok", "fullwidth reads as what it spells: the person's own linkedin export");
+  eq(verdict("link\u200bedin").kind, "refused", "zero-width inside linkedin");
+  eq(verdict("\u200b\u200b").kind, "ask", "only invisible characters is not blank");
+  eq(verdict("   ").kind, "ok", "whitespace is blank");
+  for (const r of ["\u043b\u0438\u043d\u043a\u0435\u0434\u0438\u043d", "\u0441\u0441v", "linked\u0456n", "\u9818\u82f1", "\u30ea\u30f3\u30af\u30c8\u30a4\u30f3", "\ud83d\udcc7", "\u0645\u0644\u0641", "\u200b\u0430"]) eq(verdict(r).kind, "ask", r);
   const csv = "Name,Firm,Source\nA One,X,handshake download\nB Two,Y,li export\nC Three,Z,pasted\n";
   const r = importContacts(csv);
   eq(r.contacts.map((c) => c.name), ["C Three"]);

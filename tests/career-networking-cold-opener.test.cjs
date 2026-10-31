@@ -106,3 +106,19 @@ test("per-firm cap wording and code agree: the reply says there is none, and no 
     assert.ok(/no per-firm cap/i.test(o.reply) && !/at most 15|15 names|reserve/.test(o.reply), o.reply);
   }
 });
+
+test("reserve is the rank-ordered remainder when fewer are asked for than are sendable", () => {
+  const O = D("124-career-outreach.js");
+  const NAMES = ["Aaron Voss", "Bianca Reed", "Carlos Mendez", "Dana Whitfield", "Elias Ford", "Farah Iqbal", "Gavin Holt", "Hana Sato", "Ivan Petrov", "Julia Brandt", "Kwame Mensah", "Lena Fischer"];
+  const pool = NAMES.map((n, i) => ({ person_id: "p" + i, full_name: n, current_firm: "Goldman Sachs", title: "Analyst", seniority_band: "analyst", geography: "NYC", office: "New York", country: "US",
+    schools: i % 3 === 0 ? ["DePaul University"] : ["Other College"], work_email: `p${i}@goldmansachs.com`, email_confidence: 0.6 + (i % 4) * 0.1, email_verification: "verified", last_verified_at: "2026-10-01T00:00:00Z",
+    personalization_facts: i % 2 ? [{ fact: "moved from a prior role", source_url: "https://example.com/" + i, date: "2026-09-15", strength: "strong", topic: "your path" }] : [], relationship_to_user: i % 3 === 0 ? "same school" : "" }));
+  const built = O.buildList(pool, O.parseTarget("5 bulge bracket investment bankers"), { profile: { school: "DePaul University" }, nowMs: Date.parse("2026-10-12T15:00:00Z") });
+  assert.equal(built.selected.length, 5);
+  assert.equal(built.reserve.length, 7, "every other sendable name waits in reserve");
+  const total = (c) => c.scores.total;
+  assert.ok(Math.min(...built.selected.map(total)) >= Math.max(...built.reserve.map(total)), "nothing in reserve outranks a selected name");
+  const sorted = [...built.reserve].sort((a, b) => total(b) - total(a));
+  assert.deepEqual(built.reserve.map((c) => c.person_id), sorted.map((c) => c.person_id), "reserve stays in rank order");
+  assert.ok(new Set(built.selected.concat(built.reserve).map((c) => c.person_id)).size === 12, "selected plus reserve is the whole sendable list, no name twice");
+});

@@ -77,11 +77,19 @@ const ALIASES: Record<string, SourceKind> = {
 };
 const REFUSED_TOKENS = new Set(["linkedin", "indeed", "handshake", "scrape", "scraped", "scraper", "scraping", "crawl", "crawled", "crawler", "database", "db", "guess", "guessed", "guessing", "infer", "inferred", "pattern", "bought", "buy", "purchased", "purchase", "apollo", "zoominfo", "lusha", "rocketreach", "navigator", "sales", "leaked", "dump"]);
 export type SourceVerdict = { kind: "ok"; source: SourceKind } | { kind: "refused"; token: string } | { kind: "ask" };
+// Compatibility-normalize (fullwidth "ｌｉｎｋｅｄｉｎ" becomes "linkedin"), drop zero-width and bidi control characters, then read.
+// The blank fallback is only for a string that is empty or spaces to begin with. A non-empty string that maps to no kind and
+// no refused token (Cyrillic, CJK, symbols only) is unclear: ask.
+const INVISIBLE = /[\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\u3164\ufe00-\ufe0f\ufeff\uffa0]/g;
 export function sourceVerdict(raw: string, fallback: SourceKind): SourceVerdict {
-  const tokens = plain(raw).split(" ").filter(Boolean);
-  if (!tokens.length) return { kind: "ok", source: fallback };
+  const text = String(raw ?? "");
+  if (text.trim() === "") return { kind: "ok", source: fallback };
+  const norm = text.normalize("NFKC").replace(INVISIBLE, "");
+  const tokens = plain(norm).split(" ").filter(Boolean);
+  if (!tokens.length) return { kind: "ask" };
   const key = tokens.join("_");
-  if (ALIASES[key]) return { kind: "ok", source: ALIASES[key] };
+  const asciiOnly = /^[\x20-\x7e]+$/.test(norm.trim());
+  if (asciiOnly && ALIASES[key]) return { kind: "ok", source: ALIASES[key] };
   const bad = tokens.find((t) => REFUSED_TOKENS.has(t));
   if (bad) return { kind: "refused", token: bad };
   return { kind: "ask" };

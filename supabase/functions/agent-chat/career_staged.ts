@@ -97,14 +97,37 @@ export function probeCtx<T extends Record<string, unknown>>(ctx: T): T {
 // is a researched answer for this person, so with CAREER_KNOWLEDGE=on (the research tool exists) the brain takes it and calls
 // research_career_question. Company-specific asks never match here: the router gives them a company file or a campaign, and
 // a result carrying a company stays code's. "What do data analyst postings require?" is not an entry question: library.
-const OPEN_ENTRY = /\b(?:how\s+(?:do|can|would|should|could)\s+(?:i|we|someone|a\s+\w+)|how\s+to|what(?:'s|\s+is)\s+the\s+(?:best\s+)?way\s+to|what\s+should\s+i\s+do\s+to|where\s+do\s+i\s+start\s+to)\b[^?.!]*\b(?:get\s+hired|get\s+a\s+job|get\s+an?\s+(?:internship|offer|entry)|get\s+into|break\s+into|breaking\s+into|become|land\s+an?|start\s+a\s+career)\b/i;
+const ENTRY_VERB = String.raw`(?:get\s+hired|get\s+a\s+job|get\s+an?\s+(?:internship|offer|entry)|get\s+into|get\s+started\s+(?:as|in)|break\s+into|breaking\s+into|become|becoming|be\s+an?|work\s+as|work\s+in|go\s+into|enter|pursue|qualify\s+as|train\s+as|switch\s+(?:in)?to|land\s+an?|start\s+a\s+career)`;
+const OPEN_ENTRY_RES: RegExp[] = [
+  // "how do I get hired as ...", "how to break into ...", "what should I do to land a job as ..."
+  new RegExp(String.raw`\b(?:how\s+(?:do|can|would|should|could)\s+(?:i|we|someone|a\s+\w+)|how\s+to|what(?:'s|\s+is)\s+the\s+(?:best\s+)?way\s+to|what\s+should\s+i\s+do\s+to|where\s+do\s+i\s+(?:even\s+)?start\s+(?:to|if\s+i\s+want\s+to))\b[^?.!]*\b${ENTRY_VERB}\b`, "i"),
+  // "what does it take to become ...", "how long does it take to become ...", "what's the path to becoming ..."
+  new RegExp(String.raw`\b(?:what\s+(?:does|would|will)\s+it\s+take|how\s+(?:long|hard|much\s+school)\s+(?:does|would|will|is)\s+it(?:\s+take)?|what(?:'s|\s+is)\s+the\s+(?:best\s+)?(?:path|route|road|process|steps?))\b[^?.!]*\b(?:to|into)\s+${ENTRY_VERB}\b`, "i"),
+  new RegExp(String.raw`\bwhat(?:'s|\s+is)\s+the\s+(?:best\s+)?(?:path|route|road|process)\s+(?:to|into)\b[^?.!]*\b(?:becoming|being|a\s+career|an?\s+\w+)`, "i"),
+  // "where do I even start if I want to be a nurse", "I want to become a nurse, where do I start"
+  /\bwhere\s+(?:do\s+i|should\s+i)\s+(?:even\s+)?(?:start|begin)\b[^?.!]*\b(?:want\s+to|trying\s+to|hoping\s+to)\s+(?:be|become|work|get|break)\b/i,
+  new RegExp(String.raw`\b(?:want|wanna|hoping|planning|trying|thinking\s+(?:of|about))\s+(?:to\s+)?${ENTRY_VERB}\b[^?.!]*[?.!]?\s*(?:where|how|what)\b[^?.!]*\b(?:start|begin|first|next)\b`, "i"),
+  // "do I need a degree to be a ...", "is it too late for me to become ...", "how many years of school to be ..."
+  new RegExp(String.raw`\b(?:do\s+i\s+(?:really\s+)?need|does\s+it\s+take|is\s+it\s+too\s+late(?:\s+for\s+me)?|am\s+i\s+too\s+(?:old|late))\b[^?.!]*\bto\s+${ENTRY_VERB}\b`, "i"),
+  // "is nursing worth it", "is a career in law a good bet", "is it worth becoming an electrician"
+  /\bis\s+(?:a\s+career\s+in\s+|being\s+an?\s+|becoming\s+an?\s+)?[a-z][^?.!,]{1,50}?\s+(?:worth\s+(?:it|doing|pursuing)|a\s+good\s+(?:career|field|major|bet|path|choice|job|profession))\b/i,
+  /\bis\s+it\s+worth\s+(?:it\s+)?(?:to\s+)?(?:becoming|become|being|going\s+into|studying|majoring)\b/i,
+  // "should I major in X", "should I go into X", "should I become X"
+  /\bshould\s+i\s+(?:still\s+)?(?:major|minor|study|specialize|concentrate)\s+in\b/i,
+  new RegExp(String.raw`\bshould\s+i\s+(?:still\s+)?(?:go\s+(?:into|to\s+school\s+for)|pursue|become|be\s+an?|enter|switch\s+(?:in)?to|train\s+as)\b`, "i"),
+];
+const OPEN_ENTRY = { test: (m: string) => OPEN_ENTRY_RES.some((r) => r.test(m)) };
 const OPEN_ENTRY_KINDS = new Set(["role_kb_stats", "role_kb_absent", "plan_paths"]);
 export function openCareerQuestion(env: Env, message: string, intent: string, result: unknown): boolean {
   if (env.get("CAREER_KNOWLEDGE") !== "on") return false;
-  if (intent !== "company_intel" && intent !== "path_plan") return false;
+  // career_os_plan ("the path from freshman to null") and profile_recall (a self-statement such as "I'm on F-1" swallows the
+  // question) are the router's generic misses on the same open questions: they carry no library answer, so the brain takes them.
+  const GENERIC_MISS = intent === "career_os_plan" || intent === "profile_recall";
+  if (intent !== "company_intel" && intent !== "path_plan" && !GENERIC_MISS) return false;
   if (!OPEN_ENTRY.test(message)) return false;
   const r = (result && typeof result === "object" ? result : {}) as Record<string, any>;
   if (has(r, "company") || has(r, "comparison") || has(r, "offer")) return false;
+  if (GENERIC_MISS) return true;
   return OPEN_ENTRY_KINDS.has(String(r.payload?.kind ?? r.artifact?.kind ?? ""));
 }
 

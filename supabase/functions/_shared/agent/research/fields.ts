@@ -16,11 +16,13 @@ export interface Field {
   asks: string[];                            // what to ask them
   verify: string[];                          // what this brief cannot know without a current source
   cycle: string[];                           // the usual route by stage or year, in words (no dates or figures): where the person is on it
+  short?: { now: string; later: string; act: string };   // the Telegram paragraph's verdict: one plain sentence each, no list, no figure
   odds: string;                              // the honest odds in words, with no invented rate
   local?: boolean;                           // licensing or hiring rules are set by state or country
 }
 export const FIELDS: Field[] = [
   { id: "ib", label: "investment banking", detect: /investment bank|\bIB\b|private equity|\bPE (?:shop|firm)s?\b|\bM&A\b|banker/i,
+    short: { now: "right now the realistic goal is a base, not a big-bank seat: finance coursework, a finance club and conversations with people ahead of you", later: "boutique and middle-market banks, small private equity shops and corporate finance teams are the realistic first rungs", act: "join the finance or investing club and build one simple three-statement model of a public company from its filings" },
     cycle: [
       "Freshman year: build the base, not the offer. Take accounting and finance courses, join the finance or investing club, keep grades you can defend, and start conversations with upperclassmen and alumni. Ask your career center which large banks offer programs for first-year students; I cannot confirm any from a source here, so check each bank's own careers page for eligibility and dates.",
       "Sophomore year: the first real recruiting cycle. The summer after sophomore year is where most people win a first internship, at a boutique or middle-market bank, a small private equity shop, a corporate finance team, or a large bank's program for sophomores if one exists for your school. Technical prep (accounting, valuation, discounted cash flow, comparable companies) starts here and is tested in interviews.",
@@ -41,6 +43,7 @@ export const FIELDS: Field[] = [
     asks: ["How did you get your first finance role, and what would you do differently?", "What did your firm look for in interns that applicants usually lack?", "Which technical skill should I be strongest in by my next recruiting season?"],
     verify: ["The exact current recruiting calendar of any single firm", "Which firms run programs for your class year this cycle", "Current analyst pay at specific firms", "Whether a given firm recruits from your school"] },
   { id: "consulting", label: "management consulting", detect: /consult(?:ing|ant)|strategy (?:firm|role)/i,
+    short: { now: "right now the realistic goal is case skill and analytical work to show, since the most selective firms take few applicants", later: "boutique, specialist and mid-size firms and internal strategy teams are strong routes in, and many people move to the largest firms from there", act: "do one live practice case with a partner and write down how you structured it" },
     cycle: [
       "Early college years: build the base. Grades, leadership roles, quantitative coursework and analytical projects, plus first conversations with alumni at firms.",
       "Sophomore year: look for first-year and sophomore diversity or insight programs where your school is eligible, and start learning the case format.",
@@ -61,6 +64,7 @@ export const FIELDS: Field[] = [
     asks: ["What separated candidates who got offers from those who did not?", "How did you practise cases, and what would you change?", "Which firm types fit my background, and why?"],
     verify: ["Each firm's current application window and class-year eligibility", "Current compensation at any named firm", "Whether a given office is hiring this cycle"] },
   { id: "swe", label: "software engineering", detect: /software|\bswe\b|(?:web|app|mobile|front[- ]?end|back[- ]?end|full[- ]?stack) (?:dev|developer|engineer)|programmer|coding bootcamp|computer programming/i,
+    short: { now: "right now a first software job is competitive, so shipped projects and real work for real users count for more than another course", later: "with finished projects and a referral, small and mid-size companies, agencies and internal tools teams become realistic", act: "pick one small tool you would use yourself and build it end to end, then put it on your public profile" },
     cycle: [
       "Early college years: learn to build. Core programming courses, one or two projects you ship, and a habit of reading other people's code.",
       "Sophomore year: look for a first internship, a research seat, or an open-source or freelance project; many large companies run early-career programs.",
@@ -81,6 +85,7 @@ export const FIELDS: Field[] = [
     asks: ["What did your first engineering job look for in a junior hire?", "Can you look at one project of mine and tell me what is weakest?", "Which kinds of small teams hire people at my level?"],
     verify: ["Whether any named company is hiring juniors now", "Current pay at a named employer", "Which internships are open to your class year this cycle"] },
   { id: "data", label: "data analytics", detect: /data (?:analy|scien|engineer)|analytics|business intelligence/i,
+    short: { now: "right now analyst roles in operations, finance, marketing and health are reachable if you can show SQL, spreadsheets and one real analysis", later: "after a stretch as an analyst, data science, analytics engineering and specialist roles open up", act: "pull one public dataset, answer one real question with SQL and a spreadsheet, and write the answer in a page" },
     cycle: [
       "Early college years: SQL, spreadsheets and statistics, plus one analysis of a real dataset you can explain end to end.",
       "Sophomore year: a first analyst internship, campus research or a volunteer analysis for a club or nonprofit.",
@@ -101,6 +106,7 @@ export const FIELDS: Field[] = [
     asks: ["What does a day of analysis look like in your role?", "Which tools did you need in your first job?", "What would make a project of mine credible to your team?"],
     verify: ["Current openings and employer-specific requirements", "Whether work authorization limits particular employers", "Current pay in your city"], local: false },
   { id: "nursing", label: "nursing", detect: /\bnurs(?:e|es|ing)\b|\bRN\b|NCLEX/i,
+    short: { now: "right now new nurses are hired on licensure and clinical fit, so the work is passing the licensing exam and applying to new-graduate programs", later: "after the first stretch on a unit, specialty certifications, charge roles and advanced practice open up", act: "check your state board's application steps and exam timing, and ask your school's career office which employers hire its graduates" },
     cycle: [
       "Before and during the program: clinical placements, grades and a strong record on the clinical rotations decide where you are noticed.",
       "Final year: apply to new-graduate residency programs, which often open before graduation, and prepare for the licensing exam.",
@@ -119,7 +125,8 @@ export const FIELDS: Field[] = [
     who: ["Nurse recruiters and nurse managers at the employers near you", "Recent graduates of your program now on units", "Your clinical instructors and preceptors"],
     asks: ["What did your unit look for in new graduates?", "What was your first year like, and what helped?", "Which settings in this area hire new nurses?"],
     verify: ["Your state's current licensing steps and fees", "Which employers have open new-graduate cohorts and their deadlines", "Current pay at named employers"], local: true },
-  { id: "trades", label: "electrical trade", detect: /electrician|lineman|plumb|apprentice|journeyman|\bIBEW\b|welder|hvac|carpent/i,
+  { id: "trades", label: "skilled trades", detect: /electrician|electrical (?:trade|work|apprentice)|lineman|plumb|pipefitter|apprentice|journeyman|\bIBEW\b|weld(?:er|ing)|hvac|carpent|machinist|diesel mechanic|\bskilled trades?\b/i,
+    short: { now: "right now the realistic move is a registered apprenticeship or a contractor who will train you and log your hours", later: "journeyman status comes first, then specialty work, foreman roles or your own license and business, in that order", act: "find the apprenticeship programs near you, check their entry requirements and aptitude test, and call one to ask when they next take applicants" },
     cycle: [
       "Now: apply to registered apprenticeship programs and contractors who train, since the application windows are limited and aptitude tests come first.",
       "Through the apprenticeship: classroom hours and logged on-the-job hours accumulate toward the journeyman license.",
@@ -139,6 +146,7 @@ export const FIELDS: Field[] = [
     asks: ["What does your program look for in applicants?", "What was the hardest part of the first year?", "Which contractors here take on new apprentices?"],
     verify: ["Current application windows, aptitude test dates and pay scales of local programs", "Your state's exact hours and exam requirements", "Whether local union halls are taking applications now"], local: true },
   { id: "teaching", label: "teaching", detect: /\bteach(?:er|ing)\b|\bclassroom\b|education degree/i,
+    short: { now: "right now hiring depends on your subject, your certification status and the district, so the realistic move is to confirm what your state requires", later: "experience, added endorsements and a master's degree widen options into leadership, curriculum and specialist roles", act: "look up your state education department's certification pathways and which exams your subject requires" },
     cycle: [
       "Now: confirm your state's certification route and which subjects have shortages.",
       "During preparation: student teaching or a residency, the licensing exams, and school or district applications that often open in the spring.",
@@ -158,6 +166,7 @@ export const FIELDS: Field[] = [
     asks: ["What does your school look for in a new teacher?", "Which subjects are hardest to fill here?", "How did you move through certification?"],
     verify: ["Your state's current certification requirements and exam names", "District hiring calendars and openings", "Current pay scales by district"], local: true },
   { id: "pm_ops", label: "project management", detect: /project manag|program manag|operations (?:manag|role|analyst)|\bpmp\b|scrum|business ops/i,
+    short: { now: "right now project and operations roles hire on a record of delivery, so translate what you have run into delivery language", later: "a recognized credential and a quantified delivery record open program management and operations leadership", act: "write down one thing you ran in concrete terms: scope, budget, people, schedule and result" },
     cycle: [
       "Now: translate what you have already run into delivery language and list the scope, team and result of each project.",
       "Next few months: apply for coordinator, project manager and program manager roles that match your scale, and consider a credential only if listings ask for it.",
@@ -177,6 +186,7 @@ export const FIELDS: Field[] = [
     asks: ["How is my experience read by hiring managers in your area?", "Which credential, if any, do you actually screen on?", "Which sectors need people with my background?"],
     verify: ["Current eligibility rules and fees for any certification", "Which employers are hiring now", "Current pay in your region"] },
   { id: "eng", label: "engineering", detect: /mechanical|civil|electrical engineer|chemical engineer|\bengineering\b|aerospace|\bECE\b/i,
+    short: { now: "right now the realistic move is to secure your degree path and land a co-op or internship that recruiters fill from your major", later: "after the degree, an early-career technical role and, where your discipline uses it, the licensure track lead to senior roles", act: "get a written degree plan from your advisor and ask which co-op or internship seats recruiters fill from your major" },
     cycle: [
       "Now: secure the transfer or degree path and its credit rules in writing.",
       "First terms: join the engineering society, find a faculty research seat or a hands-on project, and ask the cooperative education office when internship recruiting starts.",
@@ -197,6 +207,7 @@ export const FIELDS: Field[] = [
     asks: ["How did you land your first internship as a transfer student?", "Which courses mattered most for interviews?", "What would you do in your first semester?"],
     verify: ["Whether each of your courses transfers", "Recruiting calendars at specific employers", "Current pay for internships and entry roles"] },
   { id: "lnd", label: "instructional design and corporate training", detect: /instructional design|corporate (?:training|learning)|learning (?:and|&) development|\bL&D\b|training specialist/i,
+    short: { now: "right now the realistic goal is a portfolio of a few learning samples, since these roles hire on samples more than on credentials", later: "after a first training or design role, senior designer and learning-and-development management roles become reachable", act: "turn one piece of work you have done into a short learning sample with an objective, an activity and an assessment" },
     cycle: [
       "Now: turn classroom work into design language and start two or three samples.",
       "Next few months: finish a portfolio of samples with measured outcomes and learn one authoring tool.",
@@ -223,21 +234,40 @@ export const fieldById = (id: string): Field | undefined => FIELDS.find((f) => f
 export const GK_TERMS = new Set(["us", "u.s.", "uk", "f-1", "cpt", "opt", "stem", "dso", "mba", "nclex", "rn", "pmp", "sql", "fe", "pe", "ibew", "gpa", "ats", "ai", "ok", "pdf", "hr", "rfp"]);
 
 // Overlays: what changes when the person says more. Each is general knowledge and applies to every field.
-export interface Overlay { id: string; detect: RegExp; read: string; stage?: string; network?: string; verify?: string }
+export interface Overlay { id: string; detect: RegExp; lead?: string; read: string; stage?: string; network?: string; verify?: string }
+// The person is in school age themselves ("I'm a junior in high school", "I'm 16", "11th grade"), not asking about a high school job.
+export const HS_SELF_SRC = String.raw`\b(?:i'?m|i am|im|currently|going into|starting)\b[^.?!]{0,40}\b(?:in\s+|a\s+)?(?:high[- ]?school(?!\s+(?:teacher|counselor|coach|principal|science|math|english|history|art|music|band|football|basketball))|high[- ]?schooler|(?:9th|10th|11th|12th|ninth|tenth|eleventh|twelfth) grade)|\b(?:in|finishing|entering)\s+(?:high school|(?:9th|10th|11th|12th) grade)\b|\bi'?m (?:1[3-8])\b|\b(?:1[3-8])[- ]?(?:year[- ]old|yo|y\/o)\b`;
+export const HS_SELF = new RegExp(HS_SELF_SRC, "i");
 export const OVERLAYS: Overlay[] = [
-  { id: "veteran", detect: /\bveteran\b|\bex-military\b|\bmilitary service\b|\bseparating (?:from )?the (?:army|navy|air force|marines|military)\b/i,
+  { id: "veteran", detect: /\bveteran\b|\bex-?military\b|\bmilitary service\b|\bmilitary (?:background|spouse)\b|\b(?:separating|separated|left|leaving|retired|retiring|discharged|getting out) (?:from |of )?the (?:army|navy|air force|marines?|marine corps|coast guard|military|national guard|space force)\b/i,
+    lead: "Your service counts as experience once translated into civilian terms.",
     read: "Your service is real experience: leadership, logistics, discipline and often technical training. The task is translation, since civilian hiring managers do not read military titles.",
     stage: "Have the military's own transition office or your school's veteran services review a plain-language version of your duties before you apply anywhere.",
     network: "Ask other veterans in the field for introductions; veteran networks tend to answer.", verify: "Which benefits and credit-for-training rules apply to you; ask the veteran services office rather than a forum" },
   { id: "intl", detect: /\bF-?1\b|\binternational student\b|\bstudent visa\b|\bOPT\b|\bCPT\b/i,
+    lead: "Confirm work authorization with your school's international office before accepting any work.",
     read: "Work authorization narrows who can hire you and when, so it shapes the list of employers before anything else does.",
     stage: "Before you accept any work, confirm with your school's international student office (DSO) how F-1 work authorization such as CPT and OPT applies to that job.",
     network: "Ask each contact whether their employer has hired international students before.", verify: "Which employers will sponsor and your exact work authorization dates; your DSO is the source" },
-  { id: "older", detect: /\bi'?m (?:5\d|6\d)\b|\b(?:5\d|6\d)[- ]?(?:year[- ]old|yo|y\/o)\b|\bin my (?:50s|60s)\b|\bage (?:5\d|6\d)\b/i,
+  { id: "older", detect: /\bi'?m (?:[456]\d)\b|\b(?:[456]\d)[- ]?(?:year[- ]old|yo|y\/o)\b|\bin my (?:40s|50s|60s)\b|\bage (?:[456]\d)\b/i,
+    lead: "Your experience is the asset; make it current and easy to read.",
     read: "Experience is your asset, and the work is making it current and easy to read: recent results first, tools you use now, and a clear story about the role you want next.",
     stage: "Update the top third of your resume and your public profile so recent, relevant results lead and the tools you use now are named.",
     network: "Former colleagues and managers are your strongest introductions; reach back out with a specific ask." },
+  { id: "high_school", detect: HS_SELF,
+    lead: "At your age, exploring and seeing the job up close comes first.",
+    read: "You have the longest runway of anyone asking this, so the right work now is exploring and building a base: courses, a school or community program in the field, and seeing the job up close. A full-time job in the field is not the target yet.",
+    stage: "Talk to your school counselor about the courses and any dual-enrollment or technical programs for this field, and ask one person who does the job whether you can shadow them for a day.",
+    network: "Teachers, your counselor, family friends and local employers can introduce you to someone in the field; ask for a fifteen-minute chat about what the job is really like.",
+    verify: "Age limits, work permits and program rules near you; your school counselor is the source" },
+  { id: "returner", detect: /\breturning to work\b|\bback to work\b|\bre-?enter(?:ing)? the (?:workforce|job market)\b|\bcareer break\b|\bstay-?at-?home\b|\bafter (?:raising|caring for)\b/i,
+    lead: "A career break is easy to explain in one honest line.",
+    read: "A career break is common and easy to explain in one honest line; what employers want to see is current skills and a clear target role, so the plan leads with both.",
+    stage: "Write the one-line story of your break and your target role, then refresh one current skill with a short course or project you can show.",
+    network: "Former colleagues, managers and people from volunteering or community work are warm contacts; reconnect with a specific question rather than a request for a job.",
+    verify: "Whether the employers you target run returner programs; check each one's careers page" },
   { id: "displaced", detect: /laid off|layoff|let go|downsiz|redundan|lost my job|fired/i,
+    lead: "Protect finances and benefits first, then search on a weekly schedule.",
     read: "A layoff is a business decision, not a verdict on you; the search has two clocks, your finances and your pipeline, and both need attention in the first weeks.",
     stage: "In the first days, collect your separation paperwork and check your benefits and unemployment steps with your state's official sites.",
     verify: "Severance, benefits and unemployment rules for your state and employer; use official sources" },
@@ -245,6 +275,7 @@ export const OVERLAYS: Overlay[] = [
     read: "You may not have an inherited network, so the plan builds one on purpose, starting with people your school already gives you access to.",
     network: "Start with your career center, professors' office hours and alumni lists; a short, specific message is enough." },
   { id: "cc", detect: /community college/i,
+    lead: "Get transfer-credit rules in writing before you register.",
     read: "A community college start is a normal route; the details that matter are credit transfer and getting the same access to recruiters that four-year students get.",
     stage: "Ask your advisor for the transfer-credit rules in writing before you register for the next term." },
   { id: "bootcamp", detect: /boot ?camp/i,
@@ -265,6 +296,7 @@ export function genericField(label: string, local = false): Field {
       { q: "{field} license or certification required how to get it {geo}", kinds: ["credential", "eligibility"] }],
     cycle: ["Now: learn the occupation's entry requirements from an official or industry source and write down which ones you already meet.", "Next few months: get close to the real work through a placement, trainee role, volunteering or the supervised hours the occupation requires.", "Then: apply to the employers the sources list, starting with those that train new entrants, and work toward the credential employers screen on."],
     odds: "Your odds are set by the entry requirement and by local demand, both of which the sources should show; where no source gave a hiring rate I give none, and the first useful step is to learn how many entrants the training route takes.",
+    short: { now: "right now what is realistic is set by this occupation's own entry requirements, so learn them and meet the first one", later: "once you meet the entry requirement and hold a first role or placement, the credentials the industry body describes come next", act: "find the official description of the occupation and its training route, and write down which entry requirements you already meet" },
     now: "What you can realistically do now is set by this occupation's own entry requirements, so the first job is to learn exactly what they are from an official or industry source and to meet the first one.",
     later: "Once you meet the entry requirement and have a first role or placement, the next rungs are the specializations, credentials and senior roles the occupation's own industry body describes.",
     slots: { foundation: "Find the official description of the occupation, its entry requirements and its usual training route, and write down which ones you already meet.", experience: "Get close to the real work: shadow someone, volunteer, take an assistant or trainee role, or complete the supervised hours the occupation requires.", credential: "Find out which license, certification or degree employers actually screen on, and who grants it, before you pay for any course.", target: "Apply to the employer categories the sources list, starting with those that train new people." },

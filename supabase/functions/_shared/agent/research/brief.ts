@@ -40,6 +40,9 @@ export function composeBrief(o: { u: Understanding; g: Grounded; message: string
   const sec = (h: string) => L.push("", `## ${h}`, "");
 
   L.push(`# ${cap(f.label)}: your plan`, "", `Written for ${u.stageLabel} aiming at ${f.label}${u.geoKey === "us" ? " in the US" : ` in ${u.geo}`}, as of ${o.today}.`);
+  const sentences = o.message.replace(/\s+/g, " ").replace(/["\u201c\u201d]/g, "'").trim().split(/(?<=[.?!])\s+/);
+  const asked = sentences.filter((x) => x.includes("?")).pop() ?? sentences.at(-1) ?? "";
+  if (asked.length >= 8 && asked.length <= 240 && !/\d/.test(asked)) L.push("", `You asked: "${asked}"`);
   if (u.confirmed.length) L.push("", `What I am working from (confirmed): ${u.confirmed.join("; ")}.`);
   if (u.said.length) L.push(`What you mentioned (not yet confirmed, so I only advise from it): ${u.said.join("; ")}.`);
   for (const a of u.assumptions) L.push("", `Assumption: ${a}`);

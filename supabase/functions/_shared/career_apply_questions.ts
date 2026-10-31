@@ -45,7 +45,7 @@ export interface OpenQuestion {
 }
 export interface PendingDraft { text: string; at: string; n: number }
 export interface AheadDraft { text: string; at: string } // G4: drafted before the person asked; never their answer
-export interface Shown { thread: string; ids: string[]; at: string; drafts?: Record<string, PendingDraft> }
+export interface Shown { thread: string; ids: string[]; at: string; drafts?: Record<string, PendingDraft>; skipped?: string[] }
 export interface QuestionStore {
   open(userId: string, limit: number): Promise<OpenQuestion[]>; // open questions, oldest first
   countOpen(userId: string): Promise<number>;
@@ -225,8 +225,11 @@ const said = (q: OpenQuestion, value: string) => {
 
 // The first open question, shown as the questions turn shows it (with its draft offers), and recorded as the one the
 // next message answers. Null when none is open.
-async function present(o: { userId: string; threadId: string; now: number; store: QuestionStore }): Promise<string | null> {
-  const [open, total] = await Promise.all([o.store.open(o.userId, 20), o.store.countOpen(o.userId)]);
+async function present(o: { userId: string; threadId: string; now: number; store: QuestionStore }, skipped: string[] = []): Promise<string | null> {
+  const [all, total] = await Promise.all([o.store.open(o.userId, 20 + skipped.length), o.store.countOpen(o.userId)]);
+  // "skip" leaves a question for later: the next one is asked; the skipped one comes back once the others are answered.
+  const later = all.filter((q) => !skipped.includes(q.id)), open = later.length ? later : all;
+  if (!later.length) skipped = [];
   const offers = await eligibilityOffers(o.store, o.userId, open);
   const ahead = await aheadDrafts(o.store, o.userId, open);
   const t = questionsText(open, Math.max(total, open.length), (q, n) => {
@@ -244,7 +247,8 @@ async function present(o: { userId: string; threadId: string; now: number; store
     const d = offers.get(q.id);
     if (d) drafts[q.id] = { text: d.value, at, n: i + 1 };
   });
-  await o.store.setShown(o.userId, { thread: o.threadId, ids: t.take.map((q) => q.id), at, ...(Object.keys(drafts).length ? { drafts } : {}) });
+  await o.store.setShown(o.userId, { thread: o.threadId, ids: t.take.map((q) => q.id), at, ...(Object.keys(drafts).length ? { drafts } : {}),
+    ...(skipped.length ? { skipped } : {}) });
   return t.text;
 }
 
@@ -308,6 +312,12 @@ export async function questionsTurn(
     if (!q) { open.push(`${n}: that question is gone (the application was removed).`); continue; }
     if (NEVER_BY_TEXT.test(q.label)) { open.push(`${n}: type that one on the form yourself; Upmore never keeps it.`); continue; }
     const c = checkAnswer(q, raw);
+    // One at a time: "skip" moves on to the next open question; this one is asked again after the others.
+    if (!c.ok && c.skip && shown.ids.length === 1) {
+      const skipped = [...new Set([...(shown.skipped ?? []), q.id])];
+      const next = (await o.store.countOpen(o.userId)) > skipped.length ? await present(o, skipped) : null;
+      if (next) return { reply: `Left for later; I'll ask it again after the others.\n\nNext: ${next}`, status: "answered_next" };
+    }
     if (!c.ok) { open.push(`${n} ${c.why}.`); continue; }
     await o.store.answer(o.userId, q.id, c.value);
     saved.push(`${n}. ${said(q, c.value)}`);
@@ -318,7 +328,7 @@ export async function questionsTurn(
   // One at a time: the answer saved, the next open question is asked in the same reply, and it alone is what the next
   // message answers. The card waits until none is left.
   if (saved.length && !open.length && left > 0) {
-    const next = await present(o);
+    const next = await present(o, (shown.skipped ?? []).filter((id) => !shown!.ids.includes(id)));
     if (next) {
       return { reply: [`Saved. I won't ask this again:`, ...saved.map((x) => x.replace(/^\d+\. /, "")), "", `Next: ${next}`].join("\n"), status: "answered_next" };
     }
@@ -514,7 +524,8 @@ export function supabaseQuestionStore(admin: any): QuestionStore {
         const x = d as any;
         if (x && typeof x.text === "string" && x.text.length <= 2000 && typeof x.at === "string" && Number.isInteger(x.n)) drafts[id] = { text: x.text, at: x.at, n: x.n };
       }
-      return { thread: v.thread, ids: v.ids.map(String), at: String(v.at), ...(Object.keys(drafts).length ? { drafts } : {}) };
+      const skipped = Array.isArray(v.skipped) ? v.skipped.slice(0, 200).map(String) : [];
+      return { thread: v.thread, ids: v.ids.map(String), at: String(v.at), ...(Object.keys(drafts).length ? { drafts } : {}), ...(skipped.length ? { skipped } : {}) };
     },
     async setShown(userId, s) {
       must(await admin.from("career_watch_kv").upsert({ user_id: userId, key: "career:questions-shown", value: s }, { onConflict: "user_id,key" }), "keep the questions shown");

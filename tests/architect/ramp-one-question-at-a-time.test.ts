@@ -6,7 +6,7 @@
 //      question ("You agree: Yes - I consent ...: No - I do not consent ..."). Proven on the page: discovery and binding
 //      (bindFields), the label the payload, the card and the server's card check all use.
 import assertNode from "node:assert/strict";
-import { type OpenQuestion, PER_TEXT, type QuestionStore, questionsText, questionsTurn, type Shown } from "../../supabase/functions/_shared/career_apply_questions.ts";
+import { type OpenQuestion, PER_TEXT, type QuestionStore, questionsText, questionsTurn, type Shown, supabaseQuestionStore } from "../../supabase/functions/_shared/career_apply_questions.ts";
 import { prepareAfterAnswers } from "../../supabase/functions/_shared/career_hosted_prepare.ts";
 import { handlePrepareBridge, prepareToken } from "../../supabase/functions/_shared/cloud_prepare.ts";
 import { bindFields } from "../../scripts/career/form-bind.ts";
@@ -95,6 +95,36 @@ Deno.test("Q2 chat: asked, answered, the next asked in the same reply, each answ
   eq(await m.store.countOpen(U), 0);
   eq(await prepareAfterAnswers(d, { admin, userId: U, env, fetch }), "started", "prepared again, for the card, only now");
   eq(kicks, ["http://runner.test/prepare"]);
+});
+
+Deno.test("Q4 'skip' moves on to the next question; the skipped one comes back after the others, and nothing is saved for it", async () => {
+  const m = memoryStore(RAMP);
+  const turn = async (message: string) => {
+    const r = (await questionsTurn({ message, userId: U, threadId: T, now: Date.now(), store: m.store, situation: undefined }))!;
+    m.said(["shown", "partial", "answered_next"].includes(r.status) ? "career_apply_questions" : "other");
+    return r;
+  };
+  await turn("what do you need from me");
+  const s = await turn("skip");
+  eq(s.status, "answered_next", s.reply);
+  assert(/graduation/.test(s.reply) && !/School/.test(s.reply.split("Next:")[1] ?? ""), s.reply);
+  eq(m.answered.size, 0);
+  const a = await turn("06/13/2029");
+  assert(/sponsorship/.test(a.reply), `the next one not skipped: ${a.reply}`);
+  const b = await turn("no");
+  eq(b.status, "answered_next", "the skipped one is asked again");
+  assert(/School/.test(b.reply), b.reply);
+  const c = await turn("DePaul University");
+  eq([c.status, m.answered.size], ["answered", 3]);
+});
+
+Deno.test("Q5 the production store keeps what was skipped, so 'skip' moves on there too", async () => {
+  let kept: any = null;
+  const q = { eq: () => q, maybeSingle: async () => ({ data: kept ? { value: kept } : null, error: null }), select: () => q };
+  const admin = { from: () => ({ upsert: async (row: any) => { kept = JSON.parse(JSON.stringify(row.value)); return { error: null }; }, select: () => q }) };
+  const store = supabaseQuestionStore(admin);
+  await store.setShown(U, { thread: T, ids: [RAMP[1].id], at: new Date().toISOString(), skipped: [RAMP[0].id] });
+  eq((await store.shown(U))?.skipped, [RAMP[0].id]);
 });
 
 Deno.test("Q3 the hosted push (Telegram, SMS, WhatsApp: one outbox text) carries exactly one question", async () => {

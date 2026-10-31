@@ -217,3 +217,18 @@ Deno.test("personalize networking: nothing sourced asks one question; the answer
   assertEquals(no!.status, "declined");
   assertEquals(store.dump().drafts.length, 1);
 });
+
+Deno.test("personalize networking: a message that is not about them closes the question and is left to its own turn", async () => {
+  const store = memoryOutreachStore();
+  await store.setPrefs(U, { signature: "Test Person" });
+  const row = { file: "contacts.csv", row: 2, name: "Maya Chen", email: "maya.chen@stripe.example", firm: "Stripe", firm_raw: "Stripe", company: "Stripe", title: "Data Analyst", school: "", connected_on: null, verified: true } as ContactRow;
+  await store.putContacts!(U, await store.accountEpoch!(U), [keyedContact(row)]);
+  const state: Record<string, unknown> = { profile: { facts: SENDER_FACTS } };
+  const q = await networkingTurn({ message: "email Maya Chen at Stripe", userId: U, threadId: "t-x", now: NOW, state, store, model: fakeWriter() });
+  assertEquals(q!.status, "needs_facts");
+  store.setIntent("t-x", FACTS_INTENT);
+  eq_null(await networkingTurn({ message: "find me software engineering internships in Chicago", userId: U, threadId: "t-x", now: NOW, state, store, model: fakeWriter() }));
+  assertEquals(await store.factAsk!(U, "t-x"), null, "the question is closed");
+  assertEquals((await store.recipientFacts!(U, ["e:maya.chen@stripe.example"])).size, 0, "nothing saved about Maya");
+});
+function eq_null(v: unknown) { assertEquals(v, null); }

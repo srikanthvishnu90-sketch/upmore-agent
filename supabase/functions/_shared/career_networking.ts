@@ -447,6 +447,12 @@ async function factIntakeTurn(o: NetworkingDeps): Promise<NetworkingResult | nul
   if (answering) {
     // Any other ask (an approval, an intro, a status, another email) is that ask: the question closes unanswered.
     if (parseNetworkingAsk(typedAddress(msg).text) || forgetAsk(msg) || parsePeopleAsk(msg) || parseOutreachReply(msg) || parseBatchYes(msg) || trackAsk(msg) || siteAsk(msg)) { await setFactAsk(o, null); return null; }
+    // Only something about them is an answer: a pronoun, their name, a link, or a sentence about what they did. Anything
+    // else ("find me internships in Chicago") is another ask: the question closes and that ask runs.
+    const nameWords = plain(pending!.name).split(" ").filter((w) => w.length > 1);
+    const aboutThem = DECLINE_RX.test(msg) || URL_RX.test(msg) || /\b(?:she|he|they|her|his|their|him|them)\b/i.test(msg) || nameWords.some((w) => ` ${plain(msg)} `.includes(` ${w} `))
+      || /^\s*(?:spoke|wrote|works?|worked|leads?|led|built|builds|runs|ran|published|presented|went|studied|grew|gave|launched|founded|co-?founded|maintains|manages|is|was|has)\b/i.test(msg);
+    if (!aboutThem) { await setFactAsk(o, null); return null; }
     if (DECLINE_RX.test(msg)) {
       await setFactAsk(o, null);
       return { reply: `Then I'll hold off on writing to ${pending!.name}: an email that could go to anyone rarely gets a reply, and I won't make something up. When you learn one thing about their work, tell me ("${pending!.name.split(" ")[0]} spoke at ...") and I'll write it.`, intent: FACTS_INTENT, status: "declined" };

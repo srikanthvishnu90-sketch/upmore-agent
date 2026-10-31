@@ -3858,6 +3858,7 @@ const CareerRouter = (() => {
       const at = /^(?:at|into|from)\s+(?:the\s+)?(.+)$/i.exec(rest);
       const fld = /^(?:in|for|about|into)\s+(?:an?\s+|the\s+|my\s+)?(.+)$/i.exec(rest);
       if (at && (/^at$/i.test(rest.split(" ")[0]) || /^[A-Z0-9]/.test(at[1]))) firm = at[1].trim();
+      else if (fld && /^into\b/i.test(rest)) return null; // "network into <field>" is the plan's own universe ask (LF-09)
       else if (fld) field = fld[1].trim().replace(/\s+(?:jobs?|roles?|work|careers?|field|industry|internships?)$/i, "").trim();
       else return null;
       const target = firm || field;
@@ -3871,6 +3872,9 @@ const CareerRouter = (() => {
       ? "Easiest start: paste a few names you already know, upload your LinkedIn export, or tell me your school."
       : "Easiest start: tell me a firm or field, paste a few names you already know, or upload your LinkedIn export.";
     const reply = compose({ headline, facts, nextStep });
+    // The plan the person's own words describe stays on the thread (firm, field or the proposed set), so a follow-up like
+    // "draft the first email" has something to stand on; nothing is built, counted or sent from it.
+    try { const q = Outreach && Outreach.parseTarget ? Outreach.parseTarget(text, {}) : null; if (q) persistPlan(ctx, text, q, q.count); } catch { /* an aid, never a blocker */ }
     const rec = { kind: "networking_opener", firm, field, sources: ["linkedin_export", "pasted_names", "school_alumni_directory", "firm_team_pages"], asked_next: "names_or_export_or_school", sends: 0, committed: false };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec };
   }

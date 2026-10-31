@@ -529,6 +529,16 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
   const got = await deps.store.recall(userId, t.ref).catch(() => null);
   if (!got) { await say(GONE_REPLY); return { toast: "Too old.", status: "gone" }; }
   const { job, shownAs } = got;
+  // The exact prepared application, whole, with Confirm bound to its hash (none when it cannot be approved here, and why).
+  const showPayload = async (prep: PreparedRow): Promise<JobTapResult> => {
+    const lines = pageLines(payloadLines(prep, job));
+    const needsYou = secretFields(prep).length > 0; // a secret-looking field with a value: shown as "needs you", never approvable here
+    const why = needsYou ? null : await unsendable(userId, prep, deps);
+    for (let i = 0; i < lines.length; i++) await send.text({ text: lines[i], buttons: i === lines.length - 1 && !needsYou && !why ? confirmButtons(t.ref, hashTag(prep.payload_hash)) : undefined });
+    if (why) { await say(`I can't offer this one for approval: ${why}.`); return { toast: "Not approvable.", status: "unsendable" }; }
+    if (needsYou) { await say(`I can't send this one from here: it has a field that needs you (a password, code or similar), and those never go through chat. Open the link and finish that part yourself:\n${prep.url}`); return { toast: "Needs you.", status: "needs_you" }; }
+    return { toast: "Check it, then Confirm.", status: "shown" };
+  };
 
   if (t.op === "details") {
     const rows = await deps.store.postings([job.job_id]).catch(() => [] as PostingRow[]);
@@ -573,13 +583,7 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
       await say(w.result === "already" ? `${NO_WORKER_REPLY(job.company, job.title)} (It was already waiting.)` : NO_WORKER_REPLY(job.company, job.title));
       return { toast: "Queued, not applied.", status: "queued_unprepared" };
     }
-    const lines = pageLines(payloadLines(prep, job));
-    const needsYou = secretFields(prep).length > 0; // a secret-looking field with a value: shown as "needs you", never approvable here
-    const why = needsYou ? null : await unsendable(userId, prep, deps);
-    for (let i = 0; i < lines.length; i++) await send.text({ text: lines[i], buttons: i === lines.length - 1 && !needsYou && !why ? confirmButtons(t.ref, hashTag(prep.payload_hash)) : undefined });
-    if (why) { await say(`I can't offer this one for approval: ${why}.`); return { toast: "Not approvable.", status: "unsendable" }; }
-    if (needsYou) { await say(`I can't send this one from here: it has a field that needs you (a password, code or similar), and those never go through chat. Open the link and finish that part yourself:\n${prep.url}`); return { toast: "Needs you.", status: "needs_you" }; }
-    return { toast: "Check it, then Confirm.", status: "shown" };
+    return await showPayload(prep);
   }
 
   // Confirm: the hash-bound approval. The payload is read again now; the tag on the button must be the tag of what is on file.
@@ -597,6 +601,17 @@ export async function tapJob(o: { userId: string; data: string; messageId: strin
     const prep = await deps.store.prepared(userId, job.job_id).catch(() => null);
     if (!prep || hashTag(prep.payload_hash) !== t.tag) {
       if (!prep && await applied()) return duplicate();
+      // TELEGRAM ROUND 3 (2026-10-31): a Confirm whose application changed since it was shown (an answer edited, the resume
+      // replaced) approved nothing and said "tap Apply on the card again", an extra round trip to see what changed (and the card
+      // may be far up the chat). The refusal stands; the current application is shown right under it, whole, with a Confirm
+      // bound to ITS hash (after the posting screen: a closed posting is said, never offered). Nothing is approved by this tap.
+      if (prep && !byHandUrl(job.url)) {
+        const screened = await screenedOut(userId, job, deps);
+        if (screened) { await say(`That application changed after I showed it, and nothing was approved: ${screened}`); return { toast: "Not approved.", status: "screened" }; }
+        await say(`That application changed after I showed it, so nothing was approved. Here is the current one: check it, then tap its Confirm.`);
+        const shown = await showPayload(prep);
+        return { toast: "Changed. Nothing approved.", status: shown.status === "shown" ? "changed" : shown.status };
+      }
       await say(`That application changed after I showed it, so nothing was approved. Tap Apply on the card again to see the current one.`);
       return { toast: "Changed. Nothing approved.", status: "changed" };
     }

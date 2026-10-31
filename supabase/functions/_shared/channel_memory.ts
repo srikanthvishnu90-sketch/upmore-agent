@@ -9,7 +9,7 @@ import { LINK_ASK_MS, LINK_NONCE_MS } from "./channel_inbound.ts";
 import { NO_CHANNEL_NOTE } from "./channel.ts";
 
 // refusedAt (IDENTITY SCENARIOS, 2026-10-30): channel_contacts.refused_at, the sign-up refusal said to this contact.
-export interface MemContact { contact: string; userId: string | null; threadId: string | null; optedOut: boolean; phone: string | null; alias: string | null; home: boolean; lastInboundAt: number | null; nudgedAt: number | null; createdAt: number; refusedAt?: number | null }
+export interface MemContact { contact: string; userId: string | null; threadId: string | null; optedOut: boolean; phone: string | null; alias: string | null; home: boolean; lastInboundAt: number | null; nudgedAt: number | null; createdAt: number; refusedAt?: number | null; optedOutAt?: number | null }
 export interface MemOutbox {
   id: string; userId: string; key: string; kind: string; text: string; deliverAt: number; channel: Channel | null; createdAt: number;
   status: "queued" | "sending" | "delivered" | "failed" | "skipped_opt_out" | "held"; attempts: number; retryAt: number | null;
@@ -105,8 +105,8 @@ export function memoryChannelWorld() {
     },
     async setThread(contact, threadId, userId) { for (const c of contacts.values()) if (userId ? c.userId === userId : c.contact === contact) c.threadId = threadId; },
     async setOptOut(contact, out, at) {
-      const c = upsert(contact, at, { optedOut: out });
-      if (!out && c.userId) for (const x of ofUser(c.userId)) x.optedOut = false;
+      const c = upsert(contact, at, { optedOut: out, optedOutAt: out ? at : null });
+      if (!out && c.userId) for (const x of ofUser(c.userId)) { x.optedOut = false; x.optedOutAt = null; }
     },
     async enqueueReply(userId, key, text, at, channel, part) { return enqueue(userId, { key, kind: "reply", text, at, channel: channel ?? null, part }); },
     async sawInbound(contact, at, o) {
@@ -161,9 +161,11 @@ export function memoryChannelWorld() {
     async redeemLinkNonce(nonce, contact, at): Promise<Redeemed> {
       const row = nonces.get(await sha256(nonce));
       if (!row || row.usedAt !== null || row.expiresAt <= at) return { ok: false, why: "invalid" };
-      row.usedAt = at;
+      // TELEGRAM ROUND 3 (2026-10-31): a chat that is another account's links nothing and no longer uses the code up (as
+      // 20261031030000_telegram_link_code_kept.sql): the code's owner can still open it in their own chat.
       const other = contacts.get(contact)?.userId;
       if (other && other !== row.userId) return { ok: false, why: "linked_elsewhere" };
+      row.usedAt = at;
       const thread = ofUser(row.userId).find((c) => c.threadId)?.threadId ?? null;
       for (const c of ofUser(row.userId)) if (channelOf(c.contact) === "telegram" && c.contact !== contact) { c.userId = null; c.threadId = null; c.home = false; }
       upsert(contact, at, { userId: row.userId, threadId: contacts.get(contact)?.threadId ?? thread, lastInboundAt: at });
@@ -220,6 +222,13 @@ export function memoryChannelWorld() {
         return out;
       },
       async optedOut(contact) { return optedOut(contact); },
+      // TELEGRAM ROUND 3: the time of the STOP, as channel_store.ts reads it (this contact, or any of its account's).
+      async optedOutAt(contact) {
+        const c = contacts.get(contact);
+        const rows = c?.userId ? ofUser(c.userId) : c ? [c] : [];
+        const at = rows.filter((x) => x.optedOut && typeof x.optedOutAt === "number").map((x) => x.optedOutAt as number);
+        return at.length ? Math.max(...at) : null;
+      },
       async stillTheirs(userId, contact) { return contacts.get(contact)?.userId === userId; },
       async quiet(userId) { return paused.has(userId) || ofUser(userId).some((c) => c.optedOut); },
       async setOptOut(contact, out, at) { await inbound.setOptOut(contact, out, at); },

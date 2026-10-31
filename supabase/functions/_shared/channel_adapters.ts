@@ -40,7 +40,9 @@ export interface InboundMessage {
   // blocked: the person blocked the bot (Telegram); seen: a non-text message (it still opens WhatsApp's window);
   // callback: FEATURE 16, a tap on a message's button (Telegram callback_query), carried in `callback`
   // moved (CHANNEL DELIVERY ROUND 2): WhatsApp's system message that the person changed their number (movedTo: the new wa_id).
-  kind: "text" | "blocked" | "seen" | "callback" | "moved";
+  // edited (TELEGRAM ROUND 3): the person edited a message they had already sent (Telegram edited_message); `text` is the new
+  // wording. It is never a new message: no turn, no command, no yes; a decision edited after Trainee acted is answered once.
+  kind: "text" | "blocked" | "seen" | "callback" | "moved" | "edited";
   file?: boolean; // WO-106: the non-text message is a file or a photo (a resume sent as a PDF), so it gets an answer
   media?: "photo" | "voice" | "file"; // FEATURE 16 (Telegram): which kind, so the answer says what Trainee can read there
   contact: string; address: string;

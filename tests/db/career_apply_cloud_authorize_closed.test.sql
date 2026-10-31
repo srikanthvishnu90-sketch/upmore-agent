@@ -1,5 +1,4 @@
--- 20261031000000_career_apply_races.sql: (1) applications queued in one transaction are claimed in the order they were
--- queued (created_at is each insert's own time); (2) the card-bound cloud route's last check before Submit
+-- 20261031000000_career_apply_cloud_authorize_closed.sql: the card-bound cloud route's last check before Submit
 -- (career_apply_message_cloud_authorize) ends an application whose posting closed as not sent, in the person's words, and
 -- answers authorized: false; an open posting is not touched by it; the reconcile keeps the rewrite; service only.
 -- Everything rolls back.
@@ -9,20 +8,7 @@ insert into auth.users(id,email) values ('00000000-0000-4000-8000-00000031ac01',
 insert into profiles(id) values ('00000000-0000-4000-8000-00000031ac01');
 update career_apply_jobs set state = 'not_submitted', reason = 'TEST closed before the races test' where state in ('queued', 'driving');
 
--- 1. Queued in one transaction: each its own time, in the order queued; the claim order is the queue order, every time.
-select t.ok((select column_default from information_schema.columns where table_schema = 'public' and table_name = 'career_apply_jobs'
- and column_name = 'created_at') = 'clock_timestamp()', 'created_at is the insert''s own time');
-alter table public.career_apply_jobs disable trigger user;
-insert into career_apply_jobs(user_id,job_id,company,url,payload,payload_hash,approval_hash,state)
- select '00000000-0000-4000-8000-00000031ac01', 'greenhouse:racesco:q' || g, 'Races Co', 'https://boards.greenhouse.io/racesco/jobs/q' || g,
-  '{}', repeat('e',64), repeat('e',64), 'not_submitted' from generate_series(1, 20) g;
-alter table public.career_apply_jobs enable trigger user;
-select t.ok((select bool_and(a < b) from (select created_at a, lead(created_at) over (order by (substr(job_id, 21))::int) b
- from career_apply_jobs where job_id like 'greenhouse:racesco:q%') x where b is not null), 'twenty queued in one transaction: each later than the one before');
-select t.ok((select array_agg(job_id order by created_at, id) = array_agg(job_id order by (substr(job_id, 21))::int)
- from career_apply_jobs where job_id like 'greenhouse:racesco:q%'), 'ordered by (created_at, id), as every claim orders: the order queued');
-
--- 2. The card-bound cloud route's check before Submit.
+-- 1. The card-bound cloud route's check before Submit.
 do $$ begin
  if to_regprocedure('public.career_apply_message_cloud_authorize(uuid,uuid,text,text)') is null then
   raise notice 'ok   (skipped: the card-cloud bridge is not installed here)'; end if;
@@ -72,7 +58,7 @@ select t.ok(to_regprocedure('public.career_apply_message_cloud_authorize(uuid,uu
  'the reconcile keeps the closed-posting check');
 select t.ok(public.career_apply_cloud_authorize_closed_install() in ('rewritten 0', 'not installed'), 'installed once: nothing to rewrite again');
 
--- 3. Service only.
+-- 2. Service only.
 select t.as_user('00000000-0000-4000-8000-00000031ac01');
 set role authenticated;
 select t.must_fail($$select public.career_apply_cloud_authorize_closed_install()$$, 'permission denied', 'a person cannot rewrite the check');

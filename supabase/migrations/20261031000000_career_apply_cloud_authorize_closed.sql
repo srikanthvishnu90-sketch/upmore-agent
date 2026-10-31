@@ -1,27 +1,14 @@
--- Two fixes on the apply queue (2026-10-31, branch fix/races-20261031).
---
--- 1. The claim order of applications approved together. career_apply_jobs.created_at defaulted to now(), the time the
---    TRANSACTION started, so every application one call queued (a card's yes approving many items, career_apply_enqueue
---    run in a loop in one transaction) had the same created_at, and every claim ("order by created_at, id") handed them
---    out by their random uuid instead of the order they were approved in: the person's oldest was not first. Found by
---    trunk ebed175d5's database job (tests/db/career_apply_submit_worker.test.sql section 4, "FAIL the oldest first": its
---    two applications are queued in the test's one transaction, and the claim picked the second about half the time).
---    Now clock_timestamp(): the time of each insert, so the order queued is the order claimed. No row is rewritten; a
---    default is metadata only (no table rewrite, no lock held beyond the catalog update).
---
--- 2. The card-bound cloud route's last check before Submit (career_apply_message_cloud_authorize, the bridge's) did not
---    look at the posting: one the employer closed between the claim and the Submit was still sent. The text route's check
---    refuses it since 20261030140000 (career_apply_cloud_text_refusal). Here the bridge's check ends such an application
---    as not sent, with the reason the claims give ("not sent: the posting closed before we sent it",
---    career_apply_unsendable_words), records the cloud outcome (not_sent, posting_closed), and answers authorized: false,
---    so neither the engine nor the Submit runs. Rewritten in place by an exact anchor (as career_apply_submit_worker_install
---    does), so the function keeps everything else it has (the bridge's card binding, its pace and duplicate checks); the
---    bridge not installed (it is not live): skipped, and career_apply_reconcile_bridge(), which the launch scripts run after
---    every apply (scripts/launch/verify-claim-guards.sql), now ends with this rewrite, so the bridge applied later takes it.
---
+-- The card-bound cloud route's last check before Submit, and a closed posting (2026-10-31). career_apply_message_cloud_authorize
+-- (the card-cloud bridge's) did not look at the posting: one the employer closed between the claim and the Submit was still
+-- sent. The text route's check refuses it since 20261030140000 (career_apply_cloud_text_refusal). Here the bridge's check
+-- ends such an application as not sent, with the words the claims give ("not sent: the posting closed before we sent it",
+-- career_apply_unsendable_words) and evidence nothing_sent, records the cloud outcome (not_sent, posting_closed) and answers
+-- authorized: false, so neither the engine nor the Submit runs (a raise would roll the record back).
+-- Rewritten in place by an exact anchor (as career_apply_submit_worker_install does), so the function keeps everything else
+-- it has (the bridge's card binding, its pace and duplicate checks). The bridge not installed (it is not live): skipped;
+-- career_apply_reconcile_bridge(), which the launch scripts run after every apply (scripts/launch/verify-claim-guards.sql),
+-- now ends with this rewrite, so a bridge applied later takes it.
 -- Idempotent: applies cleanly twice. Service role only; nothing here is granted to a person.
-
-alter table public.career_apply_jobs alter column created_at set default clock_timestamp();
 
 create or replace function public.career_apply_cloud_authorize_closed_install() returns text
 language plpgsql security definer set search_path = public, pg_temp as $ci$

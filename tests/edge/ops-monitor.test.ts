@@ -19,6 +19,7 @@ function fakeDb(tables: Record<string, any[] | Error>) {
       like(c: string, p: string) { const re = new RegExp("^" + p.replace(/%/g, ".*") + "$"); rows = rows.filter((r) => re.test(r[c])); return q; },
       gte(c: string, v: any) { rows = rows.filter((r) => r[c] >= v); return q; },
       lt(c: string, v: any) { rows = rows.filter((r) => r[c] < v); return q; },
+      is(c: string, v: any) { rows = rows.filter((r) => (r[c] ?? null) === v); return q; },
       not(c: string, _op: string, _v: any) { rows = rows.filter((r) => r[c] != null); return q; },
       order(c: string, o?: any) { const d = o?.ascending === false ? -1 : 1; rows.sort((a, b) => (a[c] < b[c] ? -d : a[c] > b[c] ? d : 0)); return q; },
       limit(n: number) { rows = rows.slice(0, n); return q; },
@@ -170,4 +171,38 @@ Deno.test("handler: token required; check reports what is not measured; digest s
   assert((await (await call("?mode=digest")).json()).skipped, "second digest the same day is skipped");
   const rep = await (await call("?mode=report&days=3")).text();
   assert(rep.includes("abcdef01") && !rep.includes("abcdef0123"), "users are shown by 8-character prefix");
+});
+
+Deno.test("alerts: a failed deploy smoke is reported once for a day; a clean, stale or unmeasured one is silent", () => {
+  const sm = (over: any = {}) => ({ id: "9", created_at: iso(NOW - 2 * H), sha: "0768a16abcdef", fail: 2, notRun: 5, ...over });
+  const a = evaluate(baseSnap({ deploySmoke: sm() }));
+  assert(a.length === 1 && a[0].kind === "deploy_smoke_failed" && a[0].key === "9" && a[0].text.includes("0768a16") && a[0].text.includes("2 failing") && a[0].text.includes("5 not run"), JSON.stringify(a));
+  assert(evaluate(baseSnap({ deploySmoke: sm({ fail: 0 }) })).length === 0, "not-run alone is not a failed deploy");
+  assert(evaluate(baseSnap({ deploySmoke: sm({ created_at: iso(NOW - 25 * H) }) })).length === 0, "older than a day is stale");
+  assert(evaluate(baseSnap({ deploySmoke: null })).length === 0 && evaluate(baseSnap()).length === 0);
+});
+
+Deno.test("alerts: a stuck outbox needs past-due undelivered texts older than 30 minutes", () => {
+  const ob = (ageMin: number, pending = 4) => evaluate(baseSnap({ outbox: { oldestPendingAt: iso(NOW - ageMin * 60000), pending } }));
+  assert(ob(31)[0].kind === "outbox_stuck" && ob(31)[0].text.includes("4 queued") && ob(31)[0].text.includes("31 minutes"));
+  assert(ob(29).length === 0 && ob(60, 0).length === 0);
+  assert(evaluate(baseSnap({ outbox: { oldestPendingAt: null, pending: 0 } })).length === 0);
+});
+
+Deno.test("alerts: the four owner conditions together (smoke, budget over 80%, 5xx spike, stuck queue) each fire once and name no secret", () => {
+  const a = evaluate(baseSnap({ deploySmoke: { id: "1", created_at: iso(NOW - H), sha: "", fail: 1, notRun: 0 }, http5xx: [{ fn: "trainee-file", count: 40 }],
+    outbox: { oldestPendingAt: iso(NOW - 2 * H), pending: 9 }, spend: { source: "model_budget", day: "2026-10-29", spentMicros: 17000000, reservedMicros: 0, limitMicros: 20000000 } }));
+  assert(a.map((x) => x.kind).sort().join() === "deploy_smoke_failed,http_5xx_spike,outbox_stuck,spend_threshold", JSON.stringify(a.map((x) => x.kind)));
+  assert(a.find((x) => x.kind === "spend_threshold")!.key.endsWith(":80"));
+});
+
+Deno.test("snapshot: reads the newest deploy_smoke row and the undelivered queue; an absent smoke row means no alert", async () => {
+  const db = fakeDb({ founder_alerts: [{ id: "a", kind: "deploy_smoke", created_at: iso(NOW - 3 * H), detail: { sha: "0768a16", fail: 0, not_run: 5 } }, { id: "b", kind: "deploy_smoke", created_at: iso(NOW - H), detail: { sha: "e10c22d", fail: 3, not_run: 1 } }],
+    career_outbox: [{ deliver_at: iso(NOW - 2 * H), delivered_at: null }, { deliver_at: iso(NOW - 3 * H), delivered_at: null }] });
+  const s = await readSnapshot(db, envOf(), NOW);
+  assert(s.deploySmoke!.id === "b" && s.deploySmoke!.fail === 3 && s.deploySmoke!.sha === "e10c22d", JSON.stringify(s.deploySmoke));
+  assert(s.outbox!.pending === 2 && s.outbox!.oldestPendingAt === iso(NOW - 3 * H), JSON.stringify(s.outbox));
+  assert(evaluate(s).map((x) => x.kind).sort().join() === "deploy_smoke_failed,outbox_stuck");
+  const empty = await readSnapshot(fakeDb({ founder_alerts: [] }), envOf(), NOW);
+  assert(empty.deploySmoke!.fail === 0 && evaluate(empty).filter((x) => x.kind === "deploy_smoke_failed").length === 0);
 });

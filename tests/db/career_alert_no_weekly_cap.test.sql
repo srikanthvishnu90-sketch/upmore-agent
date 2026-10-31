@@ -1,4 +1,4 @@
--- NO WEEKLY ALERT CAP (20261030160000_career_alert_no_weekly_cap.sql), in the database alone and deterministic: the zone is
+-- NO WEEKLY ALERT CAP (20261030180000_career_alert_no_weekly_cap.sql), in the database alone and deterministic: the zone is
 -- pinned to UTC and every day and instant is passed in, so nothing reads the wall clock. 30 alerts in one week all queue
 -- (the old function stopped at max_per_week, at most 25, and this person even states 3); the daily pacing still holds, a
 -- posting is queued once, and the fit floor, alerts off and a paused account still refuse. Service only. Rolled back.

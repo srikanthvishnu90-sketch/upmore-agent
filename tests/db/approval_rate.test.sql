@@ -1,4 +1,4 @@
--- APPROVAL RATE (20261030170000_approval_rate.sql), in the database alone and deterministic: every instant is passed to
+-- APPROVAL RATE (20261030190000_approval_rate.sql), in the database alone and deterministic: every instant is passed to
 -- approval_rate(p_now) and the rows carry fixed created_at / updated_at; nothing reads the wall clock for a result.
 -- Rate = drafts approved unchanged / drafts shown over a rolling 7 days; an edit or a redo is a miss; the sample floor is 20;
 -- the line is 95. Rolled back.

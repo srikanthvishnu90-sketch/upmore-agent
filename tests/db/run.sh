@@ -804,14 +804,14 @@ echo "== career_apply_submit_worker.test.sql (closed, expired, reset, resume gon
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030150000_career_ingest_reread_gap.sql"
 echo "== career_ingest_reread_gap.test.sql (two claims back to back, the first run finished between: disjoint boards; the gap, the backoff and the in-flight rule; the 3-argument form; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_ingest_reread_gap.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
-# NO WEEKLY ALERT CAP (20261030160000): career_alert_enqueue no longer answers 'capped' on a rolling-week count.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030160000_career_alert_no_weekly_cap.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030160000_career_alert_no_weekly_cap.sql"
+# NO WEEKLY ALERT CAP (20261030180000): career_alert_enqueue no longer answers 'capped' on a rolling-week count.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030180000_career_alert_no_weekly_cap.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030180000_career_alert_no_weekly_cap.sql"
 echo "== career_alert_no_weekly_cap.test.sql (30 alerts in a week all queue; the daily pacing, a key once, quiet hours, the fit floor stay)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_alert_no_weekly_cap.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
-# APPROVAL RATE (20261030170000): approval_rate() / approval_rate_v per kind over a rolling 7 days, 'insufficient data' under 20.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030170000_approval_rate.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030170000_approval_rate.sql"
+# APPROVAL RATE (20261030190000): approval_rate() / approval_rate_v per kind over a rolling 7 days, 'insufficient data' under 20.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030190000_approval_rate.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261030190000_approval_rate.sql"
 echo "== approval_rate.test.sql (unchanged approvals / shown, edits and redos are misses, the sample floor, the 95 line, service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/approval_rate.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left

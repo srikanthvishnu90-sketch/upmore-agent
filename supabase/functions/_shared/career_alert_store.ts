@@ -114,7 +114,7 @@ export function memoryAlertStore(initial?: MemoryAlerts): AlertStore & Outbox & 
       if (typeof row.prefs.min_fit === "number" && !(typeof m.fit === "number" && m.fit >= row.prefs.min_fit)) return "below_fit";
       const today = row.sent_on === c.day ? Math.max(0, row.instant_sent_today | 0) : 0;
       if (today >= Math.min(MAX_INSTANT_PER_DAY, Math.floor(Number(row.prefs.max_instant_per_day) || 0))) return "capped";
-      // No weekly count: owner rule "no caps"; career_alert_enqueue (20261030160000) dropped it. max_per_week is accepted and ignored.
+      // No weekly count: owner rule "no caps"; career_alert_enqueue (20261030180000) dropped it. max_per_week is accepted and ignored.
       const was = { n: row.instant_sent_today, on: row.sent_on };
       row.instant_sent_today = today + 1;
       row.sent_on = c.day;

@@ -141,6 +141,15 @@ Deno.test("N12: typing goes out before the turn starts and every 4 s while it ru
   eq(ev.length, before, "no typing and no interim after the answer");
 });
 
+Deno.test("N12: a retried update (the same update_id) shows no typing and sends nothing", async () => {
+  const h = world({ turnMs: 1000 });
+  const u = h.update("hello");
+  await handleTelegram(h.req(u), h.deps as any);
+  const before = h.events.length;
+  await handleTelegram(h.req(u), h.deps as any);
+  eq(h.events.slice(before), [], "nothing at all for a retried update");
+});
+
 Deno.test("N12: a fast turn gets typing once and no interim", async () => {
   const h = world({ turnMs: 1500 });
   const r = await h.post("what's my next step");

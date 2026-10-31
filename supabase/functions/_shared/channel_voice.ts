@@ -304,6 +304,26 @@ export const TYPING_EVERY_MS = 4000;
 export const FAST_ACK_MS = 6000;
 export const LATENCY_BUDGET = { typingEveryMs: TYPING_EVERY_MS, ackAfterMs: FAST_ACK_MS } as const;
 
+// The typing indicator from now until stop(): shown at once, then every everyMs; best effort (a failure never touches the
+// turn); stop() ends the refresh and waits for a call in flight, so nothing is shown after the answer.
+export function typingLoop(o: { typing: () => Promise<unknown>; everyMs?: number; setTimer?: (fn: () => void, ms: number) => unknown; clearTimer?: (h: unknown) => void }) {
+  const setT = o.setTimer ?? ((fn: () => void, ms: number) => setTimeout(fn, ms));
+  const clearT = o.clearTimer ?? ((h: unknown) => clearTimeout(h as number));
+  let done = false, timer: unknown = null;
+  const pending: Promise<unknown>[] = [];
+  const show = () => { try { pending.push(Promise.resolve(o.typing()).catch(() => {})); } catch { /* never fails the turn */ } };
+  const tick = () => { if (done) return; show(); timer = setT(tick, o.everyMs ?? TYPING_EVERY_MS); };
+  tick();
+  return {
+    async stop() {
+      done = true;
+      if (timer !== null) clearT(timer);
+      timer = null;
+      await Promise.all(pending);
+    },
+  };
+}
+
 // One interim at most, armed once: start() arms it (a second start() is a no-op), stop() disarms it and waits for an ack
 // already started, so it always reaches the person before the answer. Returns whether the ack went.
 export function ackOnce(o: { afterMs: number | null | undefined; ack: () => Promise<unknown>; setTimer?: (fn: () => void, ms: number) => unknown; clearTimer?: (h: unknown) => void }) {

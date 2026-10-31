@@ -21,7 +21,7 @@ import { telegramDeepLink } from "./telegram.ts";
 import { deliverShaped, type ShapedFile } from "./channel_shape.ts";
 import { safeCut } from "./channel_text.ts";
 import { redactIdentity } from "./identity_redact.ts";
-import { ackFor, ackOnce, whileWorking } from "./channel_voice.ts";
+import { ackFor, ackOnce, typingLoop } from "./channel_voice.ts";
 
 export const SIGNUP_CLOSED_REPLY = "Trainee is invite-only right now, so I can't set you up yet. Nothing about you was saved except that you texted.";
 // PHONE LOGIN (owner, 2026-10-28): Telegram's own verified number, shared with one tap. Trainee never asks for a password or a
@@ -242,6 +242,11 @@ const MORE_ONE_MESSAGE = 4000; // #301's second message, whole (Telegram takes 4
 export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out> {
   const now = d.now(), store = d.store;
   if (!(await store.claimMessage(msg.messageId, now, msg.provider))) return ok({ ignored: "duplicate webhook" });
+  // N12: the typing indicator goes out as soon as the message is claimed (a retried update shows nothing), and again every
+  // typingEveryMs until it is handled (the answer delivered). Not for a block or an edit, which answer nothing.
+  const typing = d.typing && (msg.kind === "text" || msg.kind === "callback" || (msg.kind === "seen" && !!(msg.file || msg.media)))
+    ? typingLoop({ typing: () => d.typing!(msg.address), everyMs: d.typingEveryMs, ...(d.timers ? { setTimer: d.timers.set, clearTimer: d.timers.clear } : {}) })
+    : null;
   let contact = msg.contact;
   // TELEGRAM ROUND 2 (2026-10-30): a fixed answer sent straight back (not through the outbox) that Telegram refused because
   // the person blocked the bot or deleted their account (403) is that person's STOP, as it is on the outbox's sends.
@@ -661,6 +666,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     return { status: 500, body: { ok: false, error: "internal" } };
   } finally {
     if (working) await working.stop();
+    if (typing) await typing.stop();
   }
 }
 
@@ -686,11 +692,7 @@ export async function handleChannelWebhook(req: Request, adapter: ChannelAdapter
   if (!parsed.messages.length) return json({ ok: true, ...(reheld ? { reheld } : {}), ...(failed ? { failed } : {}), ignored: (parsed.ignored ?? [])[0] ?? "nothing to read" });
   const results: Record<string, unknown>[] = [];
   for (const m of parsed.messages) {
-    // N12: the typing indicator goes out as soon as the message is read, and again every typingEveryMs until it is handled
-    // (the answer delivered). Not for a block or an edit, which run no turn and answer nothing.
-    const shows = !!d.typing && (m.kind === "text" || m.kind === "callback" || (m.kind === "seen" && !!(m.file || m.media)));
-    const { value: r } = await whileWorking({ typing: shows ? () => d.typing!(m.address) : null, typingEveryMs: d.typingEveryMs,
-      ...(d.timers ? { setTimer: d.timers.set, clearTimer: d.timers.clear } : {}) }, () => runInbound(m, d));
+    const r = await runInbound(m, d);
     results.push(r.body);
   }
   return json({ ok: true, ...(reheld ? { reheld } : {}), ...(failed ? { failed } : {}), results });

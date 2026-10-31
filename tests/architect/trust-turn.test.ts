@@ -52,18 +52,23 @@ Deno.test("R6: the services named are the policy's list, derived from its text, 
   for (const other of ["Anthropic", "Google", "Stripe", "Twilio", "Amazon", "Microsoft"]) assert(!r.includes(other), `${other} is not in the policy's list: ${r}`);
 });
 
-Deno.test("R7: 'forget everything' is described as what the erase does, never as deleting the messages", async () => {
+Deno.test("R7 + follow-up: 'forget everything' is described as the erase does it, chat messages included", async () => {
+  const MIGRATION = Deno.readTextFileSync(new URL("../../supabase/migrations/20261031080000_career_erase_messages.sql", import.meta.url));
   for (const m of ["do you sell my data?", "what do you keep about me?"]) {
     const r = (await say(m)).reply;
     assert(r.includes(ERASE_SENTENCE), r);
-    assert(!/(delete|erase)[^.]*\bmessages\b/i.test(r.replace(ERASE_SENTENCE, "")) && /messages stay in the chat record/.test(ERASE_SENTENCE), r);
   }
-  // What the erase sentence claims is the code's: the host keeps the chat record and pauses work; the handler removes the
-  // tailored resumes; the router's erase names the watches and the tracker.
-  assert(/Existing chat\/audit records may retain earlier text; it is excluded from active context/.test(HOST));
-  assert(/_hostPatch = \{ erase: true, paused: true \}/.test(HOST));
+  assert(/tracker, job watches, tailored resumes and our chat messages/.test(ERASE_SENTENCE) && /pauses career work/.test(ERASE_SENTENCE), ERASE_SENTENCE);
+  // What the sentence claims is the code's: the messages (career_erase_messages on the erase's account write), the
+  // pause (the host's erase patch), the tailored resumes (the handler) and the watches and tracker (the router's erase).
+  assert(/delete from public\.agent_messages m using public\.agent_threads t where m\.thread_id = t\.id and t\.user_id = p_user/.test(MIGRATION));
+  assert(/create trigger career_erase_messages_on_epoch after insert or update on public\.career_watch_kv/.test(MIGRATION));
+  assert(/_hostPatch = \{ erase: true, paused: true \}/.test(HOST) && /deleted our chat messages in every thread/.test(HOST));
   assert(/erase === true\) await supabaseResumeStore\(admin\)\.removeAll/.test(HANDLER));
-  assert(/your job watches and alerts, your application tracker/.test(ROUTER));
+  assert(/your job watches and alerts, your application tracker/.test(ROUTER) && /Our chat messages go too/.test(ROUTER));
+  assert(!/may retain earlier text|does not rewrite the chat transcript/.test(HOST + ROUTER), "no erase answer still says the chat is kept");
+  // The policy names "forget everything" as the person's own delete (its list of what goes is the owner's to extend).
+  assert(/Delete: say "forget everything"/.test(POLICY));
 });
 
 Deno.test("Q244 + R3: 'what do you keep about me' answers from this person's record; questions about other things pass", async () => {

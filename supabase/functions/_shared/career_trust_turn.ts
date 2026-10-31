@@ -10,7 +10,7 @@
 //                  services from the policy text and checks every claim there).
 //   privacy_store  "what do you keep about me?": the categories the policy names, then what is actually saved for this
 //                  person right now (deps.stored), and what "forget everything" really erases (career_host.js erase,
-//                  handler-career.ts tailored resumes): never the chat record itself.
+//                  handler-career.ts tailored resumes, career_erase_messages for the chat messages).
 //   access         "can you see my other apps / my email?": every connection on the person's account (deps.connections,
 //                  user_oauth_connections), plus what Trainee holds for them; a read that failed is said, never guessed.
 //   referral       a personal legal, tax or medical question: a professional's call, never a confident guess. A job search
@@ -41,8 +41,9 @@ export interface TrustDeps {
 // that run Trainee for us"); the test reads the policy and requires this list to match it, name for name.
 export const POLICY_SERVICES = ["Supabase", "OpenAI", "Vercel", "Telegram", "LoopMessage", "Meta"] as const;
 // What "forget everything" erases: the host's erase (profile and active context, watches, and it pauses career work;
-// career_host.js) and the handler's tailored-resume removal. The chat record itself is kept, excluded from use.
-export const ERASE_SENTENCE = "Say \"forget everything\" to erase your saved profile, confirmed facts, tracker, job watches and tailored resumes. It also pauses career work, and our earlier messages stay in the chat record but are no longer used.";
+// career_host.js), the handler's tailored-resume removal, and every chat message in every thread of theirs
+// (career_erase_messages, migration 20261031080000).
+export const ERASE_SENTENCE = "Say \"forget everything\" to erase your saved profile, confirmed facts, tracker, job watches, tailored resumes and our chat messages. It also pauses career work.";
 
 const norm = (m: string) => String(m ?? "").toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, " ").trim();
 const LEAD = String.raw`^(?:(?:hey|hi|hello|so|wait|ok|okay|lol|honestly|real quick|quick question|be honest|serious question|also)[\s,!.:]+)*`;

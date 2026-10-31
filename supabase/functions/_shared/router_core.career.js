@@ -15263,7 +15263,7 @@ const CareerRouter = (() => {
     if (!raw) return null;
     const t = lc(raw);
     try { const ps = intentPartsOf(raw); if (ps.length && ps.every((p) => p.key === "finance")) return null; } catch {   }
-    const LEXICON = /\b(jobs?|career|work|working|employment|employer|employee|boss|manager|workplace|salary|wages?|pay|compensation|benefits?|unemployment|probation|probationary|notice|contract|offer|promot\w*|raise|references?|resign|interview|applications?|apply|applying|postings?|resume|cv|cover letter|linkedin|networking|recruiter|recruiting|hiring|hired|profession|occupation|roles?|positions?|vesting|severance|start date|onboarding|interns?|internships?|final round|performance (plan|review|improvement))\b/;
+    const LEXICON = /\b(jobs?|career|work|working|employment|employer|employee|boss|manager|workplace|salary|wages?|pay|compensation|benefits?|unemployment|probation|probationary|notice|contract|offer|promot\w*|raise|references?|resign|interview|applications?|apply|applying|postings?|resume|gpa|cv|cover letter|linkedin|networking|recruiter|recruiting|hiring|hired|profession|occupation|roles?|positions?|vesting|severance|start date|onboarding|interns?|internships?|final round|performance (plan|review|improvement))\b/;
     let related = LEXICON.test(t);
     if (!related) {
       const frames = frameMarksOf(ctx);
@@ -15318,6 +15318,14 @@ const CareerRouter = (() => {
     }
     if (/^(yes|yeah|yep|yup|sure|no|nope|nah|idk|i don'?t know|not sure|maybe)\b/.test(t)) {
       return say("No problem — there's nothing waiting on your answer right now.", next);
+    }
+    if (/\b(?:my|ur|your)\s+(?:\w+\s+)?gpa\b|\bgpa\s+(?:is|was|of)\b/.test(t) && !/\?\s*$/.test(raw)) {
+      let onResume = null;
+      try { const conf = ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(ctx.profile) : []; const gm = conf.filter((f) => f && f.source === "resume-ingest").map((f) => s(f.text)).join(" ").match(/\bGPA[:\s]*([0-4]\.\d{1,2})/i); onResume = gm ? gm[1] : null; } catch { onResume = null; }
+      offerNext(ctx, "upload resume");
+      return onResume
+        ? say(`Your GPA comes from the resume you confirmed, which says ${onResume}; a number said in chat doesn't change it.`, "Want to paste the corrected resume? Once you confirm it, it replaces this one.")
+        : say("I take your GPA from your resume once you confirm it, so I don't record a number from chat.", "Want to send your resume now?");
     }
     if (/\b(salary|salaries|wages?|compensation|starting pay|pay range|pay band)\b|\bhow much (?:do|does|would|will|can)\b[^.]*\b(make|earn|paid)\b|\bwhat (?:do|does) [^.]*\b(make|earn)\b/.test(t)) {
       const rm = t.match(/\b(?:for|of)\s+(?:an?\s+|the\s+)?([a-z][a-z /&-]{2,40}?)(?:\s+(?:role|job|position)s?)?(?:\s+in\s+([a-z][a-z .'-]{1,30}))?$/) || t.match(/^(?:what (?:do|does)\s+|how much (?:do|does)\s+)(?:an?\s+)?([a-z][a-z /&-]{2,40}?)s?\s+(?:make|earn|get paid)(?:\s+in\s+([a-z][a-z .'-]{1,30}))?$/);
@@ -22683,7 +22691,7 @@ const CareerRouter = (() => {
   }
 
   const FACT_CITIES = ["New York", "Chicago", "San Francisco", "Boston", "Houston", "Dallas", "Los Angeles", "Seattle", "Austin", "Miami", "Charlotte", "Denver"];
-  const FACT_SINGLE_KINDS = new Set(["name", "year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role", "sponsorship", "citizenship", "gpa", "graduation"]);
+  const FACT_SINGLE_KINDS = new Set(["name", "year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role", "sponsorship", "citizenship", "graduation"]);
   function recordKeyedFact(ctx, kind, key, value, evidence) {
     if (!value) return false;
     const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
@@ -23044,12 +23052,6 @@ const CareerRouter = (() => {
       if (u.length <= 200 && u.split(/\n/).length <= 2 && !materialsAsk && !/\?/.test(u) && !/\b(?:his|her|their|roommate'?s?|friend'?s?)\s+(?:gpa|e-?mail|graduat)/i.test(u)) {
         let m2;
         if ((m2 = u.match(/\bmy\s+(?:e-?mail(?:\s+address)?)\s+is\s+(?:actually\s+|now\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})\b/i))) ctx._contactStatedThisTurn = { kind: "email", value: m2[1] };
-        if ((m2 = u.match(/\bmy\s+(?:cumulative\s+|overall\s+|current\s+)?gpa\s+(?:is|was)\s+(?:actually\s+|now\s+|a\s+)?([0-4]\.\d{1,2})(?![\d.])/i))) {
-          let onResume = null;
-          try { const conf = ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(ctx.profile) : []; const gm = conf.filter((f) => f && f.source === "resume-ingest").map((f) => s(f.text)).join(" ").match(/\bGPA[:\s]*([0-4]\.\d{1,2})/i); onResume = gm ? gm[1] : null; } catch { onResume = null; }
-          if (onResume && onResume !== m2[1]) ctx._gpaConflictThisTurn = { said: m2[1], resume: onResume };
-          else push("gpa", m2[1], m2[0]);
-        }
         const MON = "(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|spring|summer|fall|winter)";
         if ((m2 = u.match(new RegExp(`\\b(?:i(?:'?ll| will|'?m| am)?\\s+)?(?:graduate|graduating|grad)\\s+(?:in\\s+|on\\s+)?(${MON}\\s+20\\d\\d|20\\d\\d)\\b`, "i"))) || (m2 = u.match(/\b(?:i'?m|i am|im)\s+(?:in\s+)?(?:the\s+)?class\s+of\s+(20\d\d)\b/i))) {
           push("graduation", m2[1].replace(/\b[a-z]/g, (c) => c.toUpperCase()), m2[0]);
@@ -23233,7 +23235,7 @@ const CareerRouter = (() => {
     return { intent: "conversation_recall", reply, resultStatus: status, sends: 0 };
   }
   function factLine(f) {
-    return { name: `your name is ${f.value}`, year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: experienceLine(f), school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}`, gpa: `your GPA is ${f.value}`, graduation: `you graduate ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { name: `your name is ${f.value}`, year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: experienceLine(f), school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}`, graduation: `you graduate ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   function profileFromStatedFacts(ctx) {
     const facts = statedFactsOf(ctx);
@@ -23269,11 +23271,7 @@ const CareerRouter = (() => {
   function handleStatedFactsReply(text, ctx) {
     if (!/\?/.test(s(text)) && !(ctx._factsAddedThisTurn && ctx._factsAddedThisTurn.length)) {
       const hasResume = resumeOnRecord(ctx);
-      const said = ctx._contactStatedThisTurn, gc = ctx._gpaConflictThisTurn;
-      if (gc) return { intent: "profile_correction", resultStatus: "awaiting_user", sends: 0, reply: compose({
-        headline: `Your confirmed resume says GPA ${gc.resume}, and that is what I use — I haven't changed it to ${gc.said}.`,
-        facts: ["To change it, paste the corrected resume; once you confirm it, it replaces this one."],
-        nextStep: (offerNext(ctx, "upload resume"), "Want to paste it now?") }) };
+      const said = ctx._contactStatedThisTurn;
       if (said && said.kind === "email") return { intent: "profile_correction", resultStatus: "awaiting_user", sends: 0, reply: compose({
         headline: `Got it — ${said.value}.`,
         facts: ["When an application asks for your email, I'll show you those exact words to use, and nothing goes on a form without your OK."],

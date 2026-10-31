@@ -214,10 +214,10 @@ test("'email the recruiter at acme': names Acme, invents no firm, sends nothing;
 
 test("corrections and stated facts get an answer, not a fallback; only the person's own facts are written", async () => {
   await setup();
-  // a GPA or graduation date the person states is recorded in their words and read back
+  // a graduation date the person states is recorded in their words and read back
   const recorded = [
-    [["i want a job in marketing"], "my gpa is 3.4", "gpa", "3.4"],
     [[], "i graduate may 2027", "graduation", "May 2027"],
+    [["i want a job in marketing"], "im graduating in december 2026", "graduation", "December 2026"],
   ];
   for (const [pre, m, kind, value] of recorded) {
     const p = person();
@@ -246,17 +246,24 @@ test("corrections and stated facts get an answer, not a fallback; only the perso
     assert.ok(!JSON.stringify([st.profile || null, st.statedFacts || null, p.account().statedFacts || null, p.account().profile || null]).includes(addr), `${m}: the address is on no profile or fact record`);
     assert.equal(questions(r), 1, `${m}: one next step: ${r}`);
   }
-  // a GPA that differs from the confirmed resume is not written over it; the resume's figure is named, with the real way to change it
-  const p = person("u-gpa");
-  p.say(`here is my resume:\n${RESUME}`); p.say("yes thats my resume");
-  const o = p.say("actually my gpa is 3.6");
-  const r = String(o.reply);
-  assert.ok(!isDeadEnd(o), r);
-  assert.match(r, /3\.7/, `the resume's own figure is named: ${r}`);
-  assert.ok(!statedFacts(p).some((f) => f.kind === "gpa"), "no conflicting GPA written beside the resume");
-  assert.ok(JSON.stringify(p.snap()).includes("GPA 3.7"), "the confirmed resume entry is unchanged");
-  assert.match(r, /resume/i, r);
-  assert.equal(questions(r), 1, r);
+  // a GPA said in chat is never recorded or repeated (architect false_memory rule); it comes from the confirmed resume
+  for (const [pre, m, said, resumeGpa] of [[["i want a job in marketing"], "my gpa is 3.4", "3.4", null], [[`here is my resume:\n${RESUME}`, "yes thats my resume"], "actually my gpa is 3.6", "3.6", "3.7"]]) {
+    const p = person();
+    for (const x of pre) p.say(x);
+    const o = p.say(m);
+    const r = String(o.reply);
+    assert.ok(!isDeadEnd(o), `${m}: [${o.intent}] ${r}`);
+    assert.ok(!r.includes(said), `${m}: the chat figure is not read back: ${r}`);
+    assert.ok(!statedFacts(p).some((f) => f.kind === "gpa"), `${m}: nothing written`);
+    if (resumeGpa) {
+      assert.ok(r.includes(resumeGpa), `${m}: the confirmed resume's figure is named: ${r}`);
+      assert.ok(JSON.stringify(p.snap()).includes(`GPA ${resumeGpa}`), "the confirmed resume entry is unchanged");
+    }
+    assert.match(r, /resume/i, r);
+    assert.equal(questions(r), 1, r);
+    const y = p.say("yes");
+    assert.match(String(y.reply), /paste|attach/i, `the yes leads to the resume step: ${String(y.reply).slice(0, 120)}`);
+  }
 });
 
 test("a resume pasted as one paragraph is recognised as a resume, not a company question; nothing is guessed onto the record", async () => {

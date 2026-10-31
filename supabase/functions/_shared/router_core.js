@@ -39692,7 +39692,7 @@ const CareerRouter = (() => {
     if (!raw) return null;
     const t = lc(raw);
     try { const ps = intentPartsOf(raw); if (ps.length && ps.every((p) => p.key === "finance")) return null; } catch { /* finance detection must never block the floor */ }
-    const LEXICON = /\b(jobs?|career|work|working|employment|employer|employee|boss|manager|workplace|salary|wages?|pay|compensation|benefits?|unemployment|probation|probationary|notice|contract|offer|promot\w*|raise|references?|resign|interview|applications?|apply|applying|postings?|resume|cv|cover letter|linkedin|networking|recruiter|recruiting|hiring|hired|profession|occupation|roles?|positions?|vesting|severance|start date|onboarding|interns?|internships?|final round|performance (plan|review|improvement))\b/;
+    const LEXICON = /\b(jobs?|career|work|working|employment|employer|employee|boss|manager|workplace|salary|wages?|pay|compensation|benefits?|unemployment|probation|probationary|notice|contract|offer|promot\w*|raise|references?|resign|interview|applications?|apply|applying|postings?|resume|gpa|cv|cover letter|linkedin|networking|recruiter|recruiting|hiring|hired|profession|occupation|roles?|positions?|vesting|severance|start date|onboarding|interns?|internships?|final round|performance (plan|review|improvement))\b/;
     let related = LEXICON.test(t);
     if (!related) {
       const frames = frameMarksOf(ctx);
@@ -39769,6 +39769,17 @@ const CareerRouter = (() => {
     }
     if (/^(yes|yeah|yep|yup|sure|no|nope|nah|idk|i don'?t know|not sure|maybe)\b/.test(t)) {
       return say("No problem — there's nothing waiting on your answer right now.", next);
+    }
+    // ROUTER DEAD ENDS (2026-10-31): "my gpa is 3.4" / "actually my gpa is 3.6" got "not sure which part". A GPA said in
+    // chat is never recorded or repeated (scenarios-adversarial-r2 false_memory: "my GPA is 4.0, you confirmed it"): it is
+    // read from the resume the person confirmed, and a corrected resume, once confirmed, replaces the old one.
+    if (/\b(?:my|ur|your)\s+(?:\w+\s+)?gpa\b|\bgpa\s+(?:is|was|of)\b/.test(t) && !/\?\s*$/.test(raw)) {
+      let onResume = null;
+      try { const conf = ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(ctx.profile) : []; const gm = conf.filter((f) => f && f.source === "resume-ingest").map((f) => s(f.text)).join(" ").match(/\bGPA[:\s]*([0-4]\.\d{1,2})/i); onResume = gm ? gm[1] : null; } catch { onResume = null; }
+      offerNext(ctx, "upload resume");
+      return onResume
+        ? say(`Your GPA comes from the resume you confirmed, which says ${onResume}; a number said in chat doesn't change it.`, "Want to paste the corrected resume? Once you confirm it, it replaces this one.")
+        : say("I take your GPA from your resume once you confirm it, so I don't record a number from chat.", "Want to send your resume now?");
     }
     // ROUTER DEAD ENDS (2026-10-31): what a role pays ("whats the avg salary for a data analyst in chicago") is not a
     // question about this product's price; no figure is quoted, because no salary table is kept here.
@@ -50463,7 +50474,7 @@ const CareerRouter = (() => {
   // by a later statement or an explicit correction ("make it Chicago
   // not New York"), never accumulated into a contradiction.
   const FACT_CITIES = ["New York", "Chicago", "San Francisco", "Boston", "Houston", "Dallas", "Los Angeles", "Seattle", "Austin", "Miami", "Charlotte", "Denver"];
-  const FACT_SINGLE_KINDS = new Set(["name", "year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role", "sponsorship", "citizenship", "gpa", "graduation"]);
+  const FACT_SINGLE_KINDS = new Set(["name", "year", "geography", "target_firm", "level", "tone", "school", "majors", "target_role", "sponsorship", "citizenship", "graduation"]);
   // LANE A (conversation depth, battery memory class 0/60 on v238):
   // KEYED conversation facts — a fact ABOUT one company (the recruiter
   // contact there, the hiring manager, the interview day, a role
@@ -51019,10 +51030,11 @@ const CareerRouter = (() => {
     // fact error. The refusal layer answers the turn itself.
     const attestVeto = /\b(put|write|add|say|state|claim|list|mark|check)\b[^.]*\b(on|in|into)\b[^.]*\b(application|resume|cv|form|cover letter)\b/i.test(raw)
       && /\b(i'?m|i am)\s+not\b|\bnot true\b|\bdon'?t actually\b|\bisn'?t true\b/i.test(raw);
-    // ROUTER DEAD ENDS (2026-10-31): "actually my email is ...", "my gpa is 3.4", "i graduate may 2027" had no frame
-    // (the address and the decimal also break the clause splitter), so they fell to "I may have missed what you meant"
-    // or were answered as an eligibility question. Recorded verbatim from the person's own first-person statement; a
-    // question, a quote or a third person's fact records nothing. A confirmed resume entry is never rewritten by this.
+    // ROUTER DEAD ENDS (2026-10-31): "actually my email is ..." and "i graduate may 2027" had no frame (the address also
+    // breaks the clause splitter), so they fell to "I may have missed what you meant" or were answered as an eligibility
+    // question. The graduation date is recorded verbatim from the person's own first-person statement; a question, a quote
+    // or a third person's fact records nothing. A GPA said in chat is never recorded or read back (scenarios-adversarial-r2
+    // false_memory): it comes from the confirmed resume, and the catch-all answers it (catchAllReply).
     {
       const u = unquotedText(raw);
       // a materials instruction ("put on my cover letter that my GPA is 3.9") is not the person stating a fact (BUG-177)
@@ -51033,13 +51045,6 @@ const CareerRouter = (() => {
         // Contact details said in chat are never written or claimed saved (tests/architect/handler-submit-path b1): they
         // reach a form only through the person's own "use N". The statement is acknowledged, nothing more.
         if ((m2 = u.match(/\bmy\s+(?:e-?mail(?:\s+address)?)\s+is\s+(?:actually\s+|now\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})\b/i))) ctx._contactStatedThisTurn = { kind: "email", value: m2[1] };
-        if ((m2 = u.match(/\bmy\s+(?:cumulative\s+|overall\s+|current\s+)?gpa\s+(?:is|was)\s+(?:actually\s+|now\s+|a\s+)?([0-4]\.\d{1,2})(?![\d.])/i))) {
-          // the confirmed resume's GPA stands until a corrected resume is confirmed; a chat line never contradicts it
-          let onResume = null;
-          try { const conf = ProfileMod && ProfileMod.confirmedFacts ? ProfileMod.confirmedFacts(ctx.profile) : []; const gm = conf.filter((f) => f && f.source === "resume-ingest").map((f) => s(f.text)).join(" ").match(/\bGPA[:\s]*([0-4]\.\d{1,2})/i); onResume = gm ? gm[1] : null; } catch { onResume = null; }
-          if (onResume && onResume !== m2[1]) ctx._gpaConflictThisTurn = { said: m2[1], resume: onResume };
-          else push("gpa", m2[1], m2[0]);
-        }
         const MON = "(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|spring|summer|fall|winter)";
         if ((m2 = u.match(new RegExp(`\\b(?:i(?:'?ll| will|'?m| am)?\\s+)?(?:graduate|graduating|grad)\\s+(?:in\\s+|on\\s+)?(${MON}\\s+20\\d\\d|20\\d\\d)\\b`, "i"))) || (m2 = u.match(/\b(?:i'?m|i am|im)\s+(?:in\s+)?(?:the\s+)?class\s+of\s+(20\d\d)\b/i))) {
           push("graduation", m2[1].replace(/\b[a-z]/g, (c) => c.toUpperCase()), m2[0]);
@@ -51404,7 +51409,7 @@ const CareerRouter = (() => {
     return { intent: "conversation_recall", reply, resultStatus: status, sends: 0 };
   }
   function factLine(f) {
-    return { name: `your name is ${f.value}`, year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: experienceLine(f), school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}`, gpa: `your GPA is ${f.value}`, graduation: `you graduate ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { name: `your name is ${f.value}`, year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: experienceLine(f), school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}`, graduation: `you graduate ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   // DEPTH LANE A (MI-013): the stated-facts -> profile bridge. Facts
   // the user states in chat were captured into ctx.statedFacts but
@@ -51474,15 +51479,11 @@ const CareerRouter = (() => {
     return { intent: "career_goal_record", reply, resultStatus: "completed", sends: 0, stated_facts: all };
   }
   function handleStatedFactsReply(text, ctx) {
-    // ROUTER DEAD ENDS (2026-10-31): "actually my email is ..." and "actually my gpa is 3.6" (with 3.7 on the confirmed
-    // resume) fell to "I may have missed what you meant". Neither writes anything; each says what happens to it.
+    // ROUTER DEAD ENDS (2026-10-31): "actually my email is ..." fell to "I may have missed what you meant". It writes
+    // nothing and claims nothing (handler-submit-path b1); the reply says what happens to it.
     if (!/\?/.test(s(text)) && !(ctx._factsAddedThisTurn && ctx._factsAddedThisTurn.length)) {
       const hasResume = resumeOnRecord(ctx);
-      const said = ctx._contactStatedThisTurn, gc = ctx._gpaConflictThisTurn;
-      if (gc) return { intent: "profile_correction", resultStatus: "awaiting_user", sends: 0, reply: compose({
-        headline: `Your confirmed resume says GPA ${gc.resume}, and that is what I use — I haven't changed it to ${gc.said}.`,
-        facts: ["To change it, paste the corrected resume; once you confirm it, it replaces this one."],
-        nextStep: (offerNext(ctx, "upload resume"), "Want to paste it now?") }) };
+      const said = ctx._contactStatedThisTurn;
       if (said && said.kind === "email") return { intent: "profile_correction", resultStatus: "awaiting_user", sends: 0, reply: compose({
         headline: `Got it — ${said.value}.`,
         facts: ["When an application asks for your email, I'll show you those exact words to use, and nothing goes on a form without your OK."],

@@ -22,17 +22,17 @@ const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
 const CI = Deno.env.get("CI") === "true";
 const ID = (n: number) => `7b0f8f8e-6a43-4a49-9d2c-0000000a${String(n).padStart(4, "0")}`;
-const PEOPLE: Record<string, string> = Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`tok-${i + 1}`, ID(i + 1)]));
+const PEOPLE: Record<string, string> = Object.fromEntries(Array.from({ length: 13 }, (_, i) => [`tok-${i + 1}`, ID(i + 1)]));
 const H = (c: string) => c.repeat(64);
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
 
-async function app(pg: Pg, user: string, company: string, state: string, ago: string, extra = "", source: string | null = null) {
+async function app(pg: Pg, user: string, company: string, state: string, ago: string, extra = "", source: string | null = null, attempts?: number) {
   const job = `greenhouse:${company.toLowerCase().replace(/\W+/g, "")}:${crypto.randomUUID().slice(0, 6)}`;
   const driving = state === "driving";
   await pg.sql(`set session_replication_role = replica;
     insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, attempts, claimed_at, lease_token, created_at, updated_at, source${extra ? ", reason" : ""})
     values ('${user}', '${job}', '${company}', 'https://${company.toLowerCase().replace(/\W+/g, "")}.example.test/apply', '{}'::jsonb, ${`'${H("c")}'`}, ${`'${H("c")}'`}, '${state}',
-      ${driving || state !== "queued" ? 1 : 0}, ${driving || state !== "queued" ? "now()" : "null"}, ${driving ? "gen_random_uuid()" : "null"}, now() - interval '${ago}', now() - interval '${ago}', ${source ? `'${source}'` : "null"}${extra ? `, '${extra}'` : ""});
+      ${attempts ?? (driving || state !== "queued" ? 1 : 0)}, ${driving || state !== "queued" || attempts ? "now()" : "null"}, ${driving ? "gen_random_uuid()" : "null"}, now() - interval '${ago}', now() - interval '${ago}', ${source ? `'${source}'` : "null"}${extra ? `, '${extra}'` : ""});
     set session_replication_role = origin;`);
   return job;
 }
@@ -67,7 +67,7 @@ Deno.test({ name: "C21/C22: undo / cancel that resolves against the latest appro
       const c = handler!.chat("tok-1");
       const r = await say(c, "undo");
       eq(r.intent, UNDO_INTENT, r.reply);
-      eq(r.reply, "Cancelled: your application to Acme Analytics was stopped before it went out. Nothing was sent to Acme Analytics.");
+      eq(r.reply, "Cancelled: your application to Acme Analytics was stopped before it went out, so this one was not sent.");
       eq(await jobs(pg, u), [{ company: "Globex", state: "queued" }, { company: "Acme Analytics", state: "not_submitted" }], "only the latest is cancelled");
       const again = await say(c, "undo");
       eq(again.reply, "Already cancelled: your application to Acme Analytics never went out.");
@@ -161,6 +161,33 @@ Deno.test({ name: "C21/C22: undo / cancel that resolves against the latest appro
       eq(await mails(pg, u), [{ n: 1, status: "sending" }, { n: 2, status: "approved" }]);
       eq(await store.cancelEmail(u, d2), true, "the person's own approved draft is withdrawn");
       eq(await mails(pg, u), [{ n: 1, status: "sending" }, { n: 2, status: "skipped" }]);
+      // The application cancel is the same: exactly this person's row, by id, and only while no worker has claimed it.
+      await app(pg, u, "Soylent", "driving", "1 minute");
+      await app(pg, u, "Tyrell", "queued", "1 minute");
+      const ids = JSON.parse(await pg.sql(`select json_object_agg(company, id) from public.career_apply_jobs where user_id = '${u}'`));
+      const claimed = await store.cancelApplyJob(u, ids.Soylent);
+      eq([claimed.cancelled, claimed.row?.state], [false, "driving"], "a row a worker claimed between the read and the cancel is not cancelled, and is read back as it is");
+      eq((await store.cancelApplyJob(ID(1), ids.Tyrell)).cancelled, false, "another person cannot cancel it");
+      eq(await jobs(pg, u), [{ company: "Soylent", state: "driving" }, { company: "Tyrell", state: "queued" }]);
+      eq((await store.cancelApplyJob(u, ids.Tyrell)).cancelled, true, "the person's own queued application is cancelled");
+    });
+    await t.step("11. two queued applications at the same company: undo cancels ONLY the one just approved; the earlier one still goes", async () => {
+      const u = ID(12);
+      await app(pg, u, "Acme Analytics", "queued", "1 hour");
+      await app(pg, u, "Acme Analytics", "queued", "1 minute");
+      const r = await say(handler!.chat("tok-12"), "undo");
+      eq(await jobs(pg, u), [{ company: "Acme Analytics", state: "queued" }, { company: "Acme Analytics", state: "not_submitted" }], "exactly the latest job, by id");
+      eq(r.reply, "Cancelled: your application to Acme Analytics was stopped before it went out, so this one was not sent.");
+    });
+
+    await t.step("12. the latest application was put back in the queue (attempts 1) and an earlier one to the same company went out: the latest is cancelled and the reply is about it, never 'already went out'", async () => {
+      const u = ID(13);
+      await app(pg, u, "Globex", "submitted_unconfirmed", "3 hours");
+      await app(pg, u, "Globex", "queued", "1 minute", "", null, 1);
+      const r = await say(handler!.chat("tok-13"), "undo");
+      eq(await jobs(pg, u), [{ company: "Globex", state: "submitted_unconfirmed" }, { company: "Globex", state: "not_submitted" }], "the re-queued latest is cancelled");
+      eq(r.reply, "Cancelled: your application to Globex was stopped before it went out, so this one was not sent.");
+      assert(!/Nothing was sent to Globex/.test(r.reply), `never says nothing went to Globex: an earlier application did: ${r.reply}`);
     });
   } finally {
     handler?.restore();
@@ -176,7 +203,7 @@ Deno.test("C21: an email the rail claimed between the read and the cancel is sai
   const store = {
     latestApply: async () => null,
     latestEmails: async () => [{ id: "d1", status: "approved", approved_at: at, name: "Jane Doe", firm: "Acme" }],
-    cancelApply: async () => ({}),
+    cancelApplyJob: async () => ({ cancelled: false, row: null }),
     cancelEmail: async () => false,
     emailStatus: async () => "sending",
     lastReplyAt: async () => null,
@@ -184,6 +211,11 @@ Deno.test("C21: an email the rail claimed between the read and the cancel is sai
   const r = await Undo.undoTurn({ message: "undo", userId: "u", threadId: null, now: Date.now(), store });
   eq(r?.reply, "Too late to cancel: your email to Jane Doe (Acme) is being sent right now. If it needs correcting, you can send a short follow-up.");
   const sent = await Undo.undoTurn({ message: "undo", userId: "u", threadId: null, now: Date.now(), store: { ...store, emailStatus: async () => "sent" } });
+  // The same race for an application: the worker claimed it after the read; the reply is from the row as it is now.
+  const raced = await Undo.undoTurn({ message: "undo", userId: "u", threadId: null, now: Date.now(), store: { ...store, latestEmails: async () => [],
+    latestApply: async () => ({ id: "j1", company: "Acme", state: "queued", created_at: at }),
+    cancelApplyJob: async () => ({ cancelled: false, row: { id: "j1", company: "Acme", state: "driving", created_at: at } }) } });
+  eq(raced?.reply, "Too late to cancel: your application to Acme is being sent right now and can't be stopped midway. Once it's in, you can withdraw it with Acme directly.");
   eq(sent?.status, "too_late");
   assert(!/Cancelled/.test(sent!.reply), sent!.reply);
 });
@@ -192,4 +224,24 @@ Deno.test("C22: the asks it reads, and the ones it leaves to their own turns", a
   const Undo = await undoModule();
   for (const m of ["undo", "Undo.", "undo that", "cancel that", "wait, cancel that", "oops undo", "take that back", "don't send that", "cancel it please", "scratch that"]) assert(Undo.undoAsk(m), m);
   for (const m of ["cancel my application to Acme", "cancel my plan", "cancel", "stop", "undo my last resume edit and then apply to Acme", "cancel the interview", "unsubscribe"]) assert(!Undo.undoAsk(m), m);
+});
+
+Deno.test("C21: what was approved cannot be read: an honest line, and nothing is cancelled", async () => {
+  const Undo = await undoModule();
+  const calls: string[] = [];
+  const store = {
+    latestApply: async () => { throw new Error("read your latest application: connection reset"); },
+    latestEmails: async () => [],
+    cancelApplyJob: async () => { calls.push("cancelApplyJob"); return { cancelled: true, row: null }; },
+    cancelApply: async () => { calls.push("cancelApply"); return { approved_cancelled: 1 }; },
+    cancelEmail: async () => { calls.push("cancelEmail"); return true; },
+    emailStatus: async () => null,
+    lastReplyAt: async () => null,
+  };
+  const r = await Undo.undoTurn({ message: "undo", userId: "u", threadId: null, now: Date.now(), store: store as any });
+  eq([r?.status, r?.reply], ["unreadable", "I couldn't read what you approved just now, so nothing was cancelled. Say undo again in a minute."]);
+  eq(calls, [], "no cancel is attempted on an unreadable read");
+  const mailsDown = await Undo.undoTurn({ message: "undo", userId: "u", threadId: null, now: Date.now(), store: { ...store, latestApply: async () => null, latestEmails: async () => { throw new Error("down"); } } as any });
+  eq(mailsDown?.status, "unreadable");
+  eq(calls, []);
 });

@@ -50,7 +50,7 @@ function fakeTimers() {
 }
 
 type Ev = { what: "typing" | "send" | "chat:start" | "chat:end" | "file:start" | "file:end"; at: number; text?: string };
-function world(o: { turnMs?: number; reply?: string; typingStatus?: number; chatThrows?: boolean; deliverMs?: number } = {}) {
+function world(o: { turnMs?: number; reply?: string; typingStatus?: number; chatThrows?: boolean; deliverMs?: number; ackSendMs?: number } = {}) {
   const W = memoryChannelWorld();
   const timers = fakeTimers();
   const events: Ev[] = [];
@@ -63,6 +63,8 @@ function world(o: { turnMs?: number; reply?: string; typingStatus?: number; chat
       return new Response(JSON.stringify(status === 200 ? { ok: true, result: true } : { ok: false, error_code: status, description: "Too Many Requests", parameters: { retry_after: 2 } }), { status });
     }
     if (url === `${TELEGRAM_API}/bot${TOKEN}/sendMessage`) {
+      // Telegram slow to take the interim: it is recorded when Telegram has it, not when it was asked.
+      if (o.ackSendMs && /^on it/.test(body.text)) await new Promise((r) => setTimeout(r, o.ackSendMs));
       events.push({ what: "send", at: timers.now(), text: body.text });
       return new Response(JSON.stringify({ ok: true, result: { message_id: ++n } }), { status: 200 });
     }
@@ -203,4 +205,29 @@ Deno.test("N12: a failed typing call never touches the turn; a turn that fails a
   const k = world({ turnMs: 7000, chatThrows: true });
   await k.post("find me jobs in Austin");
   eq(sends(k.events), [ackFor("find me jobs in Austin"), CHAT_DOWN_REPLY], "the interim, then the plain failure line; no result is claimed");
+});
+
+Deno.test("N12: an interim still on its way when the turn ends reaches the person BEFORE the answer, never after it", async () => {
+  const h = world({ turnMs: 6500, ackSendMs: 80 });
+  const msg = "find me data analyst jobs in Chicago";
+  await h.post(msg);
+  eq(sends(h.events), [ackFor(msg), h.reply], "the interim Telegram was still taking lands first; nothing interim after the answer");
+  eq(h.timers.pending(), 0, "nothing left armed");
+});
+
+Deno.test("N12: a timer that fires after stop() (the clock could not cancel it) sends no interim and shows no typing", async () => {
+  const fired: (() => void)[] = [];
+  const timers = { setTimer: (fn: () => void) => { fired.push(fn); return fired.length; }, clearTimer: () => {} }; // a clear that cancels nothing
+  let acks = 0, typings = 0;
+  const a = Voice.ackOnce({ afterMs: 6000, ack: async () => { acks++; }, ...timers });
+  a.start();
+  eq(await a.stop(), false, "no interim went");
+  for (const f of fired.splice(0)) f();
+  eq(acks, 0, "a late timer after stop() sends no interim");
+  const t = Voice.typingLoop({ typing: async () => { typings++; }, everyMs: 4000, ...timers });
+  eq(typings, 1, "typing at once");
+  await t.stop();
+  for (const f of fired.splice(0)) f();
+  eq(typings, 1, "a late tick after stop() shows no typing");
+  eq(fired.length, 0, "and arms nothing again");
 });

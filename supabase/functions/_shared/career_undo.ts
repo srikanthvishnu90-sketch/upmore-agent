@@ -24,14 +24,17 @@ export function undoAsk(message: string): boolean {
   return t.length <= 60 && UNDO.test(t);
 }
 
-export interface UndoApply { company: string; state: string; created_at: string; reason?: string | null; source?: string | null }
+export interface UndoApply { id: string; company: string; state: string; created_at: string; reason?: string | null; source?: string | null }
 export interface UndoEmail { id: string; status: string; approved_at: string; result?: string | null; name: string; firm?: string | null }
-export interface CancelForResult { approved_cancelled?: number; being_sent?: number; already_sent?: unknown[] }
+// The reason the queue's readers already show for an application the person cancelled (career_apply_cancel_for's words).
+export const CANCELLED_REASON = "not sent: you cancelled it before it was sent";
 export interface UndoStore {
   latestApply(userId: string, sinceIso: string): Promise<UndoApply | null>;
   // Every draft of the latest approval (one "send all" approves several at the same instant).
   latestEmails(userId: string, sinceIso: string): Promise<UndoEmail[]>;
-  cancelApply(userId: string, company: string): Promise<CancelForResult>;
+  // Exactly this application, only while it is still queued (no worker has claimed it): queued -> not_submitted. Returns
+  // whether this call cancelled it and the row as it stands afterwards (null: not this person's, or gone).
+  cancelApplyJob(userId: string, id: string): Promise<{ cancelled: boolean; row: UndoApply | null }>;
   cancelEmail(userId: string, id: string): Promise<boolean>; // approved -> skipped, only if still approved
   emailStatus(userId: string, id: string): Promise<string | null>;
   lastReplyAt(threadId: string): Promise<string | null>; // when this thread's last assistant reply was written
@@ -58,17 +61,23 @@ export async function undoTurn(o: { message: string; userId: string; threadId: s
 }
 
 async function undoApply(o: { userId: string; store: UndoStore }, app: UndoApply) {
-  const co = app.company, r = (reply: string, status: string) => ({ reply, status, intent: UNDO_INTENT });
+  const r = (reply: string, status: string) => ({ reply, status, intent: UNDO_INTENT });
+  let row = app;
   if (app.state === "queued") {
-    let d: CancelForResult;
-    try { d = await o.store.cancelApply(o.userId, co); }
-    catch { return r(`I couldn't cancel your application to ${co} just now, so it is still queued and may go out. Say undo again in a minute.`, "unreadable"); }
-    const n = Number(d.approved_cancelled ?? 0);
-    if (n > 0) return r(`Cancelled: your application to ${co} was stopped before it went out. Nothing was sent to ${co}.`, "cancelled");
-    if (Number(d.being_sent ?? 0) > 0) return r(`Too late to cancel: your application to ${co} is being sent right now and can't be stopped midway. Once it's in, you can withdraw it with ${co} directly.`, "too_late");
-    if (Array.isArray(d.already_sent) && d.already_sent.length) return r(`That already went out: your application to ${co} was sent, and Trainee can't pull back a sent application. To withdraw it, contact ${co} or use their candidate portal.`, "too_late");
-    return r(`I couldn't stop your application to ${co} from here: it is still queued and may go out. Nothing else was changed.`, "not_cancellable");
+    let got: { cancelled: boolean; row: UndoApply | null };
+    try { got = await o.store.cancelApplyJob(o.userId, app.id); }
+    catch { return r(`I couldn't cancel your application to ${app.company} just now, so it is still queued and may go out. Say undo again in a minute.`, "unreadable"); }
+    // Only this application, and only what this call did: the words come from this row as it stands now.
+    if (got.cancelled) return r(`Cancelled: your application to ${app.company} was stopped before it went out, so this one was not sent.`, "cancelled");
+    if (!got.row) return r(`I couldn't find your application to ${app.company} just now, so nothing was cancelled. Say undo again in a minute.`, "unreadable");
+    row = got.row;
   }
+  return describe(row, r);
+}
+// What this one application is now, said plainly; nothing is claimed that its row does not say.
+function describe(app: UndoApply, r: (reply: string, status: string) => { reply: string; status: string; intent: string }) {
+  const co = app.company;
+  if (app.state === "queued") return r(`I couldn't stop your application to ${co} from here: it is still queued and may go out. Nothing else was changed.`, "not_cancellable");
   if (app.state === "driving") return r(`Too late to cancel: your application to ${co} is being sent right now and can't be stopped midway. Once it's in, you can withdraw it with ${co} directly.`, "too_late");
   if (app.state === "confirmed" || app.state === "submitted_unconfirmed") return r(`That already went out: your application to ${co} was sent, and Trainee can't pull back a sent application. To withdraw it, contact ${co} or use their candidate portal.`, "too_late");
   if (app.state === "unknown_outcome") return r(`Your application to ${co} may already have gone out (its last step wasn't recorded), so it can't be cancelled. To be sure it's withdrawn, contact ${co} directly.`, "too_late");
@@ -106,12 +115,13 @@ async function undoEmails(o: { userId: string; store: UndoStore }, mails: UndoEm
   return r(`${bits.join("; ")}.`, cancelled.length ? (went.length || flying.length ? "partly_cancelled" : "cancelled") : "too_late");
 }
 
+const APPLY_COLS = "id,company,state,created_at,reason,source";
 // deno-lint-ignore no-explicit-any
 export function supabaseUndoStore(admin: any): UndoStore {
   const must = (x: any, what: string) => { if (x.error) throw new Error(`${what}: ${x.error.message}`); return x.data; };
   return {
     async latestApply(u, since) {
-      const rows = must(await admin.from("career_apply_jobs").select("company,state,created_at,reason,source").eq("user_id", u).gte("created_at", since)
+      const rows = must(await admin.from("career_apply_jobs").select(APPLY_COLS).eq("user_id", u).gte("created_at", since)
         .order("created_at", { ascending: false }).order("id", { ascending: false }).limit(1), "read your latest application") ?? [];
       return rows[0] ?? null;
     },
@@ -122,8 +132,13 @@ export function supabaseUndoStore(admin: any): UndoStore {
       const rows = must(await admin.from("career_outreach_drafts").select("id,n,status,approved_at,result,recipient").eq("user_id", u).eq("approved_at", last[0].approved_at).order("n"), "read that approval") ?? [];
       return rows.map((x: any) => ({ id: x.id, status: x.status, approved_at: x.approved_at, result: x.result, name: String(x.recipient?.name ?? "the recipient"), firm: x.recipient?.firm ?? null }));
     },
-    async cancelApply(u, company) {
-      return must(await admin.rpc("career_apply_cancel_for", { p_user: u, p_company: company }), "cancel the application") ?? {};
+    async cancelApplyJob(u, id) {
+      // One row, by id, under its own row lock: the claims take only 'queued' rows (FOR UPDATE), so a claimed one matches
+      // nothing here. source null: the routes career_apply_cancel_for also cancels (a cloud-bound row is the cloud's).
+      const done = must(await admin.from("career_apply_jobs").update({ state: "not_submitted", reason: CANCELLED_REASON, updated_at: new Date().toISOString() })
+        .eq("id", id).eq("user_id", u).eq("state", "queued").is("source", null).select("id"), "cancel the application") ?? [];
+      const rows = must(await admin.from("career_apply_jobs").select(APPLY_COLS).eq("id", id).eq("user_id", u).limit(1), "read the application") ?? [];
+      return { cancelled: done.length === 1, row: rows[0] ?? null };
     },
     async cancelEmail(u, id) {
       // approved_at is kept: the cancelled draft stays this approval's, so a second "undo" says "already cancelled" and never

@@ -14753,6 +14753,17 @@ const CareerRouter = (() => {
     if (!Number.isFinite(at) || nowOf(ctx) - at > 30 * 60 * 1000 || nowOf(ctx) < at - 60 * 1000 || !off.run) return null;
     return dispatchChat(off.run, ctx);
   }
+  function handleUnsavedGraduation(text, ctx) {
+    if (!ctx._gradUnsavedThisTurn) return null;
+    const own = statedFactsOf(ctx).find((f) => f.kind === "graduation");
+    const wm = threadMirrorForWrite(ctx);
+    const ask = !own && !(wm && wm.gradAskedAt);
+    if (ask && wm) wm.gradAskedAt = nowOf(ctx);
+    return { intent: "profile_correction", resultStatus: "awaiting_user", sends: 0, reply: compose({
+      headline: own ? `Got it — I haven't changed your graduation date, which is ${own.value}.` : "Got it — I haven't taken that as your graduation date.",
+      facts: [],
+      nextStep: ask ? "When do you graduate?" : "Tell me what to work on next." }) };
+  }
   function bareReplyFamilyOf(text) {
     const t = lc(s(text).trim());
     if (/^(yes|yeah|yep|sure|ok|okay|go|go ahead|do it)[.!]*$/.test(t)) return "yes";
@@ -16567,9 +16578,22 @@ const CareerRouter = (() => {
     else { const n = /^\d$/.test(topM[1]) ? Number(topM[1]) : WN[topM[1]]; slice = list.slice(0, n); }
     const applyAsk = /\bapply\b|\bsubmit\b/.test(t);
     if (applyAsk && hasResume) {
+      const pool = (ctx.batchDeps || {}).postings || ctx.postings || [];
+      const open = (r) => pool.some((p) => p && ((r.id && p.id === r.id) || (r.url && (p.url === r.url || (Array.isArray(p.source_urls) && p.source_urls.includes(r.url)))) || (lc(p.title || p.role) === lc(r.title) && lc(p.company) === lc(r.company))));
+      const gone = slice.filter((r) => !open(r));
+      if (!gone.length) {
+        const WORD = ["", "first", "second", "third", "fourth", "fifth"];
+        const at = list.indexOf(slice[0]) + 1;
+        const canon = slice.length === 1 && WORD[at] ? `apply to the ${WORD[at]} one` : `apply to the top ${slice.length}`;
+        const ran = handleShortlistApply(canon, ctx);
+        if (ran) return ran;
+      }
       const again = disc.lastParams && disc.lastParams.ask ? s(disc.lastParams.ask) : "find jobs";
       offerNext(ctx, again);
-      return done(`${slice.map((r) => `${r.title} at ${r.company}`).join("; ")} ${slice.length === 1 ? "isn't" : "aren't"} in the open postings I can see right now, so I haven't started anything.`, [], "Want me to run that search again?");
+      const named = (gone.length ? gone : slice).map((r) => `${r.title} at ${r.company}`);
+      return done(gone.length
+        ? `${named.join("; ")} ${gone.length === 1 ? "isn't" : "aren't"} in the open postings I can see right now, so I haven't started anything.`
+        : `I couldn't start the application for ${named.join("; ")} just now, so nothing has started.`, [], "Want me to run that search again?");
     }
     const pick = slice[0];
     const wmir = threadMirrorForWrite(ctx);
@@ -21925,6 +21949,7 @@ const CareerRouter = (() => {
     captureStatedFacts(rawText, c);
     { const bp = profileFromStatedFacts(c); if (bp) { if (!c.profile || c.profile._fromStatedFacts) c.profile = bp; } else if (c.profile && c.profile._fromStatedFacts) c.profile = null; }
     { const ob = takeOffer(rawText, c); if (ob) return ob; }
+    { const ug = handleUnsavedGraduation(text, c); if (ug) return ug; }
     { const gr = handleGreeting(text, c); if (gr) return gr; }
     { const fd = handleFramedDocument(text, c); if (fd) return fd; }
     { const rd = handleResumeDispute(text, c); if (rd) return rd; }
@@ -23062,8 +23087,14 @@ const CareerRouter = (() => {
         if ((m2 = sentences.map((x) => x.match(new RegExp(`${LEAD}my\\s+(?:e-?mail(?:\\s+address)?)\\s+is\\s+(?:actually\\s+|now\\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b`, "i"))).find(Boolean))) ctx._contactStatedThisTurn = { kind: "email", value: m2[1] };
         const MON = "(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|spring|summer|fall|winter)";
         const GRAD = new RegExp(`${LEAD}(?:i(?:'?ll| will|'?m| am)?|im|ill)\\s+(?:(?:be\\s+)?(?:graduate|graduating|grad(?:uating)?)|(?:in\\s+)?(?:the\\s+)?class\\s+of)\\s+(?:in\\s+|on\\s+)?(${MON}\\s+20\\d\\d|20\\d\\d)\\b`, "i");
-        if ((m2 = sentences.filter(definite).map((x) => x.match(GRAD)).find(Boolean))) {
+        const gm = threadMirrorOf(ctx), askedAt = gm && typeof gm.gradAskedAt === "number" ? gm.gradAskedAt : null;
+        const bare = askedAt != null && nowOf(ctx) - askedAt <= 30 * 60 * 1000 && nowOf(ctx) >= askedAt - 60 * 1000 && !statedFactsOf(ctx).some((f) => f.kind === "graduation")
+          ? u.trim().match(new RegExp(`^(?:(?:in|it'?s|its|i graduate(?:\\s+in)?|graduating(?:\\s+in)?)\\s+)?(${MON}\\s+20\\d\\d|20\\d\\d)[.!]*$`, "i")) : null;
+        if (bare) push("graduation", bare[1].replace(/\b[a-z]/g, (c) => c.toUpperCase()), bare[0]);
+        else if ((m2 = sentences.filter(definite).map((x) => x.match(GRAD)).find(Boolean))) {
           push("graduation", m2[1].replace(/\b[a-z]/g, (c) => c.toUpperCase()), m2[0]);
+        } else if (sentences.some((x) => /\bgraduat\w*\b.*\b20\d\d\b|\bclass\s+of\s+20\d\d\b/i.test(x))) {
+          ctx._gradUnsavedThisTurn = true;
         }
       }
     }

@@ -2436,6 +2436,20 @@ const CareerRouter = (() => {
     if (!Number.isFinite(at) || nowOf(ctx) - at > 30 * 60 * 1000 || nowOf(ctx) < at - 60 * 1000 || !off.run) return null;
     return dispatchChat(off.run, ctx);
   }
+  // RE-REVIEW #350: "my brother will graduate in may 2027", "i might graduate in may 2027": nothing is saved (D-007), and
+  // the reply says so on topic (it was answered as an eligibility question, "your graduation date is not stated"). The
+  // person's own date is asked for once per thread, and only while none is on record; their answer is saved as said.
+  function handleUnsavedGraduation(text, ctx) {
+    if (!ctx._gradUnsavedThisTurn) return null;
+    const own = statedFactsOf(ctx).find((f) => f.kind === "graduation");
+    const wm = threadMirrorForWrite(ctx);
+    const ask = !own && !(wm && wm.gradAskedAt);
+    if (ask && wm) wm.gradAskedAt = nowOf(ctx);
+    return { intent: "profile_correction", resultStatus: "awaiting_user", sends: 0, reply: compose({
+      headline: own ? `Got it — I haven't changed your graduation date, which is ${own.value}.` : "Got it — I haven't taken that as your graduation date.",
+      facts: [],
+      nextStep: ask ? "When do you graduate?" : "Tell me what to work on next." }) };
+  }
   function bareReplyFamilyOf(text) {
     const t = lc(s(text).trim());
     if (/^(yes|yeah|yep|sure|ok|okay|go|go ahead|do it)[.!]*$/.test(t)) return "yes";
@@ -4950,12 +4964,27 @@ const CareerRouter = (() => {
     if (ordM) { const k = ordM[1]; const idx = k === "last" ? list.length : (ORD[k] || Number(k)); slice = idx >= 1 && idx <= list.length ? [list[idx - 1]] : []; if (!slice.length) return done(`Your last search showed ${list.length} role${list.length === 1 ? "" : "s"}, so there's no ${k} one.`, [], `Which of the ${list.length} do you mean?`); }
     else { const n = /^\d$/.test(topM[1]) ? Number(topM[1]) : WN[topM[1]]; slice = list.slice(0, n); }
     const applyAsk = /\bapply\b|\bsubmit\b/.test(t);
-    // With a resume, the shortlist apply seam (handleShortlistApply, earlier) owns an apply whose posting resolves; one that
-    // reaches here could not be resolved in the current open postings, so that is said — the resume is never asked for again.
+    // With a resume, the open postings are checked here, for the roles this reference picked. RE-REVIEW #350: "apply to #1"
+    // (a shape the shortlist seam does not parse) was told its posting "isn't in the open postings" while it was open.
+    // Every picked posting still open runs the shortlist apply seam itself, with the same pick in its own words; only a
+    // posting really absent from this turn's open postings is said to be gone, and nothing starts for it.
     if (applyAsk && hasResume) {
+      const pool = (ctx.batchDeps || {}).postings || ctx.postings || [];
+      const open = (r) => pool.some((p) => p && ((r.id && p.id === r.id) || (r.url && (p.url === r.url || (Array.isArray(p.source_urls) && p.source_urls.includes(r.url)))) || (lc(p.title || p.role) === lc(r.title) && lc(p.company) === lc(r.company))));
+      const gone = slice.filter((r) => !open(r));
+      if (!gone.length) {
+        const WORD = ["", "first", "second", "third", "fourth", "fifth"];
+        const at = list.indexOf(slice[0]) + 1;
+        const canon = slice.length === 1 && WORD[at] ? `apply to the ${WORD[at]} one` : `apply to the top ${slice.length}`;
+        const ran = handleShortlistApply(canon, ctx);
+        if (ran) return ran;
+      }
       const again = disc.lastParams && disc.lastParams.ask ? s(disc.lastParams.ask) : "find jobs";
       offerNext(ctx, again);
-      return done(`${slice.map((r) => `${r.title} at ${r.company}`).join("; ")} ${slice.length === 1 ? "isn't" : "aren't"} in the open postings I can see right now, so I haven't started anything.`, [], "Want me to run that search again?");
+      const named = (gone.length ? gone : slice).map((r) => `${r.title} at ${r.company}`);
+      return done(gone.length
+        ? `${named.join("; ")} ${gone.length === 1 ? "isn't" : "aren't"} in the open postings I can see right now, so I haven't started anything.`
+        : `I couldn't start the application for ${named.join("; ")} just now, so nothing has started.`, [], "Want me to run that search again?");
     }
     // the picked role becomes the tailoring target, so confirming a resume next tailors for it (handleResumeConfirm)
     const pick = slice[0];
@@ -12555,6 +12584,8 @@ const CareerRouter = (() => {
     // and the generic fallback was the product's first word.
     // ROUTER DEAD ENDS (2026-10-31): the yes to the offer the last reply made (see offerNext).
     { const ob = takeOffer(rawText, c); if (ob) return ob; }
+    // RE-REVIEW #350: an unsaved graduation statement is answered as itself, not as an eligibility question.
+    { const ug = handleUnsavedGraduation(text, c); if (ug) return ug; }
     { const gr = handleGreeting(text, c); if (gr) return gr; }
     // ONBOARDING ROUND 2: a document framed as the person's resume, and an entry they disown, ahead of every route that
     // reads a sentence of them as an ask (see handleFramedDocument and handleResumeDispute).
@@ -14503,8 +14534,16 @@ const CareerRouter = (() => {
         if ((m2 = sentences.map((x) => x.match(new RegExp(`${LEAD}my\\s+(?:e-?mail(?:\\s+address)?)\\s+is\\s+(?:actually\\s+|now\\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b`, "i"))).find(Boolean))) ctx._contactStatedThisTurn = { kind: "email", value: m2[1] };
         const MON = "(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|spring|summer|fall|winter)";
         const GRAD = new RegExp(`${LEAD}(?:i(?:'?ll| will|'?m| am)?|im|ill)\\s+(?:(?:be\\s+)?(?:graduate|graduating|grad(?:uating)?)|(?:in\\s+)?(?:the\\s+)?class\\s+of)\\s+(?:in\\s+|on\\s+)?(${MON}\\s+20\\d\\d|20\\d\\d)\\b`, "i");
-        if ((m2 = sentences.filter(definite).map((x) => x.match(GRAD)).find(Boolean))) {
+        // RE-REVIEW #350: the answer to the one "When do you graduate?" (handleUnsavedGraduation) is the person's own date.
+        const gm = threadMirrorOf(ctx), askedAt = gm && typeof gm.gradAskedAt === "number" ? gm.gradAskedAt : null;
+        const bare = askedAt != null && nowOf(ctx) - askedAt <= 30 * 60 * 1000 && nowOf(ctx) >= askedAt - 60 * 1000 && !statedFactsOf(ctx).some((f) => f.kind === "graduation")
+          ? u.trim().match(new RegExp(`^(?:(?:in|it'?s|its|i graduate(?:\\s+in)?|graduating(?:\\s+in)?)\\s+)?(${MON}\\s+20\\d\\d|20\\d\\d)[.!]*$`, "i")) : null;
+        if (bare) push("graduation", bare[1].replace(/\b[a-z]/g, (c) => c.toUpperCase()), bare[0]);
+        else if ((m2 = sentences.filter(definite).map((x) => x.match(GRAD)).find(Boolean))) {
           push("graduation", m2[1].replace(/\b[a-z]/g, (c) => c.toUpperCase()), m2[0]);
+        } else if (sentences.some((x) => /\bgraduat\w*\b.*\b20\d\d\b|\bclass\s+of\s+20\d\d\b/i.test(x))) {
+          // a graduation statement that is not the person's own definite date: answered on topic, nothing saved
+          ctx._gradUnsavedThisTurn = true;
         }
       }
     }

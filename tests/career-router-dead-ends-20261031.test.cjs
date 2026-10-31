@@ -360,4 +360,60 @@ test("review 4b: with a resume on record, 'apply to the first one' never asks fo
   assert.equal(questions(r), 1, r);
 });
 
+// ---------- RE-REVIEW of #350 at 2ca41d4a6 ----------
+test("re-review 1: with a resume, 'apply to #1' for a posting still open runs the apply flow; only a posting really gone is said to be gone", async () => {
+  await setup();
+  for (const m of ["apply to #1", "apply to the first one", "apply to 1"]) {
+    const p = person(`u-open-${m.length}`);
+    p.say(`here is my resume:\n${RESUME}`); p.say("yes thats my resume");
+    p.say("find data analyst jobs in chicago");
+    const o = p.say(m); // the posting is still in the open postings this turn sees
+    const r = String(o.reply);
+    assert.ok(!/isn'?t in the open postings|aren'?t in the open postings|left the list/i.test(r), `${m}: no claim it has left while it is open: ${r}`);
+    assert.equal(o.intent, "career_batch_apply", `${m}: the apply flow runs: [${o.intent}] ${r.slice(0, 160)}`);
+    assert.ok(!(o.sends > 0), "nothing sent");
+  }
+  const p = person("u-gone");
+  p.say(`here is my resume:\n${RESUME}`); p.say("yes thats my resume");
+  p.say("find data analyst jobs in chicago");
+  const g = p.say("apply to #1", { postings: POSTINGS.slice(1) }); // the first posting has left
+  assert.match(String(g.reply), /isn'?t in the open postings/i, String(g.reply));
+  assert.notEqual(g.intent, "career_batch_apply", "nothing started for a posting that is gone");
+});
+
+test("re-review 2: an unsaved graduation message gets an on-topic reply, asks for the person's own date once, and that answer is saved", async () => {
+  await setup();
+  for (const m of ["my brother will graduate in may 2027", "i might graduate in may 2027", "i dont graduate in 2027"]) {
+    const p = person();
+    const o = p.say(m);
+    const r = String(o.reply);
+    assert.ok(!isDeadEnd(o), `${m}: [${o.intent}] ${r}`);
+    assert.notEqual(o.intent, "company_intel", `${m}: not an eligibility answer: ${r}`);
+    assert.ok(!/not stated|eligib|cutoff|company file/i.test(r), `${m}: on topic: ${r}`);
+    assert.match(r, /graduat/i, `${m}: about graduation: ${r}`);
+    assert.ok(!/\brecorded\b|on your record|\bsaved (?:it|that|your)/i.test(r), `${m}: nothing claimed saved: ${r}`);
+    assert.ok(!statedFacts(p).some((f) => f.kind === "graduation"));
+    assert.equal(questions(r), 1, `${m}: asks once: ${r}`);
+    // the answer to that one question is the person's own date
+    p.say("may 2028");
+    const f = statedFacts(p).find((x) => x.kind === "graduation");
+    assert.ok(f && f.value === "May 2028", `the answer is saved: ${JSON.stringify(statedFacts(p))}`);
+    // asked once: a second unsaved message does not ask again
+    const again = String(p.say("my sister graduates in 2026").reply);
+    assert.equal(questions(again), 0, `not asked twice: ${again}`);
+  }
+  // the question is asked once even when it goes unanswered
+  const u = person("u-unanswered");
+  assert.equal(questions(u.say("my brother will graduate in may 2027").reply), 1);
+  u.say("ok");
+  const twice = String(u.say("my cousin graduates in 2026").reply);
+  assert.equal(questions(twice), 0, `the unanswered question is not asked again: ${twice}`);
+  // with the person's own date already on record, nothing is asked
+  const q = person("u-has-grad");
+  q.say("i graduate may 2028");
+  const r = String(q.say("my roommate will graduate in may 2027").reply);
+  assert.ok(!/when do you graduate/i.test(r), r);
+  assert.equal(statedFacts(q).find((x) => x.kind === "graduation").value, "May 2028", "the person's own date is untouched");
+});
+
 module.exports = { FIRST_WEEK, isDeadEnd };

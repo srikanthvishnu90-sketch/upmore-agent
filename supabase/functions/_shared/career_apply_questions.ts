@@ -87,7 +87,9 @@ function yesNoWord(raw: string, explicit = false): "yes" | "no" | null {
   return yesNoOf(t);
 }
 const REMOVED = /\[(?:SSN|card number|number|password|code|security code) removed\]/;
-const SKIP = /^(skip|later|pass|not now|leave it|skip it|i'?ll do it later)$/;
+// With one question shown the whole message is its answer, so a deferral at its start is never saved as one ("not yet,
+// I'll answer later" is not anyone's first name).
+const SKIP = /^(skip|later|pass|not now|not yet|leave it|skip it|maybe later|ask me later|i'?ll (?:do|answer) (?:it |that |this )?later)\b/;
 const YES_NO_TYPE = /checkbox|boolean/;
 
 export type Check =
@@ -204,7 +206,8 @@ export function questionsText(
   const ask = qs.filter((q) => !NEVER_BY_TEXT.test(q.label));
   if (!ask.length) return null;
   const take = ask.slice(0, PER_TEXT), q = take[0];
-  const all = Math.max(total, 1), rest = all - 1;
+  // An identity-number question is never asked by text, so it is not counted among the ones asked.
+  const all = Math.max(total - (qs.length - ask.length), 1), rest = all - 1;
   const head = all === 1
     ? "One question only you can answer is holding up your applications. Answer it once and I won't ask again."
     : `Question 1 of ${all} only you can answer, one at a time. Answer it once and I won't ask again.`;
@@ -396,7 +399,7 @@ async function aheadDrafts(store: QuestionStore, userId: string, open: OpenQuest
 // as a typed answer, and nothing else ever saves it.
 const DAY = 24 * 3600000;
 async function draftTurn(
-  o: { userId: string; now: number; store: QuestionStore; draft?: DraftDeps },
+  o: { userId: string; threadId: string; now: number; store: QuestionStore; draft?: DraftDeps },
   shown: Shown,
   cmd: { act: "draft" | "redo" | "use"; n: number | null },
 ): Promise<{ reply: string; status: string }> {
@@ -428,6 +431,11 @@ async function draftTurn(
     delete drafts[id];
     await o.store.setShown(o.userId, { ...shown, drafts });
     const still = (await o.store.get(o.userId, shown.ids)).filter((x) => !x.answer || x.misfit).length;
+    // One at a time: the draft saved, the next open question is asked in the same reply.
+    if (!still && shown.ids.length === 1 && (await o.store.countOpen(o.userId)) > 0) {
+      const next = await present(o, (shown.skipped ?? []).filter((x) => !shown.ids.includes(x)));
+      if (next) return { reply: ["Saved, as drafted. I won't ask this again:", said(q, c.value), "", `Next: ${next}`].join("\n"), status: "answered_next" };
+    }
     return {
       reply: [
         "Saved, as drafted. I won't ask this again:",

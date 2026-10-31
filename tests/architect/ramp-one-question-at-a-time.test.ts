@@ -71,6 +71,10 @@ Deno.test("Q2 chat: asked, answered, the next asked in the same reply, each answ
   assert(a.reply.includes("School") && !a.reply.includes("graduation"), a.reply);
   eq(m.shownNow()!.ids, [RAMP[0].id], "only the one shown is what the next message answers");
 
+  const later = await turn("not yet — I'll answer later");
+  eq(m.answered.size, 0, `a deferral is never saved as the answer: ${later.reply}`);
+  assert(!/Saved/.test(later.reply), later.reply);
+  await turn("what do you need from me");
   const multi = await turn("1 DePaul University 2 06/13/2029 3 no");
   eq([multi.status, m.answered.size], ["partial", 0], `several numbered answers to one shown question save nothing: ${multi.reply}`);
   assert(/one question at a time/.test(multi.reply) && multi.reply.includes("School"), multi.reply);

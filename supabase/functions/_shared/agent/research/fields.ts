@@ -43,7 +43,7 @@ export const FIELDS: Field[] = [
     asks: ["How did you get your first finance role, and what would you do differently?", "What did your firm look for in interns that applicants usually lack?", "Which technical skill should I be strongest in by my next recruiting season?"],
     verify: ["The exact current recruiting calendar of any single firm", "Which firms run programs for your class year this cycle", "Current analyst pay at specific firms", "Whether a given firm recruits from your school"] },
   { id: "consulting", label: "management consulting", detect: /consult(?:ing|ant)|strategy (?:firm|role)/i,
-    short: { now: "right now the realistic goal is case skill and analytical work to show, since the most selective firms take few applicants", later: "boutique, specialist and mid-size firms and internal strategy teams are strong routes in, and many people move to the largest firms from there", act: "do one live practice case with a partner and write down how you structured it" },
+    short: { now: "right now the realistic goal is case skill and analytical work you can show, since interviews test both", later: "boutique, specialist and mid-size firms and internal strategy teams are strong routes in, and many people move to the largest firms from there", act: "do one live practice case with a partner and write down how you structured it" },
     cycle: [
       "Early college years: build the base. Grades, leadership roles, quantitative coursework and analytical projects, plus first conversations with alumni at firms.",
       "Sophomore year: look for first-year and sophomore diversity or insight programs where your school is eligible, and start learning the case format.",
@@ -64,7 +64,7 @@ export const FIELDS: Field[] = [
     asks: ["What separated candidates who got offers from those who did not?", "How did you practise cases, and what would you change?", "Which firm types fit my background, and why?"],
     verify: ["Each firm's current application window and class-year eligibility", "Current compensation at any named firm", "Whether a given office is hiring this cycle"] },
   { id: "swe", label: "software engineering", detect: /software|\bswe\b|(?:web|app|mobile|front[- ]?end|back[- ]?end|full[- ]?stack) (?:dev|developer|engineer)|programmer|coding bootcamp|computer programming/i,
-    short: { now: "right now a first software job is competitive, so shipped projects and real work for real users count for more than another course", later: "with finished projects and a referral, small and mid-size companies, agencies and internal tools teams become realistic", act: "pick one small tool you would use yourself and build it end to end, then put it on your public profile" },
+    short: { now: "right now the way in is shipped projects and real work for real users, which count for more than another course", later: "with finished projects and a referral, small and mid-size companies, agencies and internal tools teams become realistic", act: "pick one small tool you would use yourself and build it end to end, then put it on your public profile" },
     cycle: [
       "Early college years: learn to build. Core programming courses, one or two projects you ship, and a habit of reading other people's code.",
       "Sophomore year: look for a first internship, a research seat, or an open-source or freelance project; many large companies run early-career programs.",
@@ -85,7 +85,7 @@ export const FIELDS: Field[] = [
     asks: ["What did your first engineering job look for in a junior hire?", "Can you look at one project of mine and tell me what is weakest?", "Which kinds of small teams hire people at my level?"],
     verify: ["Whether any named company is hiring juniors now", "Current pay at a named employer", "Which internships are open to your class year this cycle"] },
   { id: "data", label: "data analytics", detect: /data (?:analy|scien|engineer)|analytics|business intelligence|statistic(?:s|ian)/i,
-    short: { now: "right now analyst roles in operations, finance, marketing and health are reachable if you can show SQL, spreadsheets and one real analysis", later: "after a stretch as an analyst, data science, analytics engineering and specialist roles open up", act: "pull one public dataset, answer one real question with SQL and a spreadsheet, and write the answer in a page" },
+    short: { now: "right now the way in is SQL, spreadsheet fluency and one real analysis, aimed at analyst roles in operations, finance, marketing or health", later: "after a stretch as an analyst, data science, analytics engineering and specialist roles open up", act: "pull one public dataset, answer one real question with SQL and a spreadsheet, and write the answer in a page" },
     cycle: [
       "Early college years: SQL, spreadsheets and statistics, plus one analysis of a real dataset you can explain end to end.",
       "Sophomore year: a first analyst internship, campus research or a volunteer analysis for a club or nonprofit.",
@@ -106,7 +106,7 @@ export const FIELDS: Field[] = [
     asks: ["What does a day of analysis look like in your role?", "Which tools did you need in your first job?", "What would make a project of mine credible to your team?"],
     verify: ["Current openings and employer-specific requirements", "Whether work authorization limits particular employers", "Current pay in your city"], local: false },
   { id: "nursing", label: "nursing", detect: /\bnurs(?:e|es|ing)\b|\bRN\b|NCLEX/i,
-    short: { now: "right now new nurses are hired on licensure and clinical fit, so the work is passing the licensing exam and applying to new-graduate programs", later: "after the first stretch on a unit, specialty certifications, charge roles and advanced practice open up", act: "check your state board's application steps and exam timing, and ask your school's career office which employers hire its graduates" },
+    short: { now: "right now the work is passing the licensing exam and applying to new-graduate programs", later: "after the first stretch on a unit, specialty certifications, charge roles and advanced practice open up", act: "check your state board's application steps and exam timing, and ask your school's career office which employers hire its graduates" },
     cycle: [
       "Before and during the program: clinical placements, grades and a strong record on the clinical rotations decide where you are noticed.",
       "Final year: apply to new-graduate residency programs, which often open before graduation, and prepare for the licensing exam.",
@@ -166,7 +166,7 @@ export const FIELDS: Field[] = [
     asks: ["What does your school look for in a new teacher?", "Which subjects are hardest to fill here?", "How did you move through certification?"],
     verify: ["Your state's current certification requirements and exam names", "District hiring calendars and openings", "Current pay scales by district"], local: true },
   { id: "pm_ops", label: "project management", detect: /project manag|program manag|operations (?:manag|role|analyst)|\bpmp\b|scrum|business ops/i,
-    short: { now: "right now project and operations roles hire on a record of delivery, so translate what you have run into delivery language", later: "a recognized credential and a quantified delivery record open program management and operations leadership", act: "write down one thing you ran in concrete terms: scope, budget, people, schedule and result" },
+    short: { now: "right now the work is to translate what you have run into delivery language: scope, budget, people and result", later: "a recognized credential and a quantified delivery record open program management and operations leadership", act: "write down one thing you ran in concrete terms: scope, budget, people, schedule and result" },
     cycle: [
       "Now: translate what you have already run into delivery language and list the scope, team and result of each project.",
       "Next few months: apply for coordinator, project manager and program manager roles that match your scale, and consider a credential only if listings ask for it.",
@@ -207,7 +207,7 @@ export const FIELDS: Field[] = [
     asks: ["How did you land your first internship as a transfer student?", "Which courses mattered most for interviews?", "What would you do in your first semester?"],
     verify: ["Whether each of your courses transfers", "Recruiting calendars at specific employers", "Current pay for internships and entry roles"] },
   { id: "lnd", label: "instructional design and corporate training", detect: /instructional design|corporate (?:training|learning)|learning (?:and|&) development|\bL&D\b|training specialist/i,
-    short: { now: "right now the realistic goal is a portfolio of a few learning samples, since these roles hire on samples more than on credentials", later: "after a first training or design role, senior designer and learning-and-development management roles become reachable", act: "turn one piece of work you have done into a short learning sample with an objective, an activity and an assessment" },
+    short: { now: "right now the realistic goal is a portfolio of a few learning samples, since these roles hire on samples more than on credentials", later: "after a first training or design role, you can aim at senior designer and learning-and-development management roles", act: "turn one piece of work you have done into a short learning sample with an objective, an activity and an assessment" },
     cycle: [
       "Now: turn classroom work into design language and start two or three samples.",
       "Next few months: finish a portfolio of samples with measured outcomes and learn one authoring tool.",

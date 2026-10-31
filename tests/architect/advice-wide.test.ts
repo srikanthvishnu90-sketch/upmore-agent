@@ -31,14 +31,18 @@ Deno.test("AW-2 open phrasings the old regex missed go to the brain", () => {
   }
 });
 
-Deno.test("AW-3 company-specific, posting and action asks stay with code", () => {
-  for (const m of ["is Stripe worth it?", "is Acmeworks worth it?", "how do I be a Googler?", "what does it take to be a Googler?", "should I go into Acmeworks?", "is Goldman a good bet?", "should I become a Meta engineer?", "is Ironstack Payments a good career move?", "should I go into the interview at Goldman Sachs?", "what does it take to get hired at Goldman Sachs as an analyst?", "apply to the Backend Software Engineer role at Ironstack Payments", "find me nurse jobs in Chicago", "watch data analyst roles in Austin"]) {
-    const d = decide(m); assertNode.notEqual(d.reason, "open_career_question", `${m}: ${d.reason}`);
+Deno.test("AW-3 company asks stay with code: the router claims them and the decision is the code route, not the brain", () => {
+  for (const m of ["is Stripe worth it?", "should I go into the interview at Goldman Sachs?", "what does it take to get hired at Goldman Sachs as an analyst?", "is Goldman a good bet?",
+    "How do I get hired at Acmeworks?", "how do I get a job at Acmeworks as a nurse", "apply to the Backend Software Engineer role at Ironstack Payments", "find me nurse jobs in Chicago", "watch data analyst roles in Austin"]) {
+    const d = decide(m); assertNode.equal(d.brain, false, `${m}: ${d.reason}/${d.intent}`);
+    assertNode.ok(["code_product", "action", "router_claimed", "kept_on_router", "host_control"].includes(d.reason), `${m}: ${d.reason}`);
   }
+  // brands the router does not claim never become an OPEN question (known employers, or a name after at/for/with/from)
+  for (const m of ["what does it take to be a Googler?", "how do I be a Googler?", "should I become a Meta engineer?", "is Ironstack Payments a good career move?", "How do I become a designer for Stripe?"]) assertNode.notEqual(decide(m).reason, "open_career_question", m);
 });
 
 import { FIELDS, OVERLAYS } from "../../supabase/functions/_shared/agent/research/fields.ts";
-import { SHORTS, template } from "../../supabase/functions/_shared/agent/research/shorts.ts";
+import { SHORTS, shortFor, template } from "../../supabase/functions/_shared/agent/research/shorts.ts";
 import { unsupported } from "../../supabase/functions/_shared/agent/research/guard.ts";
 
 Deno.test("AW-4 hand-written shorts: the 15 high-traffic fields exist, carry no figure or name, and differ from each other", () => {
@@ -59,7 +63,7 @@ Deno.test("AW-5 the template names the occupation and gives a route line, licens
 Deno.test("AW-6 place names are not companies: state, city, country and branch names keep the question open", () => {
   for (const m of ["How do I become a nurse in Texas?", "How do I get hired as an electrician in California?", "What does it take to become a lawyer in New York?", "Is nursing worth it in Chicago?",
     "I'm a veteran leaving the Army. How do I become a paralegal?", "I'm a parent returning to work after six years at home. What's the path to becoming an investment banker?",
-    "Should I become a nurse in Ontario?", "How do I get hired as an electrician after the Navy?", "How do I become a teacher in San Francisco?", "Is plumbing worth it in Ohio?"]) {
+    "Should I become a nurse in Ontario?", "How do I become an electrician in Fresno?", "How do I become a nurse in Wichita Falls?", "How do I become a pharmacist in Puerto Rico?", "How do I become a nurse at Ohio State?", "How do I become a teacher at the University of Texas?", "What does it take to become a welder in Tulsa?", "How do I get hired as an electrician after the Navy?", "How do I become a teacher in San Francisco?", "Is plumbing worth it in Ohio?"]) {
     const d = decide(m); assertNode.ok(d.brain, `${m}: ${d.reason}/${d.intent}`);
   }
 });
@@ -78,13 +82,22 @@ Deno.test("AW-7 'too late / too old' asks get a direct line about time to the cr
   }
 });
 
-Deno.test("AW-8 hand-written lines make no market claim; template wording does not repeat 'this week'", async () => {
-  const MARKET = /demand is|demand follows|steady|pay climbs|pay improves|exit options|opens many|crowded|scarce|competitive|costly|well paid|high pay|in demand|job security/i;
-  for (const s of SHORTS) for (const l of [s.now, s.later, s.act, s.degree, s.worth]) assertNode.ok(!MARKET.test(l), `${s.key}: ${l}`);
-  for (const [n, local] of [["journalism", false], ["photography", false], ["wind energy", false], ["law enforcement", true], ["dental hygiene", true], ["sales", false], ["trucking", true]] as const) {
+Deno.test("AW-8 no unsourced market claim in any short line (catalog shorts, hand-written shorts, templates, late lines); templates do not repeat 'this week'", async () => {
+  const MARKET = /\bdemand\b|steady|steadier|climbs|improves|exit options|opens many|crowded|scarce|competitive|costly|selective|take few|few applicants|reachable|hire interns|in demand|well paid|job security|rarely won|small slice|small share|hire\b[^.]*\binto\b/i;
+  const ADVICE = /check|depends on|cannot quote|\bask\b/i;
+  const claim = (l: string) => MARKET.test(l) && !ADVICE.test(l);
+  const lines: [string, string][] = [];
+  for (const f of FIELDS) if (f.short) lines.push(...Object.entries(f.short).map(([k, v]) => [`fields:${f.id}.${k}`, v] as [string, string]));
+  for (const s of SHORTS) for (const k of ["now", "later", "act", "degree", "worth"] as const) lines.push([`shorts:${s.key}.${k}`, s[k]]);
+  for (const [n, local] of [["journalism", false], ["photography", false], ["wind energy", false], ["law enforcement", true], ["dental hygiene", true], ["sales", false], ["trucking", true], ["x", false], ["x", true], ["music", false]] as const) {
     const t = template(n, local);
-    for (const l of [t.now, t.later, t.act, t.degree, t.worth, t.late]) { assertNode.ok(!MARKET.test(l), l); assertNode.ok(!/this week/i.test(l), `repeats this week: ${l}`); }
+    for (const k of ["now", "later", "act", "degree", "worth", "late"] as const) { lines.push([`template:${n}.${k}`, t[k]]); assertNode.ok(!/this week/i.test(t[k]), `repeats this week: ${t[k]}`); }
     assertNode.ok(t.now.split(/\s+/).length >= 18, `${n}: now line too thin`);
   }
+  for (const k of ["nursing", "law", "accounting", "ux", "product", "pilot", "welding", "electrician", "plumbing", "hvac", "mecheng", "civileng", "swe", "datasci", "teaching", "medicine", "marketing", "consulting", "ib"]) {
+    const sh = shortFor({ ...FIELDS[0], id: "other" as any, label: SHORTS.find((e) => e.key === k)!.name, short: undefined }, ""); lines.push([`late:${k}`, sh.late]);
+  }
+  const hits = lines.filter(([, l]) => claim(l)).map(([k, l]) => `${k}: ${l}`);
+  assertNode.deepStrictEqual(hits, []);
   assertNode.notEqual(template("journalism", false).now, template("wind energy", false).now, "creative and field-science routes differ");
 });

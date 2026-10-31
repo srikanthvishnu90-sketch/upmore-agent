@@ -116,18 +116,43 @@ const OPEN_ENTRY_RES: RegExp[] = [
   /\bshould\s+i\s+(?:still\s+)?(?:major|minor|study|specialize|concentrate)\s+in\b/i,
   new RegExp(String.raw`\bshould\s+i\s+(?:still\s+)?(?:go\s+(?:into|to\s+school\s+for)|pursue|become|be\s+an?|enter|switch\s+(?:in)?to|train\s+as)\b`, "i"),
 ];
-// The broad shapes ("be a ...", "is ... worth it", "should I go into ...") also fit "be a Googler" and "is Acmeworks worth it". A
-// capitalized word in the question is a company (or a person) unless it is a place or a service branch: "become a nurse in
-// Texas", "an electrician in California", "after the Army" stay open questions, and licensed fields need the state. A company
-// keeps the question with code (company file or the library) instead of researching it as a field.
-const PLACES = new Set(("alabama alaska arizona arkansas california colorado connecticut delaware florida georgia hawaii idaho illinois indiana iowa kansas kentucky louisiana maine maryland massachusetts michigan minnesota mississippi missouri montana nebraska nevada new hampshire jersey mexico york carolina dakota ohio oklahoma oregon pennsylvania rhode island tennessee texas utah vermont virginia washington west wisconsin wyoming columbia " +
-  "atlanta austin boston chicago dallas denver detroit houston miami nashville orlando philadelphia phoenix pittsburgh portland sacramento seattle tampa angeles francisco diego jose vegas orleans city louis paul antonio los san las santa baltimore charlotte columbus cleveland minneapolis brooklyn manhattan queens bronx " +
-  "canada ontario toronto vancouver montreal quebec britain england scotland wales ireland london india australia germany france spain italy china japan korea singapore nigeria brazil netherlands europe asia africa america american canadian british indian united states " +
-  "army navy marines marine force guard coast air space military").split(/\s+/));
-const NAMED = /\b[A-Z][a-z]{2,}|\b[A-Z][a-z]+[A-Z]\w*/g;
+// The broad shapes ("be a ...", "is ... worth it", "should I go into ...") also fit "be a Googler" and "work at Stripe". A
+// capitalized name is a COMPANY only when (a) it is a known employer or brand, or (b) it follows at/for/with/from and is not a
+// place, school or service branch. Everything else (a state, a city we never listed, "nurse in Wichita Falls", "nursing at Ohio
+// State", "pharmacist in Puerto Rico") stays an open question: when we cannot tell, the brain takes it, and the research tool and
+// the source guard make that safe (no company fact comes from the model). The router still claims real company asks first.
+const words = (s: string) => new Set(s.toLowerCase().split(/\s+/).filter(Boolean));
+const KNOWN_COMPANIES = words(("google alphabet amazon apple microsoft meta facebook instagram whatsapp netflix tesla spacex nvidia intel amd qualcomm broadcom cisco ibm oracle sap salesforce adobe intuit uber lyft doordash instacart airbnb stripe square block paypal venmo coinbase robinhood plaid ramp brex palantir snowflake databricks datadog mongodb openai anthropic deepmind spotify twitter linkedin snap snapchat pinterest reddit tiktok bytedance dropbox slack zoom shopify twilio cloudflare atlassian github gitlab figma notion canva asana okta splunk vmware dell hp lenovo samsung sony ibm " +
+  "goldman sachs morgan stanley jpmorgan chase citi citigroup citibank wells fargo barclays deutsche ubs lazard evercore moelis centerview blackstone kkr carlyle apollo citadel jane street blackrock vanguard fidelity schwab visa mastercard amex capital one mckinsey bain bcg deloitte pwc kpmg accenture capgemini booz allen oliver wyman kearney guidehouse " +
+  "lockheed boeing raytheon northrop grumman spacex airbus ford toyota honda gm chevrolet bmw volkswagen walmart target costco kroger walgreens cvs home depot lowes nike adidas starbucks mcdonalds disney comcast verizon att tmobile " +
+  "unitedhealth kaiser mayo hca cigna aetna humana pfizer moderna merck johnson abbvie genentech exxon chevron shell bp conocophillips ge honeywell caterpillar deere fedex ups usps " +
+  "googler googlers amazonian amazonians microsoftie facebooker stripe stripes metamate").replace(/ (?=\w)/g, " "));
+const SCHOOL_WORD = /^(?:university|college|institute|academy|school|state|tech|polytechnic|seminary|conservatory|cc)$/i;
+const PLACE_WORDS = words(("alabama alaska arizona arkansas california colorado connecticut delaware florida georgia hawaii idaho illinois indiana iowa kansas kentucky louisiana maine maryland massachusetts michigan minnesota mississippi missouri montana nebraska nevada hampshire jersey mexico york carolina dakota ohio oklahoma oregon pennsylvania rhode island tennessee texas utah vermont virginia washington wisconsin wyoming columbia puerto rico guam " +
+  "canada ontario toronto vancouver montreal quebec alberta britain england scotland wales ireland london india australia germany france spain italy china japan korea singapore nigeria brazil netherlands europe asia africa america american canadian british indian united states kingdom emirates zealand philippines pakistan kenya ghana israel turkey poland sweden norway denmark finland switzerland " +
+  "atlanta austin boston chicago dallas denver detroit houston miami nashville orlando philadelphia phoenix pittsburgh portland sacramento seattle tampa angeles francisco diego jose vegas orleans louis paul antonio baltimore charlotte columbus cleveland minneapolis brooklyn manhattan queens bronx fresno wichita falls tucson omaha raleigh richmond memphis louisville milwaukee albuquerque oakland tulsa honolulu anchorage boise spokane tacoma madison buffalo rochester albany syracuse cincinnati indianapolis kansas lincoln lexington savannah charleston jacksonville tallahassee birmingham mobile jackson shreveport lubbock amarillo laredo reno provo salt lake cheyenne billings fargo sioux bismarck duluth akron toledo dayton scranton harrisburg hartford providence newark trenton stamford bridgeport worcester springfield manchester burlington bangor " +
+  "army navy marines marine force guard coast air space military").replace(/\s+/g, " "));
+const CAP_SEQ = /\b[A-Z][a-z]+[A-Z]?\w*(?:\s+(?:of\s+)?[A-Z][a-z]+\w*)*/g;
+// A place, a school or a service branch ("Ohio State", "Puerto Rico", "University of Texas"), never a known employer.
+export function placeOrSchool(name: string): boolean {
+  const toks = name.split(/\s+/).filter((t) => t && t.toLowerCase() !== "of");
+  const lower = toks.map((t) => t.toLowerCase());
+  if (lower.some((t) => KNOWN_COMPANIES.has(t))) return false;
+  return lower.some((t) => PLACE_WORDS.has(t)) || toks.some((t) => SCHOOL_WORD.test(t)) || /\bof\b/i.test(name);
+}
 export function namesSomeone(span: string): boolean {
-  const words = span.replace(/^\S+\s*/, "").match(NAMED) ?? [];
-  return words.some((w) => !PLACES.has(w.toLowerCase()));
+  const rest = span.replace(/^\S+\s*/, "");
+  for (const m of rest.matchAll(CAP_SEQ)) {
+    const seq = m[0], toks = seq.split(/\s+/).filter((t) => t !== "of");
+    if (toks.every((t) => t.length < 3)) continue;
+    const lower = toks.map((t) => t.toLowerCase());
+    const stem = (t: string) => t.replace(/(?:ers|er|s)$/, "");
+    if (lower.some((t) => KNOWN_COMPANIES.has(t) || KNOWN_COMPANIES.has(stem(t)))) return true;
+    const before = rest.slice(0, m.index).trimEnd().split(/\s+/).pop()?.toLowerCase() ?? "";
+    const afterPrep = /^(?:at|for|with|from)$/.test(before);
+    if (afterPrep && !placeOrSchool(seq)) return true;
+  }
+  return false;
 }
 const OPEN_ENTRY = { test: (m: string) => OPEN_ENTRY_RES.some((r) => { const x = r.exec(m); return !!x && !namesSomeone(m.slice(x.index).split(/[?.!]/)[0]); }) };
 const OPEN_ENTRY_KINDS = new Set(["role_kb_stats", "role_kb_absent", "plan_paths"]);
@@ -142,7 +167,8 @@ export function openCareerQuestion(env: Env, message: string, intent: string, re
   // The router sometimes reads "at home" or "at night" as a company ("home has no company file yet"). A company the person never
   // capitalized and that is an everyday word is not one: the question is still open.
   const co = typeof r.company === "string" ? r.company : null;
-  const spurious = !!co && co === co.toLowerCase() && /^[a-z]{2,12}$/.test(co) && !new RegExp(`\\b${co[0].toUpperCase()}${co.slice(1)}`).test(message) && String(r.payload?.kind ?? "") === "company_file_absent";
+  const spurious = !!co && String(r.payload?.kind ?? "") === "company_file_absent" && (
+    (co === co.toLowerCase() && /^[a-z]{2,12}$/.test(co) && !new RegExp(`\\b${co[0].toUpperCase()}${co.slice(1)}`).test(message)) || placeOrSchool(co));
   if ((has(r, "company") && !spurious) || has(r, "comparison") || has(r, "offer")) return false;
   if (GENERIC_MISS || spurious) return true;
   return OPEN_ENTRY_KINDS.has(String(r.payload?.kind ?? r.artifact?.kind ?? ""));

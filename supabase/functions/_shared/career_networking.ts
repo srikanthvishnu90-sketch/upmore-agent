@@ -148,7 +148,7 @@ async function heldWhy(r: ContactRow, contacted: Set<string>, dnc: Set<string>, 
   return null;
 }
 const recipientOf = (r: ContactRow): Recipient => ({ name: r.name, firm: r.firm, title: r.title, school: r.school, email: r.email!, source: r.row ? `${r.file}, row ${r.row}` : r.file,
-  ...(r.address ? { address: r.address } : {}) });
+  ...(r.address ? { address: r.address } : {}), ...(r.facts?.length ? { facts: r.facts } : {}) });
 
 // FAMILY NETWORKING: an address the person typed for the person they named ("email Maya Chen at Stripe about a coffee
 // chat, her email is maya@stripe.com"): taken out of the ask, and kept as their own contact row (never guessed, never
@@ -564,7 +564,8 @@ async function writeBatch(o: NetworkingDeps, pick: ContactRow[], held: { name: s
   const failed: { name: string; why: string }[] = [];
   for (const [k, d] of results.entries()) {
     if (!d.ok) { failed.push({ name: pick[k].name, why: d.why === "unverified" ? `I couldn't write it without saying something not on record (${d.detail.slice(0, 2).join("; ")})` : d.why === "model" ? "the writing model didn't answer" : d.detail.join("; ") }); continue; }
-    const draft = { n: ok.length + 1, recipient: recipientOf(pick[k]), subject: d.subject, body: d.body, footer, shared: d.shared, status: "shown" as const, hash: "",
+    // PERSONALIZED OUTREACH: what made it personal rides on the stored recipient and is shown on the card.
+    const draft = { n: ok.length + 1, recipient: { ...recipientOf(pick[k]), ...(d.personal ? { personal: d.personal } : {}) }, subject: d.subject, body: d.body, footer, shared: d.shared, status: "shown" as const, hash: "",
       approved_hash: null, approved_at: null, sent_at: null, gmail_id: null, gmail_thread: null, result: null, created_at: new Date(o.now).toISOString() };
     draft.hash = await payloadHash(messageOf(draft));
     ok.push(draft);

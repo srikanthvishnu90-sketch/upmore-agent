@@ -812,13 +812,13 @@ export function careerTools(deps: {
         const blocked = await blockedAddresses(o.store, c.userId, pick.map((r) => r.email!));
         if (blocked.size) for (let k = pick.length - 1; k >= 0; k--) if (blocked.has(pick[k].email!.toLowerCase())) { held.do_not_contact++; pick.splice(k, 1); }
         if (!pick.length) return { drafted: 0, held_out: held, note: "No one on their list fits; say why from held_out." };
-        const recipientOf = (r: typeof rows[number]) => ({ name: r.name, firm: r.firm, title: r.title, school: r.school, email: r.email!, source: `${r.file}, row ${r.row}` });
+        const recipientOf = (r: typeof rows[number]) => ({ name: r.name, firm: r.firm, title: r.title, school: r.school, email: r.email!, source: `${r.file}, row ${r.row}`, ...(r.facts?.length ? { facts: r.facts } : {}) });
         const results: Awaited<ReturnType<typeof draftFor>>[] = [];
         for (let k = 0; k < pick.length; k += 5) results.push(...await Promise.all(pick.slice(k, k + 5).map((r) => draftFor({ model: o.model!, facts, r: recipientOf(r), lang: draftLangOf(c.turn?.message ?? "") }))));
         const footer = footerOf(prefs.signature), ok: Omit<OutreachDraft, "id" | "batch_id" | "thread_id">[] = [], notDrafted: { name: string; why: string }[] = [];
         for (const [k, d] of results.entries()) {
           if (!d.ok) { notDrafted.push({ name: pick[k].name, why: `${d.why}: ${d.detail.slice(0, 3).join("; ")}` }); continue; }
-          const draft = { n: ok.length + 1, recipient: recipientOf(pick[k]), subject: d.subject, body: d.body, footer, shared: d.shared, status: "shown" as const, hash: "",
+          const draft = { n: ok.length + 1, recipient: { ...recipientOf(pick[k]), ...(d.personal ? { personal: d.personal } : {}) }, subject: d.subject, body: d.body, footer, shared: d.shared, status: "shown" as const, hash: "",
             approved_hash: null, approved_at: null, sent_at: null, gmail_id: null, gmail_thread: null, result: null, created_at: new Date(c.now).toISOString() };
           draft.hash = await payloadHash(messageOf(draft));
           ok.push(draft);

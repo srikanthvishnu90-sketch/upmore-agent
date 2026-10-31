@@ -24,9 +24,16 @@ import { approvalWords } from "./approval_words.ts";
 import { secretIn } from "./agent/reply_guards.ts";
 import { redactIdentity } from "./identity_redact.ts";
 import { langOf } from "./career_mail_langs.ts";
+import { type PersonalMeta, type PersonalOpts, personalDraft, personalLine, type RecipientFact } from "./career_outreach_personalize.ts";
 
 export type ModelFn = (payload: any) => Promise<any>;
-export interface Recipient { name: string; firm: string; title: string; school: string; email: string; source: string; prior_firms?: string[]; address?: "published" | "inferred" }
+export interface Recipient {
+  name: string; firm: string; title: string; school: string; email: string; source: string; prior_firms?: string[]; address?: "published" | "inferred";
+  // PERSONALIZED OUTREACH (2026-10-31): sourced facts about this recipient (career_outreach_personalize.ts RecipientFact:
+  // each with source_kind + retrieved_at), and, on a stored draft, what made it personal (shown on the card). Both ride in
+  // the draft's recipient jsonb, so no migration.
+  facts?: RecipientFact[]; personal?: PersonalMeta;
+}
 export type Status = "shown" | "approved" | "skipped" | "sending" | "sent" | "failed" | "bounced" | "replied";
 export interface OutreachDraft {
   id: string; batch_id: string; thread_id: string | null; n: number;
@@ -206,7 +213,8 @@ const SECOND = new RegExp(`\\b(?:you|you're|you’re|you are|you've|you’ve|you
 
 // `topic` (F10): what the person asked to write about, in their own words this turn ("the data analyst role"). Its words
 // may be named, but it is never a source for a claim about either side: "I ... at X" still needs X in the facts.
-export interface LockSources { facts: string[]; recipient: Recipient; shared: Shared[]; topic?: string; lang?: DraftLang | null }
+// recipientFacts (PERSONALIZED OUTREACH): the sourced facts of the recipient's brief, read as their row.
+export interface LockSources { facts: string[]; recipient: Recipient; shared: Shared[]; topic?: string; lang?: DraftLang | null; recipientFacts?: string[] }
 // NETWORKING R2 (2026-10-30): a draft in the language the person writes in (Spanish, French, German, Italian, Portuguese,
 // Dutch: the languages Trainee reads mail in, career_mail_langs.ts). Before, the writer was never told the language and
 // the lock knew only English: every honest draft in another language was refused ("Hola", "Ich", "Sie", "15 minutos" read
@@ -273,7 +281,7 @@ const DOES_FILLER = new Set(["team", "group", "desk", "teams", "groups", "there"
 export function outreachLock(text: string, s: LockSources): Lock {
   const r = s.recipient;
   const personCorpus = s.facts.join(" \n ");
-  const rowCorpus = [r.name, r.firm, r.title, r.school, ...(r.prior_firms ?? [])].join(" \n ");
+  const rowCorpus = [r.name, r.firm, r.title, r.school, ...(r.prior_firms ?? []), ...(s.recipientFacts ?? [])].join(" \n ");
   const sharedCorpus = s.shared.map((x) => x.value).join(" \n ");
   const all = [personCorpus, rowCorpus, sharedCorpus, s.topic ?? ""].join(" \n ");
   const inAny = (e: string) => hasWords(all, e) || sameFirmIn(all, e);
@@ -421,8 +429,15 @@ function parseDraft(msg: any): { subject: string; body: string; cut: boolean } {
   const body = (m ? m[2] : text).trim();
   return { subject, body, cut: msg?.stop_reason === "max_tokens" || !/[.!?)"”]$/.test(body) };
 }
-export type Drafted = { ok: true; subject: string; body: string; shared: Shared[]; tries: number } | { ok: false; why: string; detail: string[]; tries: number };
-export async function draftFor(o: { model: ModelFn; facts: unknown[]; r: Recipient; previous?: string | null; topic?: string | null; lang?: DraftLang | null }): Promise<Drafted> {
+export type Drafted = { ok: true; subject: string; body: string; shared: Shared[]; tries: number; personal?: PersonalMeta } | { ok: false; why: string; detail: string[]; tries: number };
+// PERSONALIZED OUTREACH (2026-10-31): a recipient with sourced facts (r.facts), or a caller asking for it (personal), is
+// written by the personalization engine: the field's playbook, the overlap, one sized ask, and the quality gate that
+// rejects a generic draft (career_outreach_personalize.ts).
+export async function draftFor(o: { model: ModelFn; facts: unknown[]; r: Recipient; previous?: string | null; topic?: string | null; lang?: DraftLang | null; personal?: PersonalOpts }): Promise<Drafted> {
+  if (o.personal || o.r.facts?.length) {
+    const { facts: _f, personal: _p, ...r } = o.r;
+    return personalDraft({ model: o.model, facts: o.facts, r: r as Recipient, previous: o.previous, topic: o.topic, lang: o.lang, recipientFacts: o.r.facts, ...(o.personal ?? {}) });
+  }
   const facts = confirmed(o.facts);
   if (!facts.length) return { ok: false, why: "thin", detail: ["no confirmed facts to write from"], tries: 0 };
   const shared = sharedFacts(facts, o.r);
@@ -458,7 +473,8 @@ export function draftText(d: OutreachDraft): string {
   // An address web discovery found is labeled on the card (owner rule, 2026-10-27: "the card labels each address").
   const label = d.recipient.address === "inferred" ? " (inferred address: guessed from the company's email format, never published; it may bounce)"
     : d.recipient.address === "published" ? " (published address)" : "";
-  return `${d.n}. To: ${who(d.recipient)} <${m.to}>${label}\nFrom your list: ${d.recipient.source}\n${common}Subject: ${m.subject}\n\n${m.text}`;
+  const personal = d.recipient.personal ? `${personalLine(d.recipient.personal)}\n` : "";
+  return `${d.n}. To: ${who(d.recipient)} <${m.to}>${label}\nFrom your list: ${d.recipient.source}\n${common}${personal}Subject: ${m.subject}\n\n${m.text}`;
 }
 export const BATCH_FOOT = `Reply "send all", "send 1-7,9" for some, "redo 3" for a new version, "skip 4" to drop one, "edit 3: your words" to change one, or "send none".`;
 // The batch, split on purpose into messages of at most 1,500 characters; a draft is never cut across two.

@@ -7,7 +7,7 @@
 // lettermark; posting text is untrusted and always escaped (bidi overrides and isolates removed, links only http and https).
 import type { JobView } from "./telegram_jobs.ts";
 
-export type Word = "queued" | "preparing" | "sending" | "submitted" | "confirmed" | "failed" | "not submitted" | "needs you" | "unknown";
+export type Word = "queued" | "preparing" | "sending" | "submitted" | "confirmed" | "failed" | "not submitted" | "needs you" | "unknown" | "in applications";
 export interface Status { word: Word; detail: string }
 export interface AppRow {
   id: string; state: string; reason: string | null; confirmation_id: string | null; created_at: string; updated_at: string;
@@ -105,7 +105,7 @@ ul.rows{list-style:none;margin:0;padding:0}
 .act{flex:none;margin:0}
 .apply{display:inline-flex;align-items:center;justify-content:center;min-width:96px;min-height:48px;padding:6px 20px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;text-decoration:none;cursor:pointer}.apply:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 .chip{flex:none;min-height:48px;display:inline-flex;align-items:center;justify-content:flex-end;font-weight:600;color:var(--mute)}
-.chip.queued,.chip.sending,.chip.submitted,.chip.confirmed{color:var(--good)}.chip.failed,.chip.not-submitted,.chip.unknown{color:var(--bad)}.chip.needs-you{color:var(--warn)}
+.chip.queued,.chip.in-applications,.chip.sending,.chip.submitted,.chip.confirmed{color:var(--good)}.chip.failed,.chip.not-submitted,.chip.unknown{color:var(--bad)}.chip.needs-you{color:var(--warn)}
 details{margin:4px 0 0 58px}summary{list-style:none;cursor:pointer;min-height:44px;padding:4px 0}
 summary::-webkit-details-marker{display:none}
 .role{display:block;font-weight:500;overflow-wrap:anywhere}.desc{overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--mute);font-size:16px}

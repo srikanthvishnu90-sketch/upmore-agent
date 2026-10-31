@@ -548,6 +548,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
               const res = await queueApprovedOutreach({ rpc: (name, args) => admin.rpc(name, args), drafts: (uu, ids) => outreachStore.drafts!(uu, ids) }, u, items);
               const refused = res.filter((r) => r.status === "refused");
               if (refused.length) console.error("send rail: approved drafts not queued:", refused.map((r) => r.reason).join(", "));
+              return refused.map((r) => ({ draftId: r.sourceId, reason: String(r.reason ?? "") }));
             } } : {}) })
           .catch((e) => { console.error("outreach turn:", e?.message ?? e); return null; })
         : null;

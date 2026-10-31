@@ -265,6 +265,11 @@ export interface Lock { pass: boolean; untraced: string[]; misattributed: string
 const sentencesOf = (t: string) => t.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
 const trimEntity = (e: string) => e.replace(/^(?:the|of|and|&)\s+/i, "").replace(/\s+(?:of|the|and|&)$/i, "").replace(/['’]s$/, "").replace(/[.]+$/, "").trim();
 
+// OUTREACH R3 (D-007): titles written in lower case, events in someone's career, and what they lead or run.
+const RECIPIENT_TITLE = /(?<![\p{L}-])(partner|principal|founder|co-?founder|owner|chair(?:man|woman|person)?|president|recruiter|professor|dean)s?(?![\p{L}-])/giu;
+const RECIPIENT_EVENT = /\b(?:congrat\w*|congratulations)\s+on\s+(?:your|the)\s+(?:new\s+|recent\s+)?(promotion|appointment|new role|role|position|move|raise|funding round|award|book|launch)\b|\byour\s+(?:recent\s+)?(promotion|appointment|new role|new position|move to|move from)\b|\byou\s+(?:were|got|just got|recently got)\s+(promoted|appointed|hired)\b/giu;
+const RECIPIENT_DOES = /\byou(?:'re| are)?\s+(?:now\s+)?(lead|leading|run|running|manage|managing|head|heading|oversee|overseeing|built|founded|co-?founded|started)\s+([^.,;!?\n]{1,60})/giu;
+const DOES_FILLER = new Set(["team", "group", "desk", "teams", "groups", "there", "firm", "company", "office", "work", "now", "currently", "whole", "entire"]);
 export function outreachLock(text: string, s: LockSources): Lock {
   const r = s.recipient;
   const personCorpus = s.facts.join(" \n ");
@@ -342,6 +347,26 @@ export function outreachLock(text: string, s: LockSources): Lock {
       const e = trimEntity(m[m.length - 1] ?? "");
       if (e && !GENERIC_CAPS.has(e) && !(hasWords(rowCorpus, e) || sameFirmIn(rowCorpus, e))) wrong(`"${m[0].trim()}" says this about them, but ${e} is not on their row`);
     }
+  }
+  // OUTREACH R3 (2026-10-31, D-007): what the email says about the recipient that no capital letter gives away. "Congrats
+  // on your promotion to partner", "You lead the healthcare coverage group" passed: a title in lower case, an event and a
+  // team are claims, and none of them was on the row. A title word must be on the row (or in the person's facts); a
+  // promotion, appointment, new role or recent move must be in what the draft was given; "you lead / run / manage / built
+  // X" must name only what is on their row.
+  const lowText = text.replace(/[’]/g, "'");
+  for (const m of lowText.matchAll(RECIPIENT_TITLE)) {
+    if (/^\p{Lu}/u.test(m[0])) continue; // capitalized: a name ("Blue Harbor Partners"), traced in 1 above
+    const w = m[1].toLowerCase();
+    if (!hasWords(rowCorpus, w) && !hasWords(personCorpus, w) && !hasWords(s.topic ?? "", w)) wrong(`"${m[0].trim()}" gives them a title (${w}) that is not on their row`);
+  }
+  for (const m of lowText.matchAll(RECIPIENT_EVENT)) {
+    const w = String(m[1] ?? m[2] ?? m[3]).toLowerCase().replace(/\s+/g, " ");
+    if (!hasWords(all, w)) wrong(`"${m[0].trim()}" says something happened to them (${w}) that nothing on record says`);
+  }
+  for (const sent of sentencesOf(lowText)) for (const m of sent.matchAll(RECIPIENT_DOES)) {
+    const words = plain(m[2]).split(" ").filter((x) => x.length > 2 && !COMMON.has(x) && !DOES_FILLER.has(x));
+    const off = words.filter((x) => !hasWords(rowCorpus, x) && !hasWords(s.topic ?? "", x));
+    if (off.length) wrong(`"${m[0].trim()}" says what they do (${off.join(", ")}), but that is not on their row`);
   }
   // 3. Anything claimed in common must be on both sides: every name in the clause that says so.
   for (const sent of sentencesOf(text).flatMap((x) => x.split(/[,;:]\s+|\s+(?:but|while|and so)\s+/))) {
@@ -595,7 +620,9 @@ export async function outreachTurn(o: {
   // against (career_outreach_drafts.approved_hash). The Gmail sending rail (queueApprovedOutreach, built separately)
   // plugs in here. A failure is logged and changes nothing that was approved: the scheduled send run re-checks every
   // draft's hash at claim (admitSend "changed").
-  onApproved?: (userId: string, items: ApprovedItem[]) => Promise<void>;
+  // OUTREACH R3 (2026-10-31): the hand-off may answer which approved drafts the rail would not take ({draftId, reason}:
+  // opted_out, bad_address, already_emailed ...); the reply says so instead of promising they go.
+  onApproved?: (userId: string, items: ApprovedItem[]) => Promise<void | { draftId: string; reason: string }[]>;
 }): Promise<{ reply: string; status: string; intent: string; parts?: string[]; approved?: ApprovedItem[] } | null> {
   // A batch yes (D-MN-2) counts only while the batch is the thread's last word: the check just below, as for "send all".
   const r: OutreachReply | null = parseOutreachReply(o.message) ?? parseBatchYes(o.message);
@@ -695,13 +722,17 @@ export async function outreachTurn(o: {
     } else not.push(`${n} (changed since it was shown)`);
   }
   const items: ApprovedItem[] = approved.map((d) => ({ draftId: d.id, approvalHash: d.hash, n: d.n, batchId: d.batch_id, to: d.recipient.email }));
-  if (items.length && o.onApproved) await o.onApproved(o.userId, items).catch((e) => console.error("outreach: hand-off of approved drafts:", e instanceof Error ? e.message : e));
+  const notTaken = items.length && o.onApproved ? (await o.onApproved(o.userId, items).catch((e) => { console.error("outreach: hand-off of approved drafts:", e instanceof Error ? e.message : e); })) || [] : [];
   const left = numbers.filter((n) => !want.includes(n) && byN.get(n)!.status === "shown");
   const prefs = await o.store.prefs(o.userId).catch(() => ({ daily_cap: null, signature: null }));
   const lines = [approved.length ? `Approved ${approved.length}, exactly as shown: ${listOf(approved)}.` : "Nothing new was approved."];
   if (not.length) lines.push(`Not approved: ${not.join(", ")}.`);
+  // OUTREACH R3: an approved draft the sending rail refused for good is never said to be going (the database marks the
+  // draft skipped with that reason, 20261031020000 career_send_enqueue).
+  const wont = notTaken.map((x) => ({ d: approved.find((a) => a.id === x.draftId), why: RAIL_REFUSED[x.reason] })).filter((x) => x.d && x.why);
+  if (wont.length) lines.push(`Won't be sent: ${wont.map((x) => `${x.d!.n} (${x.d!.recipient.name}: ${x.why})`).join(", ")}.`);
   if (left.length) lines.push(`Not sent: ${left.join(", ")}.`);
-  if (approved.length) {
+  if (approved.length > wont.length) {
     const connected = o.gmailConnected ? await o.gmailConnected().catch(() => false) : false;
     // NO LIMITS: no pacing or daily number of Trainee's own is promised; only Gmail's own refusal slows sending.
     if (connected) lines.push(`They go from your Gmail. If Gmail asks to slow down, the rest wait and go on when it allows, and I'll tell you. ${LAPSE_NOTE}`);
@@ -711,6 +742,11 @@ export async function outreachTurn(o: {
   }
   return { reply: lines.join(" ").replace(/ \n\n/, "\n\n"), status: approved.length ? "approved" : "none_approved", intent: left.length ? OUTREACH_INTENT : "career_outreach_answer", ...(items.length ? { approved: items } : {}) };
 }
+// Why the sending rail refused an approved draft for good, in the person's words (the reasons career_send_enqueue gives).
+export const RAIL_REFUSED: Record<string, string> = {
+  opted_out: "they asked not to be contacted", bad_address: "that address bounced before, so no one emails it again",
+  already_emailed: "you already emailed them; Trainee never sends a second first email to the same person",
+};
 // One draft an answer approved: what the sending rail needs to queue it (D-MN-2: each bound to its own hash).
 export interface ApprovedItem { draftId: string; approvalHash: string; n: number; batchId: string; to: string }
 // The person's drafts approved and not yet sent, each with the hash it was approved against: the read the sending rail

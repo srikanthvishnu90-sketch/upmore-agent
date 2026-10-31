@@ -18,7 +18,7 @@ const norm = (s: unknown) => String(s ?? "").toLowerCase().replace(/[‘’]/g, 
 // ------------------------------------------------------------------------------------------------ level
 export const INTERN_RE = /\b(?:interns?|internships?|co-?ops?|co op)\b/;
 const NEWGRAD_RE = /\b(?:new[- ]?grads?|new graduates?|recent graduates?|entry[- ]level|early[- ]career|university graduates?|graduate (?:program|scheme|engineer|developer|analyst)|campus hires?|junior|associate)\b/;
-const SENIOR_RE = /\b(?:senior|sr\.?|staff|principal|lead|director|vp|vice president|head of|chief|manager|architect|distinguished|fellow)\b/;
+const SENIOR_RE = /\b(?:senior|sr\.?|staff|principal|lead|director|vp|vice president|head of|chief|distinguished|fellow)\b/;
 const LEVEL_QUERY: [Level, RegExp][] = [["intern", /\b(?:interns?|internships?|co-?ops?|co op)\b/], ["new_grad", /\b(?:new[- ]?grads?|new graduates?|recent graduates?|entry[- ]level|early[- ]career|graduate roles?|campus)\b/]];
 // The level a posting is: its own seniority band when the store set one, else read from its title.
 export function postingLevel(p: { title?: string; seniority_band?: string | null }): Level | "senior" | "other" {
@@ -27,7 +27,7 @@ export function postingLevel(p: { title?: string; seniority_band?: string | null
   if (SENIOR_RE.test(t) && !/\bintern/.test(t)) return "senior";
   if (band === "intern") return "intern";
   if (NEWGRAD_RE.test(t) || band === "new_grad" || band === "junior") return "new_grad";
-  if (band === "senior" || band === "staff" || band === "director" || band === "manager") return "senior";
+  if (band === "senior" || band === "staff" || band === "director") return "senior";
   return "other";
 }
 
@@ -38,15 +38,17 @@ const P = (key: string, label: string, re: RegExp): Place => ({ key, label, re }
 export const PLACES: Place[] = [
   P("chicago", "Chicago", /\bchicago(?:land)?\b/), P("new york", "New York", /\bnew york(?: city)?\b|\bnyc\b|\bmanhattan\b|\bbrooklyn\b|\bqueens\b/),
   P("san francisco", "San Francisco", /\bsan francisco\b|\bsf\b|\bsouth san francisco\b/), P("bay area", "Bay Area", /\bbay area\b|\bsan francisco\b|\bsan jose\b|\bpalo alto\b|\bmountain view\b|\bsunnyvale\b|\bmenlo park\b|\bredwood city\b|\bsanta clara\b|\boakland\b|\bcupertino\b|\bsan mateo\b/),
-  P("los angeles", "Los Angeles", /\blos angeles\b|\bla,|\bsanta monica\b|\bculver city\b|\bpasadena\b|\bel segundo\b/), P("seattle", "Seattle", /\bseattle\b|\bbellevue\b|\bredmond\b/),
+  P("los angeles", "Los Angeles", /\blos angeles\b|\bla, ?ca\b|\bsanta monica\b|\bculver city\b|\bpasadena\b|\bel segundo\b/), P("seattle", "Seattle", /\bseattle\b|\bbellevue\b|\bredmond\b/),
   P("boston", "Boston", /\bboston\b|\bcambridge, ma\b|\bwaltham\b/), P("austin", "Austin", /\baustin\b/), P("dallas", "Dallas", /\bdallas\b|\bplano\b|\birving\b|\bfrisco\b/),
   P("houston", "Houston", /\bhouston\b/), P("atlanta", "Atlanta", /\batlanta\b/), P("denver", "Denver", /\bdenver\b|\bboulder\b/), P("washington dc", "Washington, DC", /\bwashington,? d\.?c\b|\barlington, va\b|\breston\b|\bmclean\b/),
   P("philadelphia", "Philadelphia", /\bphiladelphia\b|\bphilly\b/), P("miami", "Miami", /\bmiami\b/), P("san diego", "San Diego", /\bsan diego\b/), P("minneapolis", "Minneapolis", /\bminneapolis\b|\bst\.? paul\b/),
   P("detroit", "Detroit", /\bdetroit\b|\bann arbor\b/), P("pittsburgh", "Pittsburgh", /\bpittsburgh\b/), P("raleigh", "Raleigh", /\braleigh\b|\bdurham\b|\bcary\b|\bchapel hill\b/), P("phoenix", "Phoenix", /\bphoenix\b|\btempe\b|\bscottsdale\b/),
-  P("salt lake city", "Salt Lake City", /\bsalt lake\b|\blehi\b|\bsandy, ut\b/), P("portland", "Portland", /\bportland\b/), P("nashville", "Nashville", /\bnashville\b/), P("charlotte", "Charlotte", /\bcharlotte\b/),
+  P("salt lake city", "Salt Lake City", /\bsalt lake\b|\blehi\b|\bsandy, ut\b/), P("portland maine", "Portland, Maine", /\bportland,? (?:me|maine)\b/), P("portland", "Portland, Oregon", /\bportland\b(?!,? (?:me|maine)\b)/), P("nashville", "Nashville", /\bnashville\b/), P("charlotte", "Charlotte", /\bcharlotte\b/),
   P("toronto", "Toronto", /\btoronto\b/), P("london", "London", /\blondon\b/),
 ];
-const PLACE_QUERY: [Place, RegExp][] = PLACES.map((pl) => [pl, new RegExp(`\\b${pl.key.replace(/ /g, "[ ]")}\\b${pl.key === "new york" ? "|\\bnyc\\b" : pl.key === "san francisco" ? "|\\bsf\\b" : pl.key === "los angeles" ? "|\\bla\\b" : pl.key === "washington dc" ? "|\\bwashington,? d\\.?c\\b|\\bdc\\b" : pl.key === "philadelphia" ? "|\\bphilly\\b" : ""}`)]);
+// The words that ask for a city. A bare "la" or "dc" is not one (Spanish article, Louisiana); "portland" is Oregon unless Maine is said.
+const PLACE_ASK: Record<string, string> = { "new york": "|\\bnyc\\b", "san francisco": "|\\bsf\\b", "philadelphia": "|\\bphilly\\b", "washington dc": "|\\bwashington,? d\\.?c\\b", "portland maine": "|\\bportland,? (?:me|maine)\\b" };
+const PLACE_QUERY: [Place, RegExp][] = PLACES.map((pl) => [pl, new RegExp(pl.key === "portland maine" ? PLACE_ASK[pl.key].slice(1) : `\\b${pl.key.replace(/ /g, "[ ]")}\\b${pl.key === "portland" ? "(?!,? (?:me|maine)\\b)" : ""}${PLACE_ASK[pl.key] ?? ""}`)]);
 // No usable place on the posting: it is not placed anywhere, so a place filter cannot say it is elsewhere.
 const UNPLACED = /^(?:|n\/?a|tbd|multiple(?: locations?)?|various(?: locations?)?|several locations|nationwide|anywhere|united states(?: of america)?|usa|us|u\.s\.a?\.?|north america|global|worldwide)$/;
 export function placeFit(location: unknown, places: Place[], remoteOk: boolean): "yes" | "unplaced" | "no" {
@@ -66,13 +68,15 @@ export function termsIn(text: unknown): Term[] {
   for (const m of t.matchAll(TERM_RE)) out.push({ season: m[1] === "autumn" ? "fall" : m[1], year: m[3] ? Number(m[3]) : 2000 + Number(m[2]) });
   return out;
 }
-const SEASON_END_MONTH: Record<string, number> = { spring: 5, summer: 8, fall: 11, winter: 2 }; // 0-based month the season ends (winter: ends Feb of its year)
+const SEASON_END_MONTH: Record<string, number> = { spring: 5, summer: 8, fall: 11, winter: 2 }; // 0-based month the season ends (winter: Feb of the year after its label)
 // A term wholly in the past is not a posting anyone can still join ("Summer 2025 Internship" in October 2026).
 export function termExpired(t: Term, now: number): boolean {
   if (t.year === null) return false;
   const d = new Date(now), y = d.getUTCFullYear();
-  if (t.year < y) return true;
-  if (t.year > y) return false;
+  const endYear = t.year + (t.season === "winter" ? 1 : 0);
+  if (endYear < y) return true;
+  if (endYear > y) return false;
+  // Winter 2026 runs into early 2027, so a winter term is over in Feb of the next year; a year alone, in December.
   const end = t.season ? SEASON_END_MONTH[t.season] : 11;
   return end !== undefined && d.getUTCMonth() > end;
 }
@@ -102,28 +106,65 @@ export function parseSearchQuery(query: unknown): ParsedQuery {
 }
 
 // ------------------------------------------------------------------------------------------------ closed / expired / scam
-const CLOSED = /\b(?:no longer (?:accepting|taking|open|available|active)|(?:position|role|job|posting|requisition|vacancy) (?:has been|is|was)? ?(?:now )?(?:filled|closed|cancel+ed|withdrawn|expired|on hold)|this (?:job|position|role|posting|opportunity) (?:has )?(?:expired|closed|been filled)|applications? (?:for this (?:job|role|position) )?(?:are |is |have )?(?:now |been )?closed|(?:job|posting) (?:is )?no longer (?:available|active)|we (?:have )?(?:stopped|are no longer) (?:accepting|reviewing) applications?|not accepting (?:any more |new )?applications?)\b/;
-export type Status = { open: true } | { open: false; reason: "closed_text" | "expired_term" | "scam" };
+// A posting is closed when it SAYS so as a status: a whole sentence that is only that statement. A partial scope ("no longer
+// available in Germany"), a date or condition ("closed on Friday", "on hold for approvals"), a question or an aside is not
+// the posting's status: it stays open, and the looser wording is flagged (never dropped) so a person or a later read can look.
+const NOUN = "(?:position|role|job|posting|opportunity|vacancy|requisition|listing)";
+const STATUS = new RegExp(`^(?:note:? |update:? |notice:? )?(?:(?:this|the) ${NOUN} (?:has been|is now|is|was) (?:now )?(?:filled|closed|cancel+ed|withdrawn|expired)` +
+  `|(?:this|the) ${NOUN} is no longer (?:available|active|open|accepting applications)` +
+  `|${NOUN} (?:closed|filled)` +
+  `|(?:we are|we're|we have|we've) (?:no longer|stopped) (?:accepting|taking|reviewing) (?:any )?(?:more |new )?applications?(?: for this ${NOUN})?` +
+  `|(?:we are|we're) not (?:currently )?accepting (?:any )?(?:more |new )?applications? (?:for this ${NOUN})?` +
+  `|(?:applications?|applicants?) (?:for this ${NOUN} )?(?:are|is|have been|has been) (?:now )?closed` +
+  `|no longer accepting (?:any )?(?:more |new )?applications?(?: for this ${NOUN})?)$`);
+const LOOSE = /\b(?:no longer (?:accepting|taking|open|available|active)|(?:position|role|job|posting|requisition|vacancy) (?:has been|is|was)? ?(?:now )?(?:filled|closed|cancel+ed|withdrawn|expired|on hold)|applications? (?:are |is |have )?(?:now |been )?closed|not accepting)\b/;
+export type Status = { open: true; flags?: string[] } | { open: false; reason: "closed_text" | "expired_term" | "scam" };
+const sentences = (t: string) => t.split(/(?<=[.!?\n])\s+/).map((x) => x.trim()).filter(Boolean);
+const clauses = (sent: string) => sent.replace(/[.!\s]+$/, "").split(/\s+(?:and|&)\s+|;\s*/);
+function closedStatus(text: string): "closed" | "unclear" | null {
+  let unclear = false;
+  for (const sent of sentences(text)) {
+    if (!LOOSE.test(sent)) continue;
+    const cs = clauses(sent);
+    if (!/[?]/.test(sent) && cs.every((c) => STATUS.test(c.trim())) && cs.some((c) => STATUS.test(c.trim()))) return "closed";
+    unclear = true;
+  }
+  return unclear ? "unclear" : null;
+}
 export function postingStatus(p: { title?: string; description?: string; posted_at?: string | null; apply_email?: string | null }, now: number): Status {
-  const head = norm(`${p.title ?? ""} . ${String(p.description ?? "").slice(0, 1500)}`);
-  if (CLOSED.test(head)) return { open: false, reason: "closed_text" };
+  const head = norm(`${p.title ?? ""}. ${String(p.description ?? "").slice(0, 1500)}`);
+  const c = closedStatus(head);
+  if (c === "closed") return { open: false, reason: "closed_text" };
   const own = termsIn(p.title);
   if (own.length && own.every((t) => termExpired(t, now))) return { open: false, reason: "expired_term" };
-  if (scamSignals(p).length >= 1) return { open: false, reason: "scam" };
-  return { open: true };
+  if (isScam(p)) return { open: false, reason: "scam" };
+  return c === "unclear" ? { open: true, flags: ["closed_wording_unclear"] } : { open: true };
 }
-// A real employer's posting never asks the applicant to pay, to cash a cheque, or to move to a chat app to be hired.
-const SCAM_STRONG: [string, RegExp][] = [
-  ["asks for money", /\b(?:pay|send|wire|deposit)\b[^.]{0,40}\b(?:a |an |the )?(?:registration|training|application|processing|starter kit|equipment|background check|security deposit|onboarding) (?:fee|cost|charge|payment|deposit)s?\b|\b(?:registration|training|application|processing|onboarding) fee (?:is )?required\b/],
-  ["cheque or gift cards", /\b(?:(?:buy|purchase|send|pay (?:with|using|in))\b[^.]{0,30}\bgift cards?|western union|moneygram|cashier'?s? che(?:que|ck)|(?:we|company) will (?:send|mail|deposit) (?:you )?a che(?:que|ck)|purchase (?:your )?own equipment)\b/],
+// A real employer's posting never asks the applicant to pay, to cash a cheque, or to move to a chat app to be hired. But an
+// employer's own warning says exactly those words ("never pay a fee, never buy gift cards"): sentences that warn or negate
+// are not read. One signal drops a posting only when it is an unambiguous request for payment; otherwise two independent ones.
+const WARNS = /\b(?:never|do not|don'?t|does not|doesn'?t|will not|won'?t|not ask|no fee|free of charge|beware|warning|scam|scammers?|fraud(?:ulent)?|phishing|impersonat\w*|be aware|stay safe|report (?:any|suspicious)|if (?:anyone|someone|you are asked|you're asked)|legitimate)\b/;
+const SCAM_ASK = [
+  /\bpay (?:a |an |the )?(?:one[- ]time )?\$\d[\d,]*\s?(?:[a-z-]+ ){0,3}(?:fee|deposit)\b/,
+  /\b(?:you (?:must|will need to|need to|have to)|applicants? (?:must|need to|will need to)) (?:pay|send|wire|deposit)\b[^.]{0,40}\b(?:fee|deposit)\b/,
+  /\b(?:we|company) will (?:send|mail|deposit) (?:you )?a (?:cashier'?s? )?che(?:que|ck)\b[^.]{0,60}\b(?:purchase|buy|equipment|supplies)\b/,
+];
+const SCAM_SIGNALS: [string, RegExp][] = [
+  ["asks for money", /\b(?:pay|send|wire|deposit)\b[^.]{0,40}\b(?:registration|training|application|processing|starter kit|equipment|background check|security deposit|onboarding) (?:fee|cost|charge|payment|deposit)s?\b/],
+  ["cheque or gift cards", /\b(?:(?:buy|purchase|send)\b[^.]{0,30}\bgift cards?|western union|moneygram|cashier'?s? che(?:que|ck)|(?:we|company) will (?:send|mail|deposit) (?:you )?a che(?:que|ck)|purchase (?:your )?own equipment)\b/],
   ["chat-app hiring", /\b(?:contact|message|reach|text|add) (?:us|our (?:hr|recruiter|manager|agent)|the (?:hr|recruiter|manager))[^.]{0,40}\b(?:on |via |through |at )?(?:whatsapp|telegram|signal|wechat|line app)\b|\b(?:interview|hiring) (?:is |will be )?(?:conducted |held )?(?:on|via|through) (?:whatsapp|telegram|signal|google hangouts?)\b/],
   ["guaranteed income", /\b(?:earn|make) \$?\d[\d,]{2,}(?:\s?(?:-|to)\s?\$?\d[\d,]{2,})? (?:per|a|\/) ?(?:day|week)\b[^.]{0,60}\b(?:no experience|work from home|immediately)\b|\bno (?:experience|interview) (?:needed|required|necessary)[^.]{0,60}\b(?:hired|start) (?:immediately|today|same day)\b/],
 ];
+const unwarned = (p: { title?: string; description?: string }) => norm(`${p.title ?? ""}. ${p.description ?? ""}`).split(/(?<=[.!?\n])\s+/).filter((x) => !WARNS.test(x)).join(" ");
 export function scamSignals(p: { title?: string; description?: string; apply_email?: string | null }): string[] {
-  const t = norm(`${p.title ?? ""} . ${p.description ?? ""}`);
-  const out = SCAM_STRONG.filter(([, re]) => re.test(t)).map(([n]) => n);
+  const t = unwarned(p);
+  const out = SCAM_SIGNALS.filter(([, re]) => re.test(t)).map(([n]) => n);
   if (/@(?:gmail|yahoo|outlook|hotmail|aol|proton(?:mail)?)\.[a-z.]+$/.test(norm(p.apply_email)) && /\b(?:payment processing|reship|package forwarding|data entry from home|personal assistant to the ceo)\b/.test(t)) out.push("free-mail recruiter on a payments job");
   return out;
+}
+export function isScam(p: { title?: string; description?: string; apply_email?: string | null }): boolean {
+  const t = unwarned(p);
+  return SCAM_ASK.some((re) => re.test(t)) || scamSignals(p).length >= 2;
 }
 
 // ------------------------------------------------------------------------------------------------ duplicates

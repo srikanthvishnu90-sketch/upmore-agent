@@ -98,7 +98,8 @@ Deno.test("SC/7 status: closed wording, expired term, scam; an ordinary posting 
   eq(postingStatus({ title: "Intern", description: "We are no longer accepting applications for this role." }, NOW), { open: false, reason: "closed_text" });
   eq(postingStatus({ title: "Intern, Summer 2025", description: "" }, NOW), { open: false, reason: "expired_term" });
   eq(postingStatus({ title: "Assistant", description: "Pay a $99 training fee before you start." }, NOW), { open: false, reason: "scam" });
-  eq(postingStatus({ title: "Support", description: "Interview via Telegram. Contact our manager on Telegram." }, NOW), { open: false, reason: "scam" });
+  eq(postingStatus({ title: "Support", description: "Interview via Telegram. Contact our manager on Telegram." }, NOW).open, true, "one soft signal is not enough");
+  eq(postingStatus({ title: "Support", description: "Interview via Telegram. Earn $900 per week, no experience needed. Buy gift cards for clients and send the codes." }, NOW), { open: false, reason: "scam" });
   eq(postingStatus({ title: "Software Engineer", description: "We pay competitive salaries, a relocation bonus and offer a gift card program for referrals and a crypto wallet product to build.", apply_email: null }, NOW).open, true);
   eq(postingStatus({ title: "Barista", description: "Our roles filled quickly last summer, but this one is open. Apply today." }, NOW), { open: true });
   eq(scamSignals({ title: "x", description: "We do background checks at our expense." }), []);
@@ -119,4 +120,39 @@ Deno.test("SC/9 words: an internship query finds an Intern title; plain queries 
   const { dbQuery } = await import("../../supabase/functions/_shared/career_ingest.ts");
   eq(dbQuery(["product", "manager"]), { titled: "product:A & manager:A", rest: "product manager", grouped: false });
   eq(dbQuery(["software", "internship", "summer", "2027"]).titled, "software:A & (intern:A | internship:A | coop:A)");
+});
+
+Deno.test("SC/10 reviewer probes: closed wording that is not a status stays open (flagged, not dropped)", () => {
+  for (const d of ["Position filled quickly? Apply today.", "Applications are closed on Friday for the first round.", "This role is on hold for approvals.", "This role is no longer available in Germany but open in France.", "We have filled several roles and are hiring more."])
+    eq(postingStatus({ title: "Engineer", description: d }, NOW).open, true, d);
+  eq(postingStatus({ title: "Engineer", description: "Applications are closed on Friday for the first round." }, NOW), { open: true, flags: ["closed_wording_unclear"] });
+  eq(postingStatus({ title: "Engineer", description: "We have filled several roles." }, NOW), { open: true });
+  for (const d of ["This position has been filled.", "We are no longer accepting applications.", "Posting closed.", "Thank you. This job is no longer available."])
+    eq(postingStatus({ title: "Engineer", description: d }, NOW), { open: false, reason: "closed_text" }, d);
+});
+
+Deno.test("SC/11 reviewer probes: an employer's own scam warning is not a scam; a plain request for payment is", () => {
+  for (const d of ["Never pay a registration fee or send a cheque to anyone claiming to hire for us.", "We will never ask you to buy gift cards. Beware of scammers: our process is free of charge.", "Do not send money or pay a $50 fee; that is a scam, report it."])
+    eq(postingStatus({ title: "Analyst", description: d + " Join our analytics team." }, NOW).open, true, d);
+  eq(postingStatus({ title: "Analyst", description: "You must pay a registration fee before your first day." }, NOW), { open: false, reason: "scam" });
+  eq(postingStatus({ title: "Analyst", description: "Pay a $120 onboarding fee to begin." }, NOW), { open: false, reason: "scam" });
+});
+
+Deno.test("SC/12 reviewer probes: Portland, bare LA, Winter 2026, managers at new grad", () => {
+  const pdx = parseSearchQuery("software intern portland").places;
+  eq(placeFit("Portland, OR", pdx, false), "yes");
+  eq(placeFit("Portland, ME", pdx, false), "no");
+  const me = parseSearchQuery("software intern portland maine");
+  eq(me.places.map((p) => p.key), ["portland maine"]);
+  eq(placeFit("Portland, Maine", me.places, false), "yes");
+  eq(placeFit("Portland, Oregon", me.places, false), "no");
+  eq(parseSearchQuery("la liga data analyst").places, [], "a bare la is not Los Angeles");
+  eq(parseSearchQuery("analyst los angeles").places.map((p) => p.key), ["los angeles"]);
+  assert(!termExpired({ season: "winter", year: 2026 }, NOW), "Winter 2026 starts later this year");
+  assert(termExpired({ season: "winter", year: 2025 }, NOW));
+  eq(postingStatus({ title: "Software Intern, Winter 2026", description: "" }, NOW), { open: true });
+  eq(postingLevel({ title: "Account Manager" }), "other");
+  eq(postingLevel({ title: "Product Manager", seniority_band: "manager" }), "other");
+  const pool = [{ job_id: "m", provider: "g", board: "x", ats_id: "m", company: "A", title: "Account Manager", location: "Chicago, IL", url: "https://boards.greenhouse.io/x/jobs/1230000", description: "", seniority_band: "manager", first_seen_at: "2026-10-20T00:00:00Z", closed_at: null }];
+  eq(searchPostings(pool, "account manager new grad chicago", null, 5, { now: NOW }).postings.length, 1);
 });

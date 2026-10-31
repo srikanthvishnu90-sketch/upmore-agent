@@ -75,6 +75,7 @@ export interface PostingsDb {
   staleForBoard?(b: Board, beforeIso: string): Promise<string[]>;
 }
 export interface IngestStats {
+  flagged?: number; // kept postings whose wording may say closed without being a status (held, not dropped)
   screened?: Record<string, number>; // postings left out for their own words: closed_text, expired_term, scam
   boards_ok: number; boards_failed: number; boards_partial: number; new: number; seen: number; reopened: number; closed: number;
   boards_not_modified?: number; // WO-037: answered 304 to a conditional request
@@ -196,6 +197,7 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
         // fee / cheque / chat-app scam is not an open job: it is not stored, and one stored before closes below, since a
         // complete read no longer carries it.
         const sv = postingStatus(p, o.now);
+        if (sv.open && sv.flags) st.flagged = (st.flagged ?? 0) + 1; // kept: wording that may mean closed but is not a status
         if (!sv.open) { const sc = (st.screened ??= {}); sc[sv.reason] = (sc[sv.reason] ?? 0) + 1; continue; }
         const v = urlShape(p.url);
         if (v.verdict === "not_posting") {

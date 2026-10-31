@@ -1038,9 +1038,15 @@ const fromRow = (x: any): OutreachDraft => ({ ...x, shared: Array.isArray(x.shar
 export function supabaseOutreachStore(admin: any): OutreachStore {
   const must = (r: any, what: string) => { if (r.error) throw new Error(`${what}: ${r.error.message}`); return r.data; };
   return {
-    async saveBatch(u, threadId, ds, at) {
+    // 2026-10-31 (clock sweep): created_at is the database's own clock at the insert (the column's default), never the
+    // caller's `at`. latestBatch below takes the newest batch by created_at, and that is the batch an answer ("send all",
+    // "send 2") approves. With the caller's time, a batch drafted by a turn or run that started earlier but saved later (its
+    // `at` is its start; drafting takes the model's seconds) read as older than the batch saved and shown before it, so the
+    // answer approved a batch other than the one shown last; two workers' clocks (±2 s) reordered them the same way. As
+    // supabaseRepliesStore.saveActions (PR #341). The 3-day check reads it against the turn's clock: seconds do not matter.
+    async saveBatch(u, threadId, ds, _at) {
       const batch_id = crypto.randomUUID();
-      const rows = ds.map((d) => ({ user_id: u, batch_id, thread_id: threadId, n: d.n, recipient: d.recipient, recipient_email: d.recipient.email.toLowerCase(), subject: d.subject, body: d.body, footer: d.footer, hash: d.hash, status: d.status, shared: d.shared ?? [], created_at: new Date(at).toISOString() }));
+      const rows = ds.map((d) => ({ user_id: u, batch_id, thread_id: threadId, n: d.n, recipient: d.recipient, recipient_email: d.recipient.email.toLowerCase(), subject: d.subject, body: d.body, footer: d.footer, hash: d.hash, status: d.status, shared: d.shared ?? [] }));
       return (must(await admin.from("career_outreach_drafts").insert(rows).select(COLS), "save the drafts") ?? []).map(fromRow);
     },
     async latestBatch(u) {

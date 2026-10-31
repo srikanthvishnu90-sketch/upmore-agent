@@ -65,7 +65,9 @@ export interface QuestionStore {
 }
 
 export const QUESTIONS_INTENT = "career_apply_questions";
-export const PER_TEXT = 5;
+// One question per message, on every channel (owner, 2026-10-31): the next is asked after the answer, and the card is
+// built only when none is left open (career_hosted_prepare.ts prepareAfterAnswers).
+export const PER_TEXT = 1;
 export const TEXT_BUDGET = 1600; // two or more questions stay under this; one alone may go to 4,000, never cut
 const MAX_ANSWER = 2000;
 
@@ -193,32 +195,25 @@ const line = (q: OpenQuestion, n: number) => {
 const offerDraft = (q: OpenQuestion) =>
   q.kind === "essay" && !["prohibited", "unread"].includes(readAiPolicy([q.label, q.ai_policy ?? ""]).policy);
 
-// The questions that fit one text: at most 5, under 1,600 characters with two or more, and the first always.
-// G2: notes(q, n) adds a line under a question (the person's own earlier words, offered as a draft).
+// The one question a text asks (PER_TEXT), the first open one, with how many are open in all. The numbered list is gone:
+// a person answers one question, then the next is asked. `total`: every open question, this one included.
+// G2: notes(q, n) adds a line under the question (the person's own earlier words, offered as a draft).
 export function questionsText(
   qs: OpenQuestion[], total: number, notes?: (q: OpenQuestion, n: number) => string | null,
 ): { take: OpenQuestion[]; text: string } | null {
   const ask = qs.filter((q) => !NEVER_BY_TEXT.test(q.label));
   if (!ask.length) return null;
-  const take: OpenQuestion[] = [];
-  const build = (list: OpenQuestion[]) => {
-    const head = list.length === 1
-      ? "One question only you can answer is holding up your applications. Answer it once and I won't ask again."
-      : `${list.length} questions only you can answer are holding up your applications. Answer each once and I won't ask again.`;
-    const rest = total - list.length;
-    const draftable = list.findIndex(offerDraft);
-    const foot = [
-      list.length === 1 ? "Just reply with your answer." : `Reply with each number and your answer, like "1 no 2 3 years".`,
-      draftable >= 0 ? `For a written answer, say "draft ${draftable + 1}" and I'll draft it from your confirmed facts for you to check first.` : "",
-      rest > 0 ? `${rest} more after these.` : "",
-    ].filter(Boolean).join(" ");
-    return [head, ...list.flatMap((q, i) => [line(q, i + 1), notes?.(q, i + 1) ?? ""].filter(Boolean)), foot].join("\n");
-  };
-  for (const q of ask.slice(0, PER_TEXT)) {
-    if (take.length && build([...take, q]).length > TEXT_BUDGET) break;
-    take.push(q);
-  }
-  return { take, text: build(take) };
+  const take = ask.slice(0, PER_TEXT), q = take[0];
+  const all = Math.max(total, 1), rest = all - 1;
+  const head = all === 1
+    ? "One question only you can answer is holding up your applications. Answer it once and I won't ask again."
+    : `Question 1 of ${all} only you can answer, one at a time. Answer it once and I won't ask again.`;
+  const foot = [
+    "Just reply with your answer.",
+    offerDraft(q) ? `For a written answer, say "draft 1" and I'll draft it from your confirmed facts for you to check first.` : "",
+    rest > 0 ? `I'll ask the next one after you answer this.` : "",
+  ].filter(Boolean).join(" ");
+  return { take, text: [head, line(q, 1).replace(/^1\. /, ""), notes?.(q, 1) ?? "", foot].filter(Boolean).join("\n") };
 }
 
 const said = (q: OpenQuestion, value: string) => {
@@ -228,6 +223,31 @@ const said = (q: OpenQuestion, value: string) => {
   return `${short}: ${v}`;
 };
 
+// The first open question, shown as the questions turn shows it (with its draft offers), and recorded as the one the
+// next message answers. Null when none is open.
+async function present(o: { userId: string; threadId: string; now: number; store: QuestionStore }): Promise<string | null> {
+  const [open, total] = await Promise.all([o.store.open(o.userId, 20), o.store.countOpen(o.userId)]);
+  const offers = await eligibilityOffers(o.store, o.userId, open);
+  const ahead = await aheadDrafts(o.store, o.userId, open);
+  const t = questionsText(open, Math.max(total, open.length), (q, n) => {
+    const d = offers.get(q.id);
+    if (d) return draftNote(d.draft, d.value, n);
+    return ahead.has(q.id) && offerDraft(q)
+      ? `   A draft of ${n} is ready, written only from your confirmed facts. Say "draft ${n}" to read it; nothing is saved until you say "use ${n}".`
+      : null;
+  });
+  if (!t) return null;
+  const at = new Date(o.now).toISOString();
+  // G2: an offered draft waits beside the question shown, and only "use N" saves it (draftTurn), as an essay draft does.
+  const drafts: Record<string, PendingDraft> = {};
+  t.take.forEach((q, i) => {
+    const d = offers.get(q.id);
+    if (d) drafts[q.id] = { text: d.value, at, n: i + 1 };
+  });
+  await o.store.setShown(o.userId, { thread: o.threadId, ids: t.take.map((q) => q.id), at, ...(Object.keys(drafts).length ? { drafts } : {}) });
+  return t.text;
+}
+
 // One turn, before any brain. Null when the text is neither a request for the questions nor an answer to the ones just
 // shown, so the turn goes on as before.
 // WO-100: with the person's situation, the questions keep their numbers and everything else only the person can do (a
@@ -236,18 +256,9 @@ export async function questionsTurn(
   o: { message: string; userId: string; threadId: string; now: number; store: QuestionStore; draft?: DraftDeps; situation?: Situation | null },
 ): Promise<{ reply: string; status: string } | null> {
   if (isAsk(o.message)) {
-    const [open, total] = await Promise.all([o.store.open(o.userId, 20), o.store.countOpen(o.userId)]);
-    const offers = await eligibilityOffers(o.store, o.userId, open);
-    const ahead = await aheadDrafts(o.store, o.userId, open);
-    const t = questionsText(open, Math.max(total, open.length), (q, n) => {
-      const d = offers.get(q.id);
-      if (d) return draftNote(d.draft, d.value, n);
-      return ahead.has(q.id) && offerDraft(q)
-        ? `   A draft of ${n} is ready, written only from your confirmed facts. Say "draft ${n}" to read it; nothing is saved until you say "use ${n}".`
-        : null;
-    });
-    const rest = o.situation ? needsText(o.situation, { questionsShown: !!t }) : null;
-    if (!t) {
+    const shownNow = await present(o);
+    const rest = o.situation ? needsText(o.situation, { questionsShown: !!shownNow }) : null;
+    if (!shownNow) {
       if (rest) return { reply: rest, status: "none" };
       return {
         reply: o.situation === null ? "No questions are open. The rest of your applications could not be read just now, so I can't say whether anything else waits on you."
@@ -255,15 +266,7 @@ export async function questionsTurn(
         status: "none",
       };
     }
-    const at = new Date(o.now).toISOString();
-    // G2: an offered draft waits beside the questions shown, and only "use N" saves it (draftTurn), as an essay draft does.
-    const drafts: Record<string, PendingDraft> = {};
-    t.take.forEach((q, i) => {
-      const d = offers.get(q.id);
-      if (d) drafts[q.id] = { text: d.value, at, n: i + 1 };
-    });
-    await o.store.setShown(o.userId, { thread: o.threadId, ids: t.take.map((q) => q.id), at, ...(Object.keys(drafts).length ? { drafts } : {}) });
-    return { reply: rest ? `${t.text}\n\n${rest}` : t.text, status: "shown" };
+    return { reply: rest ? `${shownNow}\n\n${rest}` : shownNow, status: "shown" };
   }
   // An answer counts only while the questions were this thread's last word, and only for a day. This runs on every turn,
   // so the one key read comes first and the thread's last reply is read only while questions are showing here; a read
@@ -283,6 +286,15 @@ export async function questionsTurn(
     return await draftTurn(o, shown, cmd);
   }
   if (shown.ids.length === 1 && TALK.test(o.message.trim())) return null;
+  // One question is shown at a time: "1 x 2 y" answers several at once, and only the first is this question's. Nothing is
+  // saved from it (part of another answer could land here); the one question is asked again.
+  if (shown.ids.length === 1 && /^\s*1\s*[.):-]?\s+\S[\s\S]*?(^|[\s,;])2\s*[.):-]?\s+\S/m.test(o.message) &&
+    (await o.store.lastAssistantIntent(o.threadId)) === QUESTIONS_INTENT) {
+    const [one] = await o.store.get(o.userId, shown.ids);
+    if (one) {
+      return { reply: `I'm asking one question at a time, so nothing was saved. Just your answer to this one:\n${line(one, 1).replace(/^1\. /, "")}`, status: "partial" };
+    }
+  }
   const parts = splitAnswers(o.message, shown.ids.length);
   if (!parts) return null;
   if ((await o.store.lastAssistantIntent(o.threadId)) !== QUESTIONS_INTENT) return null;
@@ -303,6 +315,14 @@ export async function questionsTurn(
   }
   if (shown.drafts && saved.length) await o.store.setShown(o.userId, shown);
   const left = await o.store.countOpen(o.userId);
+  // One at a time: the answer saved, the next open question is asked in the same reply, and it alone is what the next
+  // message answers. The card waits until none is left.
+  if (saved.length && !open.length && left > 0) {
+    const next = await present(o);
+    if (next) {
+      return { reply: [`Saved. I won't ask this again:`, ...saved.map((x) => x.replace(/^\d+\. /, "")), "", `Next: ${next}`].join("\n"), status: "answered_next" };
+    }
+  }
   const reply = [
     saved.length ? `Saved. I won't ask ${saved.length === 1 ? "this" : "these"} again:` : "Nothing was saved.",
     ...saved,

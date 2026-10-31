@@ -139,6 +139,23 @@ function fnDiscoverFields(includeHidden) {
       const head = heads.find((x) => !x.contains(el) && !optionLabel(x) && !foreign(x, el) && labelText(x).trim().length > 0);
       if (head) return labelText(head);
     }
+    // A group with no heading of its own (Ashby's SMS consent: "Check Yes or No to indicate your agreement to receive text
+    // message updates..." in a block just before its two radios, each labelled by its own option): the text block right
+    // before the group's container is its question, unless a control sits in it (then that text is another field's).
+    if (/^(radio|checkbox)$/i.test(el.type || "") && el.name) {
+      node = el;
+      for (let i = 0; i < 3 && node; i++) {
+        node = node.parentElement; if (!node) break;
+        if (Array.from(node.querySelectorAll("input")).some((x) => x.name !== el.name && realControl(x))) break;
+        const prev = node.previousElementSibling;
+        if (!prev) continue;
+        const ctl = Array.from(prev.querySelectorAll("input,select,textarea"));
+        if (ctl.length && ctl.every((x) => x.name === el.name)) continue; // another choice of this same group
+        if (ctl.length || foreign(prev, el)) break;
+        const t = labelText(prev).trim();
+        if (t) return t;
+      }
+    }
     return "";
   }
   function selectorFor(el, idx) {

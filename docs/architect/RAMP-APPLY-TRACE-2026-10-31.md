@@ -14,11 +14,11 @@ does not work for Ramp as the code stood at trunk `ddb7d292`.
 | # | Link | Code | Status at trunk `ddb7d292` | After this PR |
 |---|---|---|---|---|
 | 1 | Telegram text "apply me to this: <Ashby link>" reaches agent-chat | `trainee-telegram/handler.ts` → `chatThroughAgent` → `handler-career.ts` | PROVEN: `flow-telegram-e2e` step 4 | same |
-| 2 | Posting read from Ashby's public API, queued, the hosted preparation kicked | `career_apply_wanted`, `kickPrepare` → `career-cloud-runner/prepare` | PROVEN: `flow-hosted-apply` step 2 (on this container that step fails the same way on clean trunk: "couldn't read that posting from Ashby", an environment fault of the posting stub, not this PR) | same |
+| 2 | Posting read from Ashby's public API, queued, the hosted preparation kicked | `career_apply_wanted`, `kickPrepare` → `career-cloud-runner/prepare` | PROVEN: `flow-hosted-apply` step 2. CI on trunk `ddb7d292` (run 41231812697) is green on every architect shard, and this test throws in CI rather than skip. Locally it failed because the test runs as `runner`, which inherits `SSL_CERT_FILE`/`DENO_CERT=/root/.ccr/ca-bundle.crt` (unreadable under `/root`, mode 700). With `DENO_TLS_CA_STORE=system,mozilla` Deno's first `fetch` (the Ashby posting read, stubbed to 127.0.0.1) throws "Failed to load platform certificates: Permission denied (os error 13)", which the apply turn reports as "couldn't read that posting from Ashby". With a readable copy of the bundle it passes, 11/11 steps | same |
 | 3 | Fields read from the live form | `scripts/apply.ts` dry run in the preparation sandbox (`prepare-runner.ts` → `prepareAhead` → `approve-first.ts prepare`) | **MISSING for every real Ashby form.** Ashby has no `<form>` post, so the dry run stops at `SUBMIT_DESTINATION_NOT_BOUND` before the card unless the engine runs with `--script-submit ashby` or `UPMORE_SCRIPT_SUBMIT_LIVE=1`. The Vercel host never passed that switch to its sandboxes (`cloud_runner.ts vercelSandboxHost.run`), and the VM preparation host dropped it (`prepare-ahead.ts PREPARE_ENGINE_ENV_KEYS`). Every existing test injected `--script-submit ashby` by hand, which hid this. | PROVEN plumbing: `ramp-ashby-submit-path` L1a, L1b, L1c. The stop itself is shown in L2 (no binding gives `SUBMIT_DESTINATION_NOT_BOUND`). |
 | 3b | The live page's shape: the form appears only after a read-only GraphQL query | engine route `readOnly` | BUILT-UNTESTED for Ramp (proven on a generic page in `career-script-submit-binding.test.cjs`) | PROVEN: `ramp-ashby-submit-path` L2 (`ApiJobPosting` read, then filled) |
 | 4 | Answers only from confirmed facts | `trustedFacts` / `contractFill` (WO-102) | PROVEN: `wo-102-paths`, `submit-real-person` | also L2: every answer on the card is a `text-answer:N` the person gave or the approved resume |
-| 5 | Missing facts asked | `questionsToStore` → `career_apply_prepare_ask_for` → outbox | PROVEN, **but as one numbered list, not one at a time**: `flow-telegram-e2e` step 5, `flow-hosted-apply` step 3-4 ("answered by number"). Optional questions are never asked (L2). One at a time is not built. That is a product call for the owner. | same |
+| 5 | Missing facts asked | `questionsText` (one composer for the chat reply, the hosted push and the scheduled push) → outbox | Was a numbered list of up to 5 in one message. **Now one question per message on every channel; the next is asked in the reply that saves the answer; the card is prepared again only when none is open**: `ramp-one-question-at-a-time` Q1, Q2, Q3 (red on the prior code, green now) | same |
 | 6 | Approval card with the exact payload hash; Approve/Decline buttons bound to card id and hash | `prepare()` card lines, `career_apply_card_answer_as` | PROVEN: `flow-telegram-e2e` 6a-6c (forged button, changed card and text "yes" approve nothing), `chat-approval-card-binding` | also L2: one card line per answer sent, each showing what goes on the wire |
 | 7 | Queue: `career_apply_jobs` row, `payload_hash = approval_hash` | `career_apply_card_answer_as` | PROVEN: `flow-hosted-apply` step 5, `flow-telegram-e2e` 6c | same |
 | 8 | Kill switch `CAREER_AGENT_SUBMIT` | SQL claim and authorization checks | PROVEN for the cloud text-card route and the agent one-tap start: `tests/db/career_apply_agent_submit.test.sql`, `career_cloud_hosted_apply.test.sql`, `flow-hosted-apply` step 6. **Not in** `career_apply_claim_own` (own-computer route, 20261025110000). That route runs only on the person's own computer after their tap. | same |
@@ -43,10 +43,13 @@ does not work for Ramp as the code stood at trunk `ddb7d292`.
 
 ## What the dry run showed on the stand-in, to check on the live page
 
-- **The consent questions read badly on the card.** On the reconstructed markup the SMS and WhatsApp consent radio groups take
-  their first option as their question. The card then says: `You agree: Yes - I consent to receiving text messages: No - I do
-  not consent to receiving text messages`. The wire carries the option code (`notGiven`), which is correct. If the live page
-  reads the same way, fix the card wording before the owner's tap (career_prepared_card / form-bind lane).
+- **Fixed: consent lines read as one option answering another.** On the reconstructed markup the SMS consent radios had
+  no heading of their own, so the group took its first option as its question: `You agree: Yes - I consent to receiving
+  text messages: No - I do not consent to receiving text messages`. Discovery now takes the text block just before such a
+  group as its question (the page's own "Check Yes or No to indicate your agreement to receive text message updates from
+  Ramp regarding your job application."). A group with no question text on the page (WhatsApp, in the copy) is named by
+  all of its choices, never by one. The answer shown is the label of the option whose code is sent (`notGiven`):
+  `ramp-one-question-at-a-time` C1, C2. If the live WhatsApp consent has its own text, the dry run will show it.
 - The graduation date box keeps only `MM/DD/YYYY`. A month and year alone is cleared by the page, and Trainee never adds a day.
 - The school is a search box. The stand-in offers what was typed. Ramp's live list may not hold his school's exact name.
 

@@ -9,7 +9,7 @@
 //   c. Overlap: shared school, hometown, past employer, the recipient's current firm, an interest, a mutual connection,
 //      or a piece of the recipient's work the person can genuinely reference (they pasted it, or it is on a topic in
 //      their own confirmed facts).
-//   d. Field playbooks are data (outreach_playbooks.json): structure, length norm, the asks allowed, when a referral is
+//   d. Field playbooks are data (outreach_playbooks.ts): structure, length norm, the asks allowed, when a referral is
 //      warranted, follow-up cadence and timing.
 //   e. One ask sized to the relationship: a referral only to someone the person already knows (warm) AND for a named role,
 //      and only where the playbook allows it.
@@ -19,7 +19,7 @@
 //      over the field's length norm, that has no ask or more than one, or whose ask is not the one planned.
 // Nothing here sends: the draft goes to the same approval card with its exact payload (career_outreach.ts), and sending
 // stays the person's own channel.
-import PLAYBOOKS from "./outreach_playbooks.json" with { type: "json" };
+import PLAYBOOKS from "./outreach_playbooks.ts";
 import { sameFirm } from "./career_contacts.ts";
 import { readsAsInstruction } from "./career_people_import.ts";
 import { confirmed, type DraftLang, factText, LANG_NAME, type LockSources, type ModelFn, outreachLock, type Recipient, type Shared, sharedFacts } from "./career_outreach.ts";

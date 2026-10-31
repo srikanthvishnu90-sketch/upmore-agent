@@ -1,5 +1,5 @@
 // PERSONALIZED OUTREACH (2026-10-31, owner priority): every outreach draft is written for one recipient from sourced facts
-// (career_outreach_personalize.ts, outreach_playbooks.json, wired through career_outreach.ts draftFor and the networking
+// (career_outreach_personalize.ts, outreach_playbooks.ts, wired through career_outreach.ts draftFor and the networking
 // batch). Over 32 fictional recipients in ten fields: each draft references a sourced fact about that recipient, says the
 // overlap when there is one, keeps the field's ask and length, passes the swap test, and carries no unsourced claim; an
 // instruction in a bio never reaches the model; each gate rule is shown to reject its own bad draft. A scripted model

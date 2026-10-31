@@ -1,0 +1,7 @@
+# PR SHA reviewer-note
+# Deploy standard S2 (D-034): the architect's approval of a merged PR, by the exact head SHA that was merged, for PRs whose
+# approval is not a GitHub APPROVED review at that SHA (GitHub refuses a review approving one's own PR, and the architect and
+# the builder push from one account). One line per approval: `<PR number> <40-hex merged head SHA> <reviewer note>`.
+# A line approves only that SHA: a PR pushed again after its line needs a new line. Lines are added, never edited; an
+# approval is written only after the review against the PR's work order (CLAUDE.md, "Your loop", step 3), never in bulk
+# and never backdated. scripts/launch/deploy-standard.ts reads this file at the candidate SHA.

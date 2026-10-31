@@ -41,7 +41,7 @@ Deno.test("AW-3 company asks stay with code: the router claims them and the deci
   for (const m of ["what does it take to be a Googler?", "how do I be a Googler?", "should I become a Meta engineer?", "is Ironstack Payments a good career move?", "How do I become a designer for Stripe?"]) assertNode.notEqual(decide(m).reason, "open_career_question", m);
 });
 
-import { FIELDS, OVERLAYS } from "../../supabase/functions/_shared/agent/research/fields.ts";
+import { FIELDS, genericField, OVERLAYS } from "../../supabase/functions/_shared/agent/research/fields.ts";
 import { SHORTS, shortFor, template } from "../../supabase/functions/_shared/agent/research/shorts.ts";
 import { unsupported } from "../../supabase/functions/_shared/agent/research/guard.ts";
 
@@ -83,10 +83,11 @@ Deno.test("AW-7 'too late / too old' asks get a direct line about time to the cr
 });
 
 Deno.test("AW-8 no unsourced market claim in any short line (catalog shorts, hand-written shorts, templates, late lines); templates do not repeat 'this week'", async () => {
-  const MARKET = /\bdemand\b|steady|steadier|climbs|improves|exit options|opens many|crowded|scarce|competitive|costly|selective|take few|few applicants|reachable|hire interns|in demand|well paid|job security|rarely won|small slice|small share|hire\b[^.]*\binto\b/i;
-  const ADVICE = /check|depends on|cannot quote|\bask\b/i;
+  const MARKET = /\bdemand\b|steady|steadier|climbs|improves|exit options|opens many|crowded|scarce|competitive|costly|selective|take few|few applicants|reachable|hire interns|in demand|well paid|job security|rarely won|small slice|small share|small next to|lean on|hire\b[^.]*\binto\b|\bhires? on\b|are hired|go to a small|recruited far ahead|more competitive/i;
+  const ADVICE = /check|depends on|cannot quote|\bask\b|raises your chances|within your control|you control/i;
   const claim = (l: string) => MARKET.test(l) && !ADVICE.test(l);
   const lines: [string, string][] = [];
+  for (const f of [...FIELDS, genericField("x")]) for (const k of ["odds", "now", "later"] as const) lines.push([`fields:${f.id}.${k}`, f[k]]);
   for (const f of FIELDS) if (f.short) lines.push(...Object.entries(f.short).map(([k, v]) => [`fields:${f.id}.${k}`, v] as [string, string]));
   for (const s of SHORTS) for (const k of ["now", "later", "act", "degree", "worth"] as const) lines.push([`shorts:${s.key}.${k}`, s[k]]);
   for (const [n, local] of [["journalism", false], ["photography", false], ["wind energy", false], ["law enforcement", true], ["dental hygiene", true], ["sales", false], ["trucking", true], ["x", false], ["x", true], ["music", false]] as const) {

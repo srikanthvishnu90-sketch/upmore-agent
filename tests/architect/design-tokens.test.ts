@@ -48,7 +48,7 @@ Deno.test("Q564/Q565/Q726: every page Trainee serves starts from the same tokens
   for (const [name, html] of Object.entries(pages)) {
     ok(html.includes(TOKENS_CSS), `${name}: not drawn from the shared tokens`);
     ok(html.includes(BRAND), `${name}: no Trainee mark`);
-    ok(!/color:#4A2F5E|color:\s*#4A2F5E/i.test(html.replace(/background:#4A2F5E/gi, "")), `${name}: plum used as a text colour`);
+    ok(!/color:#5C2751|color:\s*#5C2751/i.test(html.replace(/background:#5C2751/gi, "")), `${name}: plum used as a text colour`);
   }
   // The connection pages kept their words and their one button.
   const g = await gmailPage("Connect Gmail to Trainee", ["One tap."], 200, { action: "/c", token: "t", label: "Continue to Google" }).text();

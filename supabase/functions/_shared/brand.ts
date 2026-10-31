@@ -10,13 +10,12 @@
 // Contrast (Q540, Q553): every text/ground pair below is at least WCAG AA (4.5:1) in both schemes, and the action's text on plum
 // is at least AAA (7:1). tests/architect/design-tokens.test.ts computes each ratio with the WCAG relative-luminance formula.
 //
-// The plum value: the deep plum the site, the jobs page and every test pin today is #4A2F5E (11.3:1 on white). The owner's
-// requirements doc proposes #5C2751 (also 11.3:1 on white). Switching is a one-value change here, but the existing architect tests
-// pin #4A2F5E by value, so it waits for the owner's word and the architect's test update (named in the PR).
-export const PLUM = "#4A2F5E";
+// The plum value (owner ruling 2026-10-31, docs/architect/DECISIONS.md D-DESIGN-1): #5C2751, the doc-3 proposal (11.3:1 on white,
+// AAA). It replaced #4A2F5E. The hover tint and the dark-scheme tint are derived for contrast; the base never moves for them.
+export const PLUM = "#5C2751";
 
 export interface Tokens { bg: string; ink: string; mute: string; line: string; accent: string; accentHover: string; accentInk: string; link: string; good: string; bad: string; warn: string; panel: string }
-export const LIGHT: Tokens = { bg: "#FAF8F4", ink: "#141414", mute: "#4F4F57", line: "#E6E3DD", accent: PLUM, accentHover: "#5C3B74", accentInk: "#FFFFFF", link: PLUM, good: "#1B6B3A", bad: "#B42318", warn: "#8A5300", panel: "#F1EEE8" };
+export const LIGHT: Tokens = { bg: "#FAF8F4", ink: "#141414", mute: "#4F4F57", line: "#E6E3DD", accent: PLUM, accentHover: "#6E3462", accentInk: "#FFFFFF", link: PLUM, good: "#1B6B3A", bad: "#B42318", warn: "#8A5300", panel: "#F1EEE8" };
 // Dark grounds: the plum is lifted to a light plum so it keeps its contrast (Q553), and the action's text turns dark.
 export const DARK: Tokens = { bg: "#000000", ink: "#EDEDF0", mute: "#A6A6B0", line: "#1F1F25", accent: "#D4C2E2", accentHover: "#FFFFFF", accentInk: "#141414", link: "#D4C2E2", good: "#7FB89A", bad: "#E07A6E", warn: "#E3B061", panel: "#16161A" };
 

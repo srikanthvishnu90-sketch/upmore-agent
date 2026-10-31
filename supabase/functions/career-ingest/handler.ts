@@ -19,7 +19,7 @@
 // lane); outcomes are recorded 20 at a time; a board larger than the posting budget is read in parts over several runs.
 import { equalSecret } from "../_shared/message_service.ts";
 import { ingestBoards, type Board, type BoardOutcome, type FetchFeed, type IngestRunRow, type IngestStats, type PostingsDb } from "../_shared/career_ingest.ts";
-import { backedOff, boardKey, type BoardState, type BoardStateDb, bucketOf, capacityPer, goneReadsOf, inFlight, laneBuckets } from "../_shared/career_shards.ts";
+import { boardKey, type BoardState, type BoardStateDb, bucketOf, capacityPer, claimable, goneReadsOf, laneBuckets, rereadGapMs } from "../_shared/career_shards.ts";
 import { runReport } from "../_shared/career_ingest_lanes.mjs";
 
 export interface IngestDeps {
@@ -86,10 +86,13 @@ export async function handleIngest(req: Request, d: IngestDeps): Promise<Respons
       // same way; now they wait their turn, and one that stays "reading" names the board a stopped run was on.
       // Round 2: the claim is one step in the store (two runs of a lane used to both read the same due list and both
       // claim it), and a board in its failure backoff (career_shards.ts retryAfterMs) is not taken.
-      const nowMs = Date.parse(at);
-      let claimed = st.claim ? await st.claim(laneList, cap, at) : null;
+      // 2026-10-31: and a board attempted less than the re-read gap ago (half the headroom's slack: window / 6; career_shards.ts
+      // rereadGapMs says why every board is still read within the window) is not taken: a read that had just finished was
+      // due again at once, so an overlapping run, or the next tick, re-read every board of a small lane.
+      const nowMs = Date.parse(at), gapMs = rereadGapMs({ windowMs });
+      let claimed = st.claim ? await st.claim(laneList, cap, at, gapMs) : null;
       if (claimed === null) {
-        claimed = (await st.due(laneList, cap * 2)).filter((s) => !backedOff(s, nowMs) && !inFlight(s, nowMs)).slice(0, cap);
+        claimed = (await st.due(laneList, cap * 2)).filter((s) => claimable(s, nowMs, gapMs)).slice(0, cap);
         await st.record(claimed.filter((s) => byKey.has(boardKey(s))).map((s) => ({ ...s, last_attempt_at: at, last_status: "reading" })));
       }
       // A board that left the directory (removed, or renamed): its open postings are no longer read, so they are closed,

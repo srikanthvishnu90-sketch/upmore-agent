@@ -153,16 +153,16 @@
             if (head) return labelText(head);
           }
           if (/^(radio|checkbox)$/i.test(el.type || "") && el.name) {
+            const sel = 'input[name="' + esc(el.name) + '"]', members = document.querySelectorAll(sel).length;
             node = el;
             for (let i = 0; i < 3 && node; i++) {
               node = node.parentElement;
               if (!node) break;
               if (Array.from(node.querySelectorAll("input")).some((x) => x.name !== el.name && realControl(x))) break;
+              if (node.querySelectorAll(sel).length < members) continue;
               const prev = node.previousElementSibling;
               if (!prev) continue;
-              const ctl = Array.from(prev.querySelectorAll("input,select,textarea"));
-              if (ctl.length && ctl.every((x) => x.name === el.name)) continue;
-              if (ctl.length || foreign(prev, el)) break;
+              if (prev.querySelector("input,select,textarea") || foreign(prev, el)) break;
               const t = labelText(prev).trim();
               if (t) return t;
             }

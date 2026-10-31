@@ -142,16 +142,17 @@ function fnDiscoverFields(includeHidden) {
     // A group with no heading of its own (Ashby's SMS consent: "Check Yes or No to indicate your agreement to receive text
     // message updates..." in a block just before its two radios, each labelled by its own option): the text block right
     // before the group's container is its question, unless a control sits in it (then that text is another field's).
+    // Only the block before the container of the WHOLE group counts (never text beside one choice's own label).
     if (/^(radio|checkbox)$/i.test(el.type || "") && el.name) {
+      const sel = 'input[name="' + esc(el.name) + '"]', members = document.querySelectorAll(sel).length;
       node = el;
       for (let i = 0; i < 3 && node; i++) {
         node = node.parentElement; if (!node) break;
         if (Array.from(node.querySelectorAll("input")).some((x) => x.name !== el.name && realControl(x))) break;
+        if (node.querySelectorAll(sel).length < members) continue;
         const prev = node.previousElementSibling;
         if (!prev) continue;
-        const ctl = Array.from(prev.querySelectorAll("input,select,textarea"));
-        if (ctl.length && ctl.every((x) => x.name === el.name)) continue; // another choice of this same group
-        if (ctl.length || foreign(prev, el)) break;
+        if (prev.querySelector("input,select,textarea") || foreign(prev, el)) break;
         const t = labelText(prev).trim();
         if (t) return t;
       }

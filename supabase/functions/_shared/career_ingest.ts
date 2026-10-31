@@ -18,6 +18,7 @@ import { FEEDS, isMoreProvider, MORE_PROVIDERS } from "./career_ingest_feeds.ts"
 // (tests/edge/career-ingest-scale.test.ts fails while the copy is stale). It sets globalThis.CareerUrlShape.
 import "./career_url_shape.js";
 import { chunksOf, cut, idChunks, jsonArrayElements, readBody, rowContentError, storable, transientStorageError, type ArrayScan } from "./career_ingest_stream.ts";
+import { INTERN_RE, postingStatus } from "./career_search_query.ts";
 
 // etag / last_modified: what the board's last full read answered (career_board_state, WO-037), sent back as a conditional
 // request; absent on the cursor path.
@@ -74,6 +75,7 @@ export interface PostingsDb {
   staleForBoard?(b: Board, beforeIso: string): Promise<string[]>;
 }
 export interface IngestStats {
+  screened?: Record<string, number>; // postings left out for their own words: closed_text, expired_term, scam
   boards_ok: number; boards_failed: number; boards_partial: number; new: number; seen: number; reopened: number; closed: number;
   boards_not_modified?: number; // WO-037: answered 304 to a conditional request
   // Feature 6: postings refused at ingest because their link is never a posting (a data/API endpoint, a discussion
@@ -190,6 +192,11 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
         if (!p || !p.job_id || seen.has(p.job_id)) continue;
         // Feature 6: a link that is never a posting never enters the table (and one stored before is closed below, since a
         // complete read no longer carries it). "unknown" is kept and counted: the guard never promotes or drops a guess.
+        // SEARCH COVERAGE: a posting that says in its own words it is closed or filled, a term wholly past, or the shape of a
+        // fee / cheque / chat-app scam is not an open job: it is not stored, and one stored before closes below, since a
+        // complete read no longer carries it.
+        const sv = postingStatus(p, o.now);
+        if (!sv.open) { const sc = (st.screened ??= {}); sc[sv.reason] = (sc[sv.reason] ?? 0) + 1; continue; }
         const v = urlShape(p.url);
         if (v.verdict === "not_posting") {
           st.url_rejected = (st.url_rejected ?? 0) + 1;
@@ -336,16 +343,39 @@ export function wordStem(w: string): string {
 // WO-073: how much of the query the title itself carries: 0 every word, 1 some, 2 none (it is only in the description,
 // the company or the place). A search for a role ranks the role first ("product manager" is not a recruiter whose
 // posting mentions product managers).
+// SEARCH COVERAGE: a query word is a group of ways to say it. "internship" is also "intern", "interns", "co-op" (a posting
+// titled "Software Engineer Intern" is that search's answer); a season or a year ("summer 2027") is soft: it ranks and
+// filters in searchPostings (career_search.ts) against a posting's stated term, and is no longer a word every posting
+// must repeat. Soft words stay hard when they are all the query has. Plain words are groups of themselves.
+const SOFT = /^(?:spring|summer|fall|autumn|winter|20\d\d)$/;
+const LEVELISH = /^(?:interns?|internships?|coops?)$/;
+export function wordGroups(words: string[]): string[][] {
+  const hard = words.filter((w) => !SOFT.test(w));
+  return (hard.length ? hard : words).map((w) => (LEVELISH.test(w) ? ["intern", "internship", "coop"] : [w]));
+}
+const groupHits = (g: string[], text: string) => g.length > 1 ? INTERN_RE.test(text) || /\bcoop\b/.test(text) : text.includes(g[0]) || text.includes(wordStem(g[0]));
+// WO-073: how much of the query the title itself carries: 0 every word, 1 some, 2 none (it is only in the description,
+// the company or the place). A search for a role ranks the role first ("product manager" is not a recruiter whose
+// posting mentions product managers).
 export function titleTier(p: { title?: string }, words: string[]): 0 | 1 | 2 {
   if (!words.length) return 0;
   const t = String(p.title || "").toLowerCase();
-  const n = words.filter((w) => t.includes(w) || t.includes(wordStem(w))).length;
-  return n === words.length ? 0 : n > 0 ? 1 : 2;
+  const gs = wordGroups(words);
+  const n = gs.filter((g) => groupHits(g, t)).length;
+  return n === gs.length ? 0 : n > 0 ? 1 : 2;
 }
 export function matchesWords(p: { title?: string; company?: string; location?: string; description?: string }, words: string[]): boolean {
   if (!words.length) return true;
   const hay = `${p.title || ""} ${p.company || ""} ${p.location || ""} ${p.description || ""}`.toLowerCase();
-  return words.every((w) => hay.includes(w) || hay.includes(wordStem(w)));
+  return wordGroups(words).every((g) => groupHits(g, hay));
+}
+// The database's form of the same words: a tsquery group per word. Only an internship word has synonyms; every other query
+// is built exactly as before.
+export function dbQuery(words: string[]): { titled: string; rest: string; grouped: boolean } {
+  const gs = wordGroups(words).map((g) => g.map((w) => w.replace(/[^a-z0-9]/g, "")).filter(Boolean)).filter((g) => g.length);
+  const grouped = gs.some((g) => g.length > 1);
+  const part = (g: string[], w: string) => (g.length > 1 ? `(${g.map((x) => x + w).join(" | ")})` : g[0] + w);
+  return { titled: gs.map((g) => part(g, ":A")).join(" & "), rest: grouped ? gs.map((g) => part(g, "")).join(" & ") : words.join(" "), grouped };
 }
 
 // ------------------------------------------------------------------------------------------------ memory store
@@ -507,13 +537,13 @@ export function supabasePostingsDb(admin: any): PostingsDb & { recordRun(stats: 
       if (!words.length) return must<Posting[]>(await base().order("first_seen_at", { ascending: false }).limit(limit), "search postings") || [];
       // WO-073: postings whose title carries every word first (the search column weights the title A), then the rest, each
       // once, newest first within each: the limit never cuts the role itself in favour of newer postings that mention it.
-      const lexemes = words.map((w) => w.replace(/[^a-z0-9]/g, "")).filter(Boolean);
-      const titled = lexemes.length
-        ? must<Posting[]>(await base().textSearch("search", lexemes.map((w) => `${w}:A`).join(" & "), { config: "english" })
+      const q = dbQuery(words);
+      const titled = q.titled
+        ? must<Posting[]>(await base().textSearch("search", q.titled, { config: "english" })
           .order("first_seen_at", { ascending: false }).limit(limit), "search postings by title") || []
         : [];
       if (titled.length >= limit) return titled;
-      const rest = must<Posting[]>(await base().textSearch("search", words.join(" "), { type: "websearch", config: "english" })
+      const rest = must<Posting[]>(await base().textSearch("search", q.rest, q.grouped ? { config: "english" } : { type: "websearch", config: "english" })
         .order("first_seen_at", { ascending: false }).limit(limit), "search postings") || [];
       const seen = new Set(titled.map((p) => p.job_id));
       return [...titled, ...rest.filter((p) => !seen.has(p.job_id))].slice(0, limit);

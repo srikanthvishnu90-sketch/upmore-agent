@@ -219,6 +219,34 @@ fi
 if [[ $partition != all ]]; then
   printf 'GATE PARTITION %s: core %s suites, browser %s suites, coverage %s suites, total %s\n' "$partition" "${#node_core_tests[@]}" "${#node_browser_tests[@]}" "${#node_coverage_tests[@]}" "${#node_all_tests[@]}"
 fi
+# Core shards (2026-10-30): GATE_CORE_SHARD=i/n runs shard i of n of the core node suites, packed by measured seconds
+# (scripts/node-shards.cjs, table scripts/core-shard-durations.json); the other core steps (edge tests, pay importers,
+# bundle check, typecheck) run in shard 1 only. Same node command, flags and concurrency as unsharded core; only the
+# file list is a slice. GATE_CORE_VERIFY=n checks that n shards partition the core suites exactly and stops there (the
+# aggregate gate (core) job runs it). GATE_CORE_LIST=1 prints the core suites and stops (tests/career-ci-core-shards.test.cjs).
+if [[ -n ${GATE_CORE_LIST:-} ]]; then
+  printf '%s\n' "${node_core_tests[@]}"
+  exit 0
+fi
+if [[ -n ${GATE_CORE_VERIFY:-} ]]; then
+  node scripts/node-shards.cjs verify "$GATE_CORE_VERIFY" "${node_core_tests[@]}"
+  node scripts/node-shards.cjs plan "$GATE_CORE_VERIFY" "${node_core_tests[@]}"
+  exit 0
+fi
+core_shard=1
+core_shard_count=1
+if [[ $partition == core && -n ${GATE_CORE_SHARD:-} ]]; then
+  core_shard=${GATE_CORE_SHARD%/*}
+  core_shard_count=${GATE_CORE_SHARD#*/}
+  node scripts/node-shards.cjs verify "$core_shard_count" "${node_core_tests[@]}"
+  core_shard_list=$(node scripts/node-shards.cjs list "$core_shard" "$core_shard_count" "${node_core_tests[@]}")
+  mapfile -t node_core_tests <<<"$core_shard_list"
+  printf 'GATE CORE SHARD %s: %s suites\n' "$GATE_CORE_SHARD" "${#node_core_tests[@]}"
+fi
+# Each node suite's seconds (JSON lines) for the shard tables, from an extra reporter; TAP stays on stdout as before.
+node_durations_file=${GATE_NODE_DURATIONS:-$(mktemp)}
+node_reporters=(--test-reporter=tap --test-reporter-destination=stdout
+  --test-reporter=./scripts/node-test-durations.mjs "--test-reporter-destination=$node_durations_file")
 
 step test-paths portable_test_paths "${career_tests[@]}" "${shared_tests[@]}" "${edge_tests[@]}"
 step browser-runtime browser_ready
@@ -246,11 +274,15 @@ fi
 if [[ $partition == all ]]; then
   step career-and-shared-tests node --test --test-concurrency=2 "${node_all_tests[@]}"
 elif [[ $partition == core ]]; then
-  step career-and-shared-tests-core node --test --test-concurrency=2 "${node_core_tests[@]}"
+  if (( core_shard_count > 1 )); then
+    step "career-and-shared-tests-core-shard-$core_shard" node --test --test-concurrency=2 "${node_reporters[@]}" "${node_core_tests[@]}"
+  else
+    step career-and-shared-tests-core node --test --test-concurrency=2 "${node_reporters[@]}" "${node_core_tests[@]}"
+  fi
 elif [[ $partition == architect ]]; then
   : # the architect partition runs no node suites; core, browser and coverage hold all of them
 elif [[ $partition == browser ]]; then
-  step career-and-shared-tests-browser node --test --test-concurrency=2 "${node_browser_tests[@]}"
+  step career-and-shared-tests-browser node --test --test-concurrency=2 "${node_reporters[@]}" "${node_browser_tests[@]}"
 elif [[ -z ${GATE_COVERAGE_SHARD:-} ]]; then
   step career-and-shared-tests-coverage node --test --test-concurrency=2 "${node_coverage_tests[@]}"
 else
@@ -269,7 +301,7 @@ else
   printf 'GATE COVERAGE SHARD %s: %s\n' "$GATE_COVERAGE_SHARD" "${shard_args[*]}"
   step "career-and-shared-tests-coverage-shard-${GATE_COVERAGE_SHARD%/*}" node --test --test-concurrency=2 "${shard_args[@]}" "${node_coverage_tests[@]}"
 fi
-if [[ $partition == all || $partition == core ]]; then
+if [[ $partition == all || ( $partition == core && $core_shard == 1 ) ]]; then
   step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
   step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
   step career-bundle python3 scripts/build-router-core.py --career-only --check

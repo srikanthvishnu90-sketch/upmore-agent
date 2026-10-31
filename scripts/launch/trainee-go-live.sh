@@ -243,6 +243,7 @@ MIGRATIONS=(
   20261030180000_career_alert_no_weekly_cap.sql
   20261030190000_approval_rate.sql
   20261031000000_career_apply_cloud_authorize_closed.sql
+  20261031010000_clock_sweep.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -365,6 +366,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_alert_enqueue' and prosrc not like '%max_per_week%' and prosrc not like '%week_cap%' and prosrc not like '%p_week_since%' and prosrc like '%today >= cap%')"
   "to_regclass('public.approval_rate_v') is not null and exists (select 1 from pg_proc where proname = 'approval_rate') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_outreach_drafts' and column_name = 'accepted_unchanged_at')"
   "exists (select 1 from pg_proc where proname = 'career_apply_cloud_authorize_closed_install') and exists (select 1 from pg_proc where proname = 'career_apply_reconcile_bridge' and prosrc like '%career_apply_cloud_authorize_closed_install%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_card_open_for' and pg_get_functiondef(oid) like '%least(p_now, now())%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

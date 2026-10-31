@@ -72,6 +72,7 @@ import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_s
 import { boardFetchFeed, supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts"; // FEATURE E2E: boardFetchFeed
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
+import { alertFeedbackTurn, supabaseFeedbackReads } from "../_shared/career_alert_feedback.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
 import { feature1Deps, resumeOnFileReader } from "../_shared/career_apply_from_chat.ts"; // FEATURE 1; FEATURE 16: resumeOnFileReader
 import { cancelTurn, prepareAfterAnswers, withPending } from "../_shared/career_hosted_prepare.ts"; // FEATURE 17
@@ -585,9 +586,15 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // only on an apply ask; the once-per-employer guard and the card's approval stand.
       // SERIAL-1430 (b): "set my daily pace to N" / "no daily pace": the person's own number, kept only when the column holds
       // it (career_apply_pace_set refuses the rest and says the rule); code's, like the card.
-      const paced = !tapIn && !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await paceTurn({ message, userId: user.id, admin })
+      // JOB ALERTS AS A REAL OUTCOME (2026-10-31): "less like 2" / "more like this" on the last job alert or morning message
+      // the person was sent: a standing rule on their alert settings (career_alert_feedback.ts). Code's, like the pace turn.
+      const alertFb = !tapIn && !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await alertFeedbackTurn({ message, userId: user.id, deps: { store: supabaseAlertStore(admin), ...supabaseFeedbackReads(admin) } })
+          .catch((e) => { console.error("alert feedback turn:", (e as Error)?.message ?? e); return null; })
         : null;
+      const paced = alertFb ?? (!tapIn && !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await paceTurn({ message, userId: user.id, admin })
+        : null);
       // The screens read the confirmed facts and what the person stated in chat ("I work at X" lands in statedFacts).
       // Real shapes: profile facts are { kind, text } (location, eligibility, education...), stated facts { kind, value }.
       const screenFactsNow = () => chatScreenFacts(CareerProfile.confirmedFacts((ctx as any).profile ?? {}), ((ctx as any).statedFacts?.facts ?? []) as any[]);
@@ -829,6 +836,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // The card stays the last word, so the app shows it again; its Approve is the only way anything is sent.
         out = { reply: cardYes.reply, intent: CLOUD_CARD_INTENT, resultStatus: cardYes.status, contained: false, handler: "cloud_card" };
         agentMeta = { career_approval_card_id: cardYes.card_id, open_card: cardYes.card_id };
+      } else if (alertFb) {
+        out = { reply: alertFb.reply, intent: alertFb.intent, resultStatus: alertFb.status, contained: false, handler: "alert_feedback" };
       } else if (paced) {
         out = { reply: paced.reply, intent: paced.intent, resultStatus: paced.status, contained: false, handler: "apply_pace" };
       } else if (employerAns) {
@@ -1194,7 +1203,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (ctx._hostPatch?.erase === true) await supabaseResumeStore(admin).removeAll(user.id).catch((e) => console.error("career erase: resumes", e?.message ?? e));
       // A job watch set, changed, paused or stopped by text is the person's alert settings, which the scheduled alerts
       // run reads (career_watch_alerts.ts). After the save: a refused save writes none; a failed write never fails it.
-      await syncWatchAlerts({ userId: user.id, before: loaded.watchState, after: ctx.alertWatchState, erased: ctx._hostPatch?.erase === true, store: supabaseAlertStore(admin), now: Date.now() })
+      await syncWatchAlerts({ userId: user.id, before: loaded.watchState, after: ctx.alertWatchState, erased: ctx._hostPatch?.erase === true, store: supabaseAlertStore(admin), now: Date.now(), message })
         .then((r) => { if (r.action === "refused") console.error("career watch alerts: not saved:", r.reason); })
         .catch((e) => console.error("career watch alerts:", e?.message ?? e));
       flowCtx.note = null;

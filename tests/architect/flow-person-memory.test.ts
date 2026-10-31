@@ -17,6 +17,9 @@
 //       stated on iMessage is known on the web;
 //   (3) another person never sees any of it: their Telegram chat and their web thread know none of the first person's
 //       entries, applications, facts or contacts, and their account record holds nothing of them;
+//       and the other person's own copy survives the first person's saves;
+//   (5) a thread last written before the switch (no account_memory stamp) keeps its copy, and a web-only person stays
+//       per-thread while other people have texting contacts linked;
 //   (4) nothing was sent to anyone: no outreach, no application, no email (external effects still wait for an approval of
 //       the exact payload), and no fact was invented (every confirmed entry on the account has its fact_confirmed event).
 // Run: deno test -A --no-check --import-map=tests/flow/supabase-npm.json tests/architect/flow-person-memory.test.ts
@@ -38,7 +41,9 @@ const CI = Deno.env.get("CI") === "true";
 const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 const RESUME = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
 const ME = "7b0f8f8e-6a43-4a49-9d2c-0000000031a1", OTHER = "7b0f8f8e-6a43-4a49-9d2c-0000000031a2";
-const TG_ME = 7731001, TG_OTHER = 7731002, WA_ME = "15550131001", IM_ME = "+15550131002";
+const THIRD = "7b0f8f8e-6a43-4a49-9d2c-0000000031a3", WEBONLY = "7b0f8f8e-6a43-4a49-9d2c-0000000031a4";
+const LEGACY_THREAD = "7b0f8f8e-6a43-4a49-9d2c-0000000031b3";
+const TG_ME = 7731001, TG_OTHER = 7731002, TG_THIRD = 7731003, WA_ME = "15550131001", IM_ME = "+15550131002";
 const TOKEN = "123456:TEST-person-memory-token-not-real", TG_SECRET = "TEST_person_memory_webhook_secret_0123456789";
 const IN_SECRET = "TEST_person_memory_inbound_secret_0123456789", WA_APP = "TEST_person_memory_wa_app_secret_0123456789";
 const ENV_OFF = ["CAREER_BRAIN", "CAREER_KNOWLEDGE", "CAREER_BRAIN_ROUTER_INTENTS", "CAREER_ACCOUNT_MEMORY", "OPENAI_API_KEY", "MODEL_PROVIDER", "CAREER_MODEL",
@@ -62,7 +67,7 @@ async function world() {
   for (const k of ENV_OFF) Deno.env.delete(k);
   for (const [k, v] of Object.entries({ TELEGRAM_BOT_TOKEN: TOKEN, TELEGRAM_WEBHOOK_SECRET: TG_SECRET, TRAINEE_SIGNUP: "closed", TRAINEE_ALLOWED_CONTACTS: "",
     TRAINEE_INBOUND_SECRET: IN_SECRET, LOOPMESSAGE_API_KEY: "loop-test", WHATSAPP_TOKEN: "wa-test", WHATSAPP_PHONE_NUMBER_ID: "1", WHATSAPP_APP_SECRET: WA_APP })) Deno.env.set(k, v);
-  for (const id of [ME, OTHER]) {
+  for (const id of [ME, OTHER, THIRD, WEBONLY]) {
     await pg.sql(`insert into auth.users (id, email) values ('${id}', '${id}@example.test'); insert into public.profiles (id) values ('${id}');
       insert into public.career_watch_kv (user_id, key, value) values ('${id}', 'career:account', '{"epoch":0,"version":0,"paused":false}');`);
   }
@@ -72,8 +77,13 @@ async function world() {
     ('tg:${TG_ME}', '${ME}', now() - interval '1 hour', now() - interval '2 days'),
     ('wa:${WA_ME}', '${ME}', now() - interval '1 hour', now() - interval '2 days'),
     ('${IM_ME}', '${ME}', now() - interval '1 hour', now() - interval '2 days'),
-    ('tg:${TG_OTHER}', '${OTHER}', now() - interval '1 hour', now() - interval '2 days');`);
-  h = await careerHandler(pg, { "tok-pm-me": ME, "tok-pm-other": OTHER });
+    ('tg:${TG_OTHER}', '${OTHER}', now() - interval '1 hour', now() - interval '2 days'),
+    ('tg:${TG_THIRD}', '${THIRD}', now() - interval '1 hour', now() - interval '2 days');`);
+  // Setup: the third person has a web thread last written before the switch (no account_memory stamp), holding a tracker row.
+  await pg.sql(`insert into public.agent_threads (id, user_id, title) values ('${LEGACY_THREAD}', '${THIRD}', 'TEST pre-switch thread');
+    insert into public.agent_flow_state (thread_id, user_id, state, updated_at) values ('${LEGACY_THREAD}', '${THIRD}',
+      '{"career":{"v":1,"scope":{"userId":"${THIRD}"},"revision":3,"stores":{"trackStore":{"rows":[{"app_id":"legacy-1","company":"Legacy Co","status":"applied"}]}}}}', now() - interval '20 days');`);
+  h = await careerHandler(pg, { "tok-pm-me": ME, "tok-pm-other": OTHER, "tok-pm-webonly": WEBONLY });
   const { handleChat } = await import("../../supabase/functions/agent-chat/handler-career.ts");
   const viaDouble = globalThis.fetch;
   const bot = fakeBot({ token: TOKEN, now: Date.now });
@@ -220,7 +230,12 @@ Deno.test({ name: "person memory (3): another person never sees any of it, on Te
   if (skip()) return;
   await world();
   // The first person types a contact on Telegram (kept on their account), so there is something of theirs to leak.
+  // The other person's own record, saved first: the first person's later saves must leave it whole.
+  await telegram(TG_OTHER, "I applied to Figma for the product design intern role", OTHER);
+  const otherThread = await textingThread(OTHER);
+  assert((await trackerOf(otherThread)).some((r: any) => r.company === "Figma"), `precondition: the other person's texting thread holds Figma: ${JSON.stringify(await trackerOf(otherThread))}`);
   await telegram(TG_ME, "email Maya Chen at Stripe about a coffee chat, her email is maya.chen@stripe.example", ME);
+  assert((await trackerOf(otherThread)).some((r: any) => r.company === "Figma"), `the first person's save leaves the other person's copy whole: ${JSON.stringify(await trackerOf(otherThread))}`);
   const leak = /Stripe|junior|computer science|TEST Systems|TEST University|DeployBoard|Maya|Alex Testcase/i;
   const tg = await telegram(TG_OTHER, "what do you know about me", OTHER);
   assert(!leak.test(tg.reply), `the other person's Telegram knows nothing of the first: ${tg.reply}`);
@@ -238,6 +253,23 @@ Deno.test({ name: "person memory (3): another person never sees any of it, on Te
   // The first person still knows their own contact on the web (contacts are the account's).
   const mine = await webSay(h!.chat("tok-pm-me"), "who do I know at Stripe?");
   assert(/Maya Chen/.test(mine.reply), `the first person's web knows the contact typed on Telegram: ${mine.reply}`);
+} });
+
+Deno.test({ name: "person memory (5): a thread from before the switch keeps its copy; a web-only person stays per-thread", sanitizeResources: false, sanitizeOps: false, async fn() {
+  if (skip()) return;
+  await world();
+  const before = await sql(`select state::text from public.agent_flow_state where thread_id = '${LEGACY_THREAD}'`);
+  await telegram(TG_THIRD, "I applied to Notion for the data analyst intern role", THIRD);
+  assert((await trackerOf(await textingThread(THIRD))).some((r: any) => r.company === "Notion"), "precondition: the third person's texting thread saved their tracker");
+  eq(await sql(`select state::text from public.agent_flow_state where thread_id = '${LEGACY_THREAD}'`), before, "the unstamped thread keeps its own copy until its next turn folds it in");
+  // A person with no texting contact, while other people have theirs linked: their record stays with the thread.
+  const web = h!.chat("tok-pm-webonly");
+  const logged = await webSay(web, "I applied to Ramp for the finance intern role");
+  assert(/Ramp/.test(logged.reply), logged.reply);
+  eq((await trackerOf(web.thread()!)).map((r: any) => r.company), ["Ramp"], "the web thread holds the application");
+  const acct = JSON.parse(await sql(`select coalesce((select value::text from public.career_watch_kv where user_id = '${WEBONLY}' and key = 'career:account'), 'null')`));
+  assert(!acct || !("memory" in acct), `a web-only person's record is not moved to the account: ${JSON.stringify(acct)}`);
+  eq(await sql(`select coalesce(state#>>'{career,account_memory}', 'none') from public.agent_flow_state where thread_id = '${web.thread()}'`), "none", "nor is their thread stamped as account-backed");
 } });
 
 Deno.test({ name: "person memory (4): nothing was sent and nothing invented", sanitizeResources: false, sanitizeOps: false, async fn() {

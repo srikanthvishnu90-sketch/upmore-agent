@@ -20,6 +20,9 @@
 -- (CAREER_ACCOUNT_MEMORY=off) never stamps a snapshot, so this does nothing there; an erase writes no profile.
 -- The cleared rows keep their updated_at, so "the most recent thread" stays the one that saved.
 --
+-- Two saves at once (tests/db/career_account_memory_one_copy_race.py): rows are locked in thread order, skipping any a
+-- concurrent save holds, so two threads of one person never deadlock.
+--
 -- Additive and reversible: one function and one trigger. Down:
 --   drop trigger if exists career_account_memory_one_copy on public.agent_flow_state;
 --   drop function if exists public.career_account_memory_one_copy();
@@ -44,13 +47,20 @@ begin
          then jsonb_build_object('trackStore', jsonb_build_object('_careerThread', s.state#>'{career,stores,trackStore,_careerThread}'))
          else '{}'::jsonb end),
   updated_at = s.updated_at
- where s.user_id = new.user_id
-   and s.thread_id <> new.thread_id
-   and s.state#>>'{career,account_memory}' = '1'
-   and jsonb_typeof(s.state#>'{career,stores}') = 'object'
-   and (jsonb_typeof(s.state#>'{career,stores,profile,facts}') is not distinct from 'array'
-        or jsonb_typeof(s.state#>'{career,stores,profile,basics}') is not distinct from 'object'
-        or jsonb_typeof(s.state#>'{career,stores,trackStore,rows}') is not distinct from 'array');
+ where s.thread_id in (
+   -- Each saving transaction already holds its own row. Two threads of one person saving at once would each wait for the
+   -- other's row (a deadlock). The other rows are taken in thread order and a row another save holds is skipped: that
+   -- save is the newer copy and clears this one when it runs its own trigger, or the next save does.
+   select o.thread_id from public.agent_flow_state o
+   where o.user_id = new.user_id
+     and o.thread_id <> new.thread_id
+     and o.state#>>'{career,account_memory}' = '1'
+     and jsonb_typeof(o.state#>'{career,stores}') = 'object'
+     and (jsonb_typeof(o.state#>'{career,stores,profile,facts}') is not distinct from 'array'
+          or jsonb_typeof(o.state#>'{career,stores,profile,basics}') is not distinct from 'object'
+          or jsonb_typeof(o.state#>'{career,stores,trackStore,rows}') is not distinct from 'array')
+   order by o.thread_id
+   for update skip locked);
  return new;
 end $$;
 revoke all on function public.career_account_memory_one_copy() from public, anon, authenticated;

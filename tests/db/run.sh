@@ -838,4 +838,12 @@ SQL
 "${PSQL[@]}" -t -A -o /dev/null -f "$WORK/definer-keys.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== definer_lockdown.test.sql (the fourteen functions as set live; no definer function anon can run; every one with a search_path)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/definer_lockdown.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# ISOLATION + SCALE (2026-10-30), last, on the final schema: two people, anon and a stranger's chat against every table, policy and
+# RPC the agent-chat, trainee-file and trainee-connect paths reach (it found credit_pending_referral open to any signed-in person,
+# closed by 20261030160000); then 200 people interleaving turns in real concurrent sessions (one model slot each, the global
+# budget never overspent, one queued application per Apply however many taps). Rolls back / removes its own rows.
+echo "== isolation_surface.check.sql (A, anon and another chat cannot read, write, approve or queue anything of B's)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/isolation_surface.check.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== isolation_scale.py (200 people interleaving turns: idempotent reservations, no budget overspend, one queued application per Apply)"
+python3 "$HERE/isolation_scale.py" "${PSQL[@]}"
 echo "db tests passed"

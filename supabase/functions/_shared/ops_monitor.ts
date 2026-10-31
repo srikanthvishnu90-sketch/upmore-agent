@@ -15,10 +15,13 @@ export interface Snapshot {
   refusals: { id: string; kind: string; created_at: string; detail: any }[] | null;
   spend: Spend | null;
   http5xx: { fn: string; count: number }[] | null;
+  // Optional so a caller that does not read them is unchanged (undefined = not measured, like null).
+  deploySmoke?: { id: string; created_at: string; sha: string; fail: number; notRun: number } | null; // newest founder_alerts kind=deploy_smoke
+  outbox?: { oldestPendingAt: string | null; pending: number } | null; // texts due but never delivered (career_outbox)
 }
 export interface Spend { source: "model_budget" | "turn_costs"; day: string; spentMicros: number; reservedMicros: number; limitMicros: number }
-export interface Thresholds { ingestStaleMs: number; deliveryWindowMs: number; deliveryMinFailed: number; deliverySilentMs: number; workerQueuedMs: number; workerDrivingMs: number; http5xxMin: number }
-export const DEFAULTS: Thresholds = { ingestStaleMs: 2 * H, deliveryWindowMs: 30 * MIN, deliveryMinFailed: 3, deliverySilentMs: 10 * MIN, workerQueuedMs: 20 * MIN, workerDrivingMs: 30 * MIN, http5xxMin: 10 };
+export interface Thresholds { ingestStaleMs: number; deliveryWindowMs: number; deliveryMinFailed: number; deliverySilentMs: number; workerQueuedMs: number; workerDrivingMs: number; http5xxMin: number; smokeFreshMs: number; outboxStuckMs: number }
+export const DEFAULTS: Thresholds = { ingestStaleMs: 2 * H, deliveryWindowMs: 30 * MIN, deliveryMinFailed: 3, deliverySilentMs: 10 * MIN, workerQueuedMs: 20 * MIN, workerDrivingMs: 30 * MIN, http5xxMin: 10, smokeFreshMs: 24 * H, outboxStuckMs: 30 * MIN };
 export interface Alert { kind: string; key: string; cooldownMs: number; text: string }
 
 const ago = (now: number, iso: string | null) => (iso ? now - Date.parse(iso) : Infinity);
@@ -71,6 +74,13 @@ export function evaluate(s: Snapshot, t: Thresholds = DEFAULTS): Alert[] {
   }
   for (const e of s.http5xx ?? []) if (e.count >= t.http5xxMin) out.push({ kind: "http_5xx_spike", key: `http_5xx_spike:${e.fn}`, cooldownMs: 1 * H,
     text: `5xx spike: function ${e.fn} returned ${e.count} server errors in the last 15 minutes.` });
+  // A deploy smoke that failed (or ran with a FAIL) is reported once per run, for a day after it ran; a later passing run replaces it.
+  const sm = s.deploySmoke;
+  if (sm && sm.fail > 0 && ago(s.now, sm.created_at) <= t.smokeFreshMs) out.push({ kind: "deploy_smoke_failed", key: sm.id, cooldownMs: 24 * H,
+    text: `The last deploy smoke${sm.sha ? ` (commit ${sm.sha.slice(0, 7)})` : ""} had ${sm.fail} failing check(s) and ${sm.notRun} not run, at ${sm.created_at}. The live project may not match what was shipped; re-run scripts/launch/trainee-go-live.sh --only-smoke.` });
+  // Stuck queue: texts that were due long ago and were never delivered (the delivery runner can be "running" and still not draining).
+  if (s.outbox && s.outbox.pending > 0 && s.outbox.oldestPendingAt && ago(s.now, s.outbox.oldestPendingAt) > t.outboxStuckMs) out.push({ kind: "outbox_stuck", key: "outbox_stuck", cooldownMs: 2 * H,
+    text: `${s.outbox.pending} queued text(s) are past due and undelivered; the oldest has waited ${mins(ago(s.now, s.outbox.oldestPendingAt))}. The delivery queue is stuck.` });
   return out;
 }
 
@@ -128,6 +138,16 @@ export async function readSnapshot(admin: Admin, env: { get(k: string): string |
     }),
     spend: await readSpend(admin, now, env),
     http5xx: fetch5xx ? await safe(fetch5xx) : null,
+    deploySmoke: await safe(async () => {
+      const r = await admin.from("founder_alerts").select("id,created_at,detail").eq("kind", "deploy_smoke").order("created_at", { ascending: false }).limit(1);
+      if (r.error) return null;
+      const x = r.data?.[0];
+      return x ? { id: String(x.id ?? x.created_at), created_at: x.created_at, sha: String(x.detail?.sha ?? ""), fail: Number(x.detail?.fail ?? 0), notRun: Number(x.detail?.not_run ?? 0) } : { id: "none", created_at: iso(0), sha: "", fail: 0, notRun: 0 };
+    }),
+    outbox: await safe(async () => {
+      const r = await admin.from("career_outbox").select("deliver_at").is("delivered_at", null).lt("deliver_at", iso(now - DEFAULTS.outboxStuckMs)).order("deliver_at", { ascending: true }).limit(500);
+      return r.error ? null : { oldestPendingAt: r.data?.[0]?.deliver_at ?? null, pending: (r.data ?? []).length };
+    }),
   };
 }
 

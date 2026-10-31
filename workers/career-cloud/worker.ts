@@ -19,7 +19,7 @@ import { approvedQuestionsAfterRefusal, assertApprovedPayload, factsFromPayload,
 import { questionsToStore } from "../career-browser/ask-once.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { authorizeCurrentCloudJob } from "./current_sources.ts";
-import { dbHostGate, fileJournal, handBack, type HostGate, type Journal, massRun, type Pacing, pacingFrom, requeueMissing, sentNothingRefusal, unstartedWhy } from "../career-browser/mass-run.ts";
+import { dbHostGate, fileJournal, handBack, type HostGate, type Journal, type JournalResult, massRun, type Pacing, pacingFrom, requeueMissing, sentNothingRefusal, unstartedWhy } from "../career-browser/mass-run.ts";
 
 export interface CloudJob {
   id: string;
@@ -158,6 +158,9 @@ export async function runCloudJob(job: CloudJob, d: {
   // The scheduler puts back a job whose site refused before anything was sent (mass-run.ts sentNothingRefusal): such a
   // run is returned with requeue: true and not finished here.
   requeueRefusal?: boolean;
+  // Submit worker round (2026-10-31): the engine's answer, awaited before the queue records it (the scheduler's journal),
+  // so a worker that dies between the two records that answer on its next start instead of "unknown".
+  beforeFinish?: (r: JournalResult) => Promise<void>;
 }) {
   // Capture the claimed job and lease before asynchronous work; the child never selects its authority.
   job = structuredClone(job);
@@ -241,6 +244,10 @@ export async function runCloudJob(job: CloudJob, d: {
     }
     if ((Array.isArray(result.questions) ? result.questions.length : 0) > questions.length) evidence.not_asked_by_text = "typed on the form (an identity or bank number), never by text";
   }
+  if (began && d.beforeFinish) {
+    try { await d.beforeFinish({ state: s.state, reason: s.reason, outcome: s.outcome, errorKind: s.errorKind, evidence }); }
+    catch { /* the journal could not keep it: the record below is still made */ }
+  }
   let recorded = false;
   for (let i = 0; i < 4 && !recorded; i++) {
     try {
@@ -304,9 +311,9 @@ export async function cloudLoop(o: {
       log(`The queue could not be read (${e?.message ?? e}); asking again shortly. Nothing was run.`);
       return "wait";
     },
-    run: async (job, onStart) => {
+    run: async (job, onStart, onResult) => {
       const r: any = await runCloudJob(job, { queue: o.queue, runEngine: o.runEngine, tmpRoot: o.tmpRoot, log, stopping: o.stop, beforeEngine: onStart,
-        requeueRefusal: typeof o.queue.requeue === "function" });
+        requeueRefusal: typeof o.queue.requeue === "function", beforeFinish: onResult });
       if (r.requeue) return { state: r.state, reason: r.reason, recorded: false, retry_after_s: r.retry_after_s ?? null, requeue: true, status: r.status ?? null };
       done.push(r);
       return { state: r.state, reason: r.reason, recorded: r.recorded, retry_after_s: (r as { retry_after_s?: number }).retry_after_s ?? null };
@@ -363,6 +370,28 @@ export async function cloudLoop(o: {
       log(`${job.id}: not_submitted (not_sent, ${why})${recorded ? "" : "; NOT RECORDED: the queue marks it unknown after 15 minutes"}`);
       const r = { id: job.id, user_id: job.user_id, state: "not_submitted", reason: why, outcome: "not_sent" as Outcome, errorKind: why, recorded };
       done.push(r);
+      return r;
+    },
+    // The worker died after the engine answered and before the queue recorded it: that answer is recorded now (the board's
+    // own confirmation, or its refusal), under the same lease; never driven again. A lease the database already swept is
+    // left as the sweep recorded it (unknown; the employer's email can still confirm it).
+    recovered: async (job, res) => {
+      const state = OUTCOMES.has(res.state) ? res.state : "unknown_outcome";
+      const outcome = (["submitted", "bot_check", "error", "not_sent", "interrupted"].includes(String(res.outcome)) ? res.outcome : "error") as Outcome;
+      const evidence = { ...(res.evidence ?? {}), by: "cloud", recovered_from_journal: true };
+      let recorded = false;
+      for (let i = 0; i < 4 && !recorded; i++) {
+        try {
+          await o.queue.finish(job, state, evidence, outcome, res.errorKind ?? null);
+          recorded = true;
+        } catch (e: any) {
+          if (/invalid apply (claim|transition)/i.test(String(e?.body ?? e?.message ?? ""))) { recorded = true; break; }
+          if (i < 3) await new Promise((r) => setTimeout(r, 50 * 2 ** i));
+        }
+      }
+      log(`${job.id}: ${state} (recorded from the journal: the worker stopped after the employer answered)${recorded ? "" : "; NOT RECORDED: the queue marks it unknown after 15 minutes"}`);
+      const r = { id: job.id, user_id: job.user_id, state, reason: String(res.reason ?? ""), outcome, errorKind: res.errorKind ?? null, recorded };
+      done.push(r as any);
       return r;
     },
     orphaned: async (job) => {
@@ -495,7 +524,8 @@ export function restQueue(o: { url: string; key: string; fetch?: typeof fetch })
     async claim(limit) {
       const rows = await rpc("career_apply_cloud_claim", { p_limit: limit });
       if (!Array.isArray(rows)) throw Error("APPLY_QUEUE_UNAVAILABLE");
-      return rows;
+      // Only rows this claim took (an id and a lease): a database before 20261030140000 could return an all-null row.
+      return rows.filter((r: any) => r && typeof r.id === "string" && typeof r.lease_token === "string");
     },
     authorize: (job, phase) => authorizeCurrentCloudJob(job, phase, { rpc }),
     resume: (job) => rpc("career_apply_cloud_resume", { p_id: job.id, p_lease: job.lease_token }),

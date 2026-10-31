@@ -32,7 +32,26 @@ Deno.test("AW-2 open phrasings the old regex missed go to the brain", () => {
 });
 
 Deno.test("AW-3 company-specific, posting and action asks stay with code", () => {
-  for (const m of ["is Stripe worth it?", "should I go into the interview at Goldman Sachs?", "what does it take to get hired at Goldman Sachs as an analyst?", "apply to the Backend Software Engineer role at Ironstack Payments", "find me nurse jobs in Chicago", "watch data analyst roles in Austin"]) {
+  for (const m of ["is Stripe worth it?", "is Acmeworks worth it?", "how do I be a Googler?", "what does it take to be a Googler?", "should I go into Acmeworks?", "is Goldman a good bet?", "should I become a Meta engineer?", "is Ironstack Payments a good career move?", "should I go into the interview at Goldman Sachs?", "what does it take to get hired at Goldman Sachs as an analyst?", "apply to the Backend Software Engineer role at Ironstack Payments", "find me nurse jobs in Chicago", "watch data analyst roles in Austin"]) {
     const d = decide(m); assertNode.notEqual(d.reason, "open_career_question", `${m}: ${d.reason}`);
   }
+});
+
+import { FIELDS, OVERLAYS } from "../../supabase/functions/_shared/agent/research/fields.ts";
+import { SHORTS, template } from "../../supabase/functions/_shared/agent/research/shorts.ts";
+import { unsupported } from "../../supabase/functions/_shared/agent/research/guard.ts";
+
+Deno.test("AW-4 hand-written shorts: the 15 high-traffic fields exist, carry no figure or name, and differ from each other", () => {
+  const keys = new Set(SHORTS.map((s) => s.key));
+  for (const k of ["nursing", "law", "accounting", "ux", "product", "pilot", "welding", "swe", "datasci", "teaching", "electrician", "medicine", "marketing", "consulting", "ib"]) assertNode.ok(keys.has(k), k);
+  const lines = SHORTS.flatMap((s) => [s.now, s.later, s.act, s.degree, s.worth]);
+  for (const l of lines) assertNode.ok(!/\d/.test(l), `digit in: ${l}`);
+  assertNode.equal(new Set(lines).size, lines.length, "no two hand-written lines are identical");
+  for (const l of [...lines, ...FIELDS.flatMap((f) => f.short ? [f.short.now, f.short.later, f.short.act] : []), ...OVERLAYS.map((o) => o.lead ?? "")]) assertNode.deepStrictEqual(unsupported(l, "", true).filter((x) => !/^(?:ux|hvac|rn)$/i.test(x)), [], l);
+});
+Deno.test("AW-5 the template names the occupation and gives a route line, licensed or open", () => {
+  for (const [n, local] of [["dental hygiene", true], ["wildlife biology", false], ["music", false], ["law enforcement", true]] as const) {
+    const t = template(n, local); assertNode.ok([t.now, t.later, t.act, t.degree, t.worth].every((x) => x.includes(n)), n);
+  }
+  assertNode.notEqual(template("a", true).now, template("a", false).now);
 });

@@ -116,7 +116,12 @@ const OPEN_ENTRY_RES: RegExp[] = [
   /\bshould\s+i\s+(?:still\s+)?(?:major|minor|study|specialize|concentrate)\s+in\b/i,
   new RegExp(String.raw`\bshould\s+i\s+(?:still\s+)?(?:go\s+(?:into|to\s+school\s+for)|pursue|become|be\s+an?|enter|switch\s+(?:in)?to|train\s+as)\b`, "i"),
 ];
-const OPEN_ENTRY = { test: (m: string) => OPEN_ENTRY_RES.some((r) => r.test(m)) };
+// The broad shapes ("be a ...", "is ... worth it", "should I go into ...") also fit "be a Googler" and "is Acmeworks worth it": a
+// capitalized word inside the matched span (after its first word) is a company or a person, never an occupation, so the
+// question stays code's (company file or the library) instead of being researched as a field.
+const NAMED = /\b[A-Z][a-z]{2,}|\b[A-Z][a-z]+[A-Z]\w*/;
+const namesSomeone = (span: string) => NAMED.test(span.replace(/^\S+\s*/, ""));
+const OPEN_ENTRY = { test: (m: string) => OPEN_ENTRY_RES.some((r) => { const x = r.exec(m); return !!x && !namesSomeone(m.slice(x.index).split(/[?.!]/)[0]); }) };
 const OPEN_ENTRY_KINDS = new Set(["role_kb_stats", "role_kb_absent", "plan_paths"]);
 export function openCareerQuestion(env: Env, message: string, intent: string, result: unknown): boolean {
   if (env.get("CAREER_KNOWLEDGE") !== "on") return false;

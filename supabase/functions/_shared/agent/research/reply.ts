@@ -40,11 +40,18 @@ export function clip(text: string, max: number): string {
   return cut.replace(/[,\s]+(?:and|or|but|with|of|to|the|a|an)?$/i, "");
 }
 export function fallbackVerdict(r: Ok): string {
+  const name = r.name ?? "";
   const lead = (t: string) => (/\bnow\b|\brealistic/i.test(t.slice(0, 80)) ? t : `Right now, ${lowerFirst(t)}`);
-  const now = r.short ? cap1(r.short.now) : lead(clip(r.verdict.now, 26)), later = r.short?.later ?? clip(r.verdict.later, 24), act = r.short?.act ?? (r.first_action ? clip(r.first_action, 22) : "");
-  const parts = [`${now}.`, `Later, ${lowerFirst(later)}.`];
+  const sNow = r.short?.now;
+  // hand-written lines start "right now ..." and are named here; the template already names the occupation
+  const now = sNow ? (name && !sNow.toLowerCase().includes(name.toLowerCase()) ? `Right now, for ${name}, ${sNow.replace(/^right now\s+/i, "")}` : cap1(sNow)) : lead(clip(r.verdict.now, 26));
+  const later = r.short?.later ?? clip(r.verdict.later, 24), act = r.short?.act ?? (r.first_action ? clip(r.first_action, 22) : "");
+  // An asked "is it worth it" / "do I need a degree" gets its direct answer as the verdict (first sentence); the route sentence
+  // then yields to it, since the brief carries the route.
+  const parts = r.answer ? [`Realistically, ${name && !r.answer.toLowerCase().includes(name.toLowerCase().replace(/^the /, "")) ? `for ${name}, ` : ""}${lowerFirst(r.answer)}`] : [`${now}.`];
+  parts.push(`Later, ${lowerFirst(later)}.`);
   if (act) parts.push(`This week: ${lowerFirst(act)}.`);
-  if (r.lead && wc(parts.join(" ")) + wc(r.lead) <= 88) parts.splice(2, 0, r.lead);
+  if (r.lead && wc(parts.join(" ")) + wc(r.lead) <= 88) parts.splice(parts.length - 1, 0, r.lead);
   const body = parts.join(" ");
   return r.file_url ? `${body} The full plan, timeline and honest odds: ${r.file_url}` : body;
 }

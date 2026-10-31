@@ -5,6 +5,7 @@ import type { Fact, Grounded } from "./ground.ts";
 import type { Kind } from "./fields.ts";
 import type { StageGroup, Understanding } from "./understand.ts";
 import { unsourcedIn } from "./guard.ts";
+import { directAnswer, shortFor } from "./shorts.ts";
 
 type Slot = "foundation" | "experience" | "credential" | "target";
 const LADDER: Record<StageGroup, [string, Slot[]][]> = {
@@ -50,6 +51,8 @@ export function composeBrief(o: { u: Understanding; g: Grounded; message: string
   sec("Honest read");
   if (STAGE_NOTE[u.stage]) L.push(gk(STAGE_NOTE[u.stage]), "");
   L.push(`**Realistic now.** ${gk(f.now)}`, "", `**Realistic later.** ${gk(f.later)}`);
+  const direct = directAnswer(o.message, shortFor(f, o.message));
+  if (direct) L.push("", `**Your question.** ${gk(direct)}`);
   for (const v of u.overlays) L.push("", gk(v.read));
   if (u.qtype === "pay") L.push("", "You asked about pay: the only figures in this brief are the sourced ones under \"What the data says\"; pay varies by region and employer.");
 

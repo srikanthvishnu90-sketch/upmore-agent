@@ -11,6 +11,7 @@ import { researchCareerQuestion } from "../../supabase/functions/_shared/agent/r
 import { fallbackVerdict } from "../../supabase/functions/_shared/agent/research/reply.ts";
 import { lintChat } from "../../supabase/functions/_shared/agent/research/chat.ts";
 import { detectField } from "../../supabase/functions/_shared/agent/research/understand.ts";
+import { DEGREE_ASK, shortFor, WORTH_ASK } from "../../supabase/functions/_shared/agent/research/shorts.ts";
 import { unsourcedIn } from "../../supabase/functions/_shared/agent/research/guard.ts";
 
 export const LINK = "https://files.example/brief/plan.md";
@@ -121,7 +122,7 @@ const fresh = () => host.createTurnCtx({ userId: "u-wide", threadId: "t-wide", n
 const ENV = { get: (k: string) => ({ CAREER_BRAIN: "staged", CAREER_KNOWLEDGE: "on" } as Record<string, string>)[k] };
 const SOFTWARE = /\b(leetcode|github|python|coding|software|resume bullets? with metrics)\b/i;
 
-export const CAUSES = ["route", "field", "stage", "overlay", "chat_lint", "chat_shape", "unsourced", "software_default", "brief_shape", "ask", "hallucinated_number"] as const;
+export const CAUSES = ["names_field", "duplicate", "no_direct_answer", "route", "field", "stage", "overlay", "chat_lint", "chat_shape", "unsourced", "software_default", "brief_shape", "ask", "hallucinated_number"] as const;
 export type Cause = typeof CAUSES[number];
 export interface Graded { id: string; message: string; fails: { cause: Cause; why: string }[]; chat: string; brief: string }
 
@@ -147,6 +148,13 @@ export async function gradeSeed(s: WSeed): Promise<Graded> {
   }
   const LEADS: Record<string, RegExp> = { high_school: /At your age/, veteran: /service counts/, older: /experience is the asset/, intl: /work authorization/, cc: /transfer-credit/ };
   if (s.ctx.overlay && LEADS[s.ctx.overlay] && !LEADS[s.ctx.overlay].test(chat)) bad("overlay", `paragraph ignores ${s.ctx.overlay}`);
+  // reviewer checks: the paragraph names the occupation, and asked "worth it" / "need a degree" questions get a direct answer line
+  const low = chat.toLowerCase();
+  if (![...s.occ.field.split(" ").filter((w) => w.length > 4), s.occ.a.split(" ").pop()!].some((w) => low.includes(w.toLowerCase()))) bad("names_field", "paragraph never names the occupation");
+  if (WORTH_ASK.test(s.message) || DEGREE_ASK.test(s.message)) {
+    if (!/^Realistically,/.test(chat)) bad("no_direct_answer", "asked worth/degree, no direct answer first");
+    if (!/\*\*Your question\.\*\*/.test(md)) bad("no_direct_answer", "brief has no Your question line");
+  }
   const lint = lintChat(chat, { link: LINK, facts: r.facts, person: r.person, message: s.message });
   for (const l of lint) bad("chat_lint", l);
   const w = chat.replace(LINK, "").trim().split(/\s+/).length;
@@ -163,6 +171,15 @@ export async function gradeSeed(s: WSeed): Promise<Graded> {
   if (s.occ.local && /Which state are you in/.test(r.ask ?? "") === false && !/Assuming you're in the US/.test(md)) bad("ask", "licensed field with no state ask or assumption");
   return { id: s.id, message: s.message, fails, chat, brief: md };
 }
+// Two different occupations must never get a byte-identical "Later ... This week ..." core (the generic paragraph the reviewer found).
+export function duplicates(seeds: WSeed[], rows: Graded[]): Graded[] {
+  const by = new Map<string, Set<string>>();
+  rows.forEach((r, i) => { const core = r.chat.replace(/https?:\S+/, "").replace(/^.*?(Later,)/s, "$1").trim(); if (!by.has(core)) by.set(core, new Set()); by.get(core)!.add(seeds[i].occ.field); });
+  const dup = new Set([...by].filter(([, v]) => v.size > 1).flatMap(([, v]) => [...v]));
+  for (const r of rows) { /* mark below */ }
+  rows.forEach((r, i) => { if (dup.has(seeds[i].occ.field)) r.fails.push({ cause: "duplicate", why: `${seeds[i].occ.field} shares a paragraph core with another occupation` }); });
+  return rows;
+}
 export function summarize(rows: Graded[]) {
   const by = new Map<string, number>(), ex = new Map<string, string>();
   for (const r of rows) for (const f of r.fails) { by.set(f.cause, (by.get(f.cause) ?? 0) + 1); if (!ex.has(f.cause)) ex.set(f.cause, `${r.id} "${r.message}": ${f.why}`); }
@@ -173,6 +190,7 @@ if (import.meta.main) {
   const only = Deno.args[Deno.args.indexOf("--only") + 1], seeds = wideSeeds().filter((s) => !Deno.args.includes("--only") || s.id === only);
   const rows: Graded[] = [];
   for (const s of seeds) rows.push(await gradeSeed(s));
+  duplicates(seeds, rows);
   const sum = summarize(rows);
   console.log(`${sum.pass}/${sum.total} seeds clean (${(sum.score * 100).toFixed(1)}%)`);
   for (const c of sum.causes) console.log(`  ${String(c.n).padStart(4)}  ${c.cause}  e.g. ${c.example}`);

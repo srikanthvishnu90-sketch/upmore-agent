@@ -272,10 +272,17 @@ export function handBack(r: { state?: string; reason?: string | null } | null | 
 // engine started. The start is written and fsynced before the engine runs; the file is removed once the outcome is
 // recorded. It holds the person's approved answers for as long as the drive lasts, like the facts file the engine reads.
 // Each instance has its own folder (one per machine or container).
-export interface JournalEntry<J> { job: J; claimedAt: number; started: boolean }
+// Submit worker round (2026-10-31): the employer's answer is written here too, after the engine returned and before the
+// queue records it (`result`). A worker that dies between the two used to leave only "started", recorded unknown on its
+// next start although the employer had answered (a confirmation number on the page): the next start now records that
+// answer (o.recovered), and still never drives the application again.
+export interface JournalResult { state: string; reason?: string | null; outcome?: string | null; errorKind?: string | null; evidence?: Record<string, unknown> }
+export interface JournalEntry<J> { job: J; claimedAt: number; started: boolean; result?: JournalResult }
 export interface Journal<J extends { id: string }> {
   put(job: J, claimedAt: number): Promise<void>;
   start(id: string): Promise<void>;
+  // The engine's answer, before the queue records it (optional: a journal without it leaves the start only).
+  result?(id: string, r: JournalResult): Promise<void>;
   done(id: string): Promise<void>;
   list(): Promise<JournalEntry<J>[]>;
 }
@@ -316,6 +323,11 @@ export function fileJournal<J extends { id: string }>(dir: string): Journal<J> {
       const e = JSON.parse(await Deno.readTextFile(file(id)));
       await write(file(id), { ...e, started: true });
     },
+    async result(id, r) {
+      await init();
+      const e = JSON.parse(await Deno.readTextFile(file(id)));
+      await write(file(id), { ...e, started: true, result: r });
+    },
     async done(id) {
       await Deno.remove(file(id)).catch(() => {});
     },
@@ -326,7 +338,10 @@ export function fileJournal<J extends { id: string }>(dir: string): Journal<J> {
         if (!f.isFile || !f.name.endsWith(".json")) continue;
         try {
           const e = JSON.parse(await Deno.readTextFile(`${dir}/${f.name}`));
-          if (e?.job?.id && typeof e.claimedAt === "number") out.push({ job: e.job, claimedAt: e.claimedAt, started: e.started === true });
+          if (e?.job?.id && typeof e.claimedAt === "number") {
+            out.push({ job: e.job, claimedAt: e.claimedAt, started: e.started === true,
+              ...(e.started === true && e.result && typeof e.result.state === "string" ? { result: e.result } : {}) });
+          }
         } catch { /* a torn temp write: its rename never happened, so the job was never started from it */ }
       }
       return out.sort((a, b) => a.claimedAt - b.claimedAt);
@@ -354,12 +369,15 @@ export async function massRun<J extends MassJob>(o: {
   // Runs one claimed application and records its outcome (the finish). `onStart` is awaited right before its engine
   // starts (the journal's durable start); if it throws, the engine must not start. Never throws for a job: a failure is
   // its recorded outcome.
-  run: (job: J, onStart: () => Promise<void>) => Promise<MassResult>;
+  run: (job: J, onStart: () => Promise<void>, onResult?: (r: JournalResult) => Promise<void>) => Promise<MassResult>;
   // Ends a claimed application that will not be started (its lease budget ran out, or the worker is stopping). Nothing
   // was sent. Recorded not_submitted. Used only where putBack (below) is absent, or for a run that may not be put back.
   unstarted: (job: J, why: string) => Promise<MassResult>;
   // A started application a crashed run left unfinished: recorded unknown_outcome, never driven again.
   orphaned: (job: J) => Promise<MassResult>;
+  // A started application a crashed run left with the engine's answer journaled but not recorded: that answer recorded
+  // (never driven again). Absent: orphaned.
+  recovered?: (job: J, r: JournalResult) => Promise<MassResult>;
   // A run whose host refused before anything was sent (its result says requeue): the same job back to the queue, not to
   // be handed out before `until` (the host's hold); returns state "queued" and the database's not_before. Absent, or for
   // anything but a load refusal, it is recorded not sent (unstarted).
@@ -431,7 +449,7 @@ export async function massRun<J extends MassJob>(o: {
     for (const e of await o.journal.list()) {
       const item = { job: e.job, claimedAt: claimTime(e.job, e.claimedAt), host: hostOf(e.job.url) };
       if (e.started) {
-        const r = await guarded(() => o.orphaned(e.job));
+        const answered = e.result, r = answered && o.recovered ? await guarded(() => o.recovered!(e.job, answered)) : await guarded(() => o.orphaned(e.job));
         settle(item, true, r);
         await forget(e.job.id, r);
         orphans++;
@@ -449,8 +467,10 @@ export async function massRun<J extends MassJob>(o: {
       pacer.began(item.host, now());
       began = true;
     };
+    // The engine's answer, journaled before the queue records it (a crash between the two keeps the answer).
+    const onResult = async (res: JournalResult) => { if (o.journal?.result) await o.journal.result(item.job.id, res).catch(() => {}); };
     const pr: Promise<void> = (async () => {
-      let r = await guarded(() => o.run(item.job, onStart));
+      let r = await guarded(() => o.run(item.job, onStart, onResult));
       const no = refusal(r);
       if (no) {
         let until: number;
@@ -536,6 +556,9 @@ export async function massRun<J extends MassJob>(o: {
         const at = now();
         if (!jobs.length) { dry = true; dryAt = asked; }
         for (const job of jobs) {
+          // A claim row with no id or link is nothing this worker claimed (a database's claim that returned a row it did
+          // not take, 20261030140000): never run, never recorded.
+          if (!job || typeof job.id !== "string" || !job.id || typeof job.url !== "string") { log("The claim returned a row with no application in it; skipped."); continue; }
           const item = { job, claimedAt: claimTime(job, at), host: hostOf(job.url) };
           if (o.journal) {
             try { await o.journal.put(job, item.claimedAt); } catch (e) {

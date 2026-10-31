@@ -105,6 +105,11 @@ export type Send = (contact: string, bubbles: string[]) => Promise<{ ok: true; i
 // The answer to a message the person sent (trainee-inbound queues it as reply:<provider message id>).
 export const isReply = (key: string) => String(key ?? "").startsWith("reply:");
 export const MAX_ATTEMPTS = 3;
+// TELEGRAM ROUND 3 (2026-10-31): a refusal that names how long to wait (Telegram's 429 retry_after) is the platform pacing
+// Trainee, not a failure of the message. It counted as one of the 3 attempts, so a chat rate-limited three times in a row lost
+// that part of the answer for good, and the parts after it then went out without it. Such a row is tried up to this many times,
+// each no sooner than the platform asked.
+export const MAX_PACED_ATTEMPTS = 12;
 const BACKOFF_MS = [60000, 5 * 60000, 30 * 60000]; // after attempt 1, 2, 3
 const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
 export const HELD_NOTE = "held: outside WhatsApp's 24-hour window; it goes out whole when the person next writes";
@@ -207,7 +212,10 @@ export async function deliverDue(o: {
     // like everything else. The answer row's deliver_at is the time of the message it answers.
     if (isReply(m.key) && out && o.store.optedOutAt) {
       const since = await o.store.optedOutAt(m.contact);
-      if (since !== null && m.deliver_at < since) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: STOPPED_REPLY_NOTE }); r.skipped_opt_out++; continue; }
+      // TELEGRAM ROUND 3 (2026-10-31): or AT it: a 403 (the person blocked the bot) on part k of an answer, in the run that
+      // answered their message, is recorded at that message's time, and every later part of the same answer still went to the
+      // chat that had just blocked Trainee, one refused call each.
+      if (since !== null && m.deliver_at <= since) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: STOPPED_REPLY_NOTE }); r.skipped_opt_out++; continue; }
     }
     // ERASE SCENARIOS ROUND 2 (2026-10-30): an answer a run had claimed went out after the person's account was deleted
     // (a pause does not hold an answer, and the account's pause was gone with it). A deleted account gets nothing; a check
@@ -312,7 +320,11 @@ export async function deliverDue(o: {
     // TELEGRAM SCENARIOS (2026-10-30): never sooner than the provider asked (Telegram's 429 retry_after). CHANNEL DELIVERY
     // ROUND 2: counted from when the 429 came (the run's clock), not the run's start: a 429 on a row's 2nd message, a paced
     // second later, was retried that much early.
-    if (res.retryable && attempt < MAX_ATTEMPTS) { await o.store.mark(m.id, { status: "failed", at: o.now, error: res.error, retryAt: Math.max(o.now + BACKOFF_MS[attempt - 1], (o.clock ? Math.max(o.now, o.clock()) : o.now) + (res.retryAfterMs ?? 0)), ...progress }); r.retried++; }
+    const paced = res.retryAfterMs !== undefined;
+    if (res.retryable && (attempt < MAX_ATTEMPTS || (paced && attempt < MAX_PACED_ATTEMPTS))) {
+      const backoff = paced ? BACKOFF_MS[0] : BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length) - 1];
+      await o.store.mark(m.id, { status: "failed", at: o.now, error: res.error, retryAt: Math.max(o.now + backoff, (o.clock ? Math.max(o.now, o.clock()) : o.now) + (res.retryAfterMs ?? 0)), ...progress }); r.retried++;
+    }
     else { await o.store.mark(m.id, { status: "failed", at: o.now, error: res.error, ...progress }); r.failed++; }
   }
   // After every row of the run is held, so the count is whole ("Trainee has 3 new update(s) for you").

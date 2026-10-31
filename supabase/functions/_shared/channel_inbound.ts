@@ -81,6 +81,14 @@ export function forwardedMessage(from: string, text: string, max = CHAT_MAX): { 
   const body = cutForChat(String(text ?? "").replace(/["\u201c\u201d]/g, "'"), max - head.length - 1);
   return { text: `${head}${body.text}\u201d`, cut: body.cut };
 }
+// TELEGRAM ROUND 3 (2026-10-31): an edited message is never read again (Trainee acted on it as first sent); a decision edited
+// afterwards ("yes" into "no", "ok" into "stop") was ignored without a word, and read as taken back. It is answered once.
+export const EDIT_NOT_READ_REPLY = "I only read a message as it was first sent, so editing it didn't change anything I did. If you meant something else, send it as a new message.";
+const DECISION_EDIT = /^(?:y|n|yes|yeah|yep|yup|no|nope|nah|stop|cancel|confirm|approve|approved|decline|withdraw|unsubscribe|ok|okay|sure|go ahead|do it|send it|don'?t|do not|start|\/stop|\/start)\b/i;
+export const isDecisionEdit = (text: string) => { const t = String(text ?? "").trim().replace(/[.!?’']+$/g, ""); return t.length <= 40 && t.split(/\s+/).length <= 5 && DECISION_EDIT.test(t); };
+// TELEGRAM ROUND 3: "/start <code>" from a chat already linked to an account, with a code that is used, expired or forged, was
+// told to text "connect telegram" where they already use Trainee for a new link, though this chat already is their account.
+export const TELEGRAM_LINK_INVALID_LINKED_REPLY = "That link has expired or was already used, and this chat is already linked to your Trainee account, so nothing changed.";
 export const DOC_NOT_SENT_REPLY = "I couldn't attach the file here just now, so it wasn't sent. Ask me to send it again.";
 // FEATURE 16 (owner decision 2026-10-26): Telegram's own login links a chat to an account (TELEGRAM_LOGIN_URL: the web
 // page, telegram-link.html, on the domain set with BotFather /setdomain).
@@ -238,6 +246,13 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       const moved = !!(person && msg.movedTo && store.movedNumber && await store.movedNumber(contact, `wa:${msg.movedTo}`, now));
       return ok({ moved, ...(moved ? {} : { ignored: "a number change for no account" }) });
     }
+    // TELEGRAM ROUND 3: an edit is not a new message (it opens nothing and runs nothing); a decision edited after the fact is
+    // answered once with why nothing changed. The update is claimed above, so a retried edit is answered once too.
+    if (msg.kind === "edited") {
+      if (!person || !isDecisionEdit(msg.text)) return ok({ ignored: "an edited message (not read again)" });
+      const r = await say(contact, d.render(EDIT_NOT_READ_REPLY));
+      return ok({ edited: "answered", sent: r.ok });
+    }
     // CHANNEL DELIVERY ROUND 2: WhatsApp's window runs from when the person sent the message (its timestamp), not from when
     // a retried webhook reached Trainee; never later than now (a phone's clock ahead of ours).
     const seenAt = typeof msg.sentAt === "number" && Number.isFinite(msg.sentAt) && msg.sentAt < now && msg.sentAt > now - 7 * 86400000 ? msg.sentAt : now;
@@ -271,7 +286,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     }
     if (msg.startPayload && store.redeemLinkNonce) {
       const r = await store.redeemLinkNonce(msg.startPayload, contact, now);
-      const text = r.ok ? TELEGRAM_LINKED_REPLY : r.why === "linked_elsewhere" ? TELEGRAM_LINKED_ELSEWHERE_REPLY : TELEGRAM_LINK_INVALID_REPLY;
+      const text = r.ok ? TELEGRAM_LINKED_REPLY : r.why === "linked_elsewhere" ? TELEGRAM_LINKED_ELSEWHERE_REPLY : person ? TELEGRAM_LINK_INVALID_LINKED_REPLY : TELEGRAM_LINK_INVALID_REPLY;
       const s = await say(contact, d.render(text));
       return ok({ link: r.ok ? "linked" : r.why, sent: s.ok });
     }
@@ -505,15 +520,26 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     // Now the head is part 1 of the reply; when it went out, the rest goes as one message; when it did not, the rest waits
     // in the outbox as part 2, behind the head, in order (the outbox's own parts rule).
     const more = !parts && shape?.more?.length ? String(shape.more[0] ?? "").trim() : "";
+    // TELEGRAM ROUND 3 (2026-10-31): what follows the answer (the #301 rest, each file, each link) went straight out, each on
+    // its own: a rest or a link Telegram refused (a 429 asking to wait, a 502) was lost without a word, and with no rest an
+    // answer whose head Telegram refused had its links arrive first (the head a minute later). Now the head is part 1 of the
+    // reply whenever text or a link follows it; what follows goes out after it, in order, until one is refused, and that one
+    // and everything after it wait in the outbox as the next parts, behind what went (a refused file is said there instead).
+    // And the head start stops at the first part that did not go: the parts after it wait for the outbox, never overtaking it.
+    type Step = { kind: "more"; text: string } | { kind: "file"; file: ShapedFile } | { kind: "link"; url: string };
+    const shaping = !!shape && !!(d.sendFile || d.sendLink);
+    const steps: Step[] = [...(more ? [{ kind: "more" as const, text: more }] : []),
+      ...(shaping ? shape!.attachments.map((file) => ({ kind: "file" as const, file })) : []), ...(shaping ? shape!.links.map((url) => ({ kind: "link" as const, url })) : [])];
+    const chained = !!parts || steps.some((x) => x.kind !== "file");
     const rows = parts ? parts.map((text, i) => ({ key: `${key}:${i + 1}`, text, part: { of: key, n: i + 1 } as { of: string; n: number } | undefined }))
-      : more ? [{ key: `${key}:1`, text: fitReply(reply), part: { of: key, n: 1 } as { of: string; n: number } | undefined }]
+      : chained ? [{ key: `${key}:1`, text: fitReply(reply), part: { of: key, n: 1 } as { of: string; n: number } | undefined }]
       : [{ key, text: fitReply(reply), part: undefined }];
     for (const r of rows) await store.enqueueReply(person.userId, r.key, r.text, now, msg.channel, r.part, cardId);
     let headWent = true;
     try {
       for (const r of rows) {
         const went = await d.deliver({ userId: person.userId, key: r.key, now });
-        if (r === rows[0] && went && typeof went === "object" && "delivered" in went) headWent = Number((went as { delivered: unknown }).delivered) > 0;
+        if (went && typeof went === "object" && "delivered" in went && !(Number((went as { delivered: unknown }).delivered) > 0)) { headWent = false; break; }
       }
     } catch (e) { headWent = false; console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
     // F09: the screen's yes/no question gets Yes / No buttons where the channel has them (Telegram), else the plain words.
@@ -534,24 +560,40 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       docs = await d.sendArtifacts({ userId: person.userId, threadId: turnThread, contact, artifacts }).catch(() => ({ sent: 0, failed: artifacts.length }));
       if (docs.failed) await say(contact, d.render(DOC_NOT_SENT_REPLY)).catch(() => ({ ok: false }));
     }
-    // REPLY SHAPE: the answer went first; now each file, then each link, one message each, in that order. A step that fails is said.
+    // REPLY SHAPE: the answer went first; now the rest, each file, then each link, one message each, in that order.
     let shaped: { files: number; links: number } | null = null;
-    if (more && headWent) {
-      const bubbles = d.render(more), one = bubbles.join("\n\n");
-      await say(contact, bubbles.length > 1 && one.length <= MORE_ONE_MESSAGE ? [one] : bubbles).catch(() => ({ ok: false }));
-    } else if (more) {
-      // The head did not go out now: the rest and the answer's links wait behind it in the outbox, in order (a link sent now
-      // arrived before the answer it belongs to).
-      await store.enqueueReply(person.userId, `${key}:2`, fitReply(more), now, msg.channel, { of: key, n: 2 }, null);
-      let n = 2;
-      for (const url of shape?.links ?? []) { n++; await store.enqueueReply(person.userId, `${key}:${n}`, url, now, msg.channel, { of: key, n }, null); }
-    } else if (shape?.more?.length) for (const m of shape.more.slice(0, 1)) await say(contact, d.render(m)).catch(() => ({ ok: false }));
-    if (shape && (d.sendFile || d.sendLink)) {
-      const sf = d.sendFile, sl = d.sendLink;
-      const r = await deliverShaped({ answer: "", attachments: shape.attachments, links: more && !headWent ? [] : shape.links, notes: [] }, {
-        document: async (f) => sf ? await sf({ contact, ...f }) : { ok: false }, link: async (url) => sl ? await sl({ contact, url }) : { ok: false } }, { includeAnswer: false });
-      shaped = { files: r.files, links: r.links };
-      if (r.files < shape.attachments.length) await say(contact, d.render(DOC_NOT_SENT_REPLY)).catch(() => ({ ok: false }));
+    if (!more && shape?.more?.length) for (const m of shape.more.slice(0, 1)) await say(contact, d.render(m)).catch(() => ({ ok: false }));
+    if (steps.length) {
+      let n = rows.length, files = 0, links = 0, queued = !headWent, fileMissed = false;
+      // A refusal that said how long to wait (Telegram's 429 retry_after) holds what waits until then; the parts after it wait
+      // behind it (the outbox's parts rule).
+      let waitUntil = now;
+      const later = async (text: string) => { n++; await store.enqueueReply(person!.userId, `${key}:${n}`, text, waitUntil, msg.channel, { of: key, n }, null); };
+      for (const st of steps) {
+        if (st.kind === "file") {
+          if (queued && headWent) { if (!fileMissed) await later(DOC_NOT_SENT_REPLY); fileMissed = true; continue; }
+          const sf = d.sendFile;
+          const r = await deliverShaped({ answer: "", attachments: [st.file], links: [], notes: [] }, { document: async (f) => sf ? await sf({ contact, ...f }) : { ok: false }, link: async () => ({ ok: false }) }, { includeAnswer: false });
+          if (r.files) files++; else fileMissed = true;
+          continue;
+        }
+        if (queued) { await later(st.kind === "link" ? st.url : fitReply(st.text)); continue; }
+        let r: { ok: boolean; optOut?: boolean; sent?: number; retryAfterMs?: number };
+        if (st.kind === "link") r = await d.sendLink!({ contact, url: st.url }).catch(() => ({ ok: false }));
+        else {
+          const bubbles = d.render(st.text), one = bubbles.join("\n\n");
+          r = await say(contact, bubbles.length > 1 && one.length <= MORE_ONE_MESSAGE ? [one] : bubbles).catch(() => ({ ok: false }));
+        }
+        if (r.ok) { if (st.kind === "link") links++; continue; }
+        if (r.optOut) break; // blocked: nothing more goes, nothing waits
+        queued = true;
+        if (typeof r.retryAfterMs === "number" && r.retryAfterMs > 0) waitUntil = Math.max(now, d.now()) + r.retryAfterMs;
+        // A rest that went out in part (only one over 4,000 characters is sent as several messages) is not sent twice.
+        if (st.kind === "more" && (r.sent ?? 0) > 0) continue;
+        await later(st.kind === "link" ? st.url : fitReply(st.text));
+      }
+      if (fileMissed && !(queued && headWent)) await say(contact, d.render(DOC_NOT_SENT_REPLY)).catch(() => ({ ok: false }));
+      if (shaping) shaped = { files, links };
     }
     return ok({ replied: true, ...(shaped ? { shaped } : {}), ...(cardsShown ? { cards: cardsShown } : {}), ...(parts ? { parts: parts.length } : {}), ...(docs ? { documents: docs } : {}) });
   } catch (e) {

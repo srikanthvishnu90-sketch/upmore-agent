@@ -94,7 +94,23 @@ export interface OutreachStore {
   blocked?(emails: string[]): Promise<Map<string, "opted_out" | "bounced">>;
   // A batch shown again in another chat moves to that chat: only the chat that shows a batch last can approve it.
   moveBatch?(userId: string, batchId: string, threadId: string): Promise<void>;
+  // PERSONALIZED OUTREACH (2026-10-31): sourced facts about the people the person writes to, by person key (career_networking.ts
+  // personKey), in career_watch_kv 'career:rfacts:<person key>' (service role only; erased with the account's other keys).
+  recipientFacts?(userId: string, personKeys: string[]): Promise<Map<string, RecipientFact[]>>;
+  addRecipientFacts?(userId: string, personKey: string, facts: RecipientFact[]): Promise<number>;
+  forgetRecipientFacts?(userId: string, personKeys: string[] | "all"): Promise<number>;
+  // The one question waiting in a chat (who it is about, and the ask to run once it is answered): career_watch_kv
+  // 'career:fact_ask:<thread>'. The chat state persists only the router's own keys, so it lives here.
+  factAsk?(userId: string, threadId: string): Promise<Record<string, unknown> | null>;
+  setFactAsk?(userId: string, threadId: string, v: Record<string, unknown> | null): Promise<void>;
 }
+export const RFACTS_PREFIX = "career:rfacts:", RFACTS_MAX = 20;
+// New facts first, the same words kept once, at most RFACTS_MAX per person.
+export const mergeFacts = (old: RecipientFact[], add: RecipientFact[]): RecipientFact[] => {
+  const seen = new Set<string>(), out: RecipientFact[] = [];
+  for (const f of [...add, ...old]) { const k = String(f.text ?? "").toLowerCase().replace(/\s+/g, " ").trim(); if (!k || seen.has(k)) continue; seen.add(k); out.push(f); }
+  return out.slice(0, RFACTS_MAX);
+};
 // Every address of these that may not be emailed (lowercase -> why), the person's own list and everyone's.
 export async function blockedAddresses(store: OutreachStore, userId: string, emails: string[]): Promise<Map<string, "opted_out" | "bounced">> {
   const list = [...new Set(emails.filter(Boolean).map((e) => String(e).trim().toLowerCase()))];
@@ -430,13 +446,15 @@ function parseDraft(msg: any): { subject: string; body: string; cut: boolean } {
   return { subject, body, cut: msg?.stop_reason === "max_tokens" || !/[.!?)"”]$/.test(body) };
 }
 export type Drafted = { ok: true; subject: string; body: string; shared: Shared[]; tries: number; personal?: PersonalMeta } | { ok: false; why: string; detail: string[]; tries: number };
-// PERSONALIZED OUTREACH (2026-10-31): a recipient with sourced facts (r.facts), or a caller asking for it (personal), is
-// written by the personalization engine: the field's playbook, the overlap, one sized ask, and the quality gate that
-// rejects a generic draft (career_outreach_personalize.ts).
-export async function draftFor(o: { model: ModelFn; facts: unknown[]; r: Recipient; previous?: string | null; topic?: string | null; lang?: DraftLang | null; personal?: PersonalOpts }): Promise<Drafted> {
-  if (o.personal || o.r.facts?.length) {
+// PERSONALIZED OUTREACH (2026-10-31): every new outreach draft is written by the personalization engine: the field's
+// playbook, the overlap, one sized ask, and the quality gate that rejects a generic draft (career_outreach_personalize.ts).
+// With nothing sourced about the recipient beyond a title and firm it answers why "unsourced" and the caller asks the
+// person one question instead of writing an email that would fit anyone. personal: false is only for a message that is
+// not a first email to someone: a follow-up on a thread already sent.
+export async function draftFor(o: { model: ModelFn; facts: unknown[]; r: Recipient; previous?: string | null; topic?: string | null; lang?: DraftLang | null; personal?: PersonalOpts | false }): Promise<Drafted> {
+  if (o.personal !== false) {
     const { facts: _f, personal: _p, ...r } = o.r;
-    return personalDraft({ model: o.model, facts: o.facts, r: r as Recipient, previous: o.previous, topic: o.topic, lang: o.lang, recipientFacts: o.r.facts, ...(o.personal ?? {}) });
+    return personalDraft({ model: o.model, facts: o.facts, r: r as Recipient, previous: o.previous, topic: o.topic, lang: o.lang, recipientFacts: o.r.facts, ...(o.personal || {}) });
   }
   const facts = confirmed(o.facts);
   if (!facts.length) return { ok: false, why: "thin", detail: ["no confirmed facts to write from"], tries: 0 };
@@ -481,7 +499,7 @@ export const BATCH_FOOT = `Reply "send all", "send 1-7,9" for some, "redo 3" for
 export function batchMessages(drafts: OutreachDraft[]): string[] {
   const live = drafts.filter((d) => d.status === "shown" || d.status === "approved");
   if (!live.length) return ["No drafts are waiting in this batch."];
-  const head = `${live.length} outreach draft${live.length === 1 ? "" : "s"}, each written only from your confirmed facts and that person's row. Nothing is sent until you approve it, and each goes exactly as shown.`;
+  const head = `${live.length} outreach draft${live.length === 1 ? "" : "s"}, each written only from your confirmed facts and what's on record about that person. Nothing is sent until you approve it, and each goes exactly as shown.`;
   const out: string[] = [];
   let cur = head;
   for (const d of live) {
@@ -932,6 +950,7 @@ const mergeRows = (a: { row_key: string; data: ContactRow }[], b: { row_key: str
 export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void; setQuiet(userId: string, on: boolean): void; setEpoch(userId: string, epoch: number): void; allContacts(userId: string): ContactRow[]; forgotten(userId: string): string[]; markBounced(email: string): void } {
   const drafts: (OutreachDraft & { user_id: string })[] = [], dnc: Record<string, Set<string>> = {}, prefs: Record<string, Prefs> = {}, intents: Record<string, string | null> = {};
   const follow: Record<string, Followup[]> = {}, leases: Record<string, number> = {};
+  const rfacts: Record<string, Record<string, RecipientFact[]>> = {}, asks: Record<string, Record<string, unknown>> = {};
   const book: Record<string, Map<string, KeyedContact>> = {}, forgottenByUser: Record<string, Set<string>> = {}, epochByUser: Record<string, number> = {};
   const rowsOf = (u: string) => [...(book[u]?.values() ?? [])].sort((a, z) => a.row_key.localeCompare(z.row_key));
   const quiet = new Set<string>(); // paused, opted out or erased (career_user_quiet in the database)
@@ -984,6 +1003,11 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
     async approvedDrafts(u: string) { return copy(drafts.filter((d) => d.user_id === u && d.status === "approved").sort((a, z) => String(z.created_at).localeCompare(String(a.created_at)) || z.n - a.n)); },
     async history(u: string, limit = 200) { return copy(drafts.filter((d) => d.user_id === u).sort((a, z) => String(z.created_at).localeCompare(String(a.created_at)) || z.n - a.n).slice(0, limit)); },
     async drafts(u: string, ids: string[]) { const want = new Set(ids); return copy(drafts.filter((d) => d.user_id === u && want.has(d.id))); },
+    async recipientFacts(u: string, keys: string[]) { const m = new Map<string, RecipientFact[]>(); for (const k of keys) if (rfacts[u]?.[k]?.length) m.set(k, copy(rfacts[u][k])); return m; },
+    async addRecipientFacts(u: string, k: string, facts: RecipientFact[]) { const cur = ((rfacts[u] ??= {})[k] ??= []); rfacts[u][k] = mergeFacts(cur, copy(facts)); return rfacts[u][k].length; },
+    async factAsk(u: string, t: string) { return copy(asks[`${u}|${t}`] ?? null); },
+    async setFactAsk(u: string, t: string, v: Record<string, unknown> | null) { if (v) asks[`${u}|${t}`] = copy(v); else delete asks[`${u}|${t}`]; },
+    async forgetRecipientFacts(u: string, keys: string[] | "all") { const m = rfacts[u] ?? {}; const ks = keys === "all" ? Object.keys(m) : keys.filter((k) => k in m); for (const k of ks) delete m[k]; return ks.length; },
     async followups(u: string) { return copy(follow[u] ?? []); },
     async saveFollowups(u: string, items: Followup[]) { follow[u] = copy(followupValue(items).items); delete leases[u]; },
     async allFollowups(limit: number) { return copy(Object.entries(follow).filter(([, v]) => v.length).slice(0, limit).map(([user_id, items]) => ({ user_id, items }))); },
@@ -1107,6 +1131,34 @@ export function supabaseOutreachStore(admin: any): OutreachStore {
         out.push(...(must(await admin.from("career_outreach_drafts").select(COLS).eq("user_id", u).in("id", ids.slice(k, k + 100)), "read your outreach drafts") ?? []).map(fromRow));
       }
       return out;
+    },
+    async recipientFacts(u, keys) {
+      const m = new Map<string, RecipientFact[]>();
+      for (let k = 0; k < keys.length; k += 100) {
+        const rows = must(await admin.from("career_watch_kv").select("key,value").eq("user_id", u).in("key", keys.slice(k, k + 100).map((x) => RFACTS_PREFIX + x)), "read what you told me about people");
+        for (const r of rows ?? []) if (Array.isArray(r.value?.facts)) m.set(String(r.key).slice(RFACTS_PREFIX.length), r.value.facts);
+      }
+      return m;
+    },
+    async addRecipientFacts(u, key, facts) {
+      const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", RFACTS_PREFIX + key).maybeSingle(), "read what you told me about them");
+      const merged = mergeFacts(Array.isArray(r?.value?.facts) ? r.value.facts : [], facts);
+      must(await admin.from("career_watch_kv").upsert({ user_id: u, key: RFACTS_PREFIX + key, value: { facts: merged }, updated_at: new Date().toISOString() }, { onConflict: "user_id,key" }), "save what you told me about them");
+      return merged.length;
+    },
+    async factAsk(u, t) {
+      const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", `career:fact_ask:${t}`).maybeSingle(), "read the question I asked");
+      return r?.value ?? null;
+    },
+    async setFactAsk(u, t, v) {
+      if (v) must(await admin.from("career_watch_kv").upsert({ user_id: u, key: `career:fact_ask:${t}`, value: v, updated_at: new Date().toISOString() }, { onConflict: "user_id,key" }), "save the question I asked");
+      else must(await admin.from("career_watch_kv").delete().eq("user_id", u).eq("key", `career:fact_ask:${t}`), "clear the question I asked");
+    },
+    async forgetRecipientFacts(u, keys) {
+      let q = admin.from("career_watch_kv").delete().eq("user_id", u);
+      q = keys === "all" ? q.like("key", `${RFACTS_PREFIX}%`) : q.in("key", keys.map((x) => RFACTS_PREFIX + x));
+      const rows = must(await q.select("key"), "delete what you told me about people");
+      return (rows ?? []).length;
     },
     async followups(u) {
       const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", FOLLOWUP_KEY).maybeSingle(), "read your follow-up reminders");

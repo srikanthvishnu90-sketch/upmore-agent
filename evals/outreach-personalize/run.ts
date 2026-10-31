@@ -27,7 +27,7 @@ for (const [i, f] of FIXTURES.entries()) {
     const text = recorded?.[f.key]?.[side];
     const model = text ? replay(text) : side === "trunk" ? trunkWriter() : fakeWriter();
     const d = side === "trunk"
-      ? await draftFor({ model, facts: SENDER_FACTS, r: f.r, topic: f.role ?? null })
+      ? await draftFor({ model, facts: SENDER_FACTS, r: f.r, topic: f.role ?? null, personal: false })
       : await draftFor({ model, facts: SENDER_FACTS, r: { ...f.r, facts: f.facts }, personal: { role: f.role, others, now: NOW } });
     if (!d.ok) { rows[side].push({ key: f.key, drafted: false, swap: false, sourced: false, overlap: plan.overlap.length ? false : null, clean: true, oneAsk: false, inLength: false, why: d.detail.join("; ") }); continue; }
     const used = anchorsUsed(d.body, brief).filter((x) => x.id !== "row:title" && x.id !== "row:firm");
@@ -42,6 +42,15 @@ for (const [i, f] of FIXTURES.entries()) {
   }
 }
 
+// With nothing sourced about them (title and firm only): trunk writes an email anyway; the engine asks one question.
+const bare = { trunk: { drafted: 0, generic: 0 }, new: { drafted: 0, asked: 0 } };
+for (const [i, f] of FIXTURES.entries()) {
+  const others = briefs.filter((_, j) => j !== i), r = { ...f.r, school: "", prior_firms: [] };
+  const t = await draftFor({ model: trunkWriter(), facts: SENDER_FACTS, r, topic: f.role ?? null, personal: false });
+  if (t.ok) { bare.trunk.drafted++; if (!swapTest(t.body, buildRecipientBrief(r, [], NOW), others).pass) bare.trunk.generic++; }
+  const n = await draftFor({ model: fakeWriter(), facts: SENDER_FACTS, r, personal: { role: f.role, others, now: NOW } });
+  if (n.ok) bare.new.drafted++; else if (n.why === "unsourced") bare.new.asked++;
+}
 const pct = (xs: boolean[]) => xs.length ? `${Math.round((100 * xs.filter(Boolean).length) / xs.length)}% (${xs.filter(Boolean).length}/${xs.length})` : "n/a";
 const summary = (side: Side) => {
   const r = rows[side];
@@ -51,10 +60,11 @@ const summary = (side: Side) => {
     one_ask: pct(r.map((x) => x.oneAsk)), within_length: pct(r.map((x) => x.inLength)),
   };
 };
-const out = { recipients: FIXTURES.length, writer: recorded ? `recorded (${recordedPath})` : "scripted (no model call)", trunk: summary("trunk"), new: summary("new"), rows };
+const out = { recipients: FIXTURES.length, writer: recorded ? `recorded (${recordedPath})` : "scripted (no model call)", trunk: summary("trunk"), new: summary("new"), nothing_sourced: bare, rows };
 if (args.includes("--json")) console.log(JSON.stringify(out, null, 2));
 else {
   console.log(`Personalized outreach eval: ${out.recipients} recipients, ${out.writer}`);
   console.log(`${"metric".padEnd(20)}${"trunk".padEnd(16)}new`);
   for (const k of Object.keys(out.trunk) as (keyof typeof out.trunk)[]) console.log(`${k.padEnd(20)}${out.trunk[k].padEnd(16)}${out.new[k]}`);
+  console.log(`nothing sourced (title and firm only), ${FIXTURES.length} recipients: trunk drafted ${bare.trunk.drafted} (${bare.trunk.generic} fail the swap test); new drafted ${bare.new.drafted}, asked one question ${bare.new.asked}`);
 }

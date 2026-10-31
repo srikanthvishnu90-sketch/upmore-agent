@@ -264,6 +264,14 @@ export function robotsAllows(txt: string, path: string): boolean {
 }
 
 export async function readPage(get: PageGet, raw: string, resolve: Resolver = dnsResolver): Promise<PageRead> {
+  const r = await fetchHtml(get, raw, resolve);
+  if (!r.ok) return r;
+  const { people, org } = peopleOnPage(r.html);
+  return { ok: true, url: r.url, people, org };
+}
+// One public page read under every rule above (HTTPS, public host, never LinkedIn/Indeed/Handshake, robots.txt, pinned
+// address, 3 redirects, 2 MB, 8 s): its HTML. PERSONALIZED OUTREACH reads a contact's team page or filing through this.
+export async function fetchHtml(get: PageGet, raw: string, resolve: Resolver = dnsResolver): Promise<{ ok: true; url: string; html: string } | { ok: false; why: PageWhy; detail?: string }> {
   const c = await checkHost(raw, resolve);
   if (!c.ok) return c.detail ? { ok: false, why: c.why, detail: c.detail } : { ok: false, why: c.why };
   let url = c.url, ip = c.ip;
@@ -286,8 +294,7 @@ export async function readPage(get: PageGet, raw: string, resolve: Resolver = dn
       if (Number(r.headers.get("content-length") ?? 0) > PAGE_MAX_BYTES) { await r.body?.cancel().catch(() => {}); return { ok: false, why: "too_large" }; }
       const html = await capped(r, PAGE_MAX_BYTES);
       if (html === null) return { ok: false, why: "too_large" };
-      const { people, org } = peopleOnPage(html);
-      return { ok: true, url: url.toString(), people, org };
+      return { ok: true, url: url.toString(), html };
     }
   } catch (e) {
     const name = (e as Error)?.name;

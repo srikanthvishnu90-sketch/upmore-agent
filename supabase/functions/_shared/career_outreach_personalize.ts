@@ -26,9 +26,9 @@ import { confirmed, type DraftLang, factText, LANG_NAME, type LockSources, type 
 
 // ------------------------------------------------------------------------------------------------ types
 export type RecipientSourceKind =
-  | "contact_row" | "company_page" | "team_page" | "personal_site" | "paper" | "talk" | "user_paste" | "sec_edgar"
+  | "contact_row" | "company_page" | "team_page" | "personal_site" | "paper" | "talk" | "user_pasted" | "user_stated" | "sec_edgar"
   | "own_export" | "own_gmail" | "university_directory" | "conference_speakers" | "press_release" | "repo";
-export const RECIPIENT_SOURCE_KINDS: RecipientSourceKind[] = ["contact_row", "company_page", "team_page", "personal_site", "paper", "talk", "user_paste",
+export const RECIPIENT_SOURCE_KINDS: RecipientSourceKind[] = ["contact_row", "company_page", "team_page", "personal_site", "paper", "talk", "user_pasted", "user_stated",
   "sec_edgar", "own_export", "own_gmail", "university_directory", "conference_speakers", "press_release", "repo"];
 export type RecipientFactKind = "role" | "company" | "field" | "school" | "hometown" | "past_employer" | "interest" | "connection" | "work";
 export type WorkKind = "paper" | "talk" | "post" | "repo" | "deal" | "launch" | "product" | "podcast" | "thesis" | "investment" | "role" | "event"
@@ -127,11 +127,75 @@ export function buildRecipientBrief(r: Recipient, facts: RecipientFact[] = [], n
   return { name, first: name.split(" ")[0] ?? "", firm: r.firm ?? "", title: r.title ?? "", facts: kept, dropped };
 }
 
-// What the person pasted about someone (a bio, a post, a talk abstract): one user_paste fact per sentence that is not an
+// What the person pasted about someone (a bio, a post, a talk abstract): one user_pasted fact per sentence that is not an
 // instruction, dated when it was pasted. The person is the source; nothing is fetched.
 export function factsFromPaste(text: string, o: { at: string; ref: string; kind?: RecipientFactKind; work_kind?: WorkKind }): RecipientFact[] {
   return sentencesOf(clean(text, 2000)).filter((s) => !isInstruction(s) && content(s).length >= 2).slice(0, 8)
-    .map((s, i) => ({ id: `paste:${o.ref}:${i}`, kind: o.kind ?? "work", ...(o.work_kind ? { work_kind: o.work_kind } : { work_kind: "post" as WorkKind }), text: s, anchor: s.replace(/[.!?]+$/, ""), source_kind: "user_paste" as const, source_url: `user-paste://${o.ref}`, retrieved_at: o.at }));
+    .map((s, i) => ({ id: `paste:${o.ref}:${i}`, kind: o.kind ?? "work", ...(o.work_kind ? { work_kind: o.work_kind } : { work_kind: "post" as WorkKind }), text: s, anchor: s.replace(/[.!?]+$/, ""), source_kind: "user_pasted" as const, source_url: `user-paste://${o.ref}`, retrieved_at: o.at }));
+}
+
+// What the person says about someone in their own words ("she spoke at Strange Loop about payment retries"): one
+// user_stated fact. The person is the source; their words are kept as said (an instruction is never kept).
+const STATED_KIND: [RegExp, RecipientFactKind, WorkKind | undefined][] = [
+  [/\b(?:studied at|went to|graduated from|alum(?:nus|na|ni)? of)\b/i, "school", undefined],
+  [/\b(?:is from|grew up in|lives in|based in)\b/i, "hometown", undefined],
+  [/\b(?:used to work at|worked at|was at)\b/i, "past_employer", undefined],
+  [/\b(?:knows|we both know|introduced)\b/i, "connection", undefined],
+  [/\b(?:spoke|talk|presented|keynote|panel)\b/i, "work", "talk"],
+  [/\b(?:paper|published|research)\b/i, "work", "paper"],
+  [/\b(?:wrote|post|blog|article|newsletter)\b/i, "work", "post"],
+  [/\b(?:deal|advised|acquisition|ipo|financing)\b/i, "work", "deal"],
+  [/\b(?:launched|shipped|launch)\b/i, "work", "launch"],
+];
+export function factsFromStatement(text: string, o: { at: string; ref: string }): RecipientFact[] {
+  const s = clean(text, 400).replace(/^(?:she|he|they)\s+/i, "").replace(/[.!]+$/, "");
+  if (!s || isInstruction(s) || content(s).length < 1) return [];
+  const [, kind, work_kind] = STATED_KIND.find(([rx]) => rx.test(s)) ?? [null, "work" as RecipientFactKind, "project" as WorkKind];
+  // A place or school said with its verb: the value is what follows ("went to Lakeview State" -> "Lakeview State").
+  const value = kind === "school" || kind === "hometown" || kind === "past_employer" || kind === "connection"
+    ? s.replace(/^.*?\b(?:studied at|went to|graduated from|alum(?:nus|na|ni)? of|is from|grew up in|lives in|based in|used to work at|worked at|was at|knows|we both know)\s+/i, "").replace(/^the\s+/i, "")
+    : s.replace(/^(?:spoke|presented|wrote|published|worked|works|built|leads|led|launched|shipped|ran|runs|gave)\s+(?:at|on|about|a|the)?\s*/i, "");
+  return [{ id: `said:${o.ref}`, kind, ...(work_kind ? { work_kind } : {}), text: s, anchor: value.slice(0, 160) || s, source_kind: "user_stated", source_url: null, retrieved_at: o.at }];
+}
+// What a public page says about the person: their schema.org Person description, and the page's sentences that name them
+// (full name or surname). Only from a page fetched under career_people_page.ts's rules; the source kind says what it was.
+export function factsFromPage(html: string, o: { name: string; url: string; at: string; source_kind: RecipientSourceKind }): RecipientFact[] {
+  const out: string[] = [];
+  for (const m of html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      const walk = (v: any): void => { if (!v || typeof v !== "object") return; if (Array.isArray(v)) return v.forEach(walk);
+        if (typeof v.name === "string" && plain(v.name) === plain(o.name) && typeof v.description === "string") out.push(v.description); Object.values(v).forEach(walk); };
+      walk(JSON.parse(m[1]));
+    } catch { /* not JSON */ }
+  }
+  const text = html.replace(/<(script|style|noscript)[^>]*>[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ");
+  const parts = plain(o.name).split(" "), last = parts[parts.length - 1];
+  for (const s of sentencesOf(text)) if (s.length <= 300 && (hasWords(s, o.name) || (last && last.length > 2 && hasWords(s, last)))) out.push(s);
+  const kept = [...new Set(out.map((s) => clean(s, 300)))].filter((s) => !isInstruction(s) && content(s).length >= 3).slice(0, 4);
+  const work: WorkKind = o.source_kind === "sec_edgar" ? "deal" : o.source_kind === "paper" ? "paper" : o.source_kind === "talk" ? "talk" : "project";
+  return kept.map((s, i) => ({ id: `page:${i}:${o.url.slice(0, 80)}`, kind: "work", work_kind: work, text: s, anchor: s.replace(/[.!?]+$/, ""), source_kind: o.source_kind, source_url: o.url, retrieved_at: o.at }));
+}
+// Which public pages Trainee reads for facts about someone, and as what: SEC EDGAR, a few paper hosts, and the contact's
+// own firm's site (a host label that is the firm's name). Anything else is not fetched: the person pastes the text.
+// LinkedIn, Indeed and the rest are refused before this by career_people_page.ts (checkUrl) as well.
+const PAPER_HOSTS = ["arxiv.org", "dl.acm.org", "ieeexplore.ieee.org", "openreview.net", "ssrn.com", "aclanthology.org", "proceedings.mlr.press", "nber.org", "usenix.org"];
+export function factHost(rawUrl: string, firm: string | null | undefined): RecipientSourceKind | null {
+  const h = hostOf(rawUrl);
+  if (!h || blockedUrl(rawUrl)) return null;
+  const under = (d: string) => h === d || h.endsWith(`.${d}`);
+  if (under("sec.gov")) return "sec_edgar";
+  if (PAPER_HOSTS.some(under)) return "paper";
+  const f = plain(firm ?? "").replace(/\b(?:inc|llc|llp|lp|ltd|corp|company|co|group|the|and)\b/g, " ").trim();
+  if (!f) return null;
+  const compact = f.replace(/\s+/g, ""), firstWord = f.split(" ")[0];
+  const labels = h.split(".").slice(0, -1).filter((x) => x !== "www");
+  return labels.some((l) => l === compact || (firstWord.length >= 4 && l === firstWord) || (compact.length >= 5 && l.startsWith(compact))) ? "company_page" : null;
+}
+
+// The one question asked when nothing sourced would make the email theirs alone.
+export function factQuestion(r: { name: string; firm?: string | null }): string {
+  const first = clean(r.name, 60).split(" ")[0] || "them";
+  return `What do you know about ${first}'s work${r.firm ? ` at ${r.firm}` : ""}: a project, a talk, a post, or something you share like a school? One line is enough, or paste their bio or send a link to their team page, and I'll write the email from that.`;
 }
 
 // ------------------------------------------------------------------------------------------------ b. the sender brief
@@ -157,7 +221,6 @@ export function findOverlap(brief: RecipientBrief, sender: SenderBrief): Overlap
     if (f.kind === "work") {
       // The person can genuinely reference the recipient's work when they pasted it themselves, or when it is on a topic
       // in their own confirmed facts (two content words in common, or one long one).
-      if (f.source_kind === "user_paste") { add({ kind: "their_work", value: valueOf(f), recipient_fact: f.id, sender_fact: "pasted" }); continue; }
       const topic = new Set(content(`${f.anchor ?? ""} ${f.text}`));
       for (const s of senderOnly) {
         const common = content(s.text).filter((w) => topic.has(w));
@@ -383,7 +446,7 @@ export async function personalDraft(o: { model: ModelFn; facts: unknown[]; r: Re
 // The card's line: why this person, from where, and the one ask.
 const SOURCE_WORD: Record<RecipientSourceKind, string> = {
   contact_row: "your list", company_page: "company page", team_page: "team page", personal_site: "their site", paper: "paper", talk: "talk",
-  user_paste: "you pasted", sec_edgar: "SEC EDGAR", own_export: "your LinkedIn export", own_gmail: "your Gmail", university_directory: "university directory",
+  user_pasted: "you pasted", user_stated: "you told me", sec_edgar: "SEC EDGAR", own_export: "your LinkedIn export", own_gmail: "your Gmail", university_directory: "university directory",
   conference_speakers: "conference page", press_release: "press release", repo: "repository",
 };
 export function personalLine(m: PersonalMeta): string {

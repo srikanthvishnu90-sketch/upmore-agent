@@ -75,8 +75,8 @@ export const FIXTURES: Fixture[] = [
     facts: [work("thesis", "the thesis post on vertical software for independent pharmacies", "Wrote the thesis post on vertical software for independent pharmacies", "personal_site")] },
   { key: "vc-kevin", field: "vc", ask: "advice_question", r: person("Kevin Osei", "Venture Associate", "Harbor Peak Capital"),
     facts: [work("investment", "the seed round in Fieldwise Analytics", "Led the seed round in Fieldwise Analytics", "press_release")] },
-  { key: "vc-chloe", field: "vc", ask: "advice_question", overlap: ["their_work"], r: person("Chloe Martin", "Principal", "Redline Ventures"),
-    facts: [work("podcast", "the podcast episode on developer tools pricing", "Guest on the podcast episode on developer tools pricing", "user_paste", "user-paste://p1")] },
+  { key: "vc-chloe", field: "vc", ask: "advice_question", r: person("Chloe Martin", "Principal", "Redline Ventures"),
+    facts: [work("podcast", "the podcast episode on developer tools pricing", "Guest on the podcast episode on developer tools pricing", "user_pasted", "user-paste://p1")] },
   // research
   { key: "res-alan", field: "research", ask: "advice_question", overlap: ["company"], r: person("Alan Rhodes", "Professor of Computer Science", "Lakeview State University"),
     facts: [work("paper", "the paper on consensus protocols for edge devices", "Wrote the paper on consensus protocols for edge devices", "paper")] },
@@ -99,8 +99,8 @@ export const FIXTURES: Fixture[] = [
   // founders
   { key: "fnd-sam", field: "founder", ask: "advice_question", r: person("Sam Rivera", "Co-founder and CEO", "Fieldwise Analytics"),
     facts: [work("launch", "the crop yield forecasting API launch", "Launched the crop yield forecasting API", "company_page")] },
-  { key: "fnd-julia", field: "founder", ask: "advice_question", overlap: ["their_work"], r: person("Julia Brandt", "Founder", "Tallyhouse"),
-    facts: [work("post", "the post on rebuilding billing on event sourcing", "Wrote the post on rebuilding billing on event sourcing", "user_paste", "user-paste://p2")] },
+  { key: "fnd-julia", field: "founder", ask: "advice_question", r: person("Julia Brandt", "Founder", "Tallyhouse"),
+    facts: [work("post", "the post on rebuilding billing on event sourcing", "Wrote the post on rebuilding billing on event sourcing", "user_pasted", "user-paste://p2")] },
   // general
   { key: "gen-peter", field: "general", ask: "call_15", overlap: ["hometown"], r: person("Peter Hollis", "Director of Operations", "Columbus Regional Hospital"),
     facts: [fact("hometown", "Columbus, Ohio", "Based in Columbus, Ohio", "team_page"), work("project", "the move to a new scheduling system", "Led the move to a new scheduling system", "press_release")] },
@@ -140,7 +140,7 @@ export function fakeWriter(o: { obey?: boolean; log?: any[] } = {}) {
     if (!d) return wrap("Subject: Hello\n\nHi there, would you be open to a call?");
     const hook = d.hooks[0], first = d.recipient.first;
     const ov = (d.overlap as any[]).filter((x) => x.kind !== "their_work").map((x) => OVERLAP_LINE[x.kind](x.value)).filter(Boolean)[0] ?? "";
-    const me = (d.seeker_facts as any[]).find((f) => f.kind === "education")?.text ?? d.seeker_facts[0].text;
+    const me = String((d.seeker_facts as any[]).find((f) => f.kind === "education")?.text ?? d.seeker_facts[0].text).split(/;\s*/)[0].replace(/[.\s]+$/, "");
     let body = [`Hi ${first},`, "", [`I read about ${hook.anchor}.`, ov, `${me}.`, ASK_LINE[d.ask.kind](d.ask.role)].filter(Boolean).join(" ")].join("\n");
     if (o.obey) {
       const all = JSON.stringify(d);

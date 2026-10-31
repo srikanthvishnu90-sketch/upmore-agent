@@ -16,6 +16,7 @@
 // or an erased account sends nothing. Nothing here sends anything to anyone but the person.
 // Without a texting channel linked there is no way to deliver one, so none is saved and the reply says how to link one.
 import { DEFAULT_PREFS, DEFAULT_ZONE, quietAt, zoneOr } from "./career_alerts.ts";
+import { trackAsk } from "./career_outreach_track.ts";
 
 export const REMINDER_SET_INTENT = "career_reminder_set";
 export const REMINDER_LIST_INTENT = "career_reminder_list";
@@ -32,6 +33,7 @@ export interface ReminderStore {
   add(userId: string, r: ReminderRow): Promise<boolean>; // false: that key exists already
   pending(userId: string): Promise<ReminderRow[]>; // not yet sent, soonest first
   remove(userId: string, keys: string[]): Promise<number>; // only rows not yet sent; the count removed
+  networking(userId: string): Promise<boolean>; // any networking email on record (career_outreach_drafts): its turn owns its reminders
 }
 
 // ------------------------------------------------------------------------------------------------ the asks
@@ -78,6 +80,8 @@ export function reminderAsk(message: string): ReminderAsk | null {
   if (/reminders?/.test(low) && LIST.test(low)) return { kind: "list" };
   const lead = LEAD.exec(t);
   if (!lead) return null;
+  // An intro's own nudge ("remind me about intro 2 in 3 days", "... if no reply") is the people turn's (career_people.ts).
+  if (/\bintro(?:duction)?\s*#?\d|\bif (?:there'?s |i get )?no (?:reply|response|answer)\b/i.test(t)) return null;
   let rest = t.slice(lead[0].length).trim();
   // A bare "remind me" / "set a reminder" is a reminder with nothing said yet: asked once (the router's line says reminders
   // do not exist, so it must never get this turn).
@@ -224,6 +228,12 @@ export interface ReminderReply { reply: string; status: string; intent: string }
 export async function reminderTurn(o: { message: string; userId: string; now: number; store: ReminderStore; newKey?: () => string }): Promise<ReminderReply | null> {
   const ask = reminderAsk(o.message);
   if (!ask) return null;
+  // A networking follow-up reminder ("remind me to follow up with Maya in 3 days") is the networking turn's own
+  // (career_outreach_track.ts): tied to the email they sent, and off when that person replies. A cancel it would also read
+  // ("stop reminding me", "cancel the reminder about Maya") is this turn's only when it matches a reminder set here.
+  const net = trackAsk(o.message);
+  if (net?.kind === "remind") return null;
+  const yieldEmpty = net?.kind === "no_remind";
   const s = o.store;
   if (ask.kind === "when") {
     if (!ask.what) return { reply: `What should I remind you about, and when? Say it like "remind me tomorrow at 9am to send my transcript". Nothing is set yet.`, status: "needs_text", intent: REMINDER_ASK_INTENT };
@@ -256,6 +266,7 @@ export async function reminderTurn(o: { message: string; userId: string; now: nu
     zone = zoneOr(z.tz);
   } catch (e) {
     console.error("reminder: list:", e instanceof Error ? e.message : String(e));
+    if (yieldEmpty && await s.networking(o.userId).catch(() => true)) return null;
     return { reply: "I couldn't read your reminders just now, so I can't say which are set; nothing was changed. Ask me again in a minute.", status: "unreadable", intent: ask.kind === "list" ? REMINDER_LIST_INTENT : REMINDER_CANCEL_INTENT };
   }
   const line = (r: ReminderRow, i: number) => `${i + 1}. ${whenLabel(r.at, zone)}: ${whatOf(r.text)}`;
@@ -268,6 +279,7 @@ export async function reminderTurn(o: { message: string; userId: string; now: nu
     : "about" in w ? rows.filter((r) => words(whatOf(r.text)).some((x) => words(w.about).includes(x)) && words(w.about).every((x) => STOP.has(x) || words(whatOf(r.text)).includes(x)))
     : rows.length ? [rows.reduce((a, b) => (keyTime(b) > keyTime(a) ? b : a))] : [];
   if (!pick.length) {
+    if (yieldEmpty && await s.networking(o.userId).catch(() => true)) return null;
     const why = !rows.length ? "you have no reminders set" : "n" in w ? `there is no reminder ${w.n}` : "about" in w ? `none of your reminders is about "${w.about}"` : "no reminder matched";
     return { reply: `Nothing was cancelled: ${why}.${rows.length ? `\n${["Your reminders:", ...rows.map(line)].join("\n")}` : ""}`, status: "none", intent: REMINDER_CANCEL_INTENT };
   }
@@ -312,17 +324,20 @@ export function supabaseReminderStore(admin: any): ReminderStore {
     pending: async (u) => (must<any[]>(await admin.from("career_outbox").select("key,text,deliver_at,created_at").eq("user_id", u).eq("kind", "status").like("key", `${REMINDER_PREFIX}%`).eq("status", "queued").is("delivered_at", null).order("deliver_at", { ascending: true }).limit(100), "read the reminders") ?? [])
       .map((r) => ({ key: r.key, text: r.text, at: Date.parse(r.deliver_at), created: Date.parse(r.created_at) })),
     // deno-lint-ignore no-explicit-any
+    networking: async (u) => (must<any[]>(await admin.from("career_outreach_drafts").select("id").eq("user_id", u).limit(1), "read the networking emails") ?? []).length > 0,
+    // deno-lint-ignore no-explicit-any
     remove: async (u, keys) => (must<any[]>(await admin.from("career_outbox").delete().eq("user_id", u).eq("kind", "status").like("key", `${REMINDER_PREFIX}%`).eq("status", "queued").is("delivered_at", null).in("key", keys).select("key"), "cancel the reminders") ?? []).length,
   };
 }
 
-export interface MemoryReminders { prefs?: Record<string, { quiet_start?: number; quiet_end?: number }>; zones: Record<string, string | null>; reachable: Record<string, boolean>; rows: (ReminderRow & { userId: string; created: number; sent?: boolean })[] }
+export interface MemoryReminders { networking?: Record<string, boolean>; prefs?: Record<string, { quiet_start?: number; quiet_end?: number }>; zones: Record<string, string | null>; reachable: Record<string, boolean>; rows: (ReminderRow & { userId: string; created: number; sent?: boolean })[] }
 export function memoryReminderStore(init: Partial<MemoryReminders> = {}): ReminderStore & { dump(): MemoryReminders } {
   const st: MemoryReminders = { zones: {}, reachable: {}, rows: [], ...init };
   let n = 0;
   return {
     settings: async (u) => ({ tz: st.zones[u] ?? null, ...hours(st.prefs?.[u]) }),
     reachable: async (u) => !!st.reachable[u],
+    networking: async (u) => !!st.networking?.[u],
     add: async (u, r) => { if (st.rows.some((x) => x.userId === u && x.key === r.key)) return false; st.rows.push({ ...r, userId: u, created: ++n }); return true; },
     pending: async (u) => st.rows.filter((x) => x.userId === u && !x.sent).map((x) => ({ key: x.key, text: x.text, at: x.at, created: x.created })),
     remove: async (u, keys) => { const before = st.rows.length; st.rows = st.rows.filter((x) => !(x.userId === u && !x.sent && keys.includes(x.key))); return before - st.rows.length; },

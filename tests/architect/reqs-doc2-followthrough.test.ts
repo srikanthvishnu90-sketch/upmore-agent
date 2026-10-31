@@ -33,7 +33,7 @@ Deno.test("DOC2/1 the asks: a reminder, a list, a cancel; a recall, a bare cance
   eq(reminderAsk("cancel reminder 2"), { kind: "cancel", which: { n: 2 } });
   eq(reminderAsk("cancel my reminder about Acme"), { kind: "cancel", which: { about: "Acme" } });
   eq(reminderAsk("stop reminding me"), { kind: "cancel", which: { all: true } });
-  for (const m of ["remind me what jobs you found", "remind me what time my Acme interview is tomorrow", "remind me why I skipped Acme", "cancel that", "any updates?", "follow up with Acme", "apply to Ramp tomorrow"]) eq(reminderAsk(m), null, m);
+  for (const m of ["remind me what jobs you found", "remind me what time my Acme interview is tomorrow", "remind me about intro 1 in 3 days", "remind me in 5 days if no reply", "remind me why I skipped Acme", "cancel that", "any updates?", "follow up with Acme", "apply to Ramp tomorrow"]) eq(reminderAsk(m), null, m);
   eq(overviewAsk("any update?"), { kind: "overview" });
   eq(overviewAsk("How's it going"), { kind: "overview" });
   eq(overviewAsk("what's waiting on me?"), { kind: "waiting" });
@@ -79,6 +79,12 @@ Deno.test("DOC2/3 the reminder turn on a store: saved with its exact time and te
   const none = (await reminderTurn({ message: "remind me in 2 hours to call Dana", userId: "W", now: T0, store: s }))!;
   eq(none.status, "no_channel", none.reply);
   eq(await reminderTurn({ message: "remind me what you found", userId: "U", now: T0, store: s }), null);
+  // The networking turn's own follow-up reminders stay its own (family-networking.test.ts).
+  eq(await reminderTurn({ message: "remind me to follow up with maya in 3 days", userId: "U", now: T0, store: s }), null);
+  const net = memoryReminderStore({ reachable: { U: true }, networking: { U: true } });
+  eq(await reminderTurn({ message: "stop reminding me", userId: "U", now: T0, store: net }), null, "nothing set here and networking on record: the networking turn's cancel");
+  const bare = memoryReminderStore({ reachable: { U: true } });
+  eq((await reminderTurn({ message: "stop reminding me", userId: "U", now: T0, store: bare }))!.status, "none", "no networking on record: answered here, never the router's 'no reminders' line");
   eq(s.dump().rows.length, 2, "only the two set reminders exist");
   const cancel = (await reminderTurn({ message: "cancel my reminder about the transcript", userId: "U", now: T0, store: s }))!;
   eq(cancel.status, "cancelled", cancel.reply);

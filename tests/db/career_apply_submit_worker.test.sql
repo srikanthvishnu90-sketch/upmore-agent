@@ -68,11 +68,10 @@ update career_watch_kv set value = value || '{"epoch":1}' where user_id = '00000
 -- 4. A not-before not yet due does not hold the person's place; due within the worker's millisecond, it is claimed.
 select pg_temp.q('00000000-0000-4000-8000-0000000e5a01', 'greenhouse:swco:5', 'https://jobs.lever.co/swco/5', interval '1 day');
 select pg_temp.q('00000000-0000-4000-8000-0000000e5a01', 'greenhouse:swco:6', 'https://jobs.ashbyhq.com/swco/6', interval '1 day');
--- Queued one after the other (2026-10-31): this file is one transaction, so both rows took the same created_at (now(), the
--- transaction's start) and the claim's tie-break (id, a random uuid) picked either about half the time (trunk ebed175d5,
--- "FAIL the oldest first"). Applications queued at the same instant (one card's yes) have no oldest; swco:5 is made the
--- older by a second, as two separate approvals would be.
-update career_apply_jobs set created_at = created_at - interval '1 second' where job_id = 'greenhouse:swco:5';
+-- Both rows are enqueued in this transaction, so created_at (now()) ties and the claim's id tie-break is a random uuid: pin
+-- the age so "the oldest first" is a fact, not a coin flip (it failed on a fair share of CI runs).
+update career_apply_jobs set created_at = now() - interval '2 minutes' where job_id = 'greenhouse:swco:5';
+update career_apply_jobs set created_at = now() - interval '1 minute' where job_id = 'greenhouse:swco:6';
 create temp table c5 as select * from career_apply_claim_fair(clock_timestamp(), 1, 1);
 select t.ok((select job_id = 'greenhouse:swco:5' from c5), 'the oldest first');
 select career_apply_requeue_unstarted_for(id, lease_token, 'host_held', clock_timestamp() + interval '1 hour', null) from c5;

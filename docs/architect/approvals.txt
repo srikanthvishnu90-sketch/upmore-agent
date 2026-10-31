@@ -3,8 +3,9 @@
 # PRs whose approval is not a GitHub APPROVED review by an owner, member or collaborator other than the PR's author (GitHub
 # refuses a review of one's own PR, and the architect and the builder push from one account).
 # One line per approval: `<PR number> <40-hex merged head SHA> <reviewer> [note]`. The reviewer is who reviewed it (one
-# token, never the PR's author); a line naming the author approves nothing. A line approves only that SHA: a PR pushed again
+# token; never blank, never the PR's author, never the account that merged it); such a line approves nothing. A line approves only that SHA: a PR pushed again
 # after its line needs a new line. Lines are added, never edited; an approval is written only after the review against the
 # PR's work order (CLAUDE.md, "Your loop", step 3), never in bulk and never backdated.
 # scripts/launch/deploy-standard.ts reads this file from the TRUNK TIP when it judges a SHA, so a line may approve a PR
 # merged before the line was. A PR whose diff only adds lines here is exempt from needing an approval of its own.
+# Ledger reviewer names are an audit record, not a cryptographic proof; true enforcement needs a second reviewer account plus trunk branch protection (owner decision, open).

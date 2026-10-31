@@ -7,7 +7,7 @@ import assertNode from "node:assert/strict";
 import { parse as parseYaml } from "npm:yaml@2.9.1";
 import {
   ACCEPTANCE_CHECK, ACCEPTANCE_FILE, type CheckId, type CheckRun, evaluate, jobCheckNames, knownGaps, LEDGER, parseLedger, parseScoreLog, prOf, type PullFile, report, type Review,
-  type Sources, stepIds,
+  ledgerApproves, ledgerOnly, type Sources, stepIds,
 } from "../../scripts/launch/deploy-standard.ts";
 
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
@@ -56,9 +56,9 @@ interface World {
   runs: CheckRun[];
   deployed: string | null;
   commits: { sha: string; subject: string }[];
-  pulls: Record<number, { merged: boolean; merge_commit_sha: string; head_sha: string; author: string }>;
+  pulls: Record<number, { merged: boolean; merge_commit_sha: string; head_sha: string; author: string; merged_by: string }>;
   reviews: Record<number, Review[]>;
-  prFiles: Record<number, PullFile[]>;
+  prFiles: Record<number, PullFile[] | null | "throws">;
   ledger: string | null; // approvals.txt at the trunk tip
   log: string | null;
   parents: Record<string, string>;
@@ -78,7 +78,7 @@ function base(): World {
     runs: runNames.map((name, i) => ({ name, status: "completed", conclusion: "success", id: 100 + i, completed_at: "2026-10-31T10:00:00Z" })),
     deployed: D,
     commits: [{ sha: C, subject: "Merge pull request #2 from x/feature" }, { sha: B, subject: "fix: something small (#1)" }],
-    pulls: { 1: { merged: true, merge_commit_sha: B, head_sha: H1, author: "builder" }, 2: { merged: true, merge_commit_sha: C, head_sha: H2, author: "builder" } },
+    pulls: { 1: { merged: true, merge_commit_sha: B, head_sha: H1, author: "builder", merged_by: "owner-acct" }, 2: { merged: true, merge_commit_sha: C, head_sha: H2, author: "builder", merged_by: "owner-acct" } },
     reviews: { 1: [{ state: "COMMENTED", commit_id: H1, user: "x", association: "NONE" }, { state: "APPROVED", commit_id: H1, user: "architect", association: "COLLABORATOR" }], 2: [] },
     prFiles: { 1: [{ filename: "src/a.ts", status: "modified", additions: 3, deletions: 1 }], 2: [{ filename: "src/b.ts", status: "modified", additions: 1, deletions: 0 }] },
     ledger: `# PR SHA reviewer [note]\n2 ${H2} architect-claude reviewed against WO-200, gate green\n`,
@@ -99,7 +99,7 @@ function sources(w: World): Sources {
     firstParent: async () => w.commits,
     pull: async (n) => w.pulls[n] ? { number: n, base: "trunk", ...w.pulls[n] } : null,
     reviews: async (n) => w.reviews[n] ?? [],
-    pullFiles: async (n) => w.prFiles[n] ?? [],
+    pullFiles: async (n) => { const f = w.prFiles[n]; if (f === "throws") throw new Error("GitHub /pulls/files: HTTP 502"); return f === undefined ? [] : f; },
     ledger: async () => w.ledger,
     scoreLog: async () => w.log,
     resolve: async (rev) => all.find((s) => s.startsWith(rev)) ?? null,
@@ -201,23 +201,42 @@ Deno.test("S2: the ledger is read from the trunk tip at check time (it may appro
   const w = base(); w.files.set(`${C}:${LEDGER}`, w.ledger!); w.ledger = null;
   await onlyFails(w, "S2", /approvals\.txt is not on the trunk tip/);
 });
-Deno.test("S2 mutation: a ledger line naming the PR's author as reviewer does not count; a line with no reviewer is malformed", async () => {
+Deno.test("S2 mutation: a ledger line naming the PR's author or the merging account as reviewer does not count; a line with no reviewer is malformed", async () => {
   const w = base(); w.ledger = `2 ${H2} builder self-approved\n`;
-  await onlyFails(w, "S2", /#2 head 2222222222: no independent approval .*the docs\/architect\/approvals\.txt line names the author as reviewer/);
+  await onlyFails(w, "S2", /#2 head 2222222222: no independent approval .*line names the author or the merging account as reviewer/);
+  w.ledger = `2 ${H2} Owner-Acct merged it myself\n`;
+  await onlyFails(w, "S2", /#2 head 2222222222: no independent approval .*line names the author or the merging account as reviewer/);
+  const pr = { number: 2, merged: true, merge_commit_sha: C, head_sha: H2, base: "trunk", author: "builder", merged_by: "owner-acct" };
+  eq([ledgerApproves({ sha: H2, reviewer: "architect", note: "" }, pr), ledgerApproves({ sha: H2, reviewer: "  ", note: "" }, pr), ledgerApproves({ sha: H2, reviewer: "", note: "" }, pr),
+    ledgerApproves({ sha: H2, reviewer: "OWNER-ACCT", note: "" }, pr), ledgerApproves({ sha: H1, reviewer: "architect", note: "" }, pr)], [true, false, false, false, false]);
   w.ledger = `2 ${H2}\n`;
   await onlyFails(w, "S2", /#2 head 2222222222: no independent approval at the merged head, and no/);
 });
 Deno.test("S2: a PR whose diff only adds lines to the ledger is exempt; one that also deletes a line or touches another file is not", async () => {
   const w = base(); w.commits.unshift({ sha: M, subject: "Merge pull request #3 from x/approvals" });
-  w.pulls[3] = { merged: true, merge_commit_sha: M, head_sha: "4".repeat(40), author: "builder" };
+  w.pulls[3] = { merged: true, merge_commit_sha: M, head_sha: "4".repeat(40), author: "builder", merged_by: "owner-acct" };
   w.prFiles[3] = [{ filename: LEDGER, status: "modified", additions: 2, deletions: 0 }];
   const r = await verdicts(w);
+  eq(ledgerOnly(null), false, "unreadable is not ledger-only");
+  eq(ledgerOnly([]), false, "an empty list is not ledger-only");
   eq(r.v.S2, true, r.text);
   ok(/ok   #3: exempt, its diff only adds lines to docs\/architect\/approvals\.txt/.test(r.text), r.text);
   w.prFiles[3] = [{ filename: LEDGER, status: "modified", additions: 2, deletions: 1 }];
   await onlyFails(w, "S2", /#3 head 4444444444: no independent approval/);
   w.prFiles[3] = [{ filename: LEDGER, status: "modified", additions: 2, deletions: 0 }, { filename: "scripts/launch/deploy-standard.ts", status: "modified", additions: 1, deletions: 0 }];
   await onlyFails(w, "S2", /#3 head 4444444444: no independent approval/);
+  // A rename of any file is not ledger-only, even a rename onto the ledger with lines only added.
+  w.prFiles[3] = [{ filename: LEDGER, status: "renamed", additions: 2, deletions: 0 }];
+  await onlyFails(w, "S2", /#3 head 4444444444: no independent approval/);
+});
+// Re-review of #351, item 1: missing evidence fails, it never exempts.
+Deno.test("S2 mutation: a PR whose files cannot be read (404, an error, an empty list) is never exempt: PR N files unreadable", async () => {
+  for (const f of [null, "throws", []] as const) {
+    const w = base(); w.commits.unshift({ sha: M, subject: "Merge pull request #3 from x/approvals" });
+    w.pulls[3] = { merged: true, merge_commit_sha: M, head_sha: "4".repeat(40), author: "builder", merged_by: "owner-acct" };
+    w.prFiles[3] = f as any;
+    await onlyFails(w, "S2", /#3: PR 3 files unreadable/);
+  }
 });
 
 // ------------------------------------------------------------------------------------------------ S3
@@ -299,6 +318,16 @@ Deno.test("S4 mutation: a step removed from STEPS (the gap list unchanged) fails
   eq((await verdicts(w)).v.S4, true, "adding a step is fine");
 });
 
+// Re-review of #351, item 2: a suite without a readable, non-empty STEPS list fails S4.
+Deno.test("S4 mutation: a missing or empty STEPS list fails", async () => {
+  const w = base(); w.files.set(`${C}:${ACCEPTANCE_FILE}`, SUITE(["fit-question-answered"]).replace(/export const STEPS[\s\S]*$/, ""));
+  await onlyFails(w, "S4", /no readable STEPS list/);
+  w.files.set(`${C}:${ACCEPTANCE_FILE}`, SUITE(["fit-question-answered"], []));
+  await onlyFails(w, "S4", /no readable STEPS list/);
+  const v = base(); v.files.set(`${D}:${ACCEPTANCE_FILE}`, SUITE(["fit-question-answered", "older-gap"]).replace(/export const STEPS[\s\S]*$/, ""));
+  await onlyFails(v, "S4", /no baseline KNOWN_GAP and STEPS lists/);
+});
+
 // ------------------------------------------------------------------------------------------------ S5
 Deno.test("S5 mutation: a feature enabled and NOT_WIRED", async () => {
   const w = base(); w.audit = { code: 1, out: FEATURES_OK.replace("FEATURE telegram ENABLED WIRED", "FEATURE telegram ENABLED NOT_WIRED missing=TELEGRAM_BOT_TOKEN") };
@@ -330,6 +359,12 @@ Deno.test("S1 mutation: check names match exactly: any other prefix or suffix do
   const x = base(); x.runs = x.runs.map((r) => r.name === ACCEPTANCE_CHECK ? { ...r, name: `wrapper / ${ACCEPTANCE_CHECK}` } : r);
   const r = await verdicts(x);
   eq([r.v.S1, r.v.S4], [false, false], r.text);
+  // The "preflight / " alias is for the jobs deploy-preflight.yml defines, never for a ci.yml job.
+  const z = base(); z.runs = z.runs.map((r) => r.name === "database" ? { ...r, name: "preflight / database" } : r);
+  await onlyFails(z, "S1", /database \(NO RUN\)/);
+  const zz = base(); zz.runs = zz.runs.map((r) => r.name === ACCEPTANCE_CHECK ? { ...r, name: `preflight / ${ACCEPTANCE_CHECK}` } : r);
+  const rz = await verdicts(zz);
+  eq([rz.v.S1, rz.v.S4], [false, false], rz.text);
   for (const ok_ of ["preflight / go-live dry run (PR head)", "go-live dry run (PR head)"]) {
     const y = base(); y.runs = y.runs.map((r) => r.name === "preflight / go-live dry run (PR head)" ? { ...r, name: ok_ } : r);
     eq((await verdicts(y)).v.S1, true, `${ok_} stands for the preflight job`);

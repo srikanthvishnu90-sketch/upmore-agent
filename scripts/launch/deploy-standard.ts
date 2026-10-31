@@ -12,9 +12,11 @@
 //   S2 every PR merged (first-parent commits of trunk) since the last successful production deploy has an APPROVED review at
 //      its merged head SHA by an owner, member or collaborator who is not the PR's author, or a line
 //      `<PR> <40-hex merged head SHA> <reviewer> [note]` in docs/architect/approvals.txt read from the TRUNK TIP at check time
-//      (so the ledger may approve PRs merged before the line was written) whose reviewer is not the PR's author. A PR whose
-//      diff only adds lines to approvals.txt is exempt (it is the approval record itself). A first-parent commit that names
-//      no PR, or whose PR does not own it, fails.
+//      (so the ledger may approve PRs merged before the line was written) whose reviewer is neither blank, nor the PR's
+//      author, nor the account that merged it. A PR whose diff only adds lines to approvals.txt is exempt (it is the approval
+//      record itself); a PR whose files cannot be read is never exempt (FAIL). A first-parent commit that names no PR, or
+//      whose PR does not own it, fails. Ledger reviewer names are an audit record, not a cryptographic proof; true
+//      enforcement needs a second reviewer account plus trunk branch protection (owner decision, open).
 //   S3 reply quality does not regress: on ci/brain-eval's evals/career/SCORE-LOG.md, the live brain's (DEPLOY_STANDARD_BRAIN,
 //      default router) pass rate measured for the candidate >= the rate measured for the deployed SHA, on the same set and
 //      set size. A measurement counts for a SHA when its brain commit is that SHA, or a first-parent ancestor within 10
@@ -42,7 +44,7 @@ import { parse as parseYaml } from "npm:yaml@2.9.1";
 export type CheckId = "S1" | "S2" | "S3" | "S4" | "S5";
 export const ALL_CHECKS: CheckId[] = ["S1", "S2", "S3", "S4", "S5"];
 export interface CheckRun { name: string; status: string; conclusion: string | null; id: number; completed_at?: string | null }
-export interface Pull { number: number; merged: boolean; merge_commit_sha: string | null; head_sha: string; base: string; author: string }
+export interface Pull { number: number; merged: boolean; merge_commit_sha: string | null; head_sha: string; base: string; author: string; merged_by: string }
 export interface Review { state: string; commit_id: string; user: string; association: string }
 export interface PullFile { filename: string; status: string; additions: number; deletions: number }
 export interface Commit { sha: string; subject: string }
@@ -53,7 +55,7 @@ export interface Sources {
   firstParent(from: string, to: string): Promise<Commit[]>; // commits in from..to on to's first-parent line, newest first
   pull(n: number): Promise<Pull | null>;
   reviews(n: number): Promise<Review[]>;
-  pullFiles(n: number): Promise<PullFile[]>;
+  pullFiles(n: number): Promise<PullFile[] | null>; // null: unreadable (an API error or a 404)
   ledger(): Promise<string | null>; // docs/architect/approvals.txt at the trunk tip, now
   scoreLog(): Promise<string | null>;
   resolve(rev: string): Promise<string | null>; // full sha of a (short) commit, or null
@@ -149,9 +151,16 @@ export function parseLedger(text: string | null): Map<number, LedgerEntry[]> {
   }
   return out;
 }
+// A ledger line approves the PR only at its exact merged head, with a reviewer who is neither blank, nor the PR's author, nor
+// the account that merged it. (An audit record, not a proof: D-034.)
+export function ledgerApproves(e: LedgerEntry, pr: Pull): boolean {
+  const who = e.reviewer.trim().toLowerCase();
+  return e.sha === pr.head_sha && !!who && who !== pr.author.toLowerCase() && who !== pr.merged_by.toLowerCase();
+}
 // A PR whose whole diff is lines added to the ledger: the approval record itself, exempt from needing one.
-export function ledgerOnly(files: PullFile[]): boolean {
-  return files.length > 0 && files.every((f) => f.filename === LEDGER && f.deletions === 0 && f.additions > 0 && (f.status === "modified" || f.status === "added"));
+// Missing evidence is never an exemption: an unreadable or empty list is not ledger-only, and a renamed file never is.
+export function ledgerOnly(files: PullFile[] | null): boolean {
+  return !!files && files.length > 0 && files.every((f) => f.filename === LEDGER && f.deletions === 0 && f.additions > 0 && (f.status === "modified" || f.status === "added"));
 }
 
 export async function s2(src: Sources, sha: string, deployed: string | null): Promise<Result> {
@@ -177,15 +186,23 @@ export async function s2(src: Sources, sha: string, deployed: string | null): Pr
     const reviews = await src.reviews(n);
     const review = reviews.find((r) => r.state === "APPROVED" && r.commit_id === pr.head_sha && r.user.toLowerCase() !== author && REVIEWER_ASSOCIATIONS.includes(r.association));
     const lines = ledger.get(n) ?? [];
-    const entry = lines.find((e) => e.sha === pr.head_sha && e.reviewer.toLowerCase() !== author);
+    // The ledger's reviewer names are an audit record, not a proof (D-034): a line naming the PR's author or the account that
+    // merged it, or no reviewer at all, approves nothing.
+    const entry = lines.find((e) => ledgerApproves(e, pr));
     if (review) evidence.push(`ok   #${n} head ${short(pr.head_sha)}: APPROVED by ${review.user} (${review.association})`);
     else if (entry) evidence.push(`ok   #${n} head ${short(pr.head_sha)}: ${LEDGER}, reviewer ${entry.reviewer}${entry.note ? `: ${entry.note.slice(0, 70)}` : ""}`);
-    else if (ledgerOnly(await src.pullFiles(n))) evidence.push(`ok   #${n}: exempt, its diff only adds lines to ${LEDGER}`);
     else {
+      const files = await src.pullFiles(n).catch(() => null);
+      if (files === null || !files.length) {
+        bad.push(`#${n} (files unreadable)`);
+        evidence.push(`BAD  #${n}: PR ${n} files unreadable (${files === null ? "the files API failed" : "an empty files list"}), and no independent approval at the merged head`);
+        continue;
+      }
+      if (ledgerOnly(files)) { evidence.push(`ok   #${n}: exempt, its diff only adds lines to ${LEDGER}`); continue; }
       const why: string[] = [];
       const ignored = reviews.filter((r) => r.state === "APPROVED" && r.commit_id === pr.head_sha);
       if (ignored.length) why.push(`APPROVED at the head only by ${ignored.map((r) => `${r.user} (${r.user.toLowerCase() === author ? "the author" : r.association})`).join(", ")}, not counted`);
-      if (lines.some((e) => e.sha === pr.head_sha)) why.push(`the ${LEDGER} line names the author as reviewer`);
+      if (lines.some((e) => e.sha === pr.head_sha)) why.push(`the ${LEDGER} line names the author or the merging account as reviewer`);
       else if (lines.length) why.push(`${LEDGER} names ${lines.map((e) => short(e.sha)).join(", ")}, not the merged head`);
       bad.push(`#${n}`);
       evidence.push(`BAD  #${n} head ${short(pr.head_sha)}: no independent approval at the merged head${why.length ? `; ${why.join("; ")}` : `, and no ${LEDGER} line`}`);
@@ -403,7 +420,7 @@ export function liveSources(o: { repo: string; token: string; excludeRun?: strin
     },
     async pull(n) {
       const j = await api(`/pulls/${n}`);
-      return j ? { number: j.number, merged: !!j.merged, merge_commit_sha: j.merge_commit_sha, head_sha: j.head.sha, base: j.base.ref, author: j.user?.login ?? "" } : null;
+      return j ? { number: j.number, merged: !!j.merged, merge_commit_sha: j.merge_commit_sha, head_sha: j.head.sha, base: j.base.ref, author: j.user?.login ?? "", merged_by: j.merged_by?.login ?? "" } : null;
     },
     async reviews(n) {
       const out: Review[] = [];
@@ -417,7 +434,8 @@ export function liveSources(o: { repo: string; token: string; excludeRun?: strin
     async pullFiles(n) {
       const out: PullFile[] = [];
       for (let page = 1; page < 40; page++) {
-        const j = (await api(`/pulls/${n}/files?per_page=100&page=${page}`)) ?? [];
+        const j = await api(`/pulls/${n}/files?per_page=100&page=${page}`).catch(() => null);
+        if (!Array.isArray(j)) return null; // a 404 or an error: unreadable, never "no files"
         out.push(...j.map((f: any) => ({ filename: f.filename, status: f.status, additions: f.additions, deletions: f.deletions })));
         if (j.length < 100) break;
       }

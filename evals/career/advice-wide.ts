@@ -11,7 +11,7 @@ import { researchCareerQuestion } from "../../supabase/functions/_shared/agent/r
 import { fallbackVerdict } from "../../supabase/functions/_shared/agent/research/reply.ts";
 import { lintChat } from "../../supabase/functions/_shared/agent/research/chat.ts";
 import { detectField } from "../../supabase/functions/_shared/agent/research/understand.ts";
-import { DEGREE_ASK, shortFor, WORTH_ASK } from "../../supabase/functions/_shared/agent/research/shorts.ts";
+import { DEGREE_ASK, LATE_ASK, shortFor, WORTH_ASK } from "../../supabase/functions/_shared/agent/research/shorts.ts";
 import { unsourcedIn } from "../../supabase/functions/_shared/agent/research/guard.ts";
 
 export const LINK = "https://files.example/brief/plan.md";
@@ -20,14 +20,14 @@ const NOW = Date.parse("2026-10-30T12:00:00Z");
 // id = the catalog field the real detector must pick, or "other" (the model names it; code builds a generic field)
 interface Occ { a: string; field: string; major: string; id: string; local?: boolean; soft?: boolean }
 export const OCCS: Occ[] = [
-  { a: "an investment banker", field: "investment banking", major: "finance", id: "ib" },
-  { a: "a management consultant", field: "consulting", major: "business", id: "consulting" },
+  { a: "an investment banker", field: "investment banking", major: "investment banking", id: "ib" },
+  { a: "a management consultant", field: "consulting", major: "management consulting", id: "consulting" },
   { a: "a software engineer", field: "software engineering", major: "computer science", id: "swe", soft: true },
   { a: "a data analyst", field: "data analytics", major: "statistics", id: "data", soft: true },
   { a: "a registered nurse", field: "nursing", major: "nursing", id: "nursing", local: true },
   { a: "an electrician", field: "the electrical trade", major: "electrical technology", id: "trades", local: true },
   { a: "a plumber", field: "plumbing", major: "plumbing technology", id: "trades", local: true },
-  { a: "a high school teacher", field: "teaching", major: "education", id: "teaching", local: true },
+  { a: "a high school teacher", field: "teaching", major: "teaching", id: "teaching", local: true },
   { a: "a product manager", field: "product management", major: "business", id: "other", soft: true },
   { a: "a mechanical engineer", field: "mechanical engineering", major: "mechanical engineering", id: "eng" },
   { a: "an instructional designer", field: "instructional design", major: "education", id: "lnd" },
@@ -102,6 +102,7 @@ export const PHRS: Phr[] = [
   { id: "long", text: (o) => `How long does it take to become ${o.a}?` },
   { id: "degree", text: (o) => `Do I need a degree to be ${o.a}?` },
   { id: "late", text: (o) => `Is it too late for me to become ${o.a}?` },
+  { id: "old", text: (o) => `Am I too old to become ${o.a}?` },
   { id: "start", text: (o) => `Where do I even start if I want to be ${o.a}?` },
   { id: "land", text: (o) => `What should I do to land a job as ${o.a}?` },
   { id: "breakin", text: (o) => `How do I break into ${o.field}?` },
@@ -151,7 +152,7 @@ export async function gradeSeed(s: WSeed): Promise<Graded> {
   // reviewer checks: the paragraph names the occupation, and asked "worth it" / "need a degree" questions get a direct answer line
   const low = chat.toLowerCase();
   if (![...s.occ.field.split(" ").filter((w) => w.length > 4), s.occ.a.split(" ").pop()!].some((w) => low.includes(w.toLowerCase()))) bad("names_field", "paragraph never names the occupation");
-  if (WORTH_ASK.test(s.message) || DEGREE_ASK.test(s.message)) {
+  if (WORTH_ASK.test(s.message) || DEGREE_ASK.test(s.message) || LATE_ASK.test(s.message)) {
     if (!/^Realistically,/.test(chat)) bad("no_direct_answer", "asked worth/degree, no direct answer first");
     if (!/\*\*Your question\.\*\*/.test(md)) bad("no_direct_answer", "brief has no Your question line");
   }
@@ -160,6 +161,7 @@ export async function gradeSeed(s: WSeed): Promise<Graded> {
   const w = chat.replace(LINK, "").trim().split(/\s+/).length;
   if (!chat.endsWith(LINK)) bad("chat_shape", "no link");
   if (!/\bthis week\b/i.test(chat)) bad("chat_shape", "no this-week action");
+  if ((chat.match(/\bthis week\b/gi) ?? []).length > 1) bad("chat_shape", "this week repeated");
   if (w < 40 || w > 95) bad("chat_shape", `${w} words`);
   if (/\d/.test(chat.replace(LINK, ""))) bad("hallucinated_number", "digit in paragraph with no source");
   const un = unsourcedIn(md, { facts: r.facts, person: r.person, message: s.message });

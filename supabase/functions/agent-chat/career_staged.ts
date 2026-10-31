@@ -116,11 +116,19 @@ const OPEN_ENTRY_RES: RegExp[] = [
   /\bshould\s+i\s+(?:still\s+)?(?:major|minor|study|specialize|concentrate)\s+in\b/i,
   new RegExp(String.raw`\bshould\s+i\s+(?:still\s+)?(?:go\s+(?:into|to\s+school\s+for)|pursue|become|be\s+an?|enter|switch\s+(?:in)?to|train\s+as)\b`, "i"),
 ];
-// The broad shapes ("be a ...", "is ... worth it", "should I go into ...") also fit "be a Googler" and "is Acmeworks worth it": a
-// capitalized word inside the matched span (after its first word) is a company or a person, never an occupation, so the
-// question stays code's (company file or the library) instead of being researched as a field.
-const NAMED = /\b[A-Z][a-z]{2,}|\b[A-Z][a-z]+[A-Z]\w*/;
-const namesSomeone = (span: string) => NAMED.test(span.replace(/^\S+\s*/, ""));
+// The broad shapes ("be a ...", "is ... worth it", "should I go into ...") also fit "be a Googler" and "is Acmeworks worth it". A
+// capitalized word in the question is a company (or a person) unless it is a place or a service branch: "become a nurse in
+// Texas", "an electrician in California", "after the Army" stay open questions, and licensed fields need the state. A company
+// keeps the question with code (company file or the library) instead of researching it as a field.
+const PLACES = new Set(("alabama alaska arizona arkansas california colorado connecticut delaware florida georgia hawaii idaho illinois indiana iowa kansas kentucky louisiana maine maryland massachusetts michigan minnesota mississippi missouri montana nebraska nevada new hampshire jersey mexico york carolina dakota ohio oklahoma oregon pennsylvania rhode island tennessee texas utah vermont virginia washington west wisconsin wyoming columbia " +
+  "atlanta austin boston chicago dallas denver detroit houston miami nashville orlando philadelphia phoenix pittsburgh portland sacramento seattle tampa angeles francisco diego jose vegas orleans city louis paul antonio los san las santa baltimore charlotte columbus cleveland minneapolis brooklyn manhattan queens bronx " +
+  "canada ontario toronto vancouver montreal quebec britain england scotland wales ireland london india australia germany france spain italy china japan korea singapore nigeria brazil netherlands europe asia africa america american canadian british indian united states " +
+  "army navy marines marine force guard coast air space military").split(/\s+/));
+const NAMED = /\b[A-Z][a-z]{2,}|\b[A-Z][a-z]+[A-Z]\w*/g;
+export function namesSomeone(span: string): boolean {
+  const words = span.replace(/^\S+\s*/, "").match(NAMED) ?? [];
+  return words.some((w) => !PLACES.has(w.toLowerCase()));
+}
 const OPEN_ENTRY = { test: (m: string) => OPEN_ENTRY_RES.some((r) => { const x = r.exec(m); return !!x && !namesSomeone(m.slice(x.index).split(/[?.!]/)[0]); }) };
 const OPEN_ENTRY_KINDS = new Set(["role_kb_stats", "role_kb_absent", "plan_paths"]);
 export function openCareerQuestion(env: Env, message: string, intent: string, result: unknown): boolean {
@@ -131,8 +139,12 @@ export function openCareerQuestion(env: Env, message: string, intent: string, re
   if (intent !== "company_intel" && intent !== "path_plan" && !GENERIC_MISS) return false;
   if (!OPEN_ENTRY.test(message)) return false;
   const r = (result && typeof result === "object" ? result : {}) as Record<string, any>;
-  if (has(r, "company") || has(r, "comparison") || has(r, "offer")) return false;
-  if (GENERIC_MISS) return true;
+  // The router sometimes reads "at home" or "at night" as a company ("home has no company file yet"). A company the person never
+  // capitalized and that is an everyday word is not one: the question is still open.
+  const co = typeof r.company === "string" ? r.company : null;
+  const spurious = !!co && co === co.toLowerCase() && /^[a-z]{2,12}$/.test(co) && !new RegExp(`\\b${co[0].toUpperCase()}${co.slice(1)}`).test(message) && String(r.payload?.kind ?? "") === "company_file_absent";
+  if ((has(r, "company") && !spurious) || has(r, "comparison") || has(r, "offer")) return false;
+  if (GENERIC_MISS || spurious) return true;
   return OPEN_ENTRY_KINDS.has(String(r.payload?.kind ?? r.artifact?.kind ?? ""));
 }
 

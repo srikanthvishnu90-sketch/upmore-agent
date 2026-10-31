@@ -55,3 +55,36 @@ Deno.test("AW-5 the template names the occupation and gives a route line, licens
   }
   assertNode.notEqual(template("a", true).now, template("a", false).now);
 });
+
+Deno.test("AW-6 place names are not companies: state, city, country and branch names keep the question open", () => {
+  for (const m of ["How do I become a nurse in Texas?", "How do I get hired as an electrician in California?", "What does it take to become a lawyer in New York?", "Is nursing worth it in Chicago?",
+    "I'm a veteran leaving the Army. How do I become a paralegal?", "I'm a parent returning to work after six years at home. What's the path to becoming an investment banker?",
+    "Should I become a nurse in Ontario?", "How do I get hired as an electrician after the Navy?", "How do I become a teacher in San Francisco?", "Is plumbing worth it in Ohio?"]) {
+    const d = decide(m); assertNode.ok(d.brain, `${m}: ${d.reason}/${d.intent}`);
+  }
+});
+
+import { researchCareerQuestion } from "../../supabase/functions/_shared/agent/research/index.ts";
+import { fallbackVerdict } from "../../supabase/functions/_shared/agent/research/reply.ts";
+Deno.test("AW-7 'too late / too old' asks get a direct line about time to the credential, no invented figure, no 'too late' framing", async () => {
+  const none = async () => ({ status: "ok" as const, facts: [], urls: [], cost_usd: 0 });
+  for (const [label, local, q] of [["psychology", true, "I'm 47. Is it too late to become a psychologist?"], ["music", false, "Am I too old to become a musician?"], ["welding", false, "At my age, is it too late to become a welder?"]] as const) {
+    const r = await researchCareerQuestion({ message: q, profile: { facts: [] }, deps: { search: none, publish: async () => ({ url: "https://f.example/p.md" }), derive: async () => ({ label, local }) }, now: Date.UTC(2026, 9, 30) });
+    assertNode.equal(r.status, "ok"); if (r.status !== "ok") continue;
+    assertNode.ok(/time to the credential, not age/.test(r.answer ?? ""), `${q}: ${r.answer}`);
+    assertNode.ok(/\*\*Your question\.\*\* The question for/.test(r.brief_markdown), "brief answers it");
+    const chat = fallbackVerdict(r);
+    assertNode.ok(/^Realistically, the question for/.test(chat) && !/\btoo late\b/i.test(chat) && !/\d/.test(chat.replace(/https?:\S+/, "")), chat);
+  }
+});
+
+Deno.test("AW-8 hand-written lines make no market claim; template wording does not repeat 'this week'", async () => {
+  const MARKET = /demand is|demand follows|steady|pay climbs|pay improves|exit options|opens many|crowded|scarce|competitive|costly|well paid|high pay|in demand|job security/i;
+  for (const s of SHORTS) for (const l of [s.now, s.later, s.act, s.degree, s.worth]) assertNode.ok(!MARKET.test(l), `${s.key}: ${l}`);
+  for (const [n, local] of [["journalism", false], ["photography", false], ["wind energy", false], ["law enforcement", true], ["dental hygiene", true], ["sales", false], ["trucking", true]] as const) {
+    const t = template(n, local);
+    for (const l of [t.now, t.later, t.act, t.degree, t.worth, t.late]) { assertNode.ok(!MARKET.test(l), l); assertNode.ok(!/this week/i.test(l), `repeats this week: ${l}`); }
+    assertNode.ok(t.now.split(/\s+/).length >= 18, `${n}: now line too thin`);
+  }
+  assertNode.notEqual(template("journalism", false).now, template("wind energy", false).now, "creative and field-science routes differ");
+});

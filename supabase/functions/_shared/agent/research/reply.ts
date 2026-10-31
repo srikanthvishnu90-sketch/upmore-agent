@@ -53,7 +53,7 @@ export function fallbackVerdict(r: Ok): string {
   if (act) parts.push(`This week: ${lowerFirst(act)}.`);
   if (r.lead && wc(parts.join(" ")) + wc(r.lead) <= 88) parts.splice(parts.length - 1, 0, r.lead);
   const body = parts.join(" ");
-  return r.file_url ? `${body} The full plan, timeline and honest odds: ${r.file_url}` : body;
+  return r.file_url ? `${body} The full plan and honest odds: ${r.file_url}` : body;
 }
 export interface Enforced { reply: string; action: "kept" | "regenerated" | "fallback"; problems: string[] }
 export async function enforceResearchReply(o: { reply: string; result: Ok; message: string; regenerate: (problems: string[]) => Promise<string | null> }): Promise<Enforced> {

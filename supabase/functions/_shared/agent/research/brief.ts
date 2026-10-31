@@ -51,8 +51,8 @@ export function composeBrief(o: { u: Understanding; g: Grounded; message: string
   sec("Honest read");
   if (STAGE_NOTE[u.stage]) L.push(gk(STAGE_NOTE[u.stage]), "");
   L.push(`**Realistic now.** ${gk(f.now)}`, "", `**Realistic later.** ${gk(f.later)}`);
-  const direct = directAnswer(o.message, shortFor(f, o.message));
-  if (direct) L.push("", `**Your question.** ${gk(direct)}`);
+  const sh = shortFor(f, o.message), direct = directAnswer(o.message, sh);
+  if (direct) L.push("", `**Your question.** ${gk(cap(direct))}`);
   for (const v of u.overlays) L.push("", gk(v.read));
   if (u.qtype === "pay") L.push("", "You asked about pay: the only figures in this brief are the sourced ones under \"What the data says\"; pay varies by region and employer.");
 
@@ -120,7 +120,7 @@ export function composeBrief(o: { u: Understanding; g: Grounded; message: string
   else L.push("No sources were retrieved. Everything above marked \"general knowledge\" is standard practice, not data.");
 
   // The final guard: any line with a number or name no source, no fact of the person's and no general term accounts for is dropped.
-  const support = { facts, person: [...u.confirmed, ...u.said, o.today, f.label], message: o.message };
+  const support = { facts, person: [...u.confirmed, ...u.said, o.today, f.label, shortFor(f, o.message).name], message: o.message };
   const dropped: string[] = [];
   const kept = L.filter((line, i) => {
     if (!line.trim() || /^#|^\d+\. S\d/.test(line) || line.startsWith(">")) return true;

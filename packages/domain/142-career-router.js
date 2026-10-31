@@ -1515,7 +1515,7 @@ const CareerRouter = (() => {
     // set while the named target stands on the record.
     if (q) {
       const facts = statedFactsOf(ctx);
-      const firmF = facts.find((f) => f.kind === "target_firm");
+      const firmF = facts.find((f) => f.kind === "target_firm" && (() => { const at = Date.parse(f.at); return !Number.isFinite(at) || nowOf(ctx) - at <= 6 * 3600 * 1000; })());
       // LF-09 (ii) (BUG-275 / FR-430): the on-record firm may anchor
       // only an ask that named NO universe of its own. Named firms, a
       // named set, and a category proposal are the ask's own universe
@@ -1548,9 +1548,13 @@ const CareerRouter = (() => {
       if (firmF && !askedUniverse && !anchored) {
         q.firms = [firmF.value]; q.firms_named = true; q.firms_source = "named"; q.firm_set = null; q.proposed_default = null; q.vague = false;
       }
-      const geoF = facts.find((f) => f.kind === "geography");
+      // STALE FACTS (2026-10-30): a place or level stated in an earlier sitting is not this ask's filter ("find people at
+      // Google" was planned as "analysts in San Francisco"). Only a fact stated within the last six hours rides into a
+      // plan; an older one is left out and the person's own words decide (a fact with no timestamp keeps the old rule).
+      const fresh = (f) => { const at = Date.parse(f && f.at); return !Number.isFinite(at) || nowOf(ctx) - at <= 6 * 3600 * 1000; };
+      const geoF = facts.find((f) => f.kind === "geography" && fresh(f));
       if (geoF && !q.geography) q.geography = geoF.value;
-      const lvlF = facts.find((f) => f.kind === "level");
+      const lvlF = facts.find((f) => f.kind === "level" && fresh(f));
       if (lvlF && !q.seniority_band) {
         if (/analyst/i.test(lvlF.value)) q.seniority_band = "analyst";
         else if (/associate/i.test(lvlF.value)) q.seniority_band = "associate";
@@ -3825,10 +3829,50 @@ const CareerRouter = (() => {
   }
 
   function handleFirmCap(text, ctx) {
-    const reply = compose({ headline: "There is no per-firm cap.", facts: ["Trainee sets no volume limit of its own: every email you approve to one firm can go, from your own Gmail.", "What stays: each email goes only as you approved it, nobody who said stop is written to again, and a bounced address is never retried."], nextStep: "Want the per-firm breakdown of the current list?" });
+    // What the code does (checked 2026-10-30): the send rail (career_send_rail.ts) has no per-firm limit, so every email you
+    // approve can go; the list builder (124 buildList) takes at most 15 names at one firm into a pass and keeps the rest in
+    // reserve, so a long list does not pile on one desk. The reply says both, and neither as a send limit it does not have.
+    const reply = compose({ headline: "There is no per-firm cap on sending.", facts: ["Trainee sets no volume limit of its own: every email you approve to one firm can go, from your own Gmail.", "One thing does limit a list: when I build it, a single pass takes at most 15 names at one firm and keeps the rest in reserve, so no one desk gets everything at once.", "What stays: each email goes only as you approved it, nobody who said stop is written to again, and a bounced address is never retried."], nextStep: "Want the per-firm breakdown of the current list?" });
     // BUG-108: the locked cap values are the typed record.
-    const cap = { kind: "firm_cap", per_firm_cap: null, window_days: null, enforced_at: [], queue_refuses_nth: null };
+    const cap = { kind: "firm_cap", per_firm_cap: null, window_days: null, enforced_at: [], queue_refuses_nth: null, send_limit: null, list_pass_per_firm: 15 };
     return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: cap, artifact: cap };
+  }
+
+  // ---------- cold networking opener --------------------------------------
+  // "who can I network with at Google?" / "I want to network at Amazon" / "who can I reach out to?": the person has named
+  // a firm, a field or nothing, and no count, role, place or purpose. The answer is one short paragraph: where names can
+  // come from (every name keeps its source; nobody is emailed on a guessed address; drafts wait for approval) and ONE next
+  // step. Nothing is lifted from old facts (a role, a city, a firm said weeks ago); a plan is built when the ask itself
+  // carries those things. It builds no plan and sends nothing.
+  const COLD_OPENER = /^(?:(?:so|ok|okay|hey|hi|and|now|also|please|pls)[, ]+)*(?:(?:who|which people)\s+(?:should|shall|can|could|do|would|might|ought)\s+i\s+(?:be\s+)?(?:network(?:ing)?|reach(?:ing)?\s+out|connect(?:ing)?|talk(?:ing)?|speak(?:ing)?|get(?:ting)?\s+in\s+touch)(?:\s+(?:with|to))?|(?:i\s+(?:want|need|would\s+like|'d\s+like|wanna)\s+to\s+|help\s+me\s+|can\s+you\s+help\s+me\s+|let'?s\s+)(?:start\s+)?network(?:ing)?(?:\s+(?:with|to))?|find\s+(?:me\s+)?(?:people|someone|contacts)\s+to\s+network\s+with|(?:i\s+(?:want|need|would\s+like|'d\s+like|wanna)\s+to\s+)?(?:reach|contact|connect\s+with|find|get|show)\s+(?:me\s+)?(?:some\s+)?(?=(?:people|someone|somebody|anyone|contacts|connections)\b)|(?:build|make|give)\s+me\s+a\s+networking\s+list)\b(.*)$/i;
+  const COLD_PEOPLE = /^(?:people|persons?|someone|somebody|anyone|anybody|folks|contacts|connections)\s+/i;
+  const COLD_EXTRA = /\d|\b(?:analysts?|associates?|bankers?|engineers?|recruiters?|founders?|alumni|alums|managers?|directors?|partners?|vps?|interns?|first|warm|cold|who|that|which|share|from my|as a|as an|because|so that|before|after|this|next|week|month|summer|fall|spring|winter)\b/i;
+  function handleColdNetworkingAsk(text, ctx) {
+    const raw = s(text).replace(/[\u2018\u2019]/g, "'").replace(/\s+/g, " ").trim().replace(/[?!.]+$/, "");
+    const m = COLD_OPENER.exec(raw);
+    if (!m) return null;
+    let rest = s(m[1]).trim();
+    rest = rest.replace(COLD_PEOPLE, "");
+    let firm = null, field = null;
+    if (rest) {
+      const at = /^(?:at|into|from)\s+(?:the\s+)?(.+)$/i.exec(rest);
+      const fld = /^(?:in|for|about|into)\s+(?:an?\s+|the\s+|my\s+)?(.+)$/i.exec(rest);
+      if (at && (/^at$/i.test(rest.split(" ")[0]) || /^[A-Z0-9]/.test(at[1]))) firm = at[1].trim();
+      else if (fld) field = fld[1].trim().replace(/\s+(?:jobs?|roles?|work|careers?|field|industry|internships?)$/i, "").trim();
+      else return null;
+      const target = firm || field;
+      if (!target || target.split(" ").length > 5 || /[,;:@/\\]/.test(target) || COLD_EXTRA.test(target) || /\b(?:in|near|around)\s+[A-Z]/.test(target)) return null;
+      if (field && /\b(?:sf|nyc|la|dc|london|remote)\b/i.test(field)) return null;
+    }
+    const where = firm ? ` at ${firm}` : field ? ` in ${field}` : "";
+    const headline = `I can build that from people you can actually reach${where}: your own LinkedIn export, names you paste, your school's alumni directory${firm ? `, or ${firm}'s team pages` : ", or firms' team pages"}.`;
+    const facts = ["Every name keeps its source, nobody is emailed on a guessed address, and each message waits for your approval before it goes."];
+    const nextStep = firm || field
+      ? "Easiest start: paste a few names you already know, upload your LinkedIn export, or tell me your school."
+      : "Easiest start: tell me a firm or field, paste a few names you already know, or upload your LinkedIn export.";
+    const reply = compose({ headline, facts, nextStep });
+    const rec = { kind: "networking_opener", firm, field, sources: ["linkedin_export", "pasted_names", "school_alumni_directory", "firm_team_pages"], asked_next: "names_or_export_or_school", sends: 0, committed: false };
+    return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, payload: rec, artifact: rec };
   }
 
   function handleFollowUpWave(text, ctx) {
@@ -12688,6 +12732,14 @@ const CareerRouter = (() => {
     if (/\breferral (ask|timing)\b|\bprepare the referral\b|\bask for (a )?referral\b/.test(t)) {
       const gr = handleGraphReferral(text, c);
       if (gr) return gr;
+    }
+    // COLD NETWORKING OPENER (2026-10-30, live): "who can I network with at Google?" named a firm and nothing else, and
+    // was answered "Building the list now: analyst at Google in San Francisco" (a role and a city lifted from old facts)
+    // plus a long policy paragraph. An opener that carries no count, role, place or purpose gets a short paragraph that
+    // says where names can come from, and one next step.
+    {
+      const cold = handleColdNetworkingAsk(text, c);
+      if (cold) return cold;
     }
     if (/\bdream (50|companies)\b|\bnetwork into\b/.test(t)) {
       const cp = handleCampaignPlan(text, c);

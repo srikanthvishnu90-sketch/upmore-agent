@@ -424,8 +424,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       }
       // ROOT CAUSE 3: the person's profile and tracker are the account's once they use a texting channel (or already are):
       // read whether a texting contact is linked to them (null when unreadable: per-thread, as before).
-      const textingLinked: boolean | null = await admin.from("channel_contacts").select("contact").eq("user_id", user.id).limit(1)
-          .then((r: any) => (r.error ? null : Array.isArray(r.data) && r.data.length > 0), () => null);
+      let textingLinked: boolean | null = null;
+      try {
+        const r: any = await admin.from("channel_contacts").select("contact").eq("user_id", user.id).limit(1);
+        textingLinked = r && !r.error && Array.isArray(r.data) ? r.data.length > 0 : null;
+      } catch { textingLinked = null; }
       const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, accountMemory: accountMemoryOn(Deno.env, { textingLinked, accountHasMemory: !!(loaded.account as any)?.memory && typeof (loaded.account as any).memory === "object" }) /* ROOT CAUSE 3 */, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings: [], batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
         _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown; alertWatchState?: Record<string, unknown>;
       };

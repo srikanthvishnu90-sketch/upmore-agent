@@ -2,7 +2,7 @@
 // sources, commonality ranking, per-contact drafts, confirm-address, send windows, pipeline notes and analytics. Pure, seeded,
 // no network, no model, nothing sent.
 import assertNode from "node:assert/strict";
-import { Pipeline, commonalities, confirmAddress, draftAll, draftFor, editDraft, importContacts, nextSlots, profileOf, rankContacts, sendWindow, whatWeRead, withConfirmedAddress, type Fact } from "../../supabase/functions/_shared/career_network_pipeline.ts";
+import { Pipeline, commonalities, confirmAddress, draftAll, draftFor, editDraft, importContacts, nextSlots, profileOf, sourceVerdict, rankContacts, sendWindow, whatWeRead, withConfirmedAddress, type Fact } from "../../supabase/functions/_shared/career_network_pipeline.ts";
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
 const ok = (v: unknown, m?: string) => assertNode.ok(v, m);
 
@@ -12,8 +12,8 @@ const FACTS: Fact[] = [
   { kind: "interest", value: "jazz" }, { kind: "hometown", value: "Wrong City", needs_confirmation: true },
 ];
 const CSV = `Name,Firm,Title,Email,Location,School,Hometown,High School,Sports,Interests,Orgs,Source
-Maya Chen,Mayo Clinic,Program Manager,maya.chen@mayo.example,Rochester,DePaul University,Tulsa,,rowing,jazz;cooking,Pre-Health Society,school alumni directory
-Omar Reyes,Pfizer,Medical Writer,,New York,Northwestern,Austin,Booker T. Washington,,,,firm team page
+Maya Chen,Mayo Clinic,Program Manager,maya.chen@mayo.example,Rochester,DePaul University,Tulsa,,rowing,jazz;cooking,Pre-Health Society,alumni_export
+Omar Reyes,Pfizer,Medical Writer,,New York,Northwestern,Austin,Booker T. Washington,,,,firm_team_page
 Lena Fischer,Stripe,Engineer,lena@stripe.example,SF,MIT,Berlin,,,,,
 Sam Park,Acme,Analyst,sam@acme.example,NYC,DePaul University,,,,,,scraped linkedin database
 ,Nobody,Ghost,g@x.example,,,,,,,,
@@ -32,11 +32,11 @@ Deno.test("what we read: confirmed facts only, summary, and what is missing", ()
 Deno.test("import: every contact carries a source; unsourced kinds, nameless and duplicate rows are set aside; no address is built", () => {
   const r = importContacts(CSV);
   eq(r.contacts.map((c) => c.name), ["Maya Chen", "Omar Reyes", "Lena Fischer"]);
-  eq(r.contacts.map((c) => c.source), ["school_alumni_directory", "firm_team_page", "user_csv"]);
+  eq(r.contacts.map((c) => c.source), ["alumni_export", "firm_team_page", "user_csv"]);
   ok(r.contacts.every((c) => c.source_note.length > 0));
   eq(r.contacts[1].email, null); eq(r.contacts[1].address, "none", "no address was invented for Omar");
   const why = r.set_aside.map((x) => x.why).join("|");
-  ok(/not one of/.test(why) && /no name/.test(why) && /duplicate/.test(why), why);
+  ok(/refused/.test(why) && /no name/.test(why) && /duplicate/.test(why), why);
 });
 
 Deno.test("ranking: hometown, sport, org, interest, school, high school, firm; most in common first; shared connection shown", () => {
@@ -113,4 +113,22 @@ Deno.test("no guessed addresses and no outreach: the module has no network, no s
   const code = src.split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
   ok(!/fetch\(|XMLHttpRequest|smtp|gmail\.googleapis|\.send\(/i.test(code));
   ok(!/\$\{[^}]*\.name[^}]*\}@|firstname|first\.last/i.test(code), "no address is assembled from a name");
+});
+
+Deno.test("source gate: exact kinds and whole-string aliases only; sites and ways we never use are refused; unclear is asked", () => {
+  const verdict = (raw: string) => sourceVerdict(raw, "user_csv");
+  for (const k of ["user_csv", "pasted", "alumni_export", "firm_team_page", "user_linkedin_export"]) eq(verdict(k), { kind: "ok", source: k });
+  eq(verdict("User LinkedIn Export"), { kind: "ok", source: "user_linkedin_export" });
+  eq(verdict("alumni directory"), { kind: "ok", source: "alumni_export" });
+  eq(verdict(""), { kind: "ok", source: "user_csv" }, "blank takes the file's declared kind");
+  const refused = ["handshake download", "linkedin profile", "indeed profile page", "LinkedIn Sales Navigator", "sales navigator export", "scraped list", "scraped linkedin", "database", "linkedin database", "guessed from name", "inferred pattern", "apollo", "bought list", "handshake", "indeed", "linkedin.com/in/maya", "firm page scraped", "own scrape", "my own database", "own download"];
+  for (const r of refused) { const v = verdict(r); ok(v.kind === "refused" || v.kind === "ask", `${r}: ${JSON.stringify(v)}`); }
+  for (const r of ["handshake download", "linkedin profile", "indeed profile page", "LinkedIn Sales Navigator", "scraped list", "linkedin database", "guessed from name", "apollo", "bought list", "handshake", "indeed"]) eq(verdict(r).kind, "refused", r);
+  for (const r of ["li export", "export", "own file", "download", "a friend", "page", "directory"]) eq(verdict(r).kind, "ask", r);
+  eq(verdict("own download").kind, "ask", "'own' inside 'download' is no longer a match");
+  const csv = "Name,Firm,Source\nA One,X,handshake download\nB Two,Y,li export\nC Three,Z,pasted\n";
+  const r = importContacts(csv);
+  eq(r.contacts.map((c) => c.name), ["C Three"]);
+  ok(/refused/.test(r.set_aside[0].why) && !r.set_aside[0].ask);
+  ok(/unclear/.test(r.set_aside[1].why) && r.set_aside[1].ask === true);
 });

@@ -57,22 +57,35 @@ export function whatWeRead(facts: Fact[]): { profile: Profile; text: string; mis
 }
 
 // ------------------------------------------------------------------------------------------------ contacts
-export type SourceKind = "own_linkedin_export" | "pasted_names" | "school_alumni_directory" | "firm_team_page" | "user_csv";
-export const SOURCE_KINDS: SourceKind[] = ["own_linkedin_export", "pasted_names", "school_alumni_directory", "firm_team_page", "user_csv"];
+export type SourceKind = "user_linkedin_export" | "pasted" | "alumni_export" | "firm_team_page" | "user_csv";
+export const SOURCE_KINDS: SourceKind[] = ["user_linkedin_export", "pasted", "alumni_export", "firm_team_page", "user_csv"];
 export interface Contact {
   id: string; name: string; firm: string; title: string; location: string; school: string; high_school: string; hometown: string;
   sports: string[]; interests: string[]; orgs: string[]; email: string | null; address: "sourced" | "none"; source: SourceKind; source_note: string;
 }
-export interface ImportResult { contacts: Contact[]; set_aside: { row: number; why: string }[] }
+export interface ImportResult { contacts: Contact[]; set_aside: { row: number; why: string; ask?: true }[] }
 const HEAD: Record<string, string> = { name: "name", "full name": "name", firm: "firm", company: "firm", employer: "firm", title: "title", role: "title", position: "title", email: "email", "email address": "email", location: "location", city: "location", school: "school", university: "school", "high school": "high_school", highschool: "high_school", hometown: "hometown", sports: "sports", sport: "sports", interests: "interests", interest: "interests", orgs: "orgs", clubs: "orgs", activities: "orgs", source: "source" };
-const REFUSED_SOURCE = /scrap|crawl|database|bought|purchas|guess|infer|apollo|zoominfo|lusha|rocketreach|sales ?nav/;
-const SRC_WORDS: [RegExp, SourceKind][] = [[/linkedin.*(export|connections|download)|export.*linkedin/, "own_linkedin_export"], [/paste/, "pasted_names"], [/alumni|directory/, "school_alumni_directory"], [/team|firm|page|website/, "firm_team_page"], [/csv|file|own/, "user_csv"]];
-const sourceOf = (raw: string, fallback: SourceKind): SourceKind | null => {
-  const t = plain(raw); if (!t) return fallback;
-  if (REFUSED_SOURCE.test(t)) return null;
-  for (const [re, k] of SRC_WORDS) if (re.test(t)) return k;
-  return null; // a source the product does not accept (a scraper, a "database", a guess)
+// The source gate is exact. A source is one of the five kinds, spelled as the kind or as one of the whole-string aliases below.
+// Any other text is split into tokens: one that names a site we never use or a way of getting names we never use (LinkedIn,
+// Indeed, Handshake, scraping, a database, a guess, a bought list) is refused; anything else is unclear and the person is asked.
+const ALIASES: Record<string, SourceKind> = {
+  user_csv: "user_csv", csv: "user_csv", my_csv: "user_csv", my_own_csv: "user_csv", user_provided_csv: "user_csv",
+  pasted: "pasted", pasted_names: "pasted", names_i_pasted: "pasted",
+  alumni_export: "alumni_export", school_alumni_directory: "alumni_export", alumni_directory_export: "alumni_export", alumni_directory: "alumni_export",
+  firm_team_page: "firm_team_page", team_page: "firm_team_page", firm_team_pages: "firm_team_page",
+  user_linkedin_export: "user_linkedin_export", own_linkedin_export: "user_linkedin_export", my_linkedin_export: "user_linkedin_export", linkedin_export: "user_linkedin_export", linkedin_connections_export: "user_linkedin_export",
 };
+const REFUSED_TOKENS = new Set(["linkedin", "indeed", "handshake", "scrape", "scraped", "scraper", "scraping", "crawl", "crawled", "crawler", "database", "db", "guess", "guessed", "guessing", "infer", "inferred", "pattern", "bought", "buy", "purchased", "purchase", "apollo", "zoominfo", "lusha", "rocketreach", "navigator", "sales", "leaked", "dump"]);
+export type SourceVerdict = { kind: "ok"; source: SourceKind } | { kind: "refused"; token: string } | { kind: "ask" };
+export function sourceVerdict(raw: string, fallback: SourceKind): SourceVerdict {
+  const tokens = plain(raw).split(" ").filter(Boolean);
+  if (!tokens.length) return { kind: "ok", source: fallback };
+  const key = tokens.join("_");
+  if (ALIASES[key]) return { kind: "ok", source: ALIASES[key] };
+  const bad = tokens.find((t) => REFUSED_TOKENS.has(t));
+  if (bad) return { kind: "refused", token: bad };
+  return { kind: "ask" };
+}
 const EMAIL = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/;
 // A CSV the person provides. `defaultSource` is what the file is (the person says it); a row may name its own source. A row
 // with no name, or a source that is not one of the five, is set aside with the reason. An address is kept only as the file
@@ -87,8 +100,10 @@ export function importContacts(csv: string, defaultSource: SourceKind = "user_cs
     const row: Record<string, string> = {}; cols.forEach((c, j) => { if (c) row[c] = String(r[j] ?? "").trim(); });
     if (!row.name) { out.set_aside.push({ row: i + 2, why: "no name" }); return; }
     if (/^[=+\-@]/.test(row.name) || /ignore|instruction|system prompt/i.test(Object.values(row).join(" "))) { out.set_aside.push({ row: i + 2, why: "cell reads as a formula or instruction" }); return; }
-    const source = sourceOf(row.source ?? "", defaultSource);
-    if (!source) { out.set_aside.push({ row: i + 2, why: `source "${row.source}" is not one of: ${SOURCE_KINDS.join(", ")}` }); return; }
+    const v = sourceVerdict(row.source ?? "", defaultSource);
+    if (v.kind === "refused") { out.set_aside.push({ row: i + 2, why: `source "${row.source}" is refused ("${v.token}"): names come only from ${SOURCE_KINDS.join(", ")}` }); return; }
+    if (v.kind === "ask") { out.set_aside.push({ row: i + 2, why: `source "${row.source}" is unclear: which is it, ${SOURCE_KINDS.join(", ")}?`, ask: true }); return; }
+    const source = v.source;
     const email = row.email && EMAIL.test(row.email) ? row.email.toLowerCase() : null;
     const key = `${plain(row.name)}|${plain(row.firm)}`;
     if (seen.has(key)) { out.set_aside.push({ row: i + 2, why: "duplicate of an earlier row" }); return; }

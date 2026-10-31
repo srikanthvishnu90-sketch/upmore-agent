@@ -237,6 +237,7 @@ MIGRATIONS=(
   20261030110000_career_ingest_r2.sql
   20261030120000_channel_identity.sql
   20261030130000_billing_r2.sql
+  20261030140000_career_apply_submit_worker.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -353,6 +354,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_board_state_claim') and exists (select 1 from pg_trigger where tgname = 'career_postings_closed_apply' and tgrelid = 'public.career_postings'::regclass)"
   "exists (select 1 from pg_proc where proname = 'channel_refused_before') and exists (select 1 from pg_proc where proname = 'channel_link_pending') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'channel_contacts' and column_name = 'refused_at')"
   "exists (select 1 from pg_proc where proname = 'billing_sync_subscription' and pronargs = 13) and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'user_subscriptions' and column_name = 'live_subscriptions')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_close_unsendable') and exists (select 1 from pg_proc where proname = 'career_apply_submit_worker_install') and exists (select 1 from pg_proc where proname = 'career_apply_confirm_as' and prosrc like '%''driving''%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

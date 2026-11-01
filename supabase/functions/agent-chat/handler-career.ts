@@ -817,7 +817,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       } else if (asked) {
         // Questions shown, or some still open after an answer, stay this thread's last word so "2 yes" answers them; so does
         // every draft turn (a draft shown waits for "use 2"; a refused or failed one leaves the question open).
-        const waiting = ["shown", "partial"].includes(asked.status) || asked.status.startsWith("draft");
+        const waiting = ["shown", "partial", "answered_next"].includes(asked.status) || asked.status.startsWith("draft");
         out = { reply: asked.reply, intent: waiting ? QUESTIONS_INTENT : "career_apply_questions_answer", resultStatus: asked.status, contained: false, handler: "questions" };
       } else if (which) {
         // A number not on the list leaves the ask waiting; anything else answered it.

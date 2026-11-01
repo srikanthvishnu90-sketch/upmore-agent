@@ -283,9 +283,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         flowCtx.note = redactionNote([...new Set([...input.redacted, ...red.removed])]);
       }
     }
-    // #354 SAFETY: the crisis screen starts now, beside the rest of the turn's reads: the deterministic list at once, and
-    // OpenAI moderation (CAREER_CRISIS_MODERATION=on) with a 1.5 s cap. It never rejects; it is awaited where `distress`
-    // is decided below, and a moderation error or timeout leaves the list's verdict (career_crisis_screen.ts).
+    // #354 SAFETY: the crisis screen starts now, beside the rest of the turn's reads: the deterministic list at once, and a
+    // moderation client with a 1.5 s cap. It never rejects; it is awaited where `distress` is decided below, and a
+    // moderation error or timeout leaves the list's verdict (career_crisis_screen.ts). The client is model_gateway.ts's
+    // moderation door, on with CAREER_CRISIS_MODERATION=on (set by trainee-go-live.sh on every deploy).
     const crisisPending = crisisScreen(message, moderationFromEnv(Deno.env));
 
     // GO-LIVE FLIP (2026-10-13, owner ruling: "the career version is the

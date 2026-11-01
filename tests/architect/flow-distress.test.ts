@@ -55,3 +55,73 @@ Deno.test({ name: "#354 safety: distress gets the crisis reply first at the real
     await pg.stop();
   }
 } });
+
+// The second layer at the real handler: the gateway's moderation door, faked at the network (only /v1/moderations).
+const OBLIQUE = "i gave away my things and wrote the letters, tonight is the night";
+Deno.test({ name: "#354 safety: moderation flags what the list misses at the real handler; a timeout or error never blocks the turn", sanitizeResources: false, sanitizeOps: false, async fn(t) {
+  if (!pgBinDir()) { if (CI) throw new Error("needs Postgres 16 in CI"); console.log("NOT_RUN locally: no Postgres binaries"); return; }
+  const pg: Pg = await startPg();
+  const realFetch = globalThis.fetch;
+  const saved: Record<string, string | undefined> = {};
+  for (const k of ["OPENAI_API_KEY", "CAREER_CRISIS_MODERATION", "MODEL_BUDGET_PAUSED"]) saved[k] = Deno.env.get(k);
+  let handler: Awaited<ReturnType<typeof careerHandler>> | null = null;
+  const seen: string[] = [];
+  let behaviour: "answer" | "hang" | "fail" = "answer";
+  const fake = async (input: Request | URL | string, init?: RequestInit): Promise<Response> => {
+    const req = input instanceof Request && !init ? input : new Request(input as any, init);
+    const url = new URL(req.url);
+    if (url.hostname !== "api.openai.com" || url.pathname !== "/v1/moderations") return new Response("not reachable in this test", { status: 404 });
+    const text = String((await req.json()).input ?? "");
+    seen.push(text);
+    if (behaviour === "hang") return await new Promise<Response>((_res, rej) => req.signal.addEventListener("abort", () => rej(req.signal.reason)));
+    if (behaviour === "fail") return new Response("{}", { status: 500 });
+    const harm = text === OBLIQUE;
+    return Response.json({ results: [{ flagged: harm, categories: { "self-harm": harm, "self-harm/intent": harm, "self-harm/instructions": false } }] });
+  };
+  try {
+    await supabaseParity(pg);
+    const me = "7b0f8f8e-6a43-4a49-9d2c-0000000d0c36";
+    await pg.sql(`insert into auth.users (id, email) values ('${me}', '${me}@example.test'); insert into public.profiles (id) values ('${me}');
+      insert into public.career_watch_kv (user_id, key, value) values ('${me}', 'career:account', '{"epoch":0,"version":0,"paused":false}');`);
+    Deno.env.set("OPENAI_API_KEY", "sk-fake-crisis-not-a-key");
+    Deno.env.set("CAREER_CRISIS_MODERATION", "on");
+    Deno.env.delete("MODEL_BUDGET_PAUSED");
+    globalThis.fetch = fake as typeof fetch; // the double passes every non-Supabase origin to this
+    handler = await careerHandler(pg, { "tok-moderation": me });
+    const chat: Chat = handler.chat("tok-moderation");
+    const say = async (message: string) => { const r = await chat.say(message); eq(r.status, 200, r.reply); return r; };
+
+    await t.step("a message the list misses, flagged by moderation, gets the crisis reply", async () => {
+      assert(!(await import("../../supabase/functions/_shared/career_crisis_screen.ts")).rulesDistress(OBLIQUE), "the list alone misses it");
+      const r = await say(OBLIQUE);
+      eq(r.intent, "safety_support", `${r.intent}: ${r.reply}`);
+      eq(r.reply, SAFETY_REPLY);
+      assert(seen.includes(OBLIQUE), "moderation read it");
+    });
+    await t.step("a clear career message is answered as career talk", async () => {
+      const r = await say("find me data analyst jobs in chicago");
+      assert(r.intent !== "safety_support" && !/\b988\b/.test(r.reply), `${r.intent}: ${r.reply}`);
+    });
+    await t.step("a list hit answers without waiting for moderation", async () => {
+      behaviour = "hang";
+      const t0 = Date.now(), r = await say("kms");
+      eq(r.intent, "safety_support");
+      assert(Date.now() - t0 < 1400, `no wait on moderation: ${Date.now() - t0} ms`);
+    });
+    await t.step("moderation hanging past its cap or failing never blocks the turn: the list's verdict stands", async () => {
+      behaviour = "hang";
+      const t0 = Date.now(), r = await say("what should i put in my cover letter");
+      assert(r.intent !== "safety_support", `${r.intent}: ${r.reply}`);
+      assert(Date.now() - t0 < 10_000, `answered after the cap: ${Date.now() - t0} ms`);
+      behaviour = "fail";
+      const f = await say("how do i follow up after an interview");
+      assert(f.intent !== "safety_support" && f.reply.length > 0, `${f.intent}: ${f.reply}`);
+      eq((await say("i want to die")).intent, "safety_support", "a failing moderation never hides the list's hit");
+    });
+  } finally {
+    handler?.restore();
+    globalThis.fetch = realFetch;
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) Deno.env.delete(k); else Deno.env.set(k, v); }
+    await pg.stop();
+  }
+} });

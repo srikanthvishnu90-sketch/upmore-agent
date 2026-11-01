@@ -54,18 +54,31 @@ export function dayIn(iso: string, tz: string): string { return new Intl.DateTim
 // A date-only source (Workable's published_on, career_ingest_feeds.ts) is stored as midnight UTC: that is a calendar day, not a
 // moment, so it is shown as that day in every zone and needs no zone note. A bare "YYYY-MM-DD" is the same.
 export const isDateOnly = (iso: string) => /^\d{4}-\d{2}-\d{2}(?:T00:00(?::00(?:\.0+)?)?(?:Z|[+-]00:?00))?$/.test(iso.trim());
+// The calendar day (YYYY-MM-DD) a moment falls on in a zone.
+const ymdIn = (t: number, tz: string) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(t));
+const dayNumber = (ymd: string) => Math.round(Date.parse(`${ymd}T00:00:00Z`) / 86_400_000);
 export function postedLine(job: { posted_at?: string | null; first_seen_at?: string | null }, now: number, tz?: string | null): string | null {
   const known = zoneValid(tz), zone = known ? tz as string : FALLBACK_ZONE, note = known ? "" : ", Chicago time";
-  const age = (iso: string | null | undefined) => {
+  const age = (iso: string | null | undefined, posted: boolean) => {
     const t = iso ? Date.parse(iso) : NaN;
     if (Number.isNaN(t)) return null;
     const calendar = isDateOnly(iso!), day = calendar ? dayIn(iso!, "UTC") : dayIn(iso!, zone), tail = calendar ? "" : note;
+    if (calendar && posted) {
+      // A posting's calendar day has its age counted in calendar days against the person's own today (their zone, else
+      // Chicago's), never in hours from midnight UTC ("Posted 15 h ago"). A day that is still tomorrow where they are (the
+      // source's zone is ahead of theirs) is never shown as that date: it reads "today". Two or more days ahead is the
+      // source's own error, and its day is said as it is. first_seen_at is Trainee's own moment and keeps its moment's age.
+      const days = dayNumber(ymdIn(now, zone)) - dayNumber(ymdIn(t, "UTC"));
+      if (days === -1) return { words: "today", days: 0 };
+      if (days < -1) return { words: `on ${day}`, days: 0 };
+      return { words: `${days === 0 ? "today" : days === 1 ? "yesterday" : `${days} d ago`} (${day})`, days };
+    }
     if (t > now + 60_000) return { words: `on ${day}${tail}`, days: 0 }; // stamped ahead of our clock: its day, never "0 min ago"
     const mins = Math.max(0, Math.floor((now - t) / 60_000)), days = Math.floor(mins / 1440);
     const rel = mins < 60 ? `${mins} min ago` : mins < 1440 ? `${Math.floor(mins / 60)} h ago` : `${days} d ago`;
     return { words: `${rel} (${day}${tail})`, days };
   };
-  const p = age(job.posted_at), s = p ? null : age(job.first_seen_at);
+  const p = age(job.posted_at, true), s = p ? null : age(job.first_seen_at, false);
   if (!p && !s) return null;
   const line = p ? `Posted ${p.words}` : `First seen by Trainee ${s!.words}; the posting gives no date`;
   const days = (p ?? s)!.days;

@@ -84,6 +84,24 @@ const PLACE_ALIASES: Record<string, RegExp> = {
   nyc: /\bnew york\b|\bnyc\b/i, "new york": /\bnew york\b|\bnyc\b/i, sf: /\bsan francisco\b|\bbay area\b/i, "san francisco": /\bsan francisco\b|\bbay area\b/i,
   "bay area": /\bbay area\b|\bsan francisco\b/i, la: /\blos angeles\b/i, "los angeles": /\blos angeles\b/i, dc: DC, "washington dc": DC, "washington d.c.": DC, "d.c.": DC,
 };
+// US states, by name and postal code, as places (review of #366): a state matches its name in the location (never "Washington,
+// DC" for Washington) or its code after a comma ("Seattle, WA").
+const STATES: Record<string, string> = { alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA", colorado: "CO", connecticut: "CT",
+  delaware: "DE", florida: "FL", georgia: "GA", hawaii: "HI", idaho: "ID", illinois: "IL", indiana: "IN", iowa: "IA", kansas: "KS", kentucky: "KY",
+  louisiana: "LA", maine: "ME", maryland: "MD", massachusetts: "MA", michigan: "MI", minnesota: "MN", mississippi: "MS", missouri: "MO", montana: "MT",
+  nebraska: "NE", nevada: "NV", "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york state": "NY", "north carolina": "NC",
+  "north dakota": "ND", ohio: "OH", oklahoma: "OK", oregon: "OR", pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC", "south dakota": "SD",
+  tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT", virginia: "VA", washington: "WA", "west virginia": "WV", wisconsin: "WI", wyoming: "WY" };
+// Codes that are also common words or city short forms are read as states only spelled out ("in", "or", "me", "la" is Los Angeles).
+const STATE_CODES = new Map(Object.entries(STATES).filter(([, c]) => !["IN", "OR", "ME", "LA", "OK", "HI", "DE", "ID", "MA", "PA", "OH", "AL"].includes(c)).map(([n, c]) => [c.toLowerCase(), n]));
+function placePattern(place: string): RegExp | null {
+  if (PLACE_ALIASES[place]) return PLACE_ALIASES[place];
+  const name = STATES[place] ? place : STATE_CODES.get(place) ?? null;
+  if (!name) return null;
+  const code = STATES[name], esc = name.replace(/ state$/, "").replace(/ /g, "\\s+");
+  const named = new RegExp(`\\b${esc}\\b${name === "washington" ? "(?!,?\\s*d\\.?\\s?c\\b)" : ""}|,\\s*${code}\\b`, "i");
+  return named;
+}
 const FILTER_NOISE = new Set(["the", "of", "a", "an", "my", "those", "these", "them", "that", "you", "i", "just", "jobs", "job", "roles", "role", "ones", "one", "postings", "posting", "positions", "position", "openings", "opening", "listings", "listing", "remaining", "other"]);
 // The words of an "all <words> ones" / "every <words> role you found" ask, or null when it is not that shape. "remote" is
 // read against the posting's location (and title); every other word against the title.
@@ -121,12 +139,18 @@ export function manyWhatOf(rest: string): ManyWhat | null {
   let rr = r, company: string | null = null;
   const cm = /\s+at\s+([a-z0-9&.' -]{2,40}?)(?=\s+(?:in|near|around|based in)\s|$)/.exec(` ${rr}`);
   if (cm) { company = cm[1].trim(); rr = ` ${rr}`.replace(cm[0], "").trim(); }
-  const pm = /^(.*?)\s+(?:in|near|around|based in)\s+([a-z][a-z .'-]{1,40})$/.exec(rr);
-  const role = (pm ? pm[1] : rr).trim(), place = pm ? pm[2].trim() : null;
+  // The place: after in/near/around (or the whole ask: "top 5 in washington state"); "area", "metro", "region", "state" dropped
+  // ("dc area" is dc; "washington state" is the state), never read as role words.
+  const pm = /^(?:(.*?)\s+)?(?:in|near|around|based in|within)\s+(?:the\s+)?([a-z][a-z .'-]{1,40})$/.exec(rr);
+  const role = (pm ? pm[1] ?? "" : rr).trim();
+  let place = pm ? pm[2].trim().replace(/\s+(?:area|metro(?:politan)?(?:\s+area)?|region)$/, "") : null;
+  if (place === "bay") place = "bay area";
+  if (place && / state$/.test(place) && STATES[place.replace(/ state$/, "")]) place = place.replace(/ state$/, "");
   const all = role.replace(/[^a-z0-9+#/ -]/g, " ").split(/\s+/).filter((w) => w && !WHAT_NOISE.has(w));
   // "remote" is where, not what.
   const words = all.filter((w) => w !== "remote");
-  if (!words.length && !company) return null;
+  // A place or a company alone is a search too: any role there, ranked by fit (review of #366).
+  if (!words.length && !company && !(place || all.includes("remote"))) return null;
   return { role: role.replace(/\bremote\s+/, ""), words, place: place ?? (all.includes("remote") ? "remote" : null), ...(company ? { company } : {}) };
 }
 // One message queues at most this many (owner review of #366): a bigger ask is told plainly how many went and why.
@@ -143,8 +167,8 @@ async function postingsFor(o: ApplyChatDeps, what: ManyWhat): Promise<{ list: Sh
   // "internship" and "intern" apart, so they are not search words; the other role words and the place are.
   // A short form ("swe", "nyc") is never a search word (titles and places spell it out); it is read through its aliases below.
   const roleWords = what.words.filter((w) => !ROLE_ALIASES[w]);
-  const placeMatch = place && place !== "remote" ? (PLACE_ALIASES[place] ?? null) : null;
-  const words = searchWords([...roleWords, ...(place && place !== "remote" && !PLACE_ALIASES[place] ? [place] : []), ...(place === "remote" ? ["remote"] : []),
+  const placeMatch = place && place !== "remote" ? placePattern(place) : null;
+  const words = searchWords([...roleWords, ...(place && place !== "remote" && !placePattern(place) ? [place] : []), ...(place === "remote" ? ["remote"] : []),
     ...(what.company ? [what.company] : [])].join(" "));
   const hits = await o.postings.search(words, 500);
   const seen = new Set<string>();
@@ -529,6 +553,8 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   }
   const kick = queued.length && !resumeMissing ? await prepareFor(o, queued.map((q) => q.job_id)) : null;
   const parts: string[] = [coverageLine(queued.length, total, already)];
+  // "at <company>": exactly that employer (our company records name no subsidiaries, so none are added); said by name.
+  if (what?.company && queued.length) parts.push(`Companies included: ${[...new Set(queued.map((q) => q.company))].join(", ")} (only that employer; no subsidiaries are on record).`);
   if (queued.length) parts.push(`Queued ${queued.length}${total > queued.length ? ` of the ${total}` : ""}${ask.kind === "all" && !note ? " I listed" : ""}: ${listed(queued.map(nameOf))}.`);
   const ahead = prepareSentence(kick, queued.length);
   if (ahead) parts.push(ahead);

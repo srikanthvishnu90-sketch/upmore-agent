@@ -232,8 +232,46 @@ Deno.test("'at <company>': the company itself, not a name that starts with it; f
 Deno.test("knocked-out postings rank after every other, even the newest with the most overlap", async () => {
   const facts = [{ id: "f1", kind: "skill", text: "React", status: "confirmed" }, { id: "f3", kind: "education", text: "BS Computer Science, TEST University, 2028", status: "confirmed" }];
   const knocked = [0, 1].map((m) => ({ ...posting(`Frontend Engineering Intern ${m}`, "Chicago, IL", m), description: "Security clearance required. React React React React." }));
-  const plain = [50, 51].map((m) => posting(`Frontend Engineering Intern ${m}`, "Chicago, IL", m));
+  // Plain postings with no overlap at all (fit score 0): a knocked-out one never ties with them, newest or not.
+  const plain = [50, 51].map((m) => ({ ...posting(`Frontend Engineering Intern ${m}`, "Chicago, IL", m), description: "Paint fences." }));
   const w = await world([...knocked, ...plain], { facts });
   await w.turn("apply to the top 2 frontend internships in Chicago");
   eq(await w.keys(), keysOf(plain));
+});
+
+// Review of #366, round 5.
+Deno.test("a place alone is a search: 'roles in dc area', 'in washington state', 'jobs in tx'; never the thread's list", async () => {
+  const list = [{ id: "lever:other:0e0c3b0e-0000-4000-8000-000000000001", company: "TEST Listed", title: "Data Analyst", location: "Chicago, IL", url: "https://jobs.lever.co/other/0e0c3b0e-0000-4000-8000-000000000001" }];
+  const dc = [posting("Policy Analyst", "Washington, DC", 5), posting("Software Engineer Intern", "Washington D.C.", 6)];
+  const wa = [posting("Data Analyst", "Seattle, WA", 1), posting("Nurse", "Spokane, Washington", 2)];
+  const tx = [posting("Accountant", "Austin, TX", 3), posting("Software Engineer", "Houston, Texas", 4)];
+  const all = [...dc, ...wa, ...tx];
+  const a = await world(all, { shortlist: list });
+  await a.turn("apply to the top 5 roles in dc area");
+  eq(await a.keys(), keysOf(dc));
+  const b = await world(all, { shortlist: list });
+  const r = await b.turn("apply to the top 5 in washington state");
+  eq(await b.keys(), keysOf(wa), r?.reply);
+  const c = await world(all, { shortlist: list });
+  await c.turn("apply to the top 4 jobs in tx");
+  eq(await c.keys(), keysOf(tx));
+});
+
+Deno.test("a place alone is ranked by fit when it can be computed, and says so", async () => {
+  const facts = [{ id: "f1", kind: "skill", text: "React", status: "confirmed" }, { id: "f3", kind: "education", text: "BS Computer Science, TEST University, 2028", status: "confirmed" }];
+  const near = { ...posting("Frontend Engineering Intern", "Austin, TX", 30), description: "React React React components." };
+  const far = { ...posting("Line Cook", "Austin, TX", 1), description: "Paint fences." };
+  const w = await world([far, near], { facts });
+  const r = await w.turn("apply to the top 1 in texas");
+  eq(await w.keys(), [near.job_id]);
+  assert(/Ranked best fit for your confirmed facts first/.test(r!.reply), r!.reply);
+});
+
+Deno.test("'at <company>': the reply names the companies included, exactly that employer", async () => {
+  const google = [{ ...posting("Software Engineering Intern", "Chicago, IL", 3), company: "Google" }];
+  const deepmind = [{ ...posting("Software Engineering Intern", "Chicago, IL", 4), company: "DeepMind" }];
+  const w = await world([...deepmind, ...google]);
+  const r = await w.turn("apply to the top 5 swe internships at google");
+  eq(await w.keys(), keysOf(google));
+  assert(/Companies included: Google \(only that employer; no subsidiaries are on record\)\./.test(r!.reply), r!.reply);
 });

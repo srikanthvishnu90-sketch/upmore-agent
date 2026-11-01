@@ -26077,7 +26077,9 @@ const CareerIntel = (() => {
   // ---------- INTL-004 / Q30: fabrication & cheating refusal, distress protocol ----------
   function respondToRequest(text) {
     const t = String(text || "");
-    if (/(kill myself|end my life|self[- ]?harm|suicidal|don't want to (be alive|live))/.test(t.toLowerCase())) {
+    // The one distress detector (139 CareerSafety.isDistress; its policy is written there), never a list of our own.
+    const Safety = typeof CareerSafety !== "undefined" ? CareerSafety : require("./139-career-safety.js");
+    if (Safety.isDistress(t)) {
       return { action: "support", text: "I hear you, and the career stuff can wait. Please reach out now: in the US you can call or text 988 (Suicide and Crisis Lifeline) any time, or text HOME to 741741. If you might act on this, call 911. You matter more than any application. When you're ready, I'm here — no grilling, at your pace." };
     }
     if (/(i'?m a failure|i feel like a failure|everyone is ahead of me|i'?ll never get in|hopeless about)/i.test(t)) {
@@ -31890,11 +31892,82 @@ const CareerSafety = (() => {
       note: "The answer discloses the AI help that actually happened (tailoring/proofreading) and claims nothing that did not." };
   }
 
+  // ---------- Distress detector: THE one list (#354 safety follow-up, 2026-11-01) ----------
+  // Every path reads this: the trust turn (supabase/functions/_shared/career_trust_turn.ts), 125's request screen
+  // (respondToRequest), this module's distress protocol and the router's first check (142 handleChat / dispatchChat).
+  // Four separate lists each missed what another caught ("kms", "i took too many pills", "i have a plan to end it").
+  //
+  // POLICY. A false alarm costs one kind check-in; a miss can cost a life. So a message that MIGHT be about ending one's
+  // life or self-harm gets the check-in, hyperbole included ("i'd kill myself if i bombed it", "i'm not suicidal, just
+  // tired"). Only idioms that are plainly about work or about something else stay with the router, and each is named
+  // below (BENIGN, or a pattern's own guard): "this job is killing me", "kill it in the interview", "career suicide",
+  // "my career is dead in the water", "i'll die on this hill", "12 kms from the office", "end it with a strong closing
+  // line", "take my life in a new direction". Frustration without self-harm words ("this market is brutal", "i'm a
+  // failure") is not a crisis here: 125's own support line answers the second.
+  //
+  // How it reads: lower case, curly quotes straightened, apostrophes dropped (dont / don't, im / i'm read the same),
+  // "2" between words read as "to"; the message is split into clauses at . ! ? , ; : and new lines, the benign idioms
+  // are cut out of each clause, and each clause is tested on its own (so "$" below means the end of a clause).
+  const BENIGN = [
+    /\b(?:career|professional|social|political|commercial|financial|resume) suicide\b/g,
+    /\bsuicide (?:prevention|squad)\b/g,
+    /\b\d+(?:\.\d+)? ?kms\b/g,                                        // a distance
+    /\bdie on (?:this|that|the) hill\b/g,
+  ];
+  const SELF = String.raw`(?:my ?self|my ?slef|myslef|mself)`;
+  // What may follow "take my life" / "end my life" in a crisis: nothing, a time, or the next clause's start.
+  const AFTER = String.raw`(?=$| (?:tonight|today|now|soon|anymore|already|someday|eventually|and|because|cause|cuz|bc|lol|i|if|tbh|honestly|so|but|when|after|before)\b)`;
+  const DISTRESS_PATTERNS = [
+    /\bsu[iy]?c[iy]?d\w*/, /\bsuis?id\w*/,                              // suicide, suicidal, sucide, suicde, suiside
+    /\bsewer ?slide\b/, /\bself ?delet\w*/, /\bun ?aliv\w*/,             // slang
+    /\bkms+\b/, /\bk m s\b/,
+    new RegExp(String.raw`\bkil+(?:l?ing|l?ed|s)? ?${SELF}`),           // kill myself, killing myself, kil my self, killmyself
+    /(?:^|\b(?:just|please|pls|plz|someone|somebody|want (?:someone )?to|wish (?:someone|something) would|could someone)) kill me\b/,
+    new RegExp(String.raw`\b(?:hurt|harm|cut|hang|shoot|drown|poison|starve|stab)(?:t?ing|ed|s)? ${SELF}`),
+    /\bself ?(?:harm|injur|hurt)\w*/, /\b(?:slit|slitting|cut|cutting|slash\w*) (?:my )?wrists?\b/,
+    new RegExp(String.raw`\b(?:end|ending|take|taking|took) my (?:own )?(?:life|lyfe|lyf)${AFTER}`),
+    /\bend(?:ing)? (?:it all|everything|all of it)\b/,
+    // "end it" as a plan; "end it with a closing line", "end it here" are an email's or a call's end.
+    /\b(?:want|wanna|going|gonna|plan|planning|ready|thinking about|thought about|decided|deciding|try|trying|need|about|how) (?:to )?end(?:ing)? it(?: (?:all|tonight|today|now|soon|for good|already|forever))?$/,
+    /\b(?:want|wish|need)(?:ed)? (?:it|it all|everything|this all|all of this|all this|my life) (?:all )?(?:to )?(?:just )?(?:end|be over)\b/,
+    /\b(?:want|wish|need)(?:ed)? (?:it all|everything|all of this|all this) (?:to )?(?:just )?stop\b/,
+    /\bmy life is (?:over|done|finished|pointless|meaningless|worthless)\b/,
+    /\b(?:life|living) (?:is|isnt|is not|aint) (?:not )?worth (?:it|living)\b/, /\bnot worth living\b/,
+    /\b(?:want|wanna|wan|wnt|ready|deserve|should|wish i could) (?:to )?(?:just )?di+e+\b/,
+    /\b(?:going|gonna) (?:to )?di+e+(?: (?:tonight|today|soon|anyway))?$/,
+    /\bwish i (?:was|were|was just|were just) dead\b/,
+    /\bwish i (?:wasnt|werent|was not|were not) (?:alive|here|around|born|living)\b/,
+    /\bwish i (?:had never been|hadnt been|was never|were never|never was) born\b/,
+    /\bbetter off (?:dead|without me|if i (?:was|were) (?:gone|dead)|if i (?:wasnt|werent) here)\b/,
+    /\b(?:no ?one|nobody) would (?:miss me|notice if i (?:died|was gone|were gone)|care if i (?:died|was gone|were gone|disappeared|wasnt here))\b/,
+    /\b(?:dont|do not|dnt|never) (?:want|wanna) (?:to )?(?:live|be alive|exist|wake up|be around anymore|go on|keep living)\b/,
+    /\b(?:dont|do not|dnt) (?:want|wanna) (?:to )?be here(?: anymore)?$/,
+    /\b(?:no|zero) (?:reason|point) (?:to|in|of) (?:live|living|going on|being alive|be alive|life)\b/, /\bnothing (?:left )?to live for\b/,
+    /\bcant (?:keep living|live like this)\b/, /\bcant go on(?: (?:anymore|like this|living))?$/,
+    /\b(?:tired|sick) of (?:living|being alive|life|existing)\b/, /\bdone (?:with life|living)\b/, /\bgive up on life\b/,
+    /\b(?:sleep|go to sleep|fall asleep) and (?:never|not) wake up\b/, /\bnever wake up\b/, /\bhope i (?:dont|never|do not) wake up\b/,
+    /\b(?:jump|jumping|jumped|throw myself|throwing myself|step|stepping|walk|walking) (?:off|from|in front of|into) (?:a |the |some )?(?:bridge|building|roof|rooftop|cliff|balcony|ledge|train|bus|car|traffic|truck|window|tower)\b/,
+    /\b(?:took|take|taken|taking|swallowed|swallow|swallowing|downed) (?:too many|a bunch of|a lot of|all (?:of )?my|a whole (?:bottle|pack) of|the whole (?:bottle|pack) of|a handful of|so many|lots of|\d{2,}) (?:sleeping )?(?:pills|tablets|meds|painkillers)\b/,
+    /\boverdos\w*/, /\bgun to my head\b/, /\bblow my (?:brains|head) out\b/, /\bdisappear forever\b/, /\bmy (?:last|final) goodbye\b/,
+  ];
+  function distressClauses(text) {
+    const t = String(text == null ? "" : text).toLowerCase()
+      .replace(/[‘’ʼ`´]/g, "'").replace(/'/g, "")
+      .replace(/(\w)-(\w)/g, "$1 $2");
+    return t.split(/[.!?,;:\n]+/).map((c) => {
+      let x = c.replace(/[^a-z0-9 ]+/g, " ").replace(/\b2\b/g, "to").replace(/\s+/g, " ").trim();
+      for (const b of BENIGN) x = x.replace(b, " ").replace(/\s+/g, " ").trim();
+      return x;
+    }).filter(Boolean);
+  }
+  function isDistress(text) {
+    return distressClauses(text).some((c) => DISTRESS_PATTERNS.some((p) => p.test(c)));
+  }
+
   // ---------- Distress protocol (T-82) ----------
-  const CRISIS_RE = /\b(kill myself|end it all|self[- ]?harm|suicide|don't want to (?:live|be here)|no reason to (?:live|go on))\b/i;
   function distressResponse(input) {
     const o = input || {}, text = String(o.text || "");
-    const crisis = CRISIS_RE.test(text);
+    const crisis = isDistress(text);
     const facts = o.profileFacts || [];
     const grounding = facts.length ? `Here is what is also true, from your own record: ${facts[0]}.` : "Here is what is also true: one rough stretch is not a verdict on you.";
     return {
@@ -31933,7 +32006,7 @@ const CareerSafety = (() => {
       text: `Stopped everything. ${report.sent_confirmed} already-sent item(s) stay sent (they were provider-confirmed). ${report.aborted_not_sent} in-flight item(s) had no confirmation and are marked NOT sent — nothing is half-sent. ${report.queued_halted} queued item(s) are halted and will not move until you say resume.` };
   }
 
-  return { DAILY_START, DAILY_CEILING, keyOf, createSuppressionStore, suppress, isSuppressed, applySuppression, forceOptOut, sendSchedule, planSendRequest, referralClaimCheck, assessmentRequest, aiUseAnswer, distressResponse, createQueueState, stopEverything };
+  return { DAILY_START, DAILY_CEILING, keyOf, createSuppressionStore, suppress, isSuppressed, applySuppression, forceOptOut, sendSchedule, planSendRequest, referralClaimCheck, assessmentRequest, aiUseAnswer, isDistress, distressResponse, createQueueState, stopEverything };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerSafety;
 
@@ -48892,9 +48965,21 @@ const CareerRouter = (() => {
       reply: `You don't have a batch in flight right now — no application batch has been queued on this account that I can read back. Say "apply to N <role> roles" and I'll start one.` };
   }
 
+  // #354 SAFETY (2026-11-01): the router's crisis check is its FIRST check, on the person's own words (before detypo
+  // can rewrite one), through the one shared detector (139 CareerSafety.isDistress, which the trust turn and 125's
+  // screen also read). Before, it sat in handleAppendixSafety behind dozens of routes and its own short list, so "kms"
+  // or "i took too many pills" reached the fallback. The reply is 125's crisis answer, word for word.
+  function distressFirst(rawText) {
+    if (!(Safety && Safety.isDistress && Safety.isDistress(s(rawText)))) return null;
+    const r = Intel && Intel.respondToRequest ? Intel.respondToRequest(s(rawText)) : null;
+    let support = null;
+    try { support = Safety.distressResponse ? Safety.distressResponse({ text: s(rawText), profileFacts: [] }) : null; } catch { support = null; }
+    return { intent: "safety_support", reply: r && r.action === "support" ? r.text : support.text, resultStatus: "completed", sends: 0, support };
+  }
   function dispatchChat(text, ctx) {
     const c = ctx || {};
     const rawText = text;
+    { const d = distressFirst(rawText); if (d) return d; }
     text = detypo(text); // routing copy only — records keep the original
     const t = lc(text);
     if (!t) return null;
@@ -52622,6 +52707,8 @@ const CareerRouter = (() => {
   }
   function handleChat(text, ctx) {
     const c = ctx || {};
+    // #354 SAFETY: distress is answered before anything else reads the message (no part queued, no nudge appended).
+    { const d = distressFirst(text); if (d) return d; }
     // COMPLEXITY WAVE (BUG-179): multi-intent accounting wraps the
     // dispatch — the parts are detected from the ORIGINAL text, the
     // dispatch serves what it serves, and whatever it did not serve

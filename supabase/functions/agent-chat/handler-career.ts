@@ -455,6 +455,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // skipped for it, so a button is never read as a typed word by whichever consumer happens to be waiting.
       const tapRaw = body.screen_tap && typeof body.screen_tap === "object" ? body.screen_tap as Record<string, unknown> : null;
       const tapIn = tapRaw ? { qid: String(tapRaw.qid ?? ""), answer: String(tapRaw.answer ?? "") } : null;
+      // REQS DOC 1: a message in distress gets the crisis answer (career_trust_turn.ts), never read as a card's answer, a mock
+      // interview's answer or any other waiting turn's, and even on a paused account. It holds the card's place, so every turn
+      // below that waits on "!card" stands down, and its own branch answers first. #354 safety follow-up: it is read before
+      // the connector, site-refusal and Outlook turns too, which stand down for it (no disconnect or link runs on such a
+      // message), and its branch is the first in the answer chain below.
+      const distress = !tapIn && !careerTask && !careerBatch && trustKind(message) === "safety";
       // M4: Outlook (Microsoft Graph) as a peer of Gmail, from any channel: "connect my outlook" / "use my work email" makes a
       // one-time link bound to this person, channel and thread; "disconnect outlook" deletes the access and what was read
       // from it and cancels its pending sends (_shared/outlook_connector.ts). Code's, before every other turn.
@@ -462,26 +468,22 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // its state and use, and what waits on it), "connect gmail" (a one-time link from any channel), "disconnect gmail" /
       // "disconnect outlook" (revoke where possible, erase, cancel pending sends, read back), and a task that needs a
       // connector not connected ("check my outlook"): asked once with the link, parked, resumed by the connect callback.
-      const connAns = !tapIn && !careerTask && !careerBatch && connectorAsk(message)
+      const connAns = !distress && !tapIn && !careerTask && !careerBatch && connectorAsk(message)
         ? await connectorChatTurn({ admin, env: Deno.env, fetch, now: Date.now, message, userId: user.id, threadId: tid, bridge: isBridgeCall })
           .catch((e) => { console.error("connector turn:", e?.message ?? e); return connectorFailure(message); })
         : null;
       // OWNER RULE: never LinkedIn, Indeed or Handshake. An ask to apply, message or act on one of them, or a link to one,
       // is declined plainly, naming the site, before every other turn (no card, question, apply, link read or batch sees
       // it): nothing is queued and nothing is left waiting for a later "yes" (career_networking.ts siteRefusedTurn).
-      const siteNo = !tapIn && !connAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const siteNo = !distress && !tapIn && !connAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await siteRefusedTurn({ message, userId: user.id, threadId: tid, now: Date.now(), state: ctx as unknown as Record<string, unknown>,
             store: supabaseOutreachStore(admin), events, model: null })
           .catch((e) => { console.error("site refusal turn:", e?.message ?? e); return null; })
         : null;
-      const outlookAns = !tapIn && !connAns && !siteNo && !careerTask && !careerBatch && outlookAsk(message)
+      const outlookAns = !distress && !tapIn && !connAns && !siteNo && !careerTask && !careerBatch && outlookAsk(message)
         ? await outlookChatTurn({ admin, message, userId: user.id, threadId: tid, bridge: isBridgeCall, now: Date.now(), env: Deno.env })
           .catch((e) => { console.error("outlook turn:", e?.message ?? e); return null; })
         : null;
-      // REQS DOC 1: a message in distress gets the crisis answer (career_trust_turn.ts), never read as a card's answer, a mock
-      // interview's answer or any other waiting turn's, and even on a paused account. It holds the card's place, so every turn
-      // below that waits on "!card" stands down, and its own branch answers first.
-      const distress = !tapIn && !careerTask && !careerBatch && trustKind(message) === "safety";
       const card = distress ? DISTRESS_HOLD : !tapIn && !connAns && !outlookAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         // FEATURE 16: OWNER RULE (2026-10-26): no card without a confirmed resume on file (resumeReady).
         ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
@@ -808,7 +810,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // FEATURE GV (Google verification, 2026-10-26): "disconnect gmail" is answered by the connector framework above
       // (connAns), through the same _shared/google_disconnect.ts: revoked at Google, tokens, rows and mail rows deleted,
       // read back, and now pending sends cancelled. Before any other turn, on every channel.
-      if (connAns) {
+      if (distress && trustAns) {
+        out = { reply: trustAns.reply, intent: trustAns.intent, resultStatus: trustAns.status, contained: false, handler: "trust" };
+        if (trustAns.meta) agentMeta = { ...(agentMeta || {}), ...trustAns.meta };
+      } else if (connAns) {
         out = { reply: connAns.reply, intent: connAns.intent, resultStatus: connAns.resultStatus, contained: false, handler: connAns.handler };
         if (connAns.meta) agentMeta = { ...(agentMeta || {}), ...connAns.meta };
       } else if (siteNo && !mock) { // a mock in progress keeps its answer (its guards are the card's, WO-025)
@@ -816,9 +821,6 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       } else if (outlookAns) {
         out = { reply: outlookAns.reply, intent: outlookAns.intent, resultStatus: outlookAns.resultStatus, contained: false, handler: outlookAns.handler };
         if (outlookAns.meta) agentMeta = { ...(agentMeta || {}), ...outlookAns.meta };
-      } else if (distress && trustAns) {
-        out = { reply: trustAns.reply, intent: trustAns.intent, resultStatus: trustAns.status, contained: false, handler: "trust" };
-        if (trustAns.meta) agentMeta = { ...(agentMeta || {}), ...trustAns.meta };
       } else if (card) {
         // A card still waiting for its answer stays this thread's last word (D-MS-1: also after "wait", an unclear reply
         // or a number not on it); an answered one does not.

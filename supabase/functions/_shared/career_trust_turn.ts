@@ -21,6 +21,7 @@
 // Every kind but ack answers only when the whole message is that question: a message that also asks for something else
 // ("is my data safe? find me jobs") goes on to the router, so the rest is never dropped. No model, no send, no write.
 import type { Connection } from "./career_capabilities.ts";
+import { CareerSafety } from "./router_core.career.js";
 
 export type TrustKind = "safety" | "identity" | "privacy_sell" | "privacy_store" | "access" | "referral" | "ack";
 export const TRUST_INTENTS: Record<TrustKind, string> = {
@@ -49,9 +50,10 @@ const END = String.raw`[?.!]*$`;
 const MAX_CHARS = 300; // a longer text carries more than one of these questions: the router reads it
 
 // Distress is answered first, before every other check and at any length, with the crisis answer the router's own safety
-// screen gives (125 respondToRequest; the test holds the two equal). Wide on purpose: a false alarm costs one kind
-// message, a miss costs everything. The router's own screen missed "I want to die" (2026-10-31), so this one never defers.
-export const DISTRESS = /\b(suicid\w*|kill(?:ing)? (?:my ?self|me)|end(?:ing)? (?:it all|my life|things)|take my (?:own )?life|self[- ]?harm\w*|hurt(?:ing)? my ?self|cut(?:ting)? my ?self|(?:(?:want|going|ready) to|wanna) die|wish i (?:was|were) dead|better off dead|don'?t want to (?:live|be alive|be here|exist|wake up)|no (?:reason|point) (?:to|in) (?:live|living|going on)|not worth living|can'?t go on|overdose)\b/;
+// screen gives (125 respondToRequest; the test holds the two equal). The detector is the ONE shared list,
+// CareerSafety.isDistress (packages/domain/139-career-safety.js, where its policy is written): the router's first check
+// and 125's screen read the same one, so no path catches what another misses (#354 safety follow-up, 2026-11-01).
+export const isDistress = (message: string): boolean => (CareerSafety as { isDistress: (t: string) => boolean }).isDistress(message);
 export const SAFETY_REPLY = "I hear you, and the career stuff can wait. Please reach out now: in the US you can call or text 988 (Suicide and Crisis Lifeline) any time, or text HOME to 741741. If you might act on this, call 911. You matter more than any application. When you're ready, I'm here — no grilling, at your pace.";
 const JOB_WORDS = /\b(jobs?|roles?|positions?|internships?|openings?|postings?|hiring|careers?|apply|applying|applications?|interviews?|resume)\b/;
 const WORK_AUTH = /\b(authori[sz]ed|authori[sz]ation|sponsor\w*|visas?|opt|cpt|h-?1b|work permit|green card|citizen\w*)\b/;
@@ -114,7 +116,7 @@ export function oneQuestion(t: string): boolean {
 export function trustRead(message: string): { kind: TrustKind; rest?: string } | null {
   const t = norm(message);
   if (!t) return null;
-  if (DISTRESS.test(t)) return { kind: "safety" }; // before the length limit and every other check
+  if (isDistress(message)) return { kind: "safety" }; // before the length limit and every other check
   if (t.length > MAX_CHARS) return null;
   if (THANKS.test(t) || LAUGH.test(t)) return { kind: "ack" };
   if (oneQuestion(t)) {

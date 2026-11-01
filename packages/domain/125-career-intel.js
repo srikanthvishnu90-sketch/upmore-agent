@@ -647,7 +647,9 @@ const CareerIntel = (() => {
   // ---------- INTL-004 / Q30: fabrication & cheating refusal, distress protocol ----------
   function respondToRequest(text) {
     const t = String(text || "");
-    if (/(kill myself|end my life|self[- ]?harm|suicidal|don't want to (be alive|live))/.test(t.toLowerCase())) {
+    // The one distress detector (139 CareerSafety.isDistress; its policy is written there), never a list of our own.
+    const Safety = typeof CareerSafety !== "undefined" ? CareerSafety : require("./139-career-safety.js");
+    if (Safety.isDistress(t)) {
       return { action: "support", text: "I hear you, and the career stuff can wait. Please reach out now: in the US you can call or text 988 (Suicide and Crisis Lifeline) any time, or text HOME to 741741. If you might act on this, call 911. You matter more than any application. When you're ready, I'm here — no grilling, at your pace." };
     }
     if (/(i'?m a failure|i feel like a failure|everyone is ahead of me|i'?ll never get in|hopeless about)/i.test(t)) {

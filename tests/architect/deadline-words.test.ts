@@ -43,11 +43,12 @@ Deno.test("deadlineWords: weekday + date + time + zone, in the person's zone; a 
 Deno.test("deadlinePassed: a moment passes at that moment; a calendar day only once it has ended everywhere", () => {
   const m = "2026-11-06T23:59:00-05:00";
   eq(deadlinePassed(m, Date.parse("2026-11-07T04:58:59Z")), false);
-  eq(deadlinePassed(m, Date.parse("2026-11-07T04:59:00Z")), true);
+  eq(deadlinePassed(m, Date.parse("2026-11-07T04:59:00Z")), false, "exactly at the deadline it is still open");
+  eq(deadlinePassed(m, Date.parse("2026-11-07T04:59:00.001Z")), true);
   // "2026-11-06": still open on the evening of Nov 6 in Chicago (already Nov 7 in UTC) and in Honolulu late that night.
   eq(deadlinePassed("2026-11-06", Date.parse("2026-11-07T02:00:00Z")), false, "8 PM Chicago on the deadline day");
   eq(deadlinePassed("2026-11-06", Date.parse("2026-11-07T09:30:00Z")), false, "11:30 PM Honolulu on the deadline day");
-  eq(deadlinePassed("2026-11-06", Date.parse("2026-11-07T12:00:00Z")), true, "the day has ended everywhere");
+  eq(deadlinePassed("2026-11-06", Date.parse("2026-11-07T12:00:00.001Z")), true, "the day has ended everywhere");
   eq(deadlinePassed("2026-11-06T00:00:00Z", Date.parse("2026-11-06T18:00:00Z")), false, "midnight UTC is a date-only source's calendar day");
   eq(deadlinePassed("not a date", NOW), false);
   eq(deadlineOf("2026-11-06")?.dateOnly, true);

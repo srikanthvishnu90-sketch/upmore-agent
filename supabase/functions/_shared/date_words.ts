@@ -35,7 +35,8 @@ export function deadlineOf(raw: string | null | undefined): Deadline | null {
   return Number.isNaN(t) ? null : { dateOnly: false, endsAt: t };
 }
 
-export const deadlinePassed = (raw: string | null | undefined, now: number): boolean => { const d = deadlineOf(raw); return !!d && now >= d.endsAt; };
+// Passed once the clock is past it: a deadline of exactly now is still open (as the posting screen has always read it).
+export const deadlinePassed = (raw: string | null | undefined, now: number): boolean => { const d = deadlineOf(raw); return !!d && now > d.endsAt; };
 
 // "Friday, Nov 6" (a calendar day), "Friday, Nov 6, 11:59 PM CST" (a moment, in the person's zone), "Friday, Nov 6, 11:59 PM CST
 // (Chicago time)" when the person's zone is not known. The year is added when it is not the year it is now (in that zone).

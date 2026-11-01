@@ -64,7 +64,7 @@ import { receiptTurn, supabaseReceipts } from "../_shared/career_apply_receipt_r
 import { chatScreenFacts } from "../_shared/career_apply_gate.ts";
 import { screenAnswerTurn, screenMeta, screenTapTurn, TAP_INTENT, TAP_STALE_REPLY } from "../_shared/career_apply_screen_answer.ts";
 import { APPLY_QUEUE_INTENT, applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerTurn, paceReader, paceTurn, supabaseEmployerAskStore } from "../_shared/career_apply_chat.ts";
-import { confirmNotRecordedReply, type EvidenceResult, evidenceResumeConfirmation, heldEvents, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
+import { confirmNotRecordedReply, correctionNotRecordedReply, type EvidenceResult, evidenceEntryCorrections, evidenceResumeConfirmation, heldEvents, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 // FEATURE 9: account memory (stated-fact provenance, standing needs on the router path).
 import { accountMemoryAfterTurn, accountMemoryOn, statedFactsBefore } from "../_shared/career_account_memory.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
@@ -824,7 +824,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       } else if (asked) {
         // Questions shown, or some still open after an answer, stay this thread's last word so "2 yes" answers them; so does
         // every draft turn (a draft shown waits for "use 2"; a refused or failed one leaves the question open).
-        const waiting = ["shown", "partial"].includes(asked.status) || asked.status.startsWith("draft");
+        const waiting = ["shown", "partial", "answered_next"].includes(asked.status) || asked.status.startsWith("draft");
         out = { reply: asked.reply, intent: waiting ? QUESTIONS_INTENT : "career_apply_questions_answer", resultStatus: asked.status, contained: false, handler: "questions" };
       } else if (which) {
         // A number not on the list leaves the ask waiting; anything else answered it.
@@ -998,7 +998,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // transaction as the profile they evidence (career_host_commit_evidenced): a refused save writes none.
       let confirmEv: EvidenceResult | null = null;
       if (out.handler !== "agent" && out.intent === "career_resume_ingest" && out.resultStatus === "completed") {
-        const recent = await admin.from("agent_messages").select("id,role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(40);
+        const recent = await admin.from("agent_messages").select("id,role,content,created_at").eq("thread_id", tid).order("id", { ascending: false }).limit(40);
         if (recent.error) {
           // The thread could not be read, so nothing the router confirmed can be evidenced: held, and said.
           console.error("career evidence: the thread was not read", recent.error.message);
@@ -1021,6 +1021,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           const held = heldReply(ev);
           if (held) out = { ...out, reply: held, resultStatus: ev.stamped ? "partial" : "not_confirmed" };
         }
+      }
+      // ONBOARDING ROUND 3: a confirmed entry the person corrected in chat gets its own held confirmation event; one that
+      // cannot be evidenced goes back to the words they confirmed, and the reply says nothing changed.
+      if (out.handler !== "agent" && out.intent === "career_resume_correction" && out.resultStatus === "completed") {
+        const ec = await evidenceEntryCorrections({ userId: user.id, now: Date.now(), message, before: (loaded.account as any)?.memory?.profile ?? (loaded.snapshot as any)?.stores?.profile ?? null,
+          after: (ctx as any).profile ?? null, out, events: confirmEvents });
+        if (!ec.stamped) out = { ...out, reply: correctionNotRecordedReply, resultStatus: "not_recorded" };
       }
       // FEATURE 1: answer capture (DIAGNOSIS F1): the router's batch stack records a chat answer to a stopped application
       // on its own run; the queue executor reads career_apply_questions. The same answer goes on the person's matching

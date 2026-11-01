@@ -46,10 +46,30 @@ const ONE: RegExp[] = [
 ];
 const ALL = new RegExp(`^ ${LEAD}(?:${SHOW} )?(?:me )?(?:all )?(?:of )?(?:my )?(?:application )?receipts $`);
 const NOT_A_COMPANY = /^(?:the|my|a|an|it|them|that|this|those|these|they|him|her|me|you|my application|the application|an application|my applications|applications|everything|anything|anyone|everyone|employers?|companies|the employer|the company)$/;
+// Reqs doc 2 Q451: an audit ("prove you applied", "how do I know you actually applied to Acme?") is answered from the
+// receipts in one message: employer-confirmed apart from sent-not-confirmed, each with its confirmation and times.
+const YOU = "(?:you|trainee|u)";
+const APPLIED = `(?:actually |really |even )?(?:applied|apply|submitted|submit|sent|send)(?: (?:it|them|those|these|that|my applications?|the applications?|anything))?`;
+const TO = "(?: (?:to|for|at|with) (.+?))?(?: (?:at all|for real|for me|yet))?";
+const PROVE: RegExp[] = [
+  new RegExp(`^ ${LEAD}(?:prove|proof|show me proof|show proof|give me proof|send me proof|i want proof|i need proof|where'?s the proof|where is the proof)(?: (?:it|that|of it))?(?: that)? ${YOU} ${APPLIED}${TO} $`),
+  new RegExp(`^ ${LEAD}(?:prove it|prove that|proof|show me proof|show proof|give me proof|i want proof|i need proof|where'?s the proof|where is the proof)(?: (?:of|for) (?:my |the |all my |all the )?(?:applications?|apps|submissions?))?(?: (?:to|for|at|with) (.+?))? $`),
+  new RegExp(`^ ${LEAD}(?:how (?:do|can|would) i know|how do i check|can you show (?:me )?that) ${YOU} (?:actually |really |even )?(?:applied|submitted|sent (?:it|them|my applications?))${TO} $`),
+  new RegExp(`^ (?:so |ok |okay )?(?:did|have) ${YOU} (?:actually|really|even|truly) (?:apply|applied|submit|submitted|send|sent)(?: (?:it|them|my applications?|anything))?${TO} $`),
+];
 
-export function receiptAsk(message: string): { company: string | null } | null {
+export function receiptAsk(message: string): { company: string | null; prove?: true } | null {
   const t = plain(message);
   if (ALL.test(t)) return { company: null };
+  for (const re of PROVE) {
+    const m = re.exec(t);
+    if (!m) continue;
+    const lower = (m[1] ?? "").replace(/^(?:the|a|my) /, "").replace(/ (?:application|app)$/, "").trim();
+    if (!lower) return { company: null, prove: true };
+    if (lower.length < 2 || lower.length > 80 || NOT_A_COMPANY.test(lower)) return { company: null, prove: true };
+    const i = String(message).toLowerCase().indexOf(lower);
+    return { company: i >= 0 ? String(message).slice(i, i + lower.length) : lower, prove: true };
+  }
   for (const re of ONE) {
     const m = re.exec(t);
     if (!m) continue;
@@ -106,6 +126,41 @@ export function receiptText(r: ReceiptRow, pictures: ReceiptPicture[], now: numb
   return lines.join("\n");
 }
 
+// Q451: the audit answer, every receipt on record in one message. "Proof" is only what the employer confirmed; a page's
+// thank-you or a clicked Submit is listed apart as sent-not-confirmed (our record, not theirs); an outcome nobody can see is
+// said so; what was never sent is named as not sent. Every line is read from the receipt row; nothing is inferred.
+const PROOF_SHOWN = 10;
+function proofLine(r: ReceiptRow, i: number): string {
+  const conf = r.confirmation_id ? `confirmation ${one(r.confirmation_id, 120)}` : "confirmed by their email (no confirmation number in it)";
+  const clicked = r.clicked_at ? `Submit clicked ${when(r.clicked_at)}` : `recorded ${when(r.finished_at) ?? "at a time not on record"}`;
+  const tail = `${clicked}; posting ${one(r.url, 300)}`;
+  if (r.state === "confirmed") return `${i}. ${r.company}: ${conf}; ${tail}`;
+  if (r.state === "submitted_unconfirmed") return `${i}. ${r.company}: ${tail}${r.confirmation_text ? `; their page said "${one(r.confirmation_text, 160)}"` : ""}`;
+  return `${i}. ${r.company}: ${tail}`;
+}
+function section(title: string, rows: ReceiptRow[]): string[] {
+  if (!rows.length) return [];
+  const out = [`${title} (${rows.length}):`, ...rows.slice(0, PROOF_SHOWN).map((r, i) => proofLine(r, i + 1))];
+  if (rows.length > PROOF_SHOWN) out.push(`…and ${rows.length - PROOF_SHOWN} more.`);
+  return out;
+}
+export function proofText(rows: ReceiptRow[]): string {
+  const confirmed = rows.filter((r) => r.state === "confirmed");
+  const sent = rows.filter((r) => r.state === "submitted_unconfirmed");
+  const unknown = rows.filter((r) => r.state === "unknown_outcome");
+  const notSent = rows.filter((r) => !["confirmed", "submitted_unconfirmed", "unknown_outcome"].includes(r.state));
+  const lines = [`Proof on record: ${confirmed.length} confirmed by the employer, ${sent.length} sent but not confirmed by the employer yet` +
+    `${unknown.length ? `, ${unknown.length} I can't tell arrived` : ""}${notSent.length ? `, ${notSent.length} not sent` : ""}.`];
+  if (!confirmed.length && !sent.length) lines.push("No application has reached an employer on record, so there is nothing to prove yet.");
+  lines.push(...section("Confirmed by the employer", confirmed));
+  lines.push(...section("Sent, not confirmed by the employer yet (Trainee's record of the Submit, not theirs)", sent));
+  lines.push(...section("Can't tell whether it arrived (never sent again)", unknown));
+  if (notSent.length) lines.push(`Not sent: ${notSent.slice(0, PROOF_SHOWN).map((r) => r.company).join(", ")}${notSent.length > PROOF_SHOWN ? ` and ${notSent.length - PROOF_SHOWN} more` : ""}.`);
+  const first = confirmed[0] ?? sent[0] ?? unknown[0];
+  if (first) lines.push(`Ask "show me the receipt for ${first.company}" for every field that was sent and the pictures of the page before and after Submit.`);
+  return lines.join("\n");
+}
+
 const slug = (s: string) => one(s, 40).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "employer";
 
 // One chat turn: null when the text is not a receipt ask (nothing is read).
@@ -120,6 +175,10 @@ export async function receiptTurn(o: { message: string; userId: string; now: num
     return { reply: "I couldn't read your receipts just now, so I can't show what was sent. Nothing is guessed; ask me again in a minute.", status: "unreadable", intent: RECEIPT_INTENT };
   }
   const companies = [...new Set(rows.map((r) => r.company))];
+  if (ask.prove && !ask.company) {
+    if (!rows.length) return { reply: "No application receipts are on record yet, so there is nothing to prove: Trainee has not finished an application for you. Each one gets a receipt when it finishes.", status: "none", intent: RECEIPT_INTENT };
+    return { reply: proofText(rows), status: "proof", intent: RECEIPT_INTENT };
+  }
   if (!ask.company) {
     if (!rows.length) return { reply: "No application receipts are on record yet. Each application gets one when it finishes.", status: "none", intent: RECEIPT_INTENT };
     const list = rows.slice(0, 10).map((r) => `- ${headline(r)} (recorded ${day(r.finished_at) ?? "on a date not on record"})`);

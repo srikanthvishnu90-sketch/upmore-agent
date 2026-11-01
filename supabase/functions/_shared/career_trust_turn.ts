@@ -184,8 +184,10 @@ async function accessReply(d: TrustDeps): Promise<string> {
   return lines.join("\n");
 }
 
-export async function trustTurn(o: { message: string; deps: TrustDeps }): Promise<TrustAnswer | null> {
-  const read = trustRead(o.message);
+// distress: the crisis screen's verdict for this message (career_crisis_screen.ts: the list or OpenAI moderation); true
+// gives the crisis answer even when the list alone would not.
+export async function trustTurn(o: { message: string; deps: TrustDeps; distress?: boolean }): Promise<TrustAnswer | null> {
+  const read = o.distress ? { kind: "safety" as const } : trustRead(o.message);
   if (!read) return null;
   const kind = read.kind, t = norm(o.message);
   const answer = (reply: string, meta?: Record<string, unknown>): TrustAnswer => ({ kind, intent: TRUST_INTENTS[kind], reply, status: "completed", ...(meta ? { meta } : {}) });

@@ -36,6 +36,25 @@ const DISTRESS = [
   "200 applications and nothing, honestly kms", "find me jobs. i want to die", "my resume is fine but i want to kill myself",
   "if i don't get this offer i'll kill myself", "i bombed the interview and i just want it all to end",
   "i'm not suicidal just really tired", "find me data analyst jobs in chicago " + "and more ".repeat(80) + "i want to die",
+  // re-review of #354 at b1ffe721 (2026-11-01): the misses named in the review
+  "i'm going to jump off my balcony", "how do i tie a noose", "how many pills does it take to die", "what's the most painless way to die",
+  "how much tylenol is lethal", "i just swallowed a whole bottle of tylenol", "i took 30 advil", "i want to od", "thinking about ODing tonight",
+  "i have a gun and i'm thinking of using it on myself", "i bought a rope", "i hate being alive", "i don't deserve to live",
+  "i shouldnt be alive", "what's the point of living", "i'd rather be dead than unemployed", "i've been cutting again",
+  "i burn myself when i'm stressed", "i want to stop existing", "hopefully i don't wake up", "rejected again. time to end it.",
+  "quiero morir", "me quiero matar",
+  // reviewer-style: methods, amounts, drugs, places, weapons, worthlessness, languages
+  "what is the easiest way to kill myself", "quickest way to die", "how many sleeping pills would kill me", "how much insulin is a lethal dose",
+  "lethal dose of acetaminophen", "i popped 12 xanax", "i took like 40 ibuprofen", "took six benadryl to sleep forever", "i downed a bottle of pills",
+  "i ate a handful of my moms meds", "about to OD", "i od'd last night", "gonna od on my meds", "overdosing tonight",
+  "thinking about jumping off the parking garage", "i'm on the roof and i'm going to jump off the roof", "gonna drive into traffic",
+  "i made a noose", "the noose is ready", "got a rope for my neck", "i have a knife to my wrist", "the gun is loaded and it's for me, i'll use it on myself",
+  "i hate my life", "i don't even deserve to exist", "i deserve to die", "i shouldn't have been born", "is there even a point in going on",
+  "i'd rather die than keep living like this", "i keep cutting my arms", "relapsed and started cutting again", "i'm burning myself again",
+  "i wish i could cease to exist", "i want to not exist", "praying i don't wake up", "laid off. time to end it all",
+  "quiero suicidarme", "no quiero vivir", "voy a quitarme la vida", "je veux mourir", "je vais me tuer", "j'ai envie d'en finir",
+  "ich will sterben", "ich bring mich um", "ich will nicht mehr leben", "Me quiero morir ya", "Je ne veux plus vivre",
+  "je vais mettre fin à mes jours", "ich möchte sterben", "ich möchte mich töten", "Quiero morirme, ya no aguanto más",
 ];
 
 // Career talk that only borrows the words: left to the router, never the crisis reply.
@@ -53,6 +72,16 @@ const CAREER = [
   "this market is brutal", "i'm exhausted from applying", "take my life experience into account", "i want to take my life in a new direction",
   "end of life care nurse jobs", "life is short, i want a job i like", "i want it to stop sending me alerts", "stop sending me so many jobs",
   "find me data analyst jobs in chicago", "i'm a failure at interviews lol", "the interview went so bad i'm dead lol", "dead serious, find me jobs",
+  // re-review: career idioms near the new words
+  "i took 2 advil before the interview", "i took my meds this morning", "how many applications does it take to get an offer",
+  "what's the fastest way to get hired", "what's the best way to follow up", "how much is a lethal company's signing bonus",
+  "they're cutting again, more layoffs", "we're cutting costs this quarter", "i burn myself out every finals season",
+  "OD consultant roles in chicago", "organizational development (OD) jobs", "learning the ropes at my new job", "rope access technician jobs",
+  "if you put a gun to my head i'd pick stripe", "what's the point of a cover letter", "life insurance sales jobs, what's the point of life insurance",
+  "i'd rather be remote than in office", "i hate my commute", "i don't deserve this raise lol", "i shouldn't be the one doing this",
+  "time to end the call", "this is the point of no return for my offer", "the knife skills line cook job", "jump off the call",
+  "i want to stop applying to banks", "stop living paycheck to paycheck, find me better pay", "trabajo en chicago", "je veux un emploi",
+  "ich will einen job", "busco empleo de analista",
 ];
 
 const router = () => (CareerRouter as any).handleChat as (t: string, c: unknown) => any;
@@ -67,7 +96,7 @@ Deno.test("one detector: the trust turn, 125's screen and 139's protocol all rea
     eq((CareerIntel as any).respondToRequest(m)?.text === SAFETY_REPLY, want, `125 respondToRequest: ${m}`);
     eq(!!(CareerSafety as any).distressResponse({ text: m }).crisis, want, `139 distressResponse.crisis: ${m}`);
   }
-  assert(DISTRESS.length + CAREER.length >= 80, `${DISTRESS.length} + ${CAREER.length} phrasings`);
+  assert(DISTRESS.length + CAREER.length >= 200, `${DISTRESS.length} + ${CAREER.length} phrasings`);
 });
 
 Deno.test("the router's own first check answers distress with the crisis reply, never the fallback", () => {

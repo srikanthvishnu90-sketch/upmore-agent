@@ -31905,6 +31905,13 @@ const CareerSafety = (() => {
   // line", "take my life in a new direction". Frustration without self-harm words ("this market is brutal", "i'm a
   // failure") is not a crisis here: 125's own support line answers the second.
   //
+  // This list is the deterministic layer. In agent-chat a second layer runs beside it on every inbound message: OpenAI's
+  // moderation endpoint (self-harm, self-harm/intent, self-harm/instructions; supabase/functions/_shared/career_crisis_screen.ts).
+  // Either layer flagging gives the crisis reply; a moderation error or timeout leaves this list's answer, never a block.
+  // Re-review of #354 (2026-11-01) widened it: method and lethality questions, any overdose or count of pills (named
+  // drugs too), "off my balcony", rope and noose, a weapon on oneself, cutting and burning, worthlessness ("don't deserve
+  // to live"), not existing or not waking up, "time to end it", and core Spanish, French and German phrases.
+  //
   // How it reads: lower case, curly quotes straightened, apostrophes dropped (dont / don't, im / i'm read the same),
   // "2" between words read as "to"; the message is split into clauses at . ! ? , ; : and new lines, the benign idioms
   // are cut out of each clause, and each clause is tested on its own (so "$" below means the end of a clause).
@@ -31913,7 +31920,13 @@ const CareerSafety = (() => {
     /\bsuicide (?:prevention|squad)\b/g,
     /\b\d+(?:\.\d+)? ?kms\b/g,                                        // a distance
     /\bdie on (?:this|that|the) hill\b/g,
+    /\b(?:if you |if someone |if somebody )?(?:put|had|held) a gun to my head\b/g,   // "gun to my head, i'd pick stripe"
+    /\bgun to my head i(?:d| would)\b/g,
+    /\blearn(?:ing|ed)? the ropes\b/g, /\bpoint of life insurance\b/g,
   ];
+  // Pills and drugs as a person names them (a count of three or more of any of them, or a bottle, is an overdose's words).
+  const DRUG = String.raw`(?:sleeping |sleep |pain )?(?:pills?|tablets?|meds|medication|medicine|painkillers?|tylenol|acetaminophen|paracetamol|advil|ibuprofen|aspirin|aleve|motrin|xanax|valium|klonopin|benadryl|ambien|melatonin|oxy\w*|percocet|vicodin|codeine|morphine|fentanyl|insulin|antidepressants?|sertraline|zoloft|prozac|lexapro|lithium|adderall|heroin)`;
+  const MANY = String.raw`(?:(?:like|about|around|maybe|over|almost|at least|nearly|roughly|probably) )?(?:too many|too much|a bunch of|a lot of|all (?:of )?(?:my|the)|a whole (?:bottle|pack|box|strip) of|the whole (?:bottle|pack|box|strip) of|a (?:bottle|handful|fistful) of|(?:my|the) (?:whole )?bottle of|so many|lots of|extra|[3-9]|\d{2,}|three|four|five|six|seven|eight|nine|ten|twenty|thirty|fifty|a hundred)`;
   const SELF = String.raw`(?:my ?self|my ?slef|myslef|mself)`;
   // What may follow "take my life" / "end my life" in a crisis: nothing, a time, or the next clause's start.
   const AFTER = String.raw`(?=$| (?:tonight|today|now|soon|anymore|already|someday|eventually|and|because|cause|cuz|bc|lol|i|if|tbh|honestly|so|but|when|after|before)\b)`;
@@ -31923,15 +31936,25 @@ const CareerSafety = (() => {
     /\bkms+\b/, /\bk m s\b/,
     new RegExp(String.raw`\bkil+(?:l?ing|l?ed|s)? ?${SELF}`),           // kill myself, killing myself, kil my self, killmyself
     /(?:^|\b(?:just|please|pls|plz|someone|somebody|want (?:someone )?to|wish (?:someone|something) would|could someone)) kill me\b/,
-    new RegExp(String.raw`\b(?:hurt|harm|cut|hang|shoot|drown|poison|starve|stab)(?:t?ing|ed|s)? ${SELF}`),
+    new RegExp(String.raw`\b(?:hurt|harm|cut|hang|shoot|drown|poison|starve|stab|suffocate|strangle)(?:t?ing|ed|s)? ${SELF}`),
+    new RegExp(String.raw`\bburn(?:s|ed|t|ing)? ${SELF}(?! out\b)`),                   // "burn myself out" is work
+    /\b(?:i|ive|i have|im|i am|been|started|start|keep|kept|back to|relapsed)(?: been| started)? (?:cutting|self harming|burning)(?: again)?(?: (?:lately|recently|tonight|today))?$/,
+    /\bcutting (?:my )?(?:arms?|legs?|thighs?|skin|wrists?)\b/, /\brelapsed\b.{0,20}\b(?:cutting|self harm)/,
     /\bself ?(?:harm|injur|hurt)\w*/, /\b(?:slit|slitting|cut|cutting|slash\w*) (?:my )?wrists?\b/,
     new RegExp(String.raw`\b(?:end|ending|take|taking|took) my (?:own )?(?:life|lyfe|lyf)${AFTER}`),
-    /\bend(?:ing)? (?:it all|everything|all of it)\b/,
+    /\bend(?:ing)? (?:it all|everything|all of it)\b/, /\btime to end it(?: all)?$/,
     // "end it" as a plan; "end it with a closing line", "end it here" are an email's or a call's end.
     /\b(?:want|wanna|going|gonna|plan|planning|ready|thinking about|thought about|decided|deciding|try|trying|need|about|how) (?:to )?end(?:ing)? it(?: (?:all|tonight|today|now|soon|for good|already|forever))?$/,
     /\b(?:want|wish|need)(?:ed)? (?:it|it all|everything|this all|all of this|all this|my life) (?:all )?(?:to )?(?:just )?(?:end|be over)\b/,
     /\b(?:want|wish|need)(?:ed)? (?:it all|everything|all of this|all this) (?:to )?(?:just )?stop\b/,
     /\bmy life is (?:over|done|finished|pointless|meaningless|worthless)\b/,
+    /\bhate (?:being alive|living|existing|my life|my existence)\b/,
+    /\b(?:dont|do not|dont even) deserve (?:to )?(?:live|be alive|exist|be here|life)\b/, /\bdeserve to (?:die|be dead)\b/,
+    /\bshould(?:nt| not) (?:be alive|exist|be here anymore|have been born)\b/, /\bshould(?:nt| not) be here$/,
+    /\b(?:whats|what is|wheres|where is|is there|theres|there is) (?:the |even a |any |no )?point (?:of|in|to) (?:living|life|being alive|going on|existing|anything|any of (?:it|this))\b/,
+    /\brather (?:be dead|die|not be alive|not exist|not wake up)\b/,
+    /\bstop (?:existing|being alive)\b/, /\bstop living\b(?! (?:paycheck|like|in|with|at|for|on|off|under|out|from))/, /\bcease to exist\b/, /\b(?:want|wish|need)(?:ed)? (?:to )?(?:not exist|cease to exist|vanish forever|not be alive)\b/,
+    /\b(?:hope|hopefully|wish|praying|pray) (?:that )?i (?:dont|never|do not|wont|will not) wake up\b/,
     /\b(?:life|living) (?:is|isnt|is not|aint) (?:not )?worth (?:it|living)\b/, /\bnot worth living\b/,
     /\b(?:want|wanna|wan|wnt|ready|deserve|should|wish i could) (?:to )?(?:just )?di+e+\b/,
     /\b(?:going|gonna) (?:to )?di+e+(?: (?:tonight|today|soon|anyway))?$/,
@@ -31946,12 +31969,29 @@ const CareerSafety = (() => {
     /\bcant (?:keep living|live like this)\b/, /\bcant go on(?: (?:anymore|like this|living))?$/,
     /\b(?:tired|sick) of (?:living|being alive|life|existing)\b/, /\bdone (?:with life|living)\b/, /\bgive up on life\b/,
     /\b(?:sleep|go to sleep|fall asleep) and (?:never|not) wake up\b/, /\bnever wake up\b/, /\bhope i (?:dont|never|do not) wake up\b/,
-    /\b(?:jump|jumping|jumped|throw myself|throwing myself|step|stepping|walk|walking) (?:off|from|in front of|into) (?:a |the |some )?(?:bridge|building|roof|rooftop|cliff|balcony|ledge|train|bus|car|traffic|truck|window|tower)\b/,
-    /\b(?:took|take|taken|taking|swallowed|swallow|swallowing|downed) (?:too many|a bunch of|a lot of|all (?:of )?my|a whole (?:bottle|pack) of|the whole (?:bottle|pack) of|a handful of|so many|lots of|\d{2,}) (?:sleeping )?(?:pills|tablets|meds|painkillers)\b/,
-    /\boverdos\w*/, /\bgun to my head\b/, /\bblow my (?:brains|head) out\b/, /\bdisappear forever\b/, /\bmy (?:last|final) goodbye\b/,
+    /\b(?:jump|jumping|jumped|throw myself|throwing myself|step|stepping|walk|walking|drive|driving) (?:off|off of|from|in front of|into) (?:a |the |some |my |our |this |that )?(?:\w+ )?(?:bridge|building|roof|rooftop|cliff|balcony|ledge|train|bus|car|traffic|truck|window|tower|overpass|parking garage)\b/,
+    new RegExp(String.raw`\b(?:took|take|taken|taking|swallowed|swallow|swallowing|downed|down|ate|chugged|popped|pop|popping) ${MANY} (?:(?:my|his|her|their|the) (?:\w+ )?)?${DRUG}\b`),
+    new RegExp(String.raw`\b(?:how many|how much)\b.{0,40}\b(?:to (?:die|kill (?:me|myself|someone|a person)|overdose|od)|(?:is|are|would be) (?:lethal|fatal|deadly|enough to die)|(?:would|will|does it take to|it takes to|to) (?:kill (?:me|you|someone|a person)|die))\b`),
+    /\b(?:lethal|fatal|deadly) (?:dose|amount|overdose|combination|mix)\b/,
+    /\b(?:painless|easiest|easy|quickest|quick|fastest|best|surest|least painful|most painless|simplest) (?:way|ways|method|methods) (?:to|of) (?:die|dying|kill myself|killing myself|end it|end my life|commit suicide)\b/,
+    /\bways to (?:die|kill myself|end my life)\b/,
+    /\b(?:want|wanna|going|gonna|plan|planning|thinking (?:about|of)|try|tried|trying|about|ready|decided) (?:to )?(?:od|oding|odd)\b/, /\b(?:i|just|almost|nearly) (?:odd|oded|od)(?: last night| on| tonight|$)/,
+    /\bod(?:d|ing|ed)? on\b/, /\boverdos\w*/,
+    /\b(?:tie|tied|tying|make|made|making|got|have|bought|buy) (?:a |the |my )?noose\b/, /\bnoose\b/,
+    /\b(?:bought|buy|got|get|have|found) (?:a |some |the )?rope\b(?! access)/, /\brope\b.{0,30}\b(?:neck|hang|ceiling|beam|closet)\b/,
+    /\b(?:gun|pistol|rifle|firearm|knife|blade|razor)\b.{0,60}\b(?:on myself|to my (?:head|wrist|throat|chest)|in my mouth|end it|kill myself|use it on me)\b/,
+    /\buse (?:it|that|this|the gun|the knife) on myself\b/, /\bgun to my head\b/, /\bblow my (?:brains|head) out\b/, /\bdisappear forever\b/, /\bmy (?:last|final) goodbye\b/,
+    // Spanish, French, German: the core phrases (accents are dropped before reading).
+    /\b(?:quiero|quisiera|voy a|me voy a|ganas de) (?:morir(?:me)?|matarme|suicidarme|quitarme la vida|desaparecer para siempre)\b/,
+    /\bme (?:quiero|voy a) (?:morir|matar|suicidar)\b/, /\bno quiero (?:vivir|seguir viviendo|estar viva?|despertar)\b/,
+    /\b(?:acabar|terminar) con mi vida\b/, /\bno vale la pena vivir\b/,
+    /\b(?:je veux|j ai envie de|envie de|je vais) (?:mourir|me tuer|me suicider|en finir|disparaitre)\b/, /\bje (?:ne )?veux plus vivre\b/, /\b(?:envie|veux) d ?en finir\b/,
+    /\bmettre fin a mes jours\b/, /\bme (?:tuer|suicider)\b/,
+    /\bich (?:will|mochte|moechte|werde) (?:sterben|mich umbringen|mich toten|mich toeten|nicht mehr leben)\b/, /\bmich umbringen\b/,
+    /\bich bring(?:e)? mich um\b/, /\bselbstmord\w*/, /\bsuizid\w*/, /\bnicht mehr leben\b/, /\bmein leben beenden\b/,
   ];
   function distressClauses(text) {
-    const t = String(text == null ? "" : text).toLowerCase()
+    const t = String(text == null ? "" : text).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\u00df/g, "ss").toLowerCase()
       .replace(/[‘’ʼ`´]/g, "'").replace(/'/g, "")
       .replace(/(\w)-(\w)/g, "$1 $2");
     return t.split(/[.!?,;:\n]+/).map((c) => {

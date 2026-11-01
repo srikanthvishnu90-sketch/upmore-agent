@@ -111,7 +111,8 @@ import { supabaseFileStore } from "../trainee-file/store.ts";
 import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts"; // FILE KINDS
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
 import { vaultRefreshWrite } from "../_shared/oauth_vault_refresh.ts";
-import { trustKind, trustTurn } from "../_shared/career_trust_turn.ts"; // REQS DOC 1: what Trainee is, privacy, what it sees, referrals, thanks
+import { trustTurn } from "../_shared/career_trust_turn.ts";
+import { crisisScreen, moderationFromEnv } from "../_shared/career_crisis_screen.ts"; // #354: the two-layer crisis screen // REQS DOC 1: what Trainee is, privacy, what it sees, referrals, thanks
 import { readConnections } from "../_shared/career_capabilities.ts"; // REQS DOC 1: every connection on the account
 
 // REQS DOC 1: what holds the card's place for a message in distress (see `distress` below); never shown or saved as a card.
@@ -282,6 +283,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         flowCtx.note = redactionNote([...new Set([...input.redacted, ...red.removed])]);
       }
     }
+    // #354 SAFETY: the crisis screen starts now, beside the rest of the turn's reads: the deterministic list at once, and
+    // OpenAI moderation (CAREER_CRISIS_MODERATION=on) with a 1.5 s cap. It never rejects; it is awaited where `distress`
+    // is decided below, and a moderation error or timeout leaves the list's verdict (career_crisis_screen.ts).
+    const crisisPending = crisisScreen(message, moderationFromEnv(Deno.env));
 
     // GO-LIVE FLIP (2026-10-13, owner ruling: "the career version is the
     // final switch" — the money version is gone from live). Career is the
@@ -461,7 +466,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // below that waits on "!card" stands down, and its own branch answers first. #354 safety follow-up: it is read before
       // the connector, site-refusal and Outlook turns too, which stand down for it (no disconnect or link runs on such a
       // message), and its branch is the first in the answer chain below.
-      const distress = !tapIn && !careerTask && !careerBatch && trustKind(message) === "safety";
+      const crisis = await crisisPending;
+      if (crisis.moderation === "flagged" && !crisis.rules) console.log(`crisis screen: moderation flagged (${crisis.categories.join(", ")}) what the list missed`);
+      const distress = !tapIn && !careerTask && !careerBatch && crisis.distress;
       // M4: Outlook (Microsoft Graph) as a peer of Gmail, from any channel: "connect my outlook" / "use my work email" makes a
       // one-time link bound to this person, channel and thread; "disconnect outlook" deletes the access and what was read
       // from it and cancels its pending sends (_shared/outlook_connector.ts). Code's, before every other turn.
@@ -797,7 +804,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // The record is read only when the question needs it: every connection row, and what is saved for this person (the
       // resume on file, confirmed facts, the tracker and the queue, through the status read model); a failed read is null.
       const trustAns = !careerTask && !careerBatch && (distress || !host.isHostControlled(message, ctx))
-        ? await trustTurn({ message, deps: {
+        ? await trustTurn({ message, distress, deps: {
             connections: () => readConnections(admin, user.id).catch(() => null),
             stored: async () => {
               const [resume, rows] = await Promise.all([resumeOnFileReader(admin, user.id)(), supabaseStanding(admin)(user.id).catch(() => null)]);

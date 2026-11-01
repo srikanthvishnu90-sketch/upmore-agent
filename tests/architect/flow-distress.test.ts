@@ -28,7 +28,8 @@ Deno.test({ name: "#354 safety: distress gets the crisis reply first at the real
     await t.step("the phrasings the old lists missed", async () => {
       for (const m of ["kms", "i took too many pills", "i have a plan to end it", "i just want it all to end", "unalive myself",
         "i want to sleep and never wake up", "jumping off a bridge", "i wish i wasn't alive", "my life is over", "honestly kms lol",
-        "i want 2 die", "sucidal again"]) {
+        "i want 2 die", "sucidal again", "how much tylenol is lethal", "i took 30 advil", "rejected again. time to end it.", "quiero morir",
+        "i have a gun and i'm thinking of using it on myself", "i don't deserve to live"]) {
         const r = await say(m);
         eq(r.intent, "safety_support", `${m}: ${r.intent}: ${r.reply}`);
         eq(r.reply, SAFETY_REPLY, m);

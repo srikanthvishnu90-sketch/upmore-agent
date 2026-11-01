@@ -194,8 +194,8 @@ Deno.test("list: a row per posting with logo or lettermark, company, Apply, and 
   assert(/<details>\s*<summary>/.test(html) && html.includes("class=\"full\""), "the full posting is behind a tap, closed by default");
   assert(!/<details[^>]* open/.test(html));
   // brand: Trainee's tokens and fonts, both themes by prefers-color-scheme
-  for (const tokenValue of ["#4A2F5E", "#D4C2E2", "#141414", "#4F4F57", "#FAF8F4", "#E6E3DD", "#B42318", "#EDEDF0", "#A6A6B0", "#1F1F25"]) assert(html.includes(tokenValue), `brand token ${tokenValue}`);
-  assert(/Brygada 1918/.test(html) && /family=Inter/.test(html) && /prefers-color-scheme:dark/.test(html) && /name="theme-color" content="#4A2F5E"/.test(html));
+  for (const tokenValue of ["#5C2751", "#D4C2E2", "#141414", "#4F4F57", "#FAF8F4", "#E6E3DD", "#B42318", "#EDEDF0", "#A6A6B0", "#1F1F25"]) assert(html.includes(tokenValue), `brand token ${tokenValue}`);
+  assert(/Brygada 1918/.test(html) && /family=Inter/.test(html) && /prefers-color-scheme:dark/.test(html) && /name="theme-color" content="#5C2751"/.test(html));
   assert(/<html lang="en"/.test(html) && /name="viewport"/.test(html) && /min-height:\s*(4[4-9]|[5-9][0-9])px/.test(html));
   assert(/script-src 'sha256-/.test(r.headers.get("content-security-policy")!) && !/unsafe-eval|script-src[^;]*unsafe-inline/.test(r.headers.get("content-security-policy")!));
   for (const img of html.matchAll(/<img\b[^>]*>/g)) assert(/\balt="[^"]+"/.test(img[0]));
@@ -449,7 +449,7 @@ Deno.test("link preview and Mini App: og/twitter tags from real counts, theme-co
   assert(/property="og:title" content="2 matches for you"/.test(html) && /property="og:description" content="Tap Apply on any job\. Opens in Trainee\."/.test(html));
   assert(html.includes('property="og:image" content="https://trainee.example/og-file.png"') && html.includes('og:image:width" content="1200"') && html.includes('og:image:height" content="630"') && html.includes('twitter:card" content="summary_large_image"'));
   assert(!/Acme|Co2|ada-resume/.test(html.match(/<head>[\s\S]*<\/head>/)![0]), "nothing about the person in the head tags");
-  assert(/name="theme-color" content="#4A2F5E"/.test(html) && /viewport-fit=cover/.test(html) && /env\(safe-area-inset-bottom\)/.test(html) && /100dvh/.test(html));
+  assert(/name="theme-color" content="#5C2751"/.test(html) && /viewport-fit=cover/.test(html) && /env\(safe-area-inset-bottom\)/.test(html) && /100dvh/.test(html));
   assert(html.includes('src="https://telegram.org/js/telegram-web-app.js"') && /w\.ready\(\);w\.expand\(\)/.test(html) && /setBackgroundColor/.test(html) && /setHeaderColor/.test(html));
   assert(/script-src 'sha256-[^']+' 'sha256-[^']+' https:\/\/telegram\.org/.test(r.headers.get("content-security-policy")!));
   const m1 = mem(1); await m1.ready;

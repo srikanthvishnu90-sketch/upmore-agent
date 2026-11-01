@@ -139,3 +139,65 @@ Deno.test("'sign out everywhere' in the person's own chat ends every open page s
   ok(/still signed in/.test(replies.at(-1)!), replies.at(-1));
   eq(signinNoticeText({ at: NOW, tz: "America/Chicago", phone: null }).includes("with a code texted to your phone"), true);
 });
+
+// ---------------------------------------------------------------- delivery (review of #374): security notices are not held
+import { deliverDue, type ChannelStore, type OutboxRow } from "../../supabase/functions/_shared/channel.ts";
+
+const H = (c: string) => c.repeat(64);
+function deliveryWorld(o: { paused?: boolean; stopped?: boolean; gone?: boolean } = {}) {
+  const sent: { to: string; text: string }[] = [], marks: Record<string, any> = {};
+  // 2 AM in Chicago on Monday Nov 2 (08:00 UTC): inside the default quiet hours.
+  const at = Date.parse("2026-11-02T08:00:00Z");
+  const rows: OutboxRow[] = [
+    { id: "1", userId: U, contact: "tg:555", key: `status:signin:${H("a")}`, text: "New sign-in to your Trainee jobs page: ...", deliver_at: at - 1000, attempts: 0 },
+    { id: "2", userId: U, contact: "tg:555", key: `status:deadline:${H("b")}`, text: "A reminder", deliver_at: at - 1000, attempts: 0 },
+  ];
+  const store = {
+    async due() { return rows.filter((r) => !marks[r.id]); },
+    async optedOut() { return !!o.stopped; }, async optedOutAt() { return o.stopped ? at - 5000 : null; },
+    async quiet() { return !!o.paused || !!o.stopped; }, async gone() { return !!o.gone; },
+    async quietHours() { return { tz: "America/Chicago", quiet_start: 22, quiet_end: 7 }; },
+    async setOptOut() {}, async contactsSentOn() { return 0; }, async sentTo() { return true; },
+    async mark(id: string, m: any) { marks[id] = m; },
+  } as unknown as ChannelStore;
+  const adapter: any = { channel: "telegram", limits: { dailyContacts: null, windowMs: null }, render: (t: string) => [t],
+    async send(to: string, b: string[]) { sent.push({ to, text: b.join("\n") }); return { ok: true, id: `m${sent.length}` }; } };
+  return { run: () => deliverDue({ store, adapters: { telegram: adapter }, now: at }), sent, marks };
+}
+
+Deno.test("delivery: a sign-in notice goes out at 2 AM (quiet hours hold an ordinary status text, not this)", async () => {
+  const w = deliveryWorld();
+  await w.run();
+  eq(w.sent.map((s) => s.text), ["New sign-in to your Trainee jobs page: ..."], "only the security notice went now");
+  eq(w.marks["1"].status, "delivered");
+  eq(w.marks["2"].status, "queued", "the ordinary reminder waits for the morning");
+});
+
+Deno.test("delivery: a paused account still gets the sign-in notice; a STOPped number and a deleted account do not", async () => {
+  const p = deliveryWorld({ paused: true });
+  await p.run();
+  eq([p.marks["1"].status, p.marks["2"].status], ["delivered", "skipped_opt_out"], "pause holds the reminder, not the security notice");
+  const s = deliveryWorld({ stopped: true });
+  await s.run();
+  eq(s.sent, [], "after STOP nothing Trainee starts goes to that number");
+  eq(s.marks["1"].status, "skipped_opt_out");
+  const g = deliveryWorld({ gone: true });
+  await g.run();
+  eq(g.sent, [], "a deleted account gets nothing");
+  eq(g.marks["1"].status, "skipped_opt_out");
+});
+
+Deno.test("the sign-in response waits for the notice to be queued (a slow outbox is still written before the page opens)", async () => {
+  let done = false;
+  const w = world({ queue: { async queue() { await new Promise((r) => setTimeout(r, 40)); done = true; return true; } } });
+  const { r } = await w.signIn(U, "5125550147");
+  eq(r.status, 303);
+  eq(done, true, "queued before the sign-in answered");
+});
+
+Deno.test("the outbox row's text is capped at the table's 4,000 characters", async () => {
+  const rows: any[] = [];
+  const admin = { from() { return { insert: async (r: any) => { rows.push(r); return { error: null }; } }; } };
+  await supabaseNoticeQueue(admin).queue(U, { key: `status:signin:${H("c")}`, text: "x".repeat(5000), at: NOW });
+  eq(rows[0].text.length, 4000);
+});

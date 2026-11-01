@@ -131,6 +131,12 @@ export const STALE_NOTE = "not sent: a job alert or report more than 48 hours pa
 // clock as it is at delivery, not only as it was when it was planned: a person who moved zones (or changed their quiet
 // hours) after a row was queued got it in the middle of their night.
 const QUIET_AWARE = /^(alert|report|receipt|status|followup|brief|digest):/;
+// Q509/Q510 (signin_notice.ts): a new-sign-in notice is security. A 2 AM sign-in by someone else must reach the person at 2 AM, not
+// in the morning, so it is never held for quiet hours (its words stay calm), and a pause does not hold it (a paused account can
+// still be signed into). STOP still holds it: after STOP on a number nothing Trainee starts goes to that number (the STOP reply
+// promises it, and carrier/CTIA opt-out rules allow only the one opt-out confirmation), so a stopped contact gets no notice.
+// A deleted account gets nothing.
+export const isSecurityNotice = (key: string) => /^status:signin:[0-9a-f]{64}$/.test(String(key ?? ""));
 export const LIMITS_NOTE = "not sent: under the fit floor the person set, or past the alerts a day they asked for, since it was queued";
 export const CLOSED_SINCE =" (this posting has closed since this report was written)";
 // CHANNEL DELIVERY ROUND 2 (2026-10-30): a row bound to a channel the person no longer has, and no other channel to send it on.
@@ -220,7 +226,7 @@ export async function deliverDue(o: {
     // ERASE SCENARIOS ROUND 2 (2026-10-30): an answer a run had claimed went out after the person's account was deleted
     // (a pause does not hold an answer, and the account's pause was gone with it). A deleted account gets nothing; a check
     // that cannot be read leaves the row claimed and untouched, never sent on a guess.
-    if (isReply(m.key) && o.store.gone) {
+    if ((isReply(m.key) || isSecurityNotice(m.key)) && o.store.gone) {
       let g: boolean | null;
       try { g = await o.store.gone(m.userId); } catch (e) { console.error("deliver: the account could not be read:", e instanceof Error ? e.message : String(e)); g = null; }
       if (g === null) { r.deferred++; continue; }
@@ -228,7 +234,7 @@ export async function deliverDue(o: {
     }
     // WO-091c: the same for a pause or an erase that came after the row was queued, checked now, at delivery. A pause that
     // cannot be read leaves the row claimed and untouched (the run's release puts it back), never sent on a guess.
-    if (!isReply(m.key)) {
+    if (!isReply(m.key) && !isSecurityNotice(m.key)) {
       const q = await isQuiet(m.userId);
       if (q === null) { r.deferred++; continue; }
       if (q) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: PAUSED_NOTE }); r.skipped_opt_out++; continue; }
@@ -253,7 +259,7 @@ export async function deliverDue(o: {
     // PROACTIVE SCENARIOS ROUND 2 (2026-10-30): quiet hours on the person's clock as it is now. Inside them, the row goes
     // back in the queue for the first quarter hour after them (after the checks above: a stale or unwanted row is not
     // kept for the morning); a read that fails leaves it for the next run.
-    if (QUIET_AWARE.test(m.key) && o.store.quietHours) {
+    if (QUIET_AWARE.test(m.key) && !isSecurityNotice(m.key) && o.store.quietHours) {
       const q = await quietHoursOf(m.userId);
       if (q === undefined) { r.deferred++; continue; }
       if (q) {

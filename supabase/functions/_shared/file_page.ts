@@ -139,7 +139,7 @@ ul.rows{list-style:none;margin:0;padding:0}
 .apply{display:inline-flex;align-items:center;justify-content:center;min-width:96px;min-height:48px;padding:6px 20px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;text-decoration:none;cursor:pointer}.apply:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 .chip{flex:none;min-height:48px;display:inline-flex;align-items:center;justify-content:flex-end;font-weight:600;color:var(--mute)}
 .chip.queued,.chip.in-applications,.chip.sending,.chip.submitted,.chip.confirmed{color:var(--good)}.chip.failed,.chip.not-submitted,.chip.unknown{color:var(--bad)}.chip.needs-you{color:var(--warn)}
-.row.closed .name,.row.closed .role{color:var(--mute)}.row.closed .role{text-decoration:line-through}
+.closed-tag{flex:none;min-height:48px;display:inline-flex;align-items:center;font-weight:600;color:var(--mute)}li.row:has(.closed-tag) .name,li.row:has(.closed-tag) .role{color:var(--mute)}li.row:has(.closed-tag) .role{text-decoration:line-through}
 details{margin:4px 0 0 58px}summary{list-style:none;cursor:pointer;min-height:44px;padding:4px 0}
 summary::-webkit-details-marker{display:none}
 .role{display:block;font-weight:500;overflow-wrap:anywhere}.desc{overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--mute);font-size:16px}
@@ -185,21 +185,21 @@ function rowHtml(r: Row, token: string): string {
   const img = r.logo ? `<img src="${esc(r.logo)}" alt="${esc(j.company)} logo" width="48" height="48" loading="lazy" referrerpolicy="no-referrer">` : "";
   const link = webUrl(j.url), host = link ? hostOf(link) : "";
   let act: string;
-  const closed = !r.status && !!r.closed;
+  const closed = !r.status && !r.byHand && !!r.closed; // a never-automated site keeps its own link out and note
   if (r.status) act = `<span class="chip ${r.status.word.replace(/ /g, "-")}" role="status">${esc(cap1(r.status.word))}</span>`;
-  else if (closed) act = `<span class="chip closed" role="status">Closed</span>`;
+  else if (closed) act = `<span class="closed-tag" role="status">Closed</span>`;
   else if (r.byHand) act = link ? `<a class="apply" href="${esc(link)}" rel="noopener noreferrer" aria-label="Open ${esc(j.title)} at ${esc(j.company)} to apply there yourself">Apply there</a>` : "";
   else if (r.blocked) act = "";
   else act = `<form method="post" class="ajax act">${hidden(token, "apply", `<input type="hidden" name="ref" value="${esc(r.ref)}"><input type="hidden" name="tag" value="${esc(r.tag ?? "none")}">`)}<button type="submit" class="apply" aria-label="${j.title.trim() ? `Apply to ${esc(j.title)} at ${esc(j.company)}` : `Apply to ${esc(j.company)}`}">Apply</button></form>`;
   const openOn = host ? `<p><a href="${esc(link)}" rel="noopener noreferrer">Open on ${esc(host)}</a></p>` : "";
   const more = r.full ? `<p class="full">${esc(r.full)}</p>${openOn}` : `<p class="full">The full posting text isn't on file.</p>${openOn}`;
-  const note = r.note ? `<p class="note">${esc(r.note)} ${refresh(token)}</p>` : r.status ? `<p class="note">${esc(r.status.detail)}</p>` : closed ? `<p class="note">${esc(r.closed)}. Nothing can be sent to it; it stays here so you can see it.</p>` : r.byHand ? `<p class="note">Not applied for automatically on this site.</p>` : r.blocked ? `<p class="note">Not offered: ${esc(r.blocked)}</p>` : "";
+  const note = r.note ? `<p class="note">${esc(r.note)} ${refresh(token)}</p>` : r.status ? `<p class="note">${esc(r.status.detail)}</p>` : closed ? `<p class="note">Not offered: ${esc(r.closed)}. Nothing can be sent to it; it stays here so you can see it.</p>` : r.byHand ? `<p class="note">Not applied for automatically on this site.</p>` : r.blocked ? `<p class="note">Not offered: ${esc(r.blocked)}</p>` : "";
   const meta = r.meta ? `<p class="meta">${esc(r.meta)}${r.metaSrc ? ` · ${esc(r.metaSrc)}` : ""}</p>` : "";
   const sendsLine = r.sends ? `<p class="meta">${esc(r.sends)}</p>` : "";
   const sendList = r.send?.length ? `<p class="sendh">What we send</p><ul class="send">${r.send.map((x) => `<li>${esc(x.label)}: ${x.needs ? `<strong>Needs you</strong>` : esc(x.value)}</li>`).join("")}</ul>` : "";
   const posted = r.posted ? `<p class="meta posted">${esc(r.posted)}</p>` : "";
   const why = r.why?.length ? `<p class="why">Why it fits you: ${esc(r.why.slice(0, 2).join(" "))}</p>` : "";
-  return `<li class="row${closed ? " closed" : ""}" id="r-${esc(r.ref)}"><div class="head"><span class="logo"><span class="lettermark" aria-hidden="true">${initial}</span>${img}</span><span class="name">${esc(j.company)}</span>${act}</div>
+  return `<li class="row" id="r-${esc(r.ref)}"><div class="head"><span class="logo"><span class="lettermark" aria-hidden="true">${initial}</span>${img}</span><span class="name">${esc(j.company)}</span>${act}</div>
 <details><summary><span class="role">${esc(j.title)}</span><span class="desc">${esc(r.snippet)}</span></summary>${sendList}${more}</details>${meta}${posted}${sendsLine}${why}${note}</li>`;
 }
 
@@ -245,8 +245,8 @@ function renderTextRaw(f: Feed): string {
     L.push(`${i + 1}. ${r.job.company} - ${r.job.title}`);
     if (r.snippet) L.push(`   ${r.snippet}`);
     L.push(`   Status: ${r.status ? r.status.word : "available"}${r.status ? ` (${r.status.detail})` : ""}`);
-    if (r.closed && !r.status) L.push(`   ${r.closed}. Nothing can be sent to it.`);
-    L.push(`   Apply: ${r.status ? "closed" : r.closed ? "not offered: the posting is closed" : r.byHand ? "not automated on this site; apply there yourself" : r.blocked ? `not offered: ${r.blocked}` : "available"}`);
+    if (r.closed && !r.status && !r.byHand) L.push(`   ${r.closed}. Nothing can be sent to it.`);
+    L.push(`   Apply: ${r.status ? "closed" : r.closed && !r.byHand ? "not offered: the posting is closed" : r.byHand ? "not automated on this site; apply there yourself" : r.blocked ? `not offered: ${r.blocked}` : "available"}`);
     if (r.job.url) L.push(`   Posting: ${r.job.url}`);
     if (r.note) L.push(`   ${r.note}`);
   });

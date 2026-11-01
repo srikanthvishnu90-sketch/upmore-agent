@@ -7,6 +7,7 @@
 // lettermark; posting text is untrusted and always escaped (bidi overrides and isolates removed, links only http and https).
 import type { JobView } from "./telegram_jobs.ts";
 import { reasonWords } from "./career_apply_status.ts";
+import { BODY_FONT, BRAND, DISABLED_CSS, FAVICON, FONT_LINKS, PLUM, TOKENS_CSS } from "./brand.ts";
 
 export type Word = "queued" | "preparing" | "sending" | "submitted" | "confirmed" | "failed" | "not submitted" | "needs you" | "unknown" | "in applications";
 export interface Status { word: Word; detail: string }
@@ -23,6 +24,7 @@ export interface Row {
   blocked?: string | null; // why this row offers no Apply (it cannot pass the posting screen, or is the same posting as a row above)
   sends?: string; send?: { label: string; value: string; needs?: boolean }[];
   meta?: string; metaSrc?: "From the posting" | "Reported, not verified" | null; why?: string[];
+  posted?: string | null; // "Posted 3 d ago (Oct 28)" from the posting's own date (postedLine), else when Trainee first saw it
 }
 // total: how many postings the list holds; the page shows the first rows.length of them and says so when that is fewer.
 export interface Feed { og?: Og; token: string; rows: Row[]; setHash: string | null; setSize: number; top?: string; botUrl?: string | null; total?: number }
@@ -41,6 +43,34 @@ const clip = (s: string, n: number) => (s.length > n ? `${cut(s, n - 1).trimEnd(
 export const initialOf = (company: string) => { const c = [...String(company ?? "").replace(BIDI_CONTROLS, "").replace(LONE_SURROGATE, "").trim()][0]; return c ? [...c.toLocaleUpperCase("en")][0] : "?"; };
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 export const dayOf = (iso: string | null | undefined) => { const t = iso ? Date.parse(iso) : NaN; if (Number.isNaN(t)) return null; const d = new Date(t); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; };
+// Freshness on every posting (Q547, Q576, Q718): the posting's own date, else the day Trainee first saw it (said as that, never as a
+// posted date), in the metadata position. A posting older than STALE_DAYS carries an age warning rather than vanishing.
+// The day is the person's own (Q588, Q589): read in their time zone, so an evening posting never shows as the next day. With no
+// zone known (or one the runtime does not know) it is Chicago's, and the line says so.
+export const STALE_DAYS = 30;
+export const FALLBACK_ZONE = "America/Chicago";
+const zoneValid = (tz: unknown): tz is string => { if (typeof tz !== "string" || !tz || tz.length > 64) return false; try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; } };
+export function dayIn(iso: string, tz: string): string { return new Intl.DateTimeFormat("en-US", { timeZone: tz, month: "short", day: "numeric" }).format(new Date(Date.parse(iso))); }
+// A date-only source (Workable's published_on, career_ingest_feeds.ts) is stored as midnight UTC: that is a calendar day, not a
+// moment, so it is shown as that day in every zone and needs no zone note. A bare "YYYY-MM-DD" is the same.
+export const isDateOnly = (iso: string) => /^\d{4}-\d{2}-\d{2}(?:T00:00(?::00(?:\.0+)?)?(?:Z|[+-]00:?00))?$/.test(iso.trim());
+export function postedLine(job: { posted_at?: string | null; first_seen_at?: string | null }, now: number, tz?: string | null): string | null {
+  const known = zoneValid(tz), zone = known ? tz as string : FALLBACK_ZONE, note = known ? "" : ", Chicago time";
+  const age = (iso: string | null | undefined) => {
+    const t = iso ? Date.parse(iso) : NaN;
+    if (Number.isNaN(t)) return null;
+    const calendar = isDateOnly(iso!), day = calendar ? dayIn(iso!, "UTC") : dayIn(iso!, zone), tail = calendar ? "" : note;
+    if (t > now + 60_000) return { words: `on ${day}${tail}`, days: 0 }; // stamped ahead of our clock: its day, never "0 min ago"
+    const mins = Math.max(0, Math.floor((now - t) / 60_000)), days = Math.floor(mins / 1440);
+    const rel = mins < 60 ? `${mins} min ago` : mins < 1440 ? `${Math.floor(mins / 60)} h ago` : `${days} d ago`;
+    return { words: `${rel} (${day}${tail})`, days };
+  };
+  const p = age(job.posted_at), s = p ? null : age(job.first_seen_at);
+  if (!p && !s) return null;
+  const line = p ? `Posted ${p.words}` : `First seen by Trainee ${s!.words}; the posting gives no date`;
+  const days = (p ?? s)!.days;
+  return days > STALE_DAYS ? `${line} · over ${STALE_DAYS} days old, it may be filled` : line;
+}
 export const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // null = available (no status to show). Details are plain words about what is true.
@@ -84,10 +114,9 @@ export const webUrl = (u: string) => { try { const x = new URL(u); return x.prot
 
 // ---------------------------------------------------------------- html
 const CSS = `
-:root{--bg:#FAF8F4;--ink:#141414;--mute:#4F4F57;--line:#E6E3DD;--accent:#4A2F5E;--accent-hover:#5C3B74;--accent-ink:#FFFFFF;--link:#4A2F5E;--good:#1B6B3A;--bad:#B42318;--warn:#8A5300;color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root{--bg:#000000;--ink:#EDEDF0;--mute:#A6A6B0;--line:#1F1F25;--accent:#D4C2E2;--accent-hover:#FFFFFF;--accent-ink:#141414;--link:#D4C2E2;--good:#7FB89A;--bad:#E07A6E;--warn:#E3B061}}
+${TOKENS_CSS}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.5 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;letter-spacing:-.005em;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.5 ${BODY_FONT};letter-spacing:-.005em;-webkit-font-smoothing:antialiased}
 h1{font-family:'Brygada 1918',Georgia,serif;font-weight:500}
 .wrap{max-width:640px;margin:0 auto;min-height:100vh;min-height:100dvh;padding:calc(20px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left))}
 header{padding:4px 0 18px}.brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}.mark{width:32px;height:32px;flex:none}
@@ -95,7 +124,7 @@ header{padding:4px 0 18px}.brand{display:flex;align-items:center;gap:10px;margin
 h1{margin:0;font-size:28px;line-height:1.2}
 .with{margin:6px 0 0;font-size:14px;color:var(--mute)}
 .all{margin:6px 0 0}.all button{display:inline-flex;align-items:center;min-height:44px;padding:0;border:0;background:none;color:var(--link);font:inherit;font-size:15px;font-weight:500;text-decoration:underline;cursor:pointer}
-.top-note{margin:8px 0 14px;color:var(--bad)}
+.top-note{margin:8px 0 14px;padding:12px 14px;border-radius:10px;background:var(--panel);color:var(--ink)}
 ul.rows{list-style:none;margin:0;padding:0}
 .row{padding:22px 0;border-top:1px solid var(--line)}
 .head{display:flex;align-items:center;gap:14px}
@@ -111,12 +140,13 @@ details{margin:4px 0 0 58px}summary{list-style:none;cursor:pointer;min-height:44
 summary::-webkit-details-marker{display:none}
 .role{display:block;font-weight:500;overflow-wrap:anywhere}.desc{overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--mute);font-size:16px}
 details[open] .desc{display:block;-webkit-line-clamp:unset}
-.meta,.why,.note{margin:2px 0 0 58px;font-size:15px;color:var(--mute);overflow-wrap:anywhere}
+.meta,.why,.note{margin:2px 0 0 58px;font-size:16px;color:var(--mute);overflow-wrap:anywhere}
 .name,.role,.desc,.full{unicode-bidi:plaintext;text-align:start}.with,.top-note{overflow-wrap:anywhere}
 .sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}.why{color:var(--ink)}
 .full{white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;margin:8px 0}
-.note a,details a,.top-note a{color:var(--link)}.lnk{display:inline;min-height:44px;padding:0 4px;border:0;background:none;color:var(--link);font:inherit;text-decoration:underline;cursor:pointer}.sendh{margin:8px 0 2px;font-weight:600;font-size:15px}.send{margin:0 0 8px;padding-left:20px;font-size:15px;color:var(--mute)}.send li{margin:2px 0;overflow-wrap:anywhere}
+.note a,details a,.top-note a{color:var(--link)}main p>a:not(.apply){display:inline-flex;align-items:center;min-height:44px}.lnk{display:inline;min-height:44px;padding:0 4px;border:0;background:none;color:var(--link);font:inherit;text-decoration:underline;cursor:pointer}.sendh{margin:8px 0 2px;font-weight:600;font-size:15px}.send{margin:0 0 8px;padding-left:20px;font-size:15px;color:var(--mute)}.send li{margin:2px 0;overflow-wrap:anywhere}
 :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:8px}
+${DISABLED_CSS}
 .foot{margin-top:24px;padding-top:14px;border-top:1px solid var(--line);font-size:15px;color:var(--mute)}
 @media (max-width:360px){details,.meta,.why,.note{margin-left:0}.apply{min-width:80px;padding:6px 12px}}
 `;
@@ -125,9 +155,9 @@ const ogTags = (o: Og) => `<meta property="og:type" content="website"><meta prop
 const OG_DEFAULT: Og = { title: "Your jobs on Trainee", description: "Tap Apply on any job.", image: null };
 export function layout(title: string, inner: string, o: { script?: string; bodyAttrs?: string; og?: Og; tg?: boolean; css?: string } = {}): string {
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#4A2F5E" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">${ogTags(o.og ?? OG_DEFAULT)}
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234A2F5E'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='40' font-weight='700' text-anchor='middle' fill='%23fff'%3ET%3C/text%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Brygada+1918:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="${PLUM}" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">${ogTags(o.og ?? OG_DEFAULT)}
+${FAVICON}
+${FONT_LINKS}
 <title>${esc(clip(title, 90))}</title><style>${CSS}${o.css ?? ""}</style></head>
 <body${o.bodyAttrs ? " " + o.bodyAttrs : ""}><div class="wrap">${inner}</div>${o.tg ? `<script src="https://telegram.org/js/telegram-web-app.js"></script>` : ""}${o.script ? `<script>${o.script}</script>` : ""}</body></html>`;
 }
@@ -141,7 +171,7 @@ export const TG_READY = `var w=window.Telegram&&window.Telegram.WebApp;if(w){try
 export const FEED_SCRIPT = `(function(){${TG_READY}var r=document.getElementById("root");if(!r||!window.fetch||!window.DOMParser)return;var lv=document.getElementById("live");r.addEventListener("submit",function(e){var f=e.target;if(!f.classList||!f.classList.contains("ajax"))return;e.preventDefault();var b=f.querySelector("button");if(b)b.disabled=true;var li=f.closest?f.closest("li.row"):null,id=li?li.id:"";fetch(location.href,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams(new FormData(f)).toString()}).then(function(x){return x.text()},function(){f.submit();return null}).then(function(t){if(t===null)return;var p=new DOMParser().parseFromString(t,"text/html"),d=p.getElementById("root"),g=null,s="";if(!d){document.title=p.title;document.body.innerHTML=p.body.innerHTML;g=document.querySelector("h1");if(g){g.setAttribute("tabindex","-1");g.focus()}return}r.innerHTML=d.innerHTML;var n=id?document.getElementById(id):null,top=r.querySelector(".top-note");if(n){var m=n.querySelector(".note")||n.querySelector(".chip");s=m?m.textContent:"";g=n.querySelector("button.apply,a.apply,summary")}if(top){s=top.textContent;g=top;top.setAttribute("tabindex","-1")}if(!g){g=r.querySelector("h1");if(g)g.setAttribute("tabindex","-1")}if(lv)lv.textContent=s.replace(/\\s+/g," ").trim();if(g)g.focus()})})})();`;
 export const BOOT_SCRIPT = `(function(){${TG_READY}var p=new URLSearchParams(location.hash.slice(1)),d=p.get("tgWebAppData");if(!d){document.getElementById("nodata").hidden=false;return}var f=document.createElement("form");f.method="post";function a(n,v){var i=document.createElement("input");i.type="hidden";i.name=n;i.value=v;f.appendChild(i)}a("init",d);a("list",document.body.getAttribute("data-list"));document.body.appendChild(f);f.submit()})();`;
 
-export const BRAND = `<div class="brand"><svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Trainee"><rect width="64" height="64" rx="14" fill="#4A2F5E"/><text x="32" y="45" font-family="Georgia,serif" font-size="40" font-weight="700" text-anchor="middle" fill="#fff">T</text></svg><span class="wm">Trainee</span></div>`;
+export { BRAND };
 const refresh = (token: string) => `<form method="post" class="ajax" style="display:inline">${hidden(token, "refresh")}<button type="submit" class="lnk">Refresh</button></form>`;
 const hidden = (token: string, action: string, extra = "") => `<input type="hidden" name="t" value="${esc(token)}"><input type="hidden" name="action" value="${action}">${extra}`;
 
@@ -161,9 +191,10 @@ function rowHtml(r: Row, token: string): string {
   const meta = r.meta ? `<p class="meta">${esc(r.meta)}${r.metaSrc ? ` · ${esc(r.metaSrc)}` : ""}</p>` : "";
   const sendsLine = r.sends ? `<p class="meta">${esc(r.sends)}</p>` : "";
   const sendList = r.send?.length ? `<p class="sendh">What we send</p><ul class="send">${r.send.map((x) => `<li>${esc(x.label)}: ${x.needs ? `<strong>Needs you</strong>` : esc(x.value)}</li>`).join("")}</ul>` : "";
+  const posted = r.posted ? `<p class="meta posted">${esc(r.posted)}</p>` : "";
   const why = r.why?.length ? `<p class="why">Why it fits you: ${esc(r.why.slice(0, 2).join(" "))}</p>` : "";
   return `<li class="row" id="r-${esc(r.ref)}"><div class="head"><span class="logo"><span class="lettermark" aria-hidden="true">${initial}</span>${img}</span><span class="name">${esc(j.company)}</span>${act}</div>
-<details><summary><span class="role">${esc(j.title)}</span><span class="desc">${esc(r.snippet)}</span></summary>${sendList}${more}</details>${meta}${sendsLine}${why}${note}</li>`;
+<details><summary><span class="role">${esc(j.title)}</span><span class="desc">${esc(r.snippet)}</span></summary>${sendList}${more}</details>${meta}${posted}${sendsLine}${why}${note}</li>`;
 }
 
 export function renderFeed(f: Feed): string {

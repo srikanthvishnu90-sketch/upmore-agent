@@ -19,6 +19,7 @@
 // Microsoft (outlook_graph.ts) and Google are the only network peers, both faked at the HTTP boundary in tests.
 // deno-lint-ignore-file no-explicit-any
 import { connectLine, connectUrlsFor } from "./connect_link.ts";
+import { FONT_CSP, systemPage } from "./brand.ts";
 import { careerTokenFor, CAREER_READ_SCOPE, CAREER_SEND_SCOPE } from "./career_mail_gmail.ts";
 import { disconnectGoogle, disconnectReply, revokeWords } from "./google_disconnect.ts";
 import { askWords, disconnectOf, gmailConnectOf, whatsConnectedOf } from "./connector_words.ts";
@@ -423,16 +424,11 @@ export async function resumeDue(d: AfterDeps, batch: number) {
 }
 
 // ------------------------------------------------------------------------------------------------ the Gmail link's page
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 const HEADERS = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer", "x-frame-options": "DENY",
-  "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://accounts.google.com; frame-ancestors 'none'" };
+  "content-security-policy": `default-src 'none'; style-src 'unsafe-inline' ${FONT_CSP.style}; font-src ${FONT_CSP.font}; img-src data:; form-action 'self' https://accounts.google.com; frame-ancestors 'none'` };
+// On the shared Trainee shell (brand.ts systemPage): ink text on the warm ground, plum only on the one button (Q564, Q575).
 export function page(title: string, body: string[], status = 200, form?: { action: string; token: string; label: string }): Response {
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title>` +
-    `<style>body{font:16px/1.5 system-ui,sans-serif;background:#F2F2F4;color:#4A2F5E;margin:0;padding:24px}main{max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:24px}` +
-    `button{font:inherit;background:#4A2F5E;color:#fff;border:0;border-radius:8px;padding:10px 16px}</style></head><body><main><p><b>Trainee</b></p><h1>${esc(title)}</h1>` +
-    body.map((p) => `<p>${esc(p)}</p>`).join("") +
-    (form ? `<form method="post" action="${esc(form.action)}"><input type="hidden" name="t" value="${esc(form.token)}"><button type="submit">${esc(form.label)}</button></form>` : "") +
-    `</main></body></html>`;
+  const html = systemPage(title, body, form);
   return new Response(html, { status, headers: HEADERS });
 }
 const GONE: Record<string, string> = {

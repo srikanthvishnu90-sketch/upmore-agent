@@ -170,14 +170,22 @@ Deno.test("--missing-measurement: the candidate first, then the deployed SHA on 
 });
 
 // ------------------------------------------------------------------------------------------------ S3: comparable measurements
-// A measurement is one CI run's qualifying passes (stopped "no": a STOPPED or NOT A SCORE row does not count), all on one
-// set, size, harness and judge pair. The deployed side counts only on the
+// A measurement is one CI run's five qualifying passes (stopped "no": a STOPPED or NOT A SCORE row, or a pass that crashed
+// and wrote no row, does not count), all on one set, size, harness and judge pair. The deployed side counts only on the
 // candidate's set, size, harness and judges: otherwise --missing-measurement names the deployed SHA, to measure it again
 // under the current harness.
-Deno.test("S3: only qualifying passes count: stopped and judge-error rows are not scores", async () => {
+Deno.test("S3: exactly five qualifying passes make a measurement; stopped and judge-error rows are not scores", async () => {
   const cand = async (log: string) => (await missingMeasurement(src({ ...world(), log: HEAD + row(D, "router", 22, "100") + log }), C, D, "router")).sha;
   eq(await cand(row(X, "router", 24, "200")), null, "five passes: measured");
   eq(await cand(line(X, "router", 24, "200", { stopped: "STOPPED" }) + line(X, "router", 24, "200", { stopped: "NOT A SCORE: 3 judge errors" })), C, "a run of stopped and judge-error passes is no measurement");
+  // Exactly five qualifying passes: a crashed pass writes no row, a stopped or judge-error pass does not qualify.
+  const five = row(X, "router", 24, "200").split("\n").filter(Boolean);
+  eq(await cand(five.slice(0, 4).join("\n") + "\n"), C, "four passes (one crashed, no row): no measurement");
+  eq(await cand(five.join("\n") + "\n" + five[0] + "\n"), C, "six passes in one run: not a five-pass measurement");
+  eq(await cand(five.slice(0, 4).join("\n") + "\n" + line(X, "router", 24, "200", { stopped: "STOPPED" })), C, "four and a stopped pass: no measurement");
+  eq(await cand(five.slice(0, 4).join("\n") + "\n" + line(X, "router", 24, "200", { stopped: "NOT A SCORE: 3 judge errors" })), C, "four and a judge-error pass: no measurement");
+  const depFour = { ...world(), log: HEAD + row(D, "router", 22, "100").split("\n").slice(0, 4).join("\n") + "\n" + row(X, "router", 24, "200") };
+  eq((await missingMeasurement(src(depFour), C, D, "router")).sha, D, "deployed with four passes: measure it again");
   // A sixth pass that stopped (0 passed) beside the five: the mean is over the five, not six.
   const w = { ...world(), log: HEAD + row(D, "router", 22, "100") + row(X, "router", 24, "200") + line(X, "router", 0, "200", { stopped: "STOPPED" }) + line(X, "router", 0, "200", { stopped: "NOT A SCORE: 38 judge errors" }) };
   const r = await s3(src(w), C, D, "router");

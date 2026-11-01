@@ -237,6 +237,10 @@ export const judgesOf = (r: ScoreRow) => (r as Tagged)[JUDGES] ?? "";
 export function judgePair(col: string): string {
   return col.replace(/(^|[\s(])\d+(?=[\s,;)]|$)/g, "$1").replace(/\s+/g, " ").replace(/\s+([,;)])/g, "$1").trim();
 }
+// Five passes per measurement: measure-reply.sh asks brain-eval for five, and the pass-to-pass swing of 16-18 points
+// (brain-eval.yml) means fewer cannot be compared. Only rows whose stopped column is "no" qualify: a pass that crashed
+// writes no row, and a STOPPED or NOT A SCORE (judge or brain error) row is not a score.
+export const MEASUREMENT_PASSES = 5;
 export function parseScoreLog(text: string): ScoreRow[] {
   const rows: ScoreRow[] = [];
   for (const line of text.split("\n")) {
@@ -304,6 +308,9 @@ export async function measurementOf(src: Sources, sha: string, rows: ScoreRow[],
   const same = run.filter((r) => r.set === set && r.size === size && harnessOf(r) === harness && judgesOf(r) === judges);
   if (same.length !== run.length) {
     return { m: null, why: `CI run ${latestRun}, the latest ${brain} measurement of ${short(sha)}, mixes sets, harnesses or judge pairs across its passes` };
+  }
+  if (same.length !== MEASUREMENT_PASSES) {
+    return { m: null, why: `CI run ${latestRun}, the latest ${brain} measurement of ${short(sha)}, has ${same.length} qualifying passes, not ${MEASUREMENT_PASSES} (crashed, brain-error, judge-error and stopped passes do not count)` };
   }
   const passed = same.reduce((a, r) => a + r.passed, 0);
   return { m: { set, size, run: latestRun, rate: passed / size / same.length, passes: same.length, passed, commit: same[0].commit, harness, judges }, why: "" };

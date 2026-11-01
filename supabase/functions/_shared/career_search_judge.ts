@@ -323,6 +323,9 @@ export interface SearchAsk { role: string; place: string | null; remote: boolean
 export interface SearchJudgeResult {
   reply: string; status: "ranked" | "judged" | "none"; source: "live" | "snapshot" | "none";
   shortlist: ShortlistEntry[]; accounting: Accounting | null; modelCalled: boolean;
+  // Every row the reply would rank (judged-in or not judged), in its order, with the posting it came from: the results page's
+  // list (role_results.ts), which holds more than the reply shows.
+  picked?: { hit: SearchHit; posting: SourcePosting | null }[];
 }
 export const SEARCH_INTENTS = new Set(["career_discovery", "career_internship_discovery"]);
 // The ask, as the router parsed it this turn (discovery.lastParams, written by its handleDiscovery for this very text).
@@ -493,7 +496,8 @@ export async function searchJudgeTurn(o: {
   if (more > 0) lines.push(`${more} more ${more === 1 ? "is" : "are"} not shown.`);
   lines.push(listed.length ? `Say "apply to these" to queue the ${listed.length === 1 ? "one" : listed.length} listed, or name one to tailor your resume for.` : "Widen the role or the place and I'll search again.");
   const shortlist = listed.map((r) => ({ id: r.h.job_id, title: r.h.title, company: r.h.company || null, location: where(r.h) || null, url: r.h.url || null }));
-  return { reply: lines.join("\n"), status: account ? "judged" : "ranked", source, shortlist, accounting: account, modelCalled };
+  const picked = rows.slice(0, 25).map((r) => ({ hit: r.h, posting: byId.get(r.h.job_id) ?? null }));
+  return { reply: lines.join("\n"), status: account ? "judged" : "ranked", source, shortlist, accounting: account, modelCalled, picked };
 }
 
 // The ask for this turn: the router's search with the message's own parameters added; a search the router ran but named no

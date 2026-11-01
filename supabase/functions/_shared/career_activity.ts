@@ -2,9 +2,12 @@
 // today?", "how many applications did you send this week?" answered by code with counts from the records, the window
 // named and the counting method said. Before this, these asks reached the router's fallback, and "what did you send
 // today" was read as a receipt ask for a company called "today".
-//   applications  career_apply_jobs: queued in the window (by created_at, the moment the approved application was queued);
-//                 sent, confirmed apart from not confirmed, stopped for the person, did not go (by updated_at, the moment
-//                 its state last changed). A confirmation is only the employer's (state confirmed), never assumed.
+//   applications  career_apply_jobs: queued in the window by created_at (the moment the approved application was queued);
+//                 sent by the receipt's finished_at (career_apply_receipts, the moment the send finished), never by
+//                 updated_at, which moves again when the employer's confirmation arrives days later; a confirmation by
+//                 email_confirmed_at (the employer's matched email), only in state confirmed; stopped for the person and
+//                 did not go by updated_at (the moment that status was set). A sent application with no receipt has no
+//                 send time on record: named, not counted by day.
 //   emails        career_outreach_drafts that left the person's mailbox (sent, replied or bounced), by sent_at. The send
 //                 rail and the follow-up sends both write this record, so each email is counted once.
 // The window is the person's own day (career_alert_prefs.tz; UTC when none is saved, and said). A record that cannot be
@@ -13,10 +16,12 @@ export const ACTIVITY_INTENT = "career_activity";
 export type Span = "today" | "yesterday" | "week";
 export interface ActivityAsk { span: Span; said: boolean }
 
-export interface ActivityApp { company: string; state: string; created_at: string; updated_at: string; title?: string | null }
+// sent_at: the receipt's finished_at (null: no receipt); email_confirmed_at: when the employer's confirmation email arrived.
+export interface ActivityApp { company: string; state: string; created_at: string; updated_at: string; sent_at?: string | null; email_confirmed_at?: string | null; title?: string | null }
 export interface ActivityEmail { status: string; sent_at: string; name?: string | null; firm?: string | null }
 // null: that record could not be read.
-export interface ActivityRows { apps: ActivityApp[] | null; emails: ActivityEmail[] | null; tz: string | null }
+// receipts: false when the receipts could not be read (then no send can be dated, and that is said).
+export interface ActivityRows { apps: ActivityApp[] | null; emails: ActivityEmail[] | null; tz: string | null; receipts?: boolean }
 export type ReadActivity = (userId: string, fromIso: string) => Promise<ActivityRows>;
 
 const plain = (s: string) => ` ${String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/[?!.]+\s*$/, "").replace(/\s+/g, " ").trim()
@@ -91,25 +96,32 @@ const names = (xs: string[]) => {
 const SENT = new Set(["confirmed", "submitted_unconfirmed"]);
 const DID_NOT_GO = new Set(["failed", "not_submitted"]);
 
+export const METHOD = "How I counted: an application as queued by when you approved it into the queue, as sent by when its send finished (its receipt), and as confirmed by when the employer's confirmation email arrived. Stopped and failed applications by when that status was set. Each email by when it was sent. Days with work are days with a send, a confirmation or an email sent. Only what is on record is counted, nothing is estimated.";
+
 export function activityText(rows: ActivityRows, w: ActivityWindow, ask: ActivityAsk): { reply: string; status: string } {
   const apps = rows.apps ?? [], emails = rows.emails ?? [];
+  const receipts = rows.apps !== null && rows.receipts !== false;
   const queued = apps.filter((a) => inWin(a.created_at, w));
+  const sent = receipts ? apps.filter((a) => SENT.has(a.state) && inWin(a.sent_at, w)) : [];
+  const sentConfirmed = sent.filter((a) => a.state === "confirmed");
+  const sentOpen = sent.filter((a) => a.state !== "confirmed");
+  const confirmations = apps.filter((a) => a.state === "confirmed" && inWin(a.email_confirmed_at, w));
+  const undated = receipts ? apps.filter((a) => SENT.has(a.state) && !a.sent_at && inWin(a.updated_at, w)) : [];
   const changed = apps.filter((a) => inWin(a.updated_at, w));
-  const confirmed = changed.filter((a) => a.state === "confirmed");
-  const unconfirmed = changed.filter((a) => a.state === "submitted_unconfirmed");
   const unknown = changed.filter((a) => a.state === "unknown_outcome");
   const needsYou = changed.filter((a) => a.state === "needs_user");
   const notGone = changed.filter((a) => DID_NOT_GO.has(a.state));
   const pending = queued.filter((a) => a.state === "queued" || a.state === "driving");
   const mailed = emails.filter((e) => ["sent", "replied", "bounced"].includes(e.status) && inWin(e.sent_at, w));
   const bounced = mailed.filter((e) => e.status === "bounced");
-  const lost = [...(rows.apps === null ? ["your application queue"] : []), ...(rows.emails === null ? ["your email log"] : [])];
+  const lost = [...(rows.apps === null ? ["your application queue"] : !receipts ? ["your application receipts (so no send is counted)"] : []), ...(rows.emails === null ? ["your email log"] : [])];
   const L: string[] = [];
   if (!ask.said) L.push("You didn't say when, so this is the last 7 days.");
   const parts: string[] = [];
   if (rows.apps !== null) {
     parts.push(`${plural(queued.length, "application")} approved and queued`);
-    parts.push(`${confirmed.length + unconfirmed.length} sent to the employer (${confirmed.length} confirmed by the employer, ${unconfirmed.length} not confirmed yet)`);
+    if (receipts) parts.push(`${sent.length} sent to the employer (${sentConfirmed.length} confirmed by the employer so far, ${sentOpen.length} not confirmed yet)`);
+    parts.push(`${plural(confirmations.length, "employer confirmation")} received`);
   }
   if (rows.emails !== null) parts.push(`${plural(mailed.length, "email")} sent from your account`);
   const nothing = rows.apps !== null && rows.emails !== null && !queued.length && !changed.length && !mailed.length;
@@ -121,23 +133,26 @@ export function activityText(rows: ActivityRows, w: ActivityWindow, ask: Activit
     L.push(`${w.label}: nothing happened. No application was queued or sent, and no email went out from your account.`);
   } else {
     L.push(`${w.label}: ${parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0]}.`);
-    if (confirmed.length) L.push(`Confirmed by the employer: ${names(confirmed.map((a) => a.company))}.`);
-    if (unconfirmed.length) L.push(`Sent, no confirmation from the employer yet: ${names(unconfirmed.map((a) => a.company))}.`);
+    if (sentConfirmed.length) L.push(`Sent and confirmed by the employer: ${names(sentConfirmed.map((a) => a.company))}.`);
+    if (sentOpen.length) L.push(`Sent, no confirmation from the employer yet: ${names(sentOpen.map((a) => a.company))}.`);
+    if (confirmations.length) L.push(`Employer confirmations received: ${names(confirmations.map((a) => a.company))}.`);
+    if (undated.length) L.push(`Sent, but the send time is not on record, so not counted as sent here: ${names(undated.map((a) => a.company))}.`);
     if (unknown.length) L.push(`Can't tell whether it reached them (it will not be sent again): ${names(unknown.map((a) => a.company))}.`);
     if (needsYou.length) L.push(`Stopped, waiting on you: ${names(needsYou.map((a) => a.company))}.`);
     if (notGone.length) L.push(`Did not go through: ${names(notGone.map((a) => a.company))}.`);
     if (pending.length) L.push(`Queued and not sent yet: ${names(pending.map((a) => a.company))}.`);
     if (mailed.length) L.push(`Emails went to: ${names(mailed.map((e) => [e.name, e.firm].filter(Boolean).join(" at ") || "a contact"))}${bounced.length ? ` (${bounced.length} bounced back)` : ""}.`);
     if (w.span === "week") {
+      // Only completed work: a send that finished, a confirmation that arrived, an email that went out.
       const days = new Set<string>();
-      for (const a of queued) days.add(dayKey(Date.parse(a.created_at), w.tz));
-      for (const a of changed) days.add(dayKey(Date.parse(a.updated_at), w.tz));
+      for (const a of sent) days.add(dayKey(Date.parse(a.sent_at!), w.tz));
+      for (const a of confirmations) days.add(dayKey(Date.parse(a.email_confirmed_at!), w.tz));
       for (const e of mailed) days.add(dayKey(Date.parse(e.sent_at), w.tz));
       L.push(`Days with work: ${days.size} of 7.`);
     }
   }
   if (lost.length) L.push(`Not read just now, so not counted: ${lost.join(" and ")}.`);
-  L.push("How I counted: each application by when it was queued and when its status last changed, and each email by when it was sent. Only what is on record is counted, nothing is estimated.");
+  L.push(METHOD);
   return { reply: L.join("\n"), status: lost.length ? "partial" : nothing ? "none" : "shown" };
 }
 
@@ -164,14 +179,18 @@ export function supabaseActivity(admin: any): ReadActivity {
         console.error(`activity: ${name}:`, e instanceof Error ? e.message : String(e)); return null;
       }
     };
-    const [apps, emails, tz] = await Promise.all([
-      q("applications", admin.from("career_apply_jobs").select("company,state,created_at,updated_at,title:payload->>title").eq("user_id", userId)
-        .or(`created_at.gte.${from},updated_at.gte.${from}`).order("updated_at", { ascending: false }).limit(1000), (r) => r as ActivityApp[]),
+    // Every send or confirmation in the window moved updated_at into it, so this filter reads every row the window needs.
+    const [jobs, receipts, emails, tz] = await Promise.all([
+      q("applications", admin.from("career_apply_jobs").select("id,company,state,created_at,updated_at,email_confirmed_at,title:payload->>title").eq("user_id", userId)
+        .or(`created_at.gte.${from},updated_at.gte.${from}`).order("updated_at", { ascending: false }).limit(1000), (r) => r as (ActivityApp & { id: string })[]),
+      q("receipts", admin.from("career_apply_receipts").select("application_id,finished_at").eq("user_id", userId).gte("finished_at", from).limit(1000),
+        (r) => new Map(r.map((x) => [String(x.application_id), String(x.finished_at)]))),
       q("emails", admin.from("career_outreach_drafts").select("status,sent_at,recipient").eq("user_id", userId).in("status", ["sent", "replied", "bounced"])
         .gte("sent_at", from).order("sent_at", { ascending: false }).limit(1000),
         (r) => r.map((x): ActivityEmail => ({ status: x.status, sent_at: x.sent_at, name: x.recipient?.name ?? null, firm: x.recipient?.firm ?? null }))),
       q("time zone", admin.from("career_alert_prefs").select("tz").eq("user_id", userId).limit(1), (r) => (r[0]?.tz ?? null) as string | null),
     ]);
-    return { apps, emails, tz };
+    const apps = jobs === null ? null : jobs.map(({ id, ...a }) => ({ ...a, sent_at: receipts?.get(String(id)) ?? null }));
+    return { apps, emails, tz, receipts: receipts !== null };
   };
 }

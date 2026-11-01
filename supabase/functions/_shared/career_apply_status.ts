@@ -176,7 +176,27 @@ export function statusReply(message: string, rows: AppRow[] | null, now: number)
   const recent = rows.filter((a) => Date.parse(a.updated_at) >= now - RECENT_DAYS * 86_400_000 || ["queued", "driving", "needs_user"].includes(a.state));
   if (!recent.length) return { reply: `No applications are on record from the last ${RECENT_DAYS} days: nothing was sent for you through Trainee.`, status: "none", intent: STATUS_INTENT };
   const more = recent.length > MAX_LISTED ? `\n…and ${recent.length - MAX_LISTED} more.` : "";
-  return { reply: `Your applications, newest first:\n${recent.slice(0, MAX_LISTED).map((a) => `- ${statusLine(a)}`).join("\n")}${more}`, status: "shown", intent: STATUS_INTENT };
+  // MASS APPLY (2026-11-01): a batch is summed up first, every application counted by what happened, and the ones waiting
+  // on the person listed first, so none of those is ever below the cut.
+  const head = recent.length > 1 ? `${countsLine(recent)}\n` : "";
+  const waiting = (a: AppRow) => (a.state === "needs_user" ? 0 : 1);
+  const listed = [...recent].sort((a, b) => waiting(a) - waiting(b));
+  return { reply: `${head}Your applications, ${recent.some((a) => a.state === "needs_user") ? "the ones waiting on you first, then " : ""}newest first:\n${listed.slice(0, MAX_LISTED).map((a) => `- ${statusLine(a)}`).join("\n")}${more}`, status: "shown", intent: STATUS_INTENT };
+}
+
+// "12 applications: 7 submitted, 1 waiting on you, 3 not sent, 1 approved and not sent yet." (states as recorded).
+export function countsLine(rows: AppRow[]): string {
+  const n = (f: (a: AppRow) => boolean) => rows.filter(f).length;
+  const parts: [number, string][] = [
+    [n((a) => a.state === "confirmed"), "confirmed by the employer"],
+    [n((a) => a.state === "submitted_unconfirmed"), "submitted"],
+    [n((a) => a.state === "unknown_outcome"), "may have gone (unknown)"],
+    [n((a) => a.state === "needs_user"), "waiting on you"],
+    [n((a) => a.state === "not_submitted"), "not sent"],
+    [n((a) => a.state === "queued" || a.state === "driving"), "approved and not sent yet"],
+  ];
+  const said = parts.filter(([k]) => k > 0).map(([k, w]) => `${k} ${w}`);
+  return `${rows.length} applications: ${said.join(", ")}.`;
 }
 
 // One chat turn: the read only for a status question; a read that fails is said, never guessed.

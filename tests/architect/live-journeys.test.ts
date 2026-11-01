@@ -10,8 +10,8 @@
 // Run: deno test -A --no-check [--import-map=tests/flow/supabase-npm.json] tests/architect/live-journeys.test.ts (unprivileged user).
 import assertNode from "node:assert/strict";
 import { pgBinDir } from "../flow/pg.ts";
-import { type Db, KNOWN_GAP, liveInputs, MARKER_KEY, runJourneys, sandboxUrl, SANDBOX_HOST, scopedDb, STEPS, SYNTHETIC_CHAT, webhookPoster } from "../../scripts/launch/live-journeys.ts";
-import { runDry } from "../../scripts/launch/live-journeys-dry.ts";
+import { type Db, KNOWN_GAP, liveInputs, MARKER_KEY, privateTokens, runJourneys, sandboxUrl, SANDBOX_HOST, scopedDb, STEPS, SYNTHETIC_CHAT, webhookPoster } from "../../scripts/launch/live-journeys.ts";
+import { BYSTANDER_SEARCHES, runDry } from "../../scripts/launch/live-journeys-dry.ts";
 
 const ok = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
@@ -38,6 +38,17 @@ Deno.test("live journeys: the sandbox employer is a reserved .invalid host, neve
   ok(u.hostname.endsWith(".invalid"));
   const src = Deno.readTextFileSync(new URL("scripts/launch/live-journeys.ts", ROOT));
   ok(!/boards\.greenhouse\.io|jobs\.lever\.co|jobs\.ashbyhq\.com/.test(src.replace(/EMPLOYER_HOSTS = .*$/m, "")), "no real ATS URL in the journeys");
+});
+
+Deno.test("live journeys: the sandbox posting's searchable words are private nonsense tokens, one pair per run", () => {
+  const a = privateTokens("gh123"), b = privateTokens("gh124");
+  for (const t of [a.company, a.title, a.place]) ok(/^Zq[a-z]{8}$/.test(t), t);
+  eq(privateTokens("gh123"), a, "deterministic");
+  ok(a.company !== a.title && a.company !== b.company && a.title !== b.title, "distinct per word and per run");
+  const src = Deno.readTextFileSync(new URL("scripts/launch/live-journeys.ts", ROOT));
+  const insert = /insert into public\.career_postings[\s\S]*?on conflict/.exec(src)?.[0] ?? "";
+  ok(/\$\{q\(SANDBOX\.title\)\}, \$\{q\(SANDBOX\.location\)\}/.test(insert) && /\$\{q\(SANDBOX\.description\)\}/.test(insert), "title, company, place and description are the tokens");
+  ok(!/Chicago|intern|Python/i.test(insert), `no real word in the posting: ${insert}`);
 });
 
 Deno.test("live journeys: missing live inputs are NOT RUN; the owner's chat makes delivery VERIFIED, none makes it UNVERIFIED on SYNTHETIC_CHAT", () => {
@@ -114,6 +125,15 @@ Deno.test({
     ok(r.botMessages >= 10, `Telegram got the replies: ${r.botMessages}`);
     eq(r.badSecretStatus, 403, "a wrong secret header is refused");
     ok(r.webhookRequests >= 15, `the journeys went over HTTP: ${r.webhookRequests}`);
+    // Two real-looking people in the same database: the Telegram one searched while the sandbox posting was live and never
+    // saw it; neither had a single row, contact or chat message changed by the run or its clean-up.
+    eq(r.bystander.searched, BYSTANDER_SEARCHES.length, "the bystander searched");
+    ok(r.bystander.sawDecoy >= 2, `the bystander's searches do list postings (the decoy): ${r.bystander.sawDecoy}`);
+    eq(r.bystander.sawSandbox, [], "no other person's search lists the sandbox posting");
+    eq(r.bystander.rowsChanged, [], "no row of another person changed");
+    eq(r.bystander.messagesAfterSearch, 0, "no message reached another person's chat");
+    ok(r.bystander.contactsIntact, "the other people's contacts are theirs");
+    eq(r.results.find((x) => x.id === "sandbox-posting-private")?.outcome, "PASS", "no other account points at the sandbox posting");
     ok(r.pass && r.cleanedUp);
     ok(lines.some((l) => /^LIVE_JOURNEY PASS delivery=VERIFIED/.test(l)), "the summary line");
     ok(!lines.join("\n").includes(MARKER_KEY + "\"") , "no raw marker JSON in the log");

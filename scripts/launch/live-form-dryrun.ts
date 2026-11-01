@@ -3,7 +3,7 @@
 // in Chromium, fills it with the apply worker's own fill code (workers/career-browser/ats-fill.cjs) from a synthetic person's
 // facts only (name, email, phone, resume: no answer to any employer question), screenshots it, finds the submit control
 // and STOPS. It never clicks submit, and it cannot send:
-//   - the network: GET and HEAD only, plus a GraphQL POST whose every operation is a query (Ashby builds its form that way;
+//   - the network: no service worker may register (serviceWorkers: "block"); GET and HEAD only, plus a GraphQL POST whose every operation is a query (Ashby builds its form that way;
 //     scripts/career/render-form.cjs readOnly). Every other request (a form post, a mutation, an autosave, an upload, a
 //     beacon) is aborted in the browser and listed in the report (requests_blocked);
 //   - the page: before any page script runs, a guard cancels every submit event, every click on a submit control and every
@@ -28,6 +28,16 @@ const { readOnly } = require("../career/render-form.cjs");
 export const KNOWN_KINDS = new Set(["text", "textarea", "select", "radio", "checkgroup", "buttons", "checkbox", "combobox", "file"]);
 // A synthetic person (reserved .invalid domain): facts only, so no employer question is ever answered.
 export const SYNTHETIC_FACTS = { first_name: "Casey", last_name: "Dryrun", full_name: "Casey Dryrun", email: "casey.dryrun@example.invalid", phone: "+1 555 010 0199", location: "Austin, TX" };
+// What may ever be typed into a real employer's page: exactly these keys, an email on a reserved .invalid domain, the
+// fictional 555 number, and the fixed synthetic name. Anything else is refused before a browser starts.
+export function syntheticFactsProblem(f: Record<string, string>): string | null {
+  const keys = Object.keys(SYNTHETIC_FACTS).sort().join(",");
+  if (Object.keys(f).sort().join(",") !== keys) return `the synthetic person has exactly ${keys}`;
+  if (!/^[a-z.]+@example\.invalid$/.test(f.email)) return "the email must be on example.invalid (RFC 2606)";
+  if (!/^\+1 555 010 01\d\d$/.test(f.phone)) return "the phone must be the fictional +1 555 010 01xx";
+  if (f.first_name !== "Casey" || f.last_name !== "Dryrun" || f.full_name !== "Casey Dryrun") return "the name is the fixed synthetic Casey Dryrun";
+  return null;
+}
 const BOT_RE = /verify\s+(?:that\s+)?you(?:\s+are|'re)\s+(?:a\s+)?(?:human|not a robot)|captcha|turnstile|challenges\.cloudflare\.com|are you a robot/i;
 const CLOSED_RE = /no longer (accepting|available|open)|position (has been )?(filled|closed)|job (is )?(closed|not found)|page (you'?re looking for )?(could not|can't|cannot) be found/i;
 
@@ -81,7 +91,11 @@ export async function dryRunLiveForm(browser: any, s: Source, o: { outDir: strin
   const t0 = Date.now();
   const run: FormRun = { id: s.id, family: s.family, url: s.url, final_url: null, status: "error", drift: [], field_map: [], schema_sha256: null, submit_control: null,
     submit_guard: { submit_events: 0, submit_clicks: 0, programmatic: 0, last: [] }, requests_blocked: [], screenshot: null, dry_run: true, submit_clicked: false, ms: 0 };
-  const ctx = await browser.newContext({ viewport: { width: 1000, height: 1400 }, userAgent: undefined });
+  const problem = syntheticFactsProblem(SYNTHETIC_FACTS);
+  if (problem) throw new Error(`refused: ${problem}`);
+  // No service workers: a worker's own requests and cached responses are not the page's, so the page's route is not the
+  // only door they could use.
+  const ctx = await browser.newContext({ viewport: { width: 1000, height: 1400 }, serviceWorkers: "block" });
   await ctx.addInitScript({ content: SUBMIT_GUARD });
   await ctx.route("**/*", (route: any) => {
     const req = route.request();

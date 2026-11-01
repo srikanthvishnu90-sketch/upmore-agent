@@ -113,14 +113,22 @@ or this run's sandbox posting. Anything else is refused before it is sent, and a
 11. `reminder-scheduled`: `career:outreach:followups.next_due_at` about 3 days out
 12. `alerts-watch-saved`: `career_alert_prefs` on, with the person's words
 13. `stop-opts-out`: `channel_contacts.opted_out`
-14. `replies-delivered`
-15. `cleanup-erases-everything`
+14. `sandbox-posting-private`: no other account has any row, outbox text included, pointing at the sandbox posting
+15. `replies-delivered`
+16. `cleanup-erases-everything`
 
 **Dry mode** (`--dry`, and `tests/architect/live-journeys.test.ts` in `gate (architect)`) runs the same code over real
 HTTP. The target is the real `handleTelegram`, composed as `index.ts` composes it, on loopback, with real `agent-chat`
 on a throwaway Postgres, the fake Bot API and the scripted model. A wrong secret header must get a 403. Measured locally:
-all 14 journey steps pass (`fit-question-answered` is the expected KNOWN_GAP), 0 outbound requests, 0 Bot API
-violations, 19 s warm. The same suite shows each guard bites: an unscoped query, a write disguised as a read, a
+all 15 journey steps pass (`fit-question-answered` is the expected KNOWN_GAP), 0 outbound requests, 0 Bot API
+violations, about 17 s warm.
+
+The dry run also puts two real-looking people in the same database: a Telegram user made by the product (hi, resume,
+yes) and a seeded web sign-up with a Gmail address and a phone. While the sandbox posting is live, the Telegram one
+runs five ordinary searches. Those searches must find a real-looking decoy posting, so they are not empty, and must
+never list the sandbox posting. After the run and its clean-up, neither person may have a single row, contact or chat
+message changed. Mutants run by hand: an erase that deletes every user's rows, and a sandbox posting with real words in
+it. Both were caught. The same suite shows each guard bites: an unscoped query, a write disguised as a read, a
 real-ATS sandbox host, an unmarked account on the chat, and missing inputs.
 
 **Changes to the design, because the code says otherwise:**
@@ -132,6 +140,12 @@ real-ATS sandbox host, an unmarked account on the chat, and missing inputs.
   cloud opt-in and no extension. A host that can never resolve is therefore free and strictly safer. If anything ever
   tried to submit, it would fail at DNS. A hosted fixture is only needed if R3 later drives the cloud preparer. The
   script refuses any sandbox URL on a known ATS host, LinkedIn, Indeed or Handshake.
+- **The sandbox posting is private by construction.** Search is a full-text match on title, company, location and
+  description that requires every word asked for. So all four fields are nonsense tokens made from the run id
+  (`privateTokens`, for example `Zqcpvygxbm`), and only the synthetic account searches for them. No alert keyword can
+  match them either. Step `sandbox-posting-private` fails the run if any other account holds a row pointing at the
+  posting anyway. A per-account visibility column would be stronger, but it needs a migration and a change to the
+  search code, so it is left as a proposal.
 - **The preparation worker's output is seeded**, exactly as the S4 suite seeds it: a `career_apply_prepared` row plus
   the `storage.objects` row its trigger requires. The worker drives a browser, so R0 and R4 cover it. This is the one
   seam.
@@ -171,11 +185,16 @@ a whole first week, on the real project.
 **What it does.** Once a day, `pick-form-sources.cjs` picks one real public posting each on Greenhouse, Lever and Ashby
 (the biggest boards' first postings, so the employers stay stable). Chromium opens each application page. The worker's
 own fill code (`ats-fill.cjs`) fills only a synthetic person's facts: name, email, phone and a synthetic resume. No
-employer question is answered. The run then screenshots the page, finds the submit control and stops.
+employer question is answered. That person is pinned: Casey Dryrun, `casey.dryrun@example.invalid`, the fictional
+`+1 555 010 0199`. The script refuses to start with anything else. The test pins the values, checks that a real-looking
+address, phone or name is refused, and reads back every value typed into the fixture pages. The run then screenshots the page, finds the submit control and stops.
 
 **Three independent locks against submitting:**
 1. The network allows only GET and HEAD, plus Ashby's read-only GraphQL queries (`render-form.cjs readOnly`). Every
-   post, mutation, upload and autosave is aborted and listed.
+   post, mutation, upload and autosave is aborted and listed. That includes the page's own background fetch, XHR,
+   beacon and PUT; the test has a page that sends all four on load and on every keystroke. No service worker may run
+   (`serviceWorkers: "block"`). The test page's worker POSTs on its own, and a control test shows it does run when
+   workers are allowed.
 2. An init script cancels and counts every submit event, every click on a submit control, and every
    `form.submit()`/`requestSubmit()`. Any count above zero fails the run.
 3. The script's source contains no click, press, tap, keyboard or submit call. `tests/architect/live-form-dryrun.test.ts`

@@ -58,6 +58,7 @@ export const STEPS = [
   "reminder-scheduled",
   "alerts-watch-saved",
   "stop-opts-out",
+  "sandbox-posting-private",
   "replies-delivered",
   "cleanup-erases-everything",
 ] as const;
@@ -80,6 +81,7 @@ export interface JourneyOpts {
   replyTimeoutMs?: number; // how long to wait for a reply's outbox row (live: the function may answer the webhook first)
   paceMs?: number; // between updates (live: Telegram's own pacing and the per-person turn limit)
   tapWaitMs?: number; // after a button tap (it has no reply row to wait for)
+  whilePostingLive?: (p: { company: string; title: string; board: string }) => Promise<void>; // dry mode: another person searches
 }
 export interface StepResult { id: StepId; outcome: "PASS" | "FAIL" | "KNOWN_GAP still fails" | "KNOWN_GAP NOW PASSES" | "SKIPPED"; why?: string }
 export interface JourneyReport { results: StepResult[]; delivery: Delivery; pass: boolean; cleanedUp: boolean; userId: string | null; updates: number }
@@ -104,6 +106,20 @@ export function scopedDb(raw: Db, scope: { contact: string; email: string; posti
   };
 }
 
+// Two nonsense words per run (letters only, so the search parser keeps each whole): one names the employer and its place,
+// one the role. "Zq" + 8 letters derived from the run id: no dictionary word, no other posting's word.
+export function privateTokens(runId: string): { company: string; title: string; place: string } {
+  let h = 2166136261;
+  const letters = (salt: string) => {
+    let out = "";
+    for (const ch of salt + runId) { h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; }
+    for (let i = 0; i < 8; i++) { h = Math.imul(h ^ i, 16777619) >>> 0; out += String.fromCharCode(97 + (h % 26)); }
+    return out;
+  };
+  const company = `Zq${letters("company")}`, title = `Zq${letters("title")}`;
+  return { company, title, place: company };
+}
+
 export function sandboxUrl(runId: string, n = 1): string {
   const u = new URL(`https://${SANDBOX_HOST}/greenhouse/trainee-sandbox-${runId}/jobs/${n}`);
   if (EMPLOYER_HOSTS.test(u.hostname) || !u.hostname.endsWith(".invalid")) throw new Error(`refused: the sandbox employer must be on a reserved .invalid host, never a real employer (${u.hostname})`);
@@ -114,7 +130,11 @@ export async function runJourneys(o: JourneyOpts): Promise<JourneyReport> {
   const log = o.log ?? ((l: string) => console.log(l));
   if (!/^[a-z0-9-]{4,40}$/.test(o.runId)) throw new Error("runId must be 4-40 of [a-z0-9-]");
   const contact = `tg:${o.chat}`, email = `tg-${o.chat}@users.trainee.invalid`;
-  const SANDBOX = { job: `greenhouse:trainee-sandbox-${o.runId}:1`, board: `trainee-sandbox-${o.runId}`, company: `Trainee Sandbox Employer ${o.runId}`, title: "Synthetic Journey Probe Intern (TEST)", url: sandboxUrl(o.runId) };
+  // Private to this run: every searchable word of the posting (title, company, location, description: the search tsvector)
+  // is a nonsense token made from the run id, so no other person's search, which must match every word it asks for, can
+  // list it, and no alert keyword can match it. Only the synthetic account asks for these tokens.
+  const tok = privateTokens(o.runId);
+  const SANDBOX = { job: `greenhouse:trainee-sandbox-${o.runId}:1`, board: `trainee-sandbox-${o.runId}`, company: tok.company, title: tok.title, location: tok.place, description: tok.title, url: sandboxUrl(o.runId) };
   let userId: string | null = null;
   const db = scopedDb(o.db, { contact, email, postingKey: SANDBOX.board, userId: () => userId });
   const json = async (s: string) => JSON.parse((await db.read(`select coalesce(json_agg(x), '[]') from (${s}) x`)) || "[]");
@@ -242,10 +262,10 @@ export async function runJourneys(o: JourneyOpts): Promise<JourneyReport> {
   });
 
   try {
-    // The sandbox posting: Chicago, a title no person searches, and a link that cannot resolve.
+    // The sandbox posting: words no person searches (privateTokens), and a link that cannot resolve.
     if (alive) await db.write(`insert into public.career_postings (job_id, provider, board, company, title, location, url, description, posted_at, first_seen_at, last_seen_at) values
-      (${q(SANDBOX.job)}, 'greenhouse', ${q(SANDBOX.board)}, ${q(SANDBOX.company)}, ${q(SANDBOX.title)}, 'Chicago, IL', ${q(SANDBOX.url)},
-       'Synthetic posting for Trainee''s post-deploy check (not a real job). Requirements: Python, React, PostgreSQL.', now() - interval '30 days', now(), now())
+      (${q(SANDBOX.job)}, 'greenhouse', ${q(SANDBOX.board)}, ${q(SANDBOX.company)}, ${q(SANDBOX.title)}, ${q(SANDBOX.location)}, ${q(SANDBOX.url)},
+       ${q(SANDBOX.description)}, now() - interval '30 days', now(), now())
       on conflict (job_id) do nothing`);
 
     if (alive) alive = await step("new-account-from-hi", async () => {
@@ -266,7 +286,7 @@ export async function runJourneys(o: JourneyOpts): Promise<JourneyReport> {
 
     let search = "", ordinal = "first";
     if (alive) alive = await step("search-lists-sandbox-posting", async () => {
-      const r = await say("find me synthetic journey probe internships in Chicago");
+      const r = await say(`find me ${SANDBOX.title} jobs`);
       search = r.reply;
       const line = r.reply.split("\n").find((l) => l.includes(SANDBOX.company));
       ok(line, `the sandbox posting is listed: ${r.reply.slice(0, 400)}`);
@@ -277,6 +297,10 @@ export async function runJourneys(o: JourneyOpts): Promise<JourneyReport> {
       ok(r.reply.includes(SANDBOX.url) || r.reply.includes(SANDBOX_HOST), `it carries its own source link: ${line}`);
       eq(await db.read(`select count(*) from public.career_apply_wanted where user_id = '${userId}'`), "0", "a search applies to nothing");
     });
+
+    // While the posting is live: a caller's own check that other people cannot see it (the dry mode searches as a second
+    // person here). Production passes nothing; "sandbox-posting-private" below reads the database for the same thing.
+    if (alive && o.whilePostingLive) await o.whilePostingLive({ company: SANDBOX.company, title: SANDBOX.title, board: SANDBOX.board });
 
     if (alive) await step("fit-confirmed-facts-only", async () => {
       ok(/what you've confirmed/.test(search), `the list is ranked by what is confirmed: ${search.slice(0, 300)}`);
@@ -336,7 +360,7 @@ export async function runJourneys(o: JourneyOpts): Promise<JourneyReport> {
     if (alive) await step("outreach-draft-not-sent", async () => {
       const imported = await say(`and these\nName,Company,Title,Email\nMaya Probe,${SANDBOX.company},Recruiter,maya.probe@sandbox-employer.trainee.invalid\n`);
       ok(/imported 1\/1/.test(imported.reply), `the contact was imported: ${imported.reply.slice(0, 200)}`);
-      const ask = await say(`email Maya at ${SANDBOX.company} about the synthetic journey probe intern role`);
+      const ask = await say(`email Maya at ${SANDBOX.company} about the ${SANDBOX.title} role`);
       if (/sign/i.test(ask.reply) && !/Drafted/.test(ask.reply)) await say("Synthetic Tester\nSandbox University");
       const drafts = await json(`select recipient_email, status, approved_hash from public.career_outreach_drafts where user_id = '${userId}'`);
       ok(drafts.length >= 1, `a draft exists: ${ask.reply.slice(0, 200)}`);
@@ -360,10 +384,10 @@ export async function runJourneys(o: JourneyOpts): Promise<JourneyReport> {
     });
 
     if (alive) await step("alerts-watch-saved", async () => {
-      const r = await say("watch synthetic journey probe roles in Chicago for me and alert me when new ones post");
+      const r = await say(`watch ${SANDBOX.title} roles for me and alert me when new ones post`);
       const prefs = await json(`select prefs from public.career_alert_prefs where user_id = '${userId}'`);
       ok(prefs.length === 1 && prefs[0].prefs.on === true, `alerts are on: ${r.reply.slice(0, 200)}`);
-      ok(JSON.stringify(prefs[0].prefs.keywords).toLowerCase().includes("probe"), `the watch keeps the person's words: ${JSON.stringify(prefs[0].prefs)}`);
+      ok(JSON.stringify(prefs[0].prefs.keywords).toLowerCase().includes(SANDBOX.title.toLowerCase()), `the watch keeps the person's words: ${JSON.stringify(prefs[0].prefs)}`);
     });
 
     if (alive) await step("stop-opts-out", async () => {
@@ -371,6 +395,19 @@ export async function runJourneys(o: JourneyOpts): Promise<JourneyReport> {
       let out = "";
       for (let i = 0; i < 20 && out !== "true"; i++) { out = await db.read(`select opted_out::text from public.channel_contacts where contact = ${q(contact)}`); if (out !== "true") await delay(500); }
       eq(out, "true", "STOP is recorded: Trainee starts nothing more to this chat");
+    });
+
+    if (alive) await step("sandbox-posting-private", async () => {
+      // No other account holds anything that points at the sandbox posting (a shortlist, a card, a job, an alert, an
+      // outbox row): every public table with a user_id, every row not the synthetic account's, read as text.
+      const others = await db.read(`select coalesce(string_agg(x, ', '), '') from (
+        select c.table_name || ':' || (xpath('/row/n/text()', query_to_xml(format('select count(*) as n from public.%I t where t.user_id is distinct from %L and t::text like %L',
+          c.table_name, '${userId}', ${q(`%${SANDBOX.board}%`)}), false, true, '')))[1]::text as x
+        from information_schema.columns c join information_schema.tables tb on tb.table_schema = c.table_schema and tb.table_name = c.table_name
+        where c.table_schema = 'public' and c.column_name = 'user_id' and tb.table_type = 'BASE TABLE'
+        union all select 'career_outbox(text):' || count(*) from public.career_outbox where user_id is distinct from '${userId}' and (text like ${q(`%${SANDBOX.company}%`)} or text like ${q(`%${SANDBOX.title}%`)})
+      ) s where x !~ ':0$'`);
+      eq(others, "", "no other account has rows pointing at the sandbox posting");
     });
 
     if (alive) await step("replies-delivered", async () => {

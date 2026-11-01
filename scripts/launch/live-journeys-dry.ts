@@ -29,7 +29,18 @@ function fakeOpenAI(body: any): Response {
   return Response.json({ id: "chatcmpl-test", model: body.model, choices: [{ index: 0, message: { role: "assistant", content: text }, finish_reason: "stop" }], usage: { prompt_tokens: 400, completion_tokens: 60 } });
 }
 
-export interface DryReport extends JourneyReport { outbound: string[]; botViolations: string[]; botMessages: number; webhookRequests: number; badSecretStatus: number }
+// Two other people in the same database, looking like real ones: one made by the product over Telegram (BYSTANDER_CHAT:
+// "hi", a resume, "yes"), one seeded as a web sign-up with a real-looking address and phone. The first searches while the
+// sandbox posting is live; neither may see it, and the run and its clean-up may not change a single row of either.
+export const BYSTANDER_CHAT = 123456789;
+export const BYSTANDER_WEB = { id: "5d1f6a2e-8c3b-4e7a-9f01-2b3c4d5e6f70", email: "jordan.lee@gmail.com", phone: "+13125550142" };
+export const BYSTANDER_SEARCHES = ["find me internships", "find me internships in Chicago", "find me software engineering internships in Chicago", "find me jobs in Chicago", "find me remote jobs"];
+// A real-looking posting the bystander's searches must find (so "never saw the sandbox posting" is not an empty search).
+export const DECOY = { job: "greenhouse:northwindtest:7001", company: "Northwind TEST", title: "Software Engineering Intern", url: "https://boards.greenhouse.io/northwindtest/jobs/7001" };
+export interface DryReport extends JourneyReport {
+  outbound: string[]; botViolations: string[]; botMessages: number; webhookRequests: number; badSecretStatus: number;
+  bystander: { searched: number; sawSandbox: string[]; sawDecoy: number; rowsChanged: string[]; messagesAfterSearch: number; contactsIntact: boolean };
+}
 
 export async function runDry(o: { resume: string; runId: string; log?: (l: string) => void }, core: Core): Promise<DryReport> {
   const { runJourneys, webhookPoster, SYNTHETIC_CHAT } = core;
@@ -57,7 +68,7 @@ export async function runDry(o: { resume: string; runId: string; log?: (l: strin
       throw new TypeError(`network refused: ${u.host}`);
     }) as typeof fetch;
     for (const [k, v] of Object.entries({ TELEGRAM_BOT_TOKEN: TOKEN, TELEGRAM_WEBHOOK_SECRET: SECRET, TELEGRAM_BOT_USERNAME: "TraineeLiveJourneysBot", TRAINEE_SIGNUP: "closed",
-      TRAINEE_ALLOWED_CONTACTS: `telegram:${SYNTHETIC_CHAT}`, TRAINEE_DELIVER_SECRET: "TEST-deliver-secret-0123456789-abcdefgh", CAREER_NETWORKING_DRAFT: "on", OPENAI_API_KEY: "sk-test-not-real",
+      TRAINEE_ALLOWED_CONTACTS: `telegram:${SYNTHETIC_CHAT},telegram:${BYSTANDER_CHAT}`, TRAINEE_DELIVER_SECRET: "TEST-deliver-secret-0123456789-abcdefgh", CAREER_NETWORKING_DRAFT: "on", OPENAI_API_KEY: "sk-test-not-real",
       CAREER_MODEL: "gpt-5-mini" })) Deno.env.set(k, v);
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.117.1");
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
@@ -74,8 +85,62 @@ export async function runDry(o: { resume: string; runId: string; log?: (l: strin
     const url = `http://127.0.0.1:${(server.addr as Deno.NetAddr).port}/functions/v1/trainee-telegram`;
     // The door: a wrong secret is refused before anything is read.
     const bad = await webhookPoster(url, "wrong-secret-0000000000000000")({ update_id: 1, message: { message_id: 1, chat: { id: SYNTHETIC_CHAT, type: "private" }, from: { id: SYNTHETIC_CHAT }, date: 1, text: "hi" } });
-    const report = await runJourneys({ post: webhookPoster(url, SECRET), db: { sql: (t) => pg.sql(t) }, chat: SYNTHETIC_CHAT, delivery: "verified", runId: o.runId, resume: o.resume, log: o.log, replyTimeoutMs: 15_000, tapWaitMs: 300 });
-    const out: DryReport = { ...report, outbound, botViolations: bot.violations.slice(0, 5), botMessages: bot.to(SYNTHETIC_CHAT).length, webhookRequests, badSecretStatus: bad.status };
+    // ---- the bystanders, before the run
+    const poster = webhookPoster(url, SECRET);
+    let bu = 50_000, bm = 0;
+    const bsay = async (text: string) => {
+      const r = await poster({ update_id: ++bu, message: { message_id: ++bm, chat: { id: BYSTANDER_CHAT, type: "private" }, from: { id: BYSTANDER_CHAT, is_bot: false, first_name: "Jordan" }, date: 1, text } });
+      if (r.status !== 200) throw new Error(`bystander update refused: ${r.status}`);
+    };
+    await pg.sql(`insert into public.career_postings (job_id, provider, board, company, title, location, url, description, posted_at, first_seen_at, last_seen_at) values
+      ('${DECOY.job}', 'greenhouse', 'northwindtest', '${DECOY.company}', '${DECOY.title}', 'Chicago, IL', '${DECOY.url}', 'Requirements: Python, SQL. Summer internship.', now() - interval '2 hours', now() - interval '2 hours', now())`);
+    await bsay("hi");
+    await bsay(`here is my resume:\n${o.resume}`);
+    await bsay("yes, that's my resume");
+    const W = BYSTANDER_WEB;
+    await pg.sql(`insert into auth.users (id, email) values ('${W.id}', '${W.email}'); insert into public.profiles (id) values ('${W.id}');
+      insert into public.channel_contacts (contact, user_id) values ('${W.phone}', '${W.id}');
+      insert into public.career_watch_kv (user_id, key, value) values ('${W.id}', 'career:account', '{"epoch":0,"version":0,"paused":false}'::jsonb);
+      insert into public.career_events (user_id, kind, subject, detail) values ('${W.id}', 'fact_confirmed', 'Data Analyst at Northwind', '{"confirmation_event_id":"seed-ev"}');`);
+    const tgUser = (await pg.sql(`select coalesce((select user_id::text from public.channel_contacts where contact = 'tg:${BYSTANDER_CHAT}'), '')`)).trim();
+    if (!tgUser) throw new Error("the Telegram bystander has no account");
+    const people = [tgUser, W.id];
+    // Every row of theirs, table by table, as text: equal before and after means untouched.
+    const snapshot = async () => {
+      const t = await pg.sql(`select coalesce(string_agg(x, E'\n' order by x), '') from (
+        select c.table_name || ':' || (xpath('/row/h/text()', query_to_xml(format('select coalesce(md5(string_agg(t::text, %L order by t::text)), %L) as h from public.%I t where t.user_id = any(%L::uuid[])',
+          '|', 'none', c.table_name, '{${people.join(",")}}'), false, true, '')))[1]::text as x
+        from information_schema.columns c join information_schema.tables tb on tb.table_schema = c.table_schema and tb.table_name = c.table_name
+        where c.table_schema = 'public' and c.column_name = 'user_id' and tb.table_type = 'BASE TABLE'
+        union all select 'auth.users:' || coalesce(md5(string_agg(u::text, '|' order by u.id)), 'none') from auth.users u where u.id = any('{${people.join(",")}}'::uuid[])
+        union all select 'channel_contacts:' || coalesce(md5(string_agg(c::text, '|' order by c.contact)), 'none') from public.channel_contacts c where c.user_id = any('{${people.join(",")}}'::uuid[])
+      ) s`);
+      return new Map(t.split("\n").filter(Boolean).map((l) => [l.slice(0, l.lastIndexOf(":")), l.slice(l.lastIndexOf(":") + 1)]));
+    };
+    const bystander = { searched: 0, sawSandbox: [] as string[], sawDecoy: 0, rowsChanged: [] as string[], messagesAfterSearch: 0, contactsIntact: false };
+    let before = new Map<string, string>(), botAfter = 0;
+    const whilePostingLive = async (p: { company: string; title: string; board: string }) => {
+      for (const words of BYSTANDER_SEARCHES) {
+        const from = bot.to(BYSTANDER_CHAT).length;
+        await bsay(words);
+        bystander.searched++;
+        const seen = bot.to(BYSTANDER_CHAT).slice(from).map((m: any) => `${m.text} ${JSON.stringify(m.buttons ?? [])}`).join("\n");
+        if (seen.includes(p.company) || seen.includes(p.title) || seen.includes(p.board) || seen.includes("sandbox-employer")) bystander.sawSandbox.push(words);
+        if (seen.includes(DECOY.company)) bystander.sawDecoy++;
+      }
+      before = await snapshot();
+      botAfter = bot.to(BYSTANDER_CHAT).length;
+    };
+
+    const report = await runJourneys({ post: poster, db: { sql: (t) => pg.sql(t) }, chat: SYNTHETIC_CHAT, delivery: "verified", runId: o.runId, resume: o.resume, log: o.log, replyTimeoutMs: 15_000, tapWaitMs: 300, whilePostingLive });
+    const after = await snapshot();
+    for (const [k, v] of before) if (after.get(k) !== v) bystander.rowsChanged.push(k);
+    for (const k of after.keys()) if (!before.has(k)) bystander.rowsChanged.push(k);
+    bystander.messagesAfterSearch = bot.to(BYSTANDER_CHAT).length - botAfter;
+    bystander.contactsIntact = (await pg.sql(`select count(*) from public.channel_contacts where (contact = 'tg:${BYSTANDER_CHAT}' and user_id = '${tgUser}') or (contact = '${W.phone}' and user_id = '${W.id}')`)).trim() === "2";
+    const out: DryReport = { ...report, outbound, botViolations: bot.violations.slice(0, 5), botMessages: bot.to(SYNTHETIC_CHAT).length, webhookRequests, badSecretStatus: bad.status, bystander };
+    (o.log ?? console.log)(`LIVE_JOURNEY dry bystanders: searched=${bystander.searched} saw_sandbox=${bystander.sawSandbox.length} saw_decoy=${bystander.sawDecoy} rows_changed=${bystander.rowsChanged.join(",") || 0} messages_after=${bystander.messagesAfterSearch} contacts_intact=${bystander.contactsIntact}`);
+    if (bystander.searched < BYSTANDER_SEARCHES.length || bystander.sawSandbox.length || bystander.sawDecoy < 2 || bystander.rowsChanged.length || bystander.messagesAfterSearch || !bystander.contactsIntact || before.size === 0) out.pass = false;
     (o.log ?? console.log)(`LIVE_JOURNEY dry: webhook_requests=${webhookRequests} bot_messages=${out.botMessages} bot_violations=${bot.violations.length} outbound=${outbound.length} bad_secret_status=${bad.status}`);
     if (outbound.length || bot.violations.length || ![401, 403].includes(bad.status)) out.pass = false;
     return out;

@@ -21,7 +21,8 @@
 -- The cleared rows keep their updated_at, so "the most recent thread" stays the one that saved.
 --
 -- Two saves at once (tests/db/career_account_memory_one_copy_race.py): rows are locked in thread order, skipping any a
--- concurrent save holds, so two threads of one person never deadlock.
+-- concurrent save holds, so two threads of one person never deadlock; a per-person advisory lock (held to commit) makes
+-- the second save's trigger wait for the first's commit, so two saves whose rows were both locked first still leave one copy.
 --
 -- Additive and reversible: one function and one trigger. Down:
 --   drop trigger if exists career_account_memory_one_copy on public.agent_flow_state;
@@ -36,6 +37,10 @@ begin
             or jsonb_typeof(new.state#>'{career,stores,trackStore,rows}') is not distinct from 'array') then
   return new;
  end if;
+ -- One save per person at a time clears the others: with skip-locked alone, two threads that each hold their own row
+ -- before either trigger runs would skip each other and leave two copies. The second waits here for the first to
+ -- commit, then (a fresh snapshot, the first's row unlocked) clears it. Held to commit; never waits on a row lock.
+ perform pg_advisory_xact_lock(hashtext('career_one_copy:'||new.user_id::text));
  update public.agent_flow_state s set
   state = jsonb_set(s.state, '{career,stores}',
     ((s.state#>'{career,stores}') - 'profile' - 'trackStore')

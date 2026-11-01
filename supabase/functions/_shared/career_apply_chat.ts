@@ -52,7 +52,7 @@ export type ListFilter = { remote: boolean; words: string[]; said: string };
 // MASS APPLY (owner, 2026-11-01): "apply to the top 10 frontend internships in Chicago" names what to search for in the same
 // message (`what`): the role words, read against the title, and the place, read against the location. Without `what`,
 // "the top N" is the thread's last list, as before.
-export interface ManyWhat { role: string; words: string[]; place: string | null }
+export interface ManyWhat { role: string; words: string[]; place: string | null; company?: string | null }
 export type ManyAsk = { kind: "all"; filter?: ListFilter } | { kind: "first"; n: number; what?: ManyWhat } | { kind: "nth"; i: number } | { kind: "pick"; is: number[] };
 // Short forms a person types for a role family, read against the listed titles.
 const ROLE_ALIASES: Record<string, string[]> = {
@@ -61,8 +61,13 @@ const ROLE_ALIASES: Record<string, string[]> = {
   dev: ["developer", "engineer"],
   eng: ["engineer", "engineering"],
   pm: ["product manager", "program manager", "pm"],
+  apm: ["associate product manager", "apm", "product manager"],
   ds: ["data scientist", "data science"],
   ml: ["machine learning", "ml"],
+  mle: ["machine learning engineer", "ml engineer", "mle"],
+  fullstack: ["full stack", "full-stack", "fullstack"],
+  ib: ["investment banking", "investment banker"],
+  qa: ["quality assurance", "qa", "test engineer"],
   ai: ["ai", "artificial intelligence", "machine learning"],
   fe: ["frontend", "front end", "front-end"],
   be: ["backend", "back end", "back-end"],
@@ -71,6 +76,11 @@ const ROLE_ALIASES: Record<string, string[]> = {
   internship: ["intern", "internship", "co-op"],
   internships: ["intern", "internship", "co-op"],
   interns: ["intern", "internship", "co-op"],
+};
+// Short forms of places, read against the location (review of #366).
+const PLACE_ALIASES: Record<string, string[]> = {
+  nyc: ["new york", "nyc"], "new york": ["new york", "nyc"], sf: ["san francisco", "bay area"], "san francisco": ["san francisco", "bay area"],
+  "bay area": ["bay area", "san francisco"], la: ["los angeles"], "los angeles": ["los angeles"], dc: ["washington", "d.c."], "washington dc": ["washington"],
 };
 const FILTER_NOISE = new Set(["the", "of", "a", "an", "my", "those", "these", "them", "that", "you", "i", "just", "jobs", "job", "roles", "role", "ones", "one", "postings", "posting", "positions", "position", "openings", "opening", "listings", "listing", "remaining", "other"]);
 // The words of an "all <words> ones" / "every <words> role you found" ask, or null when it is not that shape. "remote" is
@@ -103,13 +113,18 @@ export function manyWhatOf(rest: string): ManyWhat | null {
   const r = String(rest ?? "").toLowerCase().replace(/[.!?]+$/, "").trim();
   if (!r || /^(?:of\s+)?(?:them|these|those|ones?|on the list|from the list|you (?:found|listed|showed))\b/.test(r)) return null;
   // A search names what it is for: a role noun ("internships", "jobs", "roles", ...) must be in it.
-  if (!/\b(?:internships?|interns?|jobs?|roles?|positions?|openings?|postings?|co-?ops?)\b/.test(r)) return null;
-  const pm = /^(.*?)\s+(?:in|near|around|based in)\s+([a-z][a-z .'-]{1,40})$/.exec(r);
-  const role = (pm ? pm[1] : r).trim(), place = pm ? pm[2].trim() : null;
+  if (!/\b(?:internships?|interns?|jobs?|roles?|positions?|openings?|postings?|co-?ops?)\b/.test(r) && !/^at\s+[a-z0-9]/.test(r)) return null;
+  // "at <company>" (review of #366): a company filter, anywhere after the role ("swe internships at google in nyc").
+  let rr = r, company: string | null = null;
+  const cm = /\s+at\s+([a-z0-9&.' -]{2,40}?)(?=\s+(?:in|near|around|based in)\s|$)/.exec(` ${rr}`);
+  if (cm) { company = cm[1].trim(); rr = ` ${rr}`.replace(cm[0], "").trim(); }
+  const pm = /^(.*?)\s+(?:in|near|around|based in)\s+([a-z][a-z .'-]{1,40})$/.exec(rr);
+  const role = (pm ? pm[1] : rr).trim(), place = pm ? pm[2].trim() : null;
   const all = role.replace(/[^a-z0-9+#/ -]/g, " ").split(/\s+/).filter((w) => w && !WHAT_NOISE.has(w));
   // "remote" is where, not what.
   const words = all.filter((w) => w !== "remote");
-  return words.length ? { role: role.replace(/\bremote\s+/, ""), words, place: place ?? (all.includes("remote") ? "remote" : null) } : null;
+  if (!words.length && !company) return null;
+  return { role: role.replace(/\bremote\s+/, ""), words, place: place ?? (all.includes("remote") ? "remote" : null), ...(company ? { company } : {}) };
 }
 // One message queues at most this many (owner review of #366): a bigger ask is told plainly how many went and why.
 export const MANY_MAX = 50;
@@ -123,29 +138,40 @@ async function postingsFor(o: ApplyChatDeps, what: ManyWhat): Promise<{ list: Sh
   const place = what.place ? lower(what.place) : null;
   // "intern", "internship(s)", "co-op" are read against the title below (the alias table): the search's stemmer keeps
   // "internship" and "intern" apart, so they are not search words; the other role words and the place are.
-  const roleWords = what.words.filter((w) => !/^(?:intern(?:ship)?s?|co-?ops?)$/.test(w));
-  const words = searchWords([...roleWords, ...(place && place !== "remote" ? [place] : []), ...(place === "remote" ? ["remote"] : [])].join(" "));
+  // A short form ("swe", "nyc") is never a search word (titles and places spell it out); it is read through its aliases below.
+  const roleWords = what.words.filter((w) => !ROLE_ALIASES[w]);
+  const places = place && place !== "remote" ? (PLACE_ALIASES[place] ?? [place]).map(lower) : [];
+  const words = searchWords([...roleWords, ...(place && place !== "remote" && !PLACE_ALIASES[place] ? [place] : []), ...(place === "remote" ? ["remote"] : []),
+    ...(what.company ? [what.company] : [])].join(" "));
   const hits = await o.postings.search(words, 500);
+  const seen = new Set<string>();
   const matched = hits
     .filter((p) => p && !p.closed_at && what.words.every((w) => titleHas(String(p?.title ?? ""), w)))
-    .filter((p) => !place || (place === "remote" ? /\bremote\b/i.test(`${p?.location ?? ""} ${p?.title ?? ""}`) : lower(p?.location).includes(place)));
+    .filter((p) => !place || (place === "remote" ? /\bremote\b/i.test(`${p?.location ?? ""} ${p?.title ?? ""}`) : places.some((x) => lower(p?.location).includes(x))))
+    .filter((p) => !what.company || sameCompany(p?.company, what.company) || lower(p?.company) === lower(what.company))
+    // The same role at the same company and place, posted twice, is one application (review of #366).
+    .filter((p) => { const k = `${lower(p?.company)}|${lower(p?.title)}|${lower(p?.location)}`; if (seen.has(k)) return false; seen.add(k); return true; });
   let rankedBy: "fit" | "newest" = "newest";
   let ordered = matched;
   try {
     const sp = scoringProfileFor({ facts: o.facts ?? [] });
     if (sp) {
       const scored = matched.map((p, i) => ({ p, i, f: fitOf(p, sp) }));
-      scored.sort((a, b) => (a.f.excluded === b.f.excluded ? 0 : a.f.excluded ? 1 : -1) || ((b.f.score ?? -1) - (a.f.score ?? -1)) || a.i - b.i);
+      // A posting the fit excludes (a knockout) ranks after every other, whatever its score; then by score; then newest.
+      const rank = (x: { f: { excluded: boolean; score: number | null } }) => x.f.excluded ? -Infinity : (x.f.score ?? -1);
+      scored.sort((a, b) => (rank(b) - rank(a)) || a.i - b.i);
       ordered = scored.map((x) => x.p);
       rankedBy = "fit";
     }
   } catch { /* fit unknown: newest first, and said so */ }
   return { rankedBy, list: ordered.map((p) => ({ id: p.job_id ?? null, title: p.title ?? null, company: p.company ?? null, location: p.location ?? null, url: p.url ?? null })) };
 }
+// "the top N ..." is the batch ask's even with "at <Company>" in it (a company filter, review of #366).
+const TOP_N = /\b(?:top|first|best)\s+(?:\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten)\b/i;
 export function applyManyAsk(message: string): ManyAsk | null {
   if (NOT_A_COMMAND.test(String(message ?? ""))) return null;
   const raw = applyText(message);
-  if (raw === null || !/\bapply\b/i.test(raw) || QUESTION.test(raw) || /\bapplied\b/i.test(raw) || /\bat\s+[A-Z]/.test(raw)) return null;
+  if (raw === null || !/\bapply\b/i.test(raw) || QUESTION.test(raw) || /\bapplied\b/i.test(raw) || (/\bat\s+[A-Z]/.test(raw) && !TOP_N.test(raw))) return null;
   const t = raw.toLowerCase().replace(/[.!]+$/, "").replace(/\s+/g, " ");
   const after = t.match(/\bapply\b(?:\s+me)?(?:\s+(?:to|for))?\s+(.*)$/)?.[1];
   if (after === undefined) return null;
@@ -416,7 +442,7 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   if (what) {
     try { ({ list, rankedBy } = await postingsFor(o, what)); }
     catch { return { reply: `I couldn't search the postings just now, so nothing was queued. Ask again in a minute.`, status: "unreadable", intent, queued: [], refused: [] }; }
-    if (!list.length) return { reply: `I have no open ${what.role} postings${what.place ? ` in ${what.place.replace(/\b\w/g, (c) => c.toUpperCase())}` : ""} on file, so nothing was queued. Say "find <role> jobs in <place>" to look wider.`, status: "none", intent, queued: [], refused: [] };
+    if (!list.length) return { reply: `I have no open ${what.role || "matching"} postings${what.company ? ` at ${what.company.replace(/\b\w/g, (c) => c.toUpperCase())}` : ""}${what.place ? ` in ${what.place.replace(/\b\w/g, (c) => c.toUpperCase())}` : ""} on file, so nothing was queued. Say "find <role> jobs in <place>" to look wider.`, status: "none", intent, queued: [], refused: [] };
   } else list = (o.shortlist ?? []).filter((e) => e && (e.url || e.id));
   // SERIAL-1440 (2): with no list on this thread the ask still gets an answer that says what to say, never a catch-all.
   if (!list.length) {

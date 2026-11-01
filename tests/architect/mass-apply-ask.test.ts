@@ -142,3 +142,58 @@ Deno.test("the ask names its role even when a list is on the thread: the search 
   await v.turn("apply to the top 1");
   eq(await v.keys(), [list[0].id]);
 });
+
+// Review of #366, round 3.
+Deno.test("short forms: 'top 5 remote swe roles' queues from the remote software engineering postings; 'nyc' is New York", async () => {
+  const remote = Array.from({ length: 6 }, (_, i) => posting("Software Engineer Intern", "Remote - US", 10 + i));
+  const onsite = Array.from({ length: 4 }, (_, i) => posting("Software Engineer Intern", "Austin, TX", i));
+  const w = await world([...onsite, ...remote]);
+  const r = await w.turn("apply to the top 5 remote swe roles");
+  eq(r?.status, "queued", r?.reply);
+  eq(await w.keys(), keysOf(remote.slice(0, 5)));
+  const ny = Array.from({ length: 3 }, (_, i) => posting("Software Engineering Intern", "New York, NY", 20 + i));
+  const v = await world([...onsite, ...ny]);
+  await v.turn("apply to the top 3 swe internships in nyc");
+  eq(await v.keys(), keysOf(ny));
+});
+
+Deno.test("the same role at the same company and place posted twice is one application", async () => {
+  const a = posting("Frontend Engineering Intern", "Chicago, IL", 1);
+  const dup = { ...posting("Frontend Engineering Intern", "Chicago, IL", 2), company: a.company };
+  const others = Array.from({ length: 3 }, (_, i) => posting("Frontend Engineering Intern", "Chicago, IL", 3 + i));
+  const w = await world([a, dup, ...others]);
+  await w.turn("apply to the top 3 frontend internships in Chicago");
+  eq(await w.keys(), keysOf([a, ...others.slice(0, 2)]), "the duplicate is skipped, not queued twice");
+});
+
+Deno.test("'at <company>': only that employer's postings; with no role words too", async () => {
+  const google = Array.from({ length: 3 }, (_, i) => ({ ...posting(`Software Engineering Intern, Team ${i + 1}`, "Chicago, IL", 10 + i), company: "Google" }));
+  const others = Array.from({ length: 5 }, (_, i) => ({ ...posting(`Software Engineering Intern ${i}`, "Chicago, IL", i), description: "Founded by ex-Google engineers." }));
+  const list = [{ id: "lever:other:0e0c3b0e-0000-4000-8000-000000000001", company: "TEST Listed", title: "Data Analyst", location: "Chicago, IL", url: "https://jobs.lever.co/other/0e0c3b0e-0000-4000-8000-000000000001" }];
+  const w = await world([...others, ...google], { shortlist: list });
+  await w.turn("apply to the top 5 at google");
+  eq(await w.keys(), keysOf(google), "Google's, never the thread's list");
+  const v = await world([...others, ...google]);
+  await v.turn("apply to the top 2 swe internships at Google");
+  eq(await v.keys(), keysOf(google.slice(0, 2)));
+  const none = await (await world(others)).turn("apply to the top 2 swe internships at Google");
+  eq(none?.status, "none");
+  assert(/no open swe internships postings at Google/.test(none!.reply), none!.reply);
+});
+
+Deno.test("the reply: N of N counted, nothing past the Nth named (a refusal included), 'nothing is sent' said; excluded by fit goes last", async () => {
+  const rows = Array.from({ length: 30 }, (_, i) => posting("Frontend Engineering Intern", "Chicago, IL", i));
+  const late = rows[20];
+  const applied = [{ id: "a1", company: late.company, title: late.title, url: late.url, created_at: new Date(T - 86400000).toISOString(), state: "submitted_unconfirmed", job_id: late.job_id }];
+  const w = await world(rows, { apps: applied });
+  const r = await w.turn("apply to the top 10 frontend internships in Chicago");
+  assert(/^Ranked[^.]*\. 10\/10 queued/.test(r!.reply), `counted against the 10: ${r!.reply}`);
+  assert(!new RegExp(`${late.company}\\b`).test(r!.reply), `a refusal past the 10th is not named: ${r!.reply}`);
+  assert(/Nothing is sent/.test(r!.reply), r!.reply);
+  const facts = [{ id: "f1", kind: "skill", text: "React", status: "confirmed" }, { id: "f3", kind: "education", text: "BS Computer Science, TEST University, 2028", status: "confirmed" }];
+  const cleared = { ...posting("Frontend Engineering Intern", "Chicago, IL", 0), description: "Security clearance required. React React React." };
+  const plain = posting("Frontend Engineering Intern", "Chicago, IL", 40);
+  const v = await world([cleared, plain], { facts });
+  await v.turn("apply to the top 1 frontend internships in Chicago");
+  eq(await v.keys(), [plain.job_id], "a posting the fit excludes (clearance) ranks after one it does not");
+});

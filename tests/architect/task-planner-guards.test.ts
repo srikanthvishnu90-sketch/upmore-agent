@@ -78,14 +78,18 @@ Deno.test("dueDate: the day only from the person's words, counted from today; no
   eq(dueDate("soon", fri, null), null);
 });
 
-Deno.test("plannerOn: off unless CAREER_PLANNER=on with a brain released; the router switch kills it; the allow-list limits it", () => {
+Deno.test("plannerOn: off unless CAREER_PLANNER=on with a non-router brain served; the router switch kills it; the allow-list limits it", () => {
   eq(plannerOn(env({}), "u1"), false);
-  // Unset serves the release's brain: on exactly when that brain is not the router (true before and after D-035/#371).
-  eq(plannerOn(env({ CAREER_PLANNER: "on" }), "u1"), brainMode(env({})) !== "router", `CAREER_BRAIN unset serves ${brainMode(env({}))}`);
-  eq(plannerOn(env({}), "u1"), false, "CAREER_PLANNER unset: off whatever brain is served");
+  // On exactly when the SERVED brain (brainMode: CAREER_BRAIN, or the release config when unset) is not the router. True
+  // before and after D-035/#371: unset serves router before it and staged after; "agent" is served as agent before it and
+  // rolled back to the router after.
+  for (const b of [undefined, "router", "staged", "agent", "off"]) {
+    const e = (o: Record<string, string>) => env(b === undefined ? o : { ...o, CAREER_BRAIN: b });
+    eq(plannerOn(e({ CAREER_PLANNER: "on" }), "u1"), brainMode(e({})) !== "router", `CAREER_BRAIN=${b ?? "unset"} serves ${brainMode(e({}))}`);
+    eq(plannerOn(e({}), "u1"), false, `CAREER_PLANNER unset: off whatever brain is served (${b ?? "unset"})`);
+  }
   eq(plannerOn(env({ CAREER_PLANNER: "on", CAREER_BRAIN: "router" }), "u1"), false, "the kill switch");
-  eq(plannerOn(env({ CAREER_PLANNER: "on", CAREER_BRAIN: "staged" }), "u1"), true);
-  eq(plannerOn(env({ CAREER_PLANNER: "on", CAREER_BRAIN: "agent" }), "u1"), true);
+  eq(plannerOn(env({ CAREER_PLANNER: "on", CAREER_BRAIN: "staged" }), "u1"), true, "staged served: on");
   eq(plannerOn(env({ CAREER_PLANNER: "off", CAREER_BRAIN: "staged" }), "u1"), false);
   eq(plannerOn(env({ CAREER_PLANNER: "on", CAREER_BRAIN: "staged", CAREER_PLANNER_USERS: "u2, u3" }), "u1"), false);
   eq(plannerOn(env({ CAREER_PLANNER: "on", CAREER_BRAIN: "staged", CAREER_PLANNER_USERS: "u2, u1" }), "u1"), true);

@@ -215,9 +215,9 @@ Deno.test("leftover words after the count always search or refuse, never the thr
   await w.turn("apply to the top 5 swe in la");
   eq(await w.keys(), keysOf(la));
   const v = await world([...other, ...la], { shortlist: list });
-  const r = await v.turn("apply to the top 3 quickly");
-  eq(r?.status, "none", r?.reply);
-  eq(await v.keys(), [], "nothing from the list");
+  // A word that names no role, place or company ("quickly", "asap", "please") is filler: the thread's list, nothing dropped.
+  await v.turn("apply to the top 1 quickly");
+  eq(await v.keys(), [list[0].id]);
 });
 
 Deno.test("'at <company>': the company itself, not a name that starts with it; found behind 600 newer postings of the role", async () => {
@@ -308,4 +308,44 @@ Deno.test("'at google' is exactly Google: never Google DeepMind, and the reply n
   const r = await w.turn("apply to the top 5 swe internships at google");
   eq(await w.keys(), keysOf(google));
   assert(/Companies included: Google LLC \(only that employer/.test(r!.reply) && !/DeepMind/.test(r!.reply), r!.reply);
+});
+
+// Review of #366, round 7: every phrase from every review round, behind 600 newer postings elsewhere (the probe table).
+Deno.test("probe table: every place, company, filler and hedge phrasing from the reviews", async () => {
+  const at = (title: string, location: string, m: number, company?: string) => ({ ...posting(title, location, m), ...(company ? { company } : {}) });
+  const P = {
+    ny: [at("Software Engineer A", "New York, NY", 900), at("Software Engineer B", "NYC", 901)],
+    bk: [at("Software Engineer C", "Brooklyn, NY", 902)],
+    la: [at("Software Engineer D", "Los Angeles, CA", 903)],
+    dc: [at("Software Engineer E", "Washington, DC", 904), at("Software Engineer F", "Washington D.C.", 905)],
+    tx: [at("Software Engineer G", "Dallas, TX", 906), at("Software Engineer H", "Houston, Texas", 907)],
+    austin: [at("Software Engineer I", "Austin, TX", 908)],
+    wa: [at("Software Engineer J", "Seattle, WA", 909), at("Software Engineer K", "Spokane, WA", 910), at("Software Engineer L", "Tacoma, Washington", 911)],
+    or: [at("Software Engineer M", "Portland, OR", 912)],
+    chi: [at("Software Engineer N", "Chicago, IL", 913)],
+    remote: [at("Software Engineer O", "Remote - US", 914)],
+    google: [at("Software Engineering Intern P", "Mountain View, CA", 915, "Google"), at("Software Engineering Intern Q", "Mountain View, CA", 916, "Google LLC")],
+    deepmind: [at("Software Engineering Intern R", "Mountain View, CA", 917, "Google DeepMind")],
+  };
+  const all = Object.values(P).flat();
+  const many = Array.from({ length: 600 }, (_, i) => posting(`Software Engineer decoy ${i}`, "Denver, CO", 1 + i));
+  const want: [string, any[]][] = [
+    ["apply to the top 5 swe in nyc", P.ny], ["apply to the top 5 swe in new york city", P.ny], ["apply to the top 5 swe in brooklyn", P.bk],
+    ["apply to the top 5 swe in la", P.la], ["apply to the top 5 swe in dc", P.dc], ["apply to the top 5 swe in Washington, D.C.", P.dc],
+    ["apply to the top 5 swe in dc area", P.dc], ["apply to the top 5 swe in texas", [...P.tx, ...P.austin]], ["apply to the top 5 in washington state", P.wa],
+    ["apply to the top 5 swe in washington state", P.wa], ["apply to the top 5 swe in Austin, TX", P.austin], ["apply to the top 5 swe in Portland, OR", P.or],
+    ["apply to the top 5 in or near chicago", P.chi], ["apply to the top 5 swe in or near chicago", P.chi], ["apply to the top 5 remote swe roles", P.remote],
+    ["apply to the top 5 swe internships at google", P.google], ["apply to the top 5 swe internships at google llc", P.google], ["apply to the top 5 at alphabet", []],
+    ["apply to the top 5 swe in nyc please", P.ny], ["apply to the top 5 swe in nyc asap", P.ny], ["please apply me to the top 5 swe in la", P.la],
+    ["I wouldn't apply to the top 5 swe in nyc", []], ["should I apply to the top 5 swe in nyc?", []], ["would you apply to the top 5 swe in nyc", []],
+    ["if i applied to the top 5 swe in nyc", []], ["what if I apply to the top 5 swe in nyc", []],
+  ];
+  const failures: string[] = [];
+  for (const [ask, expect] of want) {
+    const w = await world([...many, ...all]);
+    const r = await w.turn(ask);
+    const got = await w.keys();
+    if (JSON.stringify(got) !== JSON.stringify(keysOf(expect))) failures.push(`${ask}: queued ${got.length} (${got.join(",")}), want ${expect.map((p: any) => p.location).join("; ") || "none"} | ${r?.reply?.slice(0, 120)}`);
+  }
+  eq(failures, []);
 });

@@ -794,7 +794,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // action stays code's and the router still answers a model failure. D-035: staged is the committed release
       // (release_config.ts PRODUCTION_BRAIN), so CAREER_BRAIN unset serves it; CAREER_BRAIN=router is the emergency
       // rollback, and then it is never taken and the router answers exactly as before. Read lazily, only when the brain
-      // test below is reached.
+      // test below is reached. With no model key configured the staged brain is never tried: the router answers, as it
+      // does when the model fails (D-035).
       const staged = stagedRoute({ env: Deno.env, message, ctx: ctx as unknown as Record<string, unknown>, host, structured: !!(careerTask || careerBatch) });
       // FEATURE GV (Google verification, 2026-10-26): "disconnect gmail" is answered by the connector framework above
       // (connAns), through the same _shared/google_disconnect.ts: revoked at Google, tokens, rows and mail rows deleted,
@@ -881,7 +882,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (offerAns.card) agentMeta = { offer_card: offerAns.card };
       } else if (outreachStatus) {
         out = { reply: outreachStatus.reply, intent: outreachStatus.intent, resultStatus: outreachStatus.status, contained: false, handler: "outreach_status" };
-      } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || (!isJudgePromptAsk(message) && staged.toBrain())) && !host.isHostControlled(message, ctx)) {
+      } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || (!isJudgePromptAsk(message) && !!modelConfig(Deno.env, "chat").apiKey && staged.toBrain())) && !host.isHostControlled(message, ctx)) {
         const meter = ledger.track(newMeter());
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         // WO-027 (B5): the last 40 messages after the latest erase; one more row says whether the thread is longer.

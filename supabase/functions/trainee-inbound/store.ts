@@ -119,6 +119,10 @@ export function supabaseInboundStore(admin: any): InboundStore {
     async pendingCodeLink(contact, at) {
       return must<boolean>(await admin.rpc("channel_link_code_pending", { p_contact: contact, p_now: iso(at) }), "read the link question") === true;
     },
+    // Q509: "sign out everywhere" from the person's own chat (20261029230000_trainee_file_sessions.sql).
+    async signOutPages(userId, at) {
+      return Number(must<number>(await admin.rpc("trainee_file_sessions_revoke_all", { p_user: userId, p_at: iso(at) }), "sign out everywhere")) || 0;
+    },
     async unlinkTelegram(userId, at) {
       return Number(must<number>(await admin.rpc("channel_telegram_unlink_as", { p_user: userId, p_now: iso(at) }), "unlink Telegram")) || 0;
     },

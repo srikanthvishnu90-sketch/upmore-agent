@@ -15,6 +15,7 @@ import { CARD_NEEDS_REPLY_STATUS, needsReplyTextFor } from "./career_apply_cards
 // - Same phone on another channel (WhatsApp and iMessage): nothing is merged. The channel already linked is asked, and only
 //   a yes from it links the new one.
 import { channelCommand, CHANNEL_REPLIES } from "./channel.ts";
+import { SIGN_OUT_EVERYWHERE, signedOutReply } from "./signin_notice.ts";
 import { fitOutbox as fitReply, normalizeContact, OUTBOX_CHARS } from "./conversation.ts";
 import { type Channel, CHANNEL_NAME, channelOf, type ChannelAdapter, type InboundMessage, packMessages, type Provider, type SendOptions, type StatusEvent } from "./channel_adapters.ts";
 import { telegramDeepLink } from "./telegram.ts";
@@ -144,6 +145,7 @@ export interface InboundStore {
   pendingCodeLink?(contact: string, at: number): Promise<boolean>; // a link code's question waits for its YES for this chat
   reholdSent?(providerMessageId: string, at: number, error: string): Promise<number>; // a sent message that failed for the window
   unlinkTelegram?(userId: string, at: number): Promise<number>; // FEATURE 16: "unlink telegram"; how many contacts let go
+  signOutPages?(userId: string, at: number): Promise<number>; // Q509: "sign out everywhere" ends every open Trainee page sign-in; how many
   // CHANNEL DELIVERY ROUND 2 (2026-10-30), optional:
   // failSent: a sent message the provider later reported not delivered (WhatsApp 131026 and the like, a LoopMessage
   //   message_failed): its row is marked failed with the reason (retry: put back to go again from that message); how many.
@@ -518,6 +520,13 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
         const r = await say(contact, d.render(n < 0 ? TELEGRAM_CHANNEL_ONLY_REPLY : n ? TELEGRAM_UNLINKED_REPLY : "This chat isn't linked to a Trainee account, so there was nothing to unlink."));
         return ok({ unlinked: n, sent: r.ok });
       }
+    }
+    // Q509 (signin_notice.ts): "sign out everywhere", the answer the new-sign-in notice names, ends every open Trainee page sign-in.
+    // The chat is the identity, so it needs no code; the chat itself is not signed out.
+    if (!passedOn && !fileMessage && SIGN_OUT_EVERYWHERE.test(msg.text.trim()) && store.signOutPages) {
+      let n: number;
+      try { n = await store.signOutPages(person.userId, now); } catch { return await answer("I couldn't sign the pages out just now, so they are still signed in. Try again in a minute.", { signed_out: null }); }
+      return await answer(signedOutReply(n), { signed_out: n });
     }
     if (!passedOn && CONNECT_TELEGRAM.test(msg.text.trim()) && store.issueLinkNonce) {
       const bot = (d.env.get("TELEGRAM_BOT_USERNAME") || "").trim();

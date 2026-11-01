@@ -8,12 +8,15 @@ import { supabaseAccountStamp, supabaseConfirmedFacts } from "../_shared/telegra
 import { supabaseFileStore, supabasePhoneAuth, supabaseSessionStore, supabaseTimeZone, supabaseUserOfTelegram } from "./store.ts";
 import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts";
 import type { FileDeps } from "./handler.ts";
+import { supabaseNoticeQueue } from "../_shared/signin_notice.ts";
 
 // deno-lint-ignore no-explicit-any
 export function buildFileDeps(admin: any, env: FileDeps["env"], now: () => number): FileDeps {
   return { store: supabaseFileStore(admin), cards: supabaseCardStore(admin), tap: supabaseTapStore(admin), now, env, events: supabaseEventStore(admin),
     userOfTelegram: supabaseUserOfTelegram(admin), facts: supabaseConfirmedFacts(admin), account: supabaseAccountStamp(admin), timeZone: supabaseTimeZone(admin),
     // Who may open the page: server-side sessions and phone sign-in (Supabase Auth's SMS code to the account's confirmed phone).
+    // Q509/Q717: a sign-in by a texted code is told in the person's own chat (career_outbox, kind status).
+    signinNotices: supabaseNoticeQueue(admin),
     sessions: supabaseSessionStore(admin), phone: supabasePhoneAuth(admin, { url: env.get("SUPABASE_URL") ?? "", anon: env.get("SUPABASE_ANON_KEY") }),
     // The other file kinds. No fileEffects: until a sender is wired, an approved introduction honestly says it was not sent.
     files: createFileService({ store: supabaseFileKindStore(admin), env, now }) };

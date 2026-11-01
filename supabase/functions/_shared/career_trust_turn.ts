@@ -42,8 +42,9 @@ export interface TrustDeps {
 export const POLICY_SERVICES = ["Supabase", "OpenAI", "Vercel", "Telegram", "LoopMessage", "Meta"] as const;
 // What "forget everything" erases: the host's erase (profile and active context, watches, and it pauses career work;
 // career_host.js), the handler's tailored-resume removal, and every chat message in every thread of theirs
-// (career_erase_messages, migration 20261031080000).
-export const ERASE_SENTENCE = "Say \"forget everything\" to erase your saved profile, confirmed facts, tracker, job watches, tailored resumes and our chat messages. It also pauses career work.";
+// (career_erase_messages, migration 20261031080000): Trainee's records only. Copies a channel already delivered stay in
+// the person's own Telegram, iMessage or WhatsApp app, which Trainee cannot delete, so no answer says "every channel".
+export const ERASE_SENTENCE = "Say \"forget everything\" to erase your saved profile, confirmed facts, tracker, job watches, tailored resumes and our chat messages from Trainee's records (copies already delivered stay in your messaging app). It also pauses career work.";
 
 const norm = (m: string) => String(m ?? "").toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, " ").trim();
 const LEAD = String.raw`^(?:(?:hey|hi|hello|so|wait|ok|okay|lol|honestly|real quick|quick question|be honest|serious question|also)[\s,!.:]+)*`;

@@ -39752,7 +39752,7 @@ const CareerRouter = (() => {
         ctx._hostPatch = { erase: true, paused: true };
         const wmir = threadMirrorForWrite(ctx);
         if (wmir) { for (const k of Object.keys(wmir)) delete wmir[k]; wmir.erasedAt = new Date(nowOf(ctx)).toISOString(); }
-        return { intent: "career_profile_erased", resultStatus: "complete", sends: 0, reply: "From this conversation's record: I removed your saved career profile and active career context, cleared account watches, deleted our chat messages in every thread and paused career work. Records that stop an action from running twice keep only hashes and states. That is this conversation's record and its watches — a claim about permanent deletion from account storage is a separate, verified step, and I am not making it here. No uncertain action was retried." };
+        return { intent: "career_profile_erased", resultStatus: "complete", sends: 0, reply: "From this conversation's record: I removed your saved career profile and active career context, cleared account watches, deleted our chat messages from Trainee's records in every thread and paused career work. Records that stop an action from running twice keep only hashes and states. That is this conversation's record and its watches — a claim about permanent deletion from account storage is a separate, verified step, and I am not making it here. No uncertain action was retried." };
       }
       return null; // an unrelated turn while the confirmation stands falls through; the confirmation stays open
     }
@@ -39768,7 +39768,7 @@ const CareerRouter = (() => {
           facts: ["To delete your data: say \"yes, erase it\" and I remove your saved career facts and profile, job watches and alerts, application tracker, and the plans and drafts I act on.", "Nothing is deleted until you send that exact yes."],
           nextStep: "Which would you like?" }) };
       }
-      return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({ headline: "Before anything is deleted — here is exactly what an erase removes.", facts: ["It goes: your saved career facts and profile, your job watches and alerts, your application tracker, and the standing plans, drafts and conversation state I act on.", "Our chat messages go too, in every thread and on every channel: only the answer confirming the erase is kept."], nextStep: "Say “yes, erase it” if that is what you want. Nothing is deleted until that yes — and a yes to anything else does not count." }) };
+      return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({ headline: "Before anything is deleted — here is exactly what an erase removes.", facts: ["It goes: your saved career facts and profile, your job watches and alerts, your application tracker, and the standing plans, drafts and conversation state I act on.", "Our chat messages go too, from Trainee's records in every thread, and only the answer confirming the erase is kept there; copies already delivered stay in your Telegram, iMessage or WhatsApp app."], nextStep: "Say “yes, erase it” if that is what you want. Nothing is deleted until that yes — and a yes to anything else does not count." }) };
     }
     return null;
   }

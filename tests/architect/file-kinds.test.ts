@@ -215,7 +215,7 @@ Deno.test("page: shell + kind body, source labels shown, a11y basics, tokens/fon
     const r = await get(w.deps(), await tok(U, m.id)), html = await r.text();
     eq(r.status, 200, kind);
     assert(/<html lang="en"/.test(html) && /<h1[ >]/.test(html) && /<main/.test(html) && /viewport/.test(html), `${kind}: shell`);
-    assert(html.includes("--accent:#4A2F5E") && html.includes("Brygada 1918") && html.includes("Inter"), `${kind}: Trainee tokens and fonts`);
+    assert(html.includes("--accent:#5C2751") && html.includes("Brygada 1918") && html.includes("Inter"), `${kind}: Trainee tokens and fonts`);
     const csp = r.headers.get("content-security-policy") ?? "";
     assert(/frame-ancestors/.test(csp) && r.headers.get("cache-control") === "no-store" && /script-src 'sha256-[^']+' 'sha256-[^']+' 'sha256-[^']+' https:\/\/telegram\.org/.test(csp) && !csp.includes("unsafe-eval") && /default-src 'none'/.test(csp));
     const text = plain(html);

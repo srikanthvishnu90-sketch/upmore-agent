@@ -16,6 +16,7 @@ import {
   type TokenResult, vaultNameOf, verifyState, type Window,
 } from "./outlook_graph.ts";
 import { disconnectOf, outlookConnectOf, outlookStatusOf } from "./connector_words.ts";
+import { FONT_CSP, systemPage } from "./brand.ts";
 import { vaultRefreshWrite } from "./oauth_vault_refresh.ts";
 
 type Admin = any;
@@ -267,16 +268,11 @@ export interface OAuthDeps {
   // The connect page's calm done state, once the owner has switched that page on; absent: this function's own plain pages.
   landing?: (o: { ok: boolean; denied: boolean; email: string | null }) => Response | Promise<Response> | null;
 }
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 const HEADERS = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer", "x-frame-options": "DENY",
-  "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://login.microsoftonline.com; frame-ancestors 'none'" };
+  "content-security-policy": `default-src 'none'; style-src 'unsafe-inline' ${FONT_CSP.style}; font-src ${FONT_CSP.font}; img-src data:; form-action 'self' https://login.microsoftonline.com; frame-ancestors 'none'` };
+// On the shared Trainee shell (brand.ts systemPage): ink text on the warm ground, plum only on the one button (Q564, Q575).
 export function page(title: string, body: string[], status = 200, form?: { action: string; token: string }): Response {
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title>` +
-    `<style>body{font:16px/1.5 system-ui,sans-serif;background:#F2F2F4;color:#4A2F5E;margin:0;padding:24px}main{max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:24px}` +
-    `button{font:inherit;background:#4A2F5E;color:#fff;border:0;border-radius:8px;padding:10px 16px}</style></head><body><main><p><b>Trainee</b></p><h1>${esc(title)}</h1>` +
-    body.map((p) => `<p>${esc(p)}</p>`).join("") +
-    (form ? `<form method="post" action="${esc(form.action)}"><input type="hidden" name="t" value="${esc(form.token)}"><button type="submit">Continue to Microsoft</button></form>` : "") +
-    `</main></body></html>`;
+  const html = systemPage(title, body, form ? { ...form, label: "Continue to Microsoft" } : undefined);
   return new Response(html, { status, headers: HEADERS });
 }
 const GONE: Record<string, string> = {

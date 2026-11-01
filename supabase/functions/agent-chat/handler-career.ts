@@ -67,7 +67,7 @@ import { screenAnswerTurn, screenMeta, screenTapTurn, TAP_INTENT, TAP_STALE_REPL
 import { APPLY_QUEUE_INTENT, applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerTurn, paceReader, paceTurn, supabaseEmployerAskStore } from "../_shared/career_apply_chat.ts";
 import { confirmNotRecordedReply, type EvidenceResult, evidenceResumeConfirmation, heldEvents, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 // FEATURE 9: account memory (stated-fact provenance, standing needs on the router path).
-import { accountMemoryAfterTurn, statedFactsBefore } from "../_shared/career_account_memory.ts";
+import { accountMemoryAfterTurn, accountMemoryOn, statedFactsBefore } from "../_shared/career_account_memory.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
 import { boardFetchFeed, supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts"; // FEATURE E2E: boardFetchFeed
@@ -424,7 +424,15 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (typeof batchRunId === "string" && batchRunId) {
         try { batchRunRecord = await persistence.readBatchRun({ userId: user.id, runId: batchRunId }); } catch (e) { console.error("career batch status: run record unreadable", (e as Error)?.message ?? e); }
       }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, accountMemory: Deno.env.get("CAREER_ACCOUNT_MEMORY") === "on" /* FEATURE 9: needs migration 20261026090009 */, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings: [], batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
+      // ROOT CAUSE 3: the person's profile and tracker are the account's once they use a texting channel (or already are):
+      // read whether a texting contact is linked to them (null when unreadable: per-thread, as before).
+      let textingLinked: boolean | null = null;
+      try {
+        const r: any = await admin.from("channel_contacts").select("contact").eq("user_id", user.id).limit(1);
+        textingLinked = r && !r.error && Array.isArray(r.data) ? r.data.length > 0 : null;
+      } catch { textingLinked = null; }
+      const personMemory = accountMemoryOn(Deno.env, { textingLinked, accountHasMemory: !!(loaded.account as any)?.memory && typeof (loaded.account as any).memory === "object" });
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, accountMemory: personMemory /* ROOT CAUSE 3 */, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings: [], batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
         _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown; alertWatchState?: Record<string, unknown>;
       };
       // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).

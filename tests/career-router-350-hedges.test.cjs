@@ -51,6 +51,12 @@ const HEDGED = [
   "i graduate may 2027 not sure", "im not sure, may 2027", "i graduate may 2027 i believe", "i graduate around may 2027", "i graduate may 2027 ish",
   "i graduate may 2027 i guess", "i graduate may 2027 i suppose", "i graduate 2027ish", "i graduate may 2027 likely", "i graduate may 2027 possibly",
   "i graduate may 2027, or maybe later", "i graduate spring or fall 2027",
+  // re-review at 1aea792d: a hedge in another sentence of the same message, and the words that still saved
+  "i graduate may 2027. i think", "i graduate may 2027! i think", "i graduate may 2027; maybe", "i graduate may 2027, not sure",
+  "not sure - i graduate may 2027", "idk. i graduate may 2027", "i graduate may 2027. not 100% sure though", "i graduate may 2027. probably",
+  "i graduate may 2027. or dec 2027", "maybe. i graduate may 2027", "i graduate may 2027\ni think", "i graduate may 2027 — i guess",
+  "i prolly graduate may 2027", "i graduate may 2027 prolly", "i graduate may 2027 or december", "i graduate may 2027 or dec 27",
+  "i graduate may 2027 or thereabouts", "i graduate may 2027 or dec '27", "i graduate may 2027. or thereabouts",
 ];
 
 test("review 1 (D-007): a hedged or two-way graduation date is never saved, said on its own", async () => {

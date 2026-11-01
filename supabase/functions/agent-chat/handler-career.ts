@@ -75,6 +75,7 @@ import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
 import { feature1Deps, resumeOnFileReader } from "../_shared/career_apply_from_chat.ts"; // FEATURE 1; FEATURE 16: resumeOnFileReader
 import { cancelTurn, prepareAfterAnswers, withPending } from "../_shared/career_hosted_prepare.ts"; // FEATURE 17
+import { supabaseUndoStore, undoTurn } from "../_shared/career_undo.ts"; // C21/C22: "undo" / "cancel that"
 import { statusAsk } from "../_shared/career_apply_status.ts"; // FEATURE 17
 import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { codePending, readSituation } from "../_shared/career_situation.ts";
@@ -661,7 +662,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // END BILLING BY TEXT
       // FEATURE 17: "cancel my application to X" / "don't apply to X": withdrawn before it is sent (career_hosted_prepare.ts).
       const cancelled = !billing && !card && !mock && !asked && !which && !emailed && !outreachAns && !repliesAns && !cloud && !cardYes && !paced && !employerAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await cancelTurn({ message, userId: user.id, admin }).catch((e) => { console.error("feature 17 cancel:", (e as Error)?.message ?? e); return null; })
+        ? (await cancelTurn({ message, userId: user.id, admin }).catch((e) => { console.error("feature 17 cancel:", (e as Error)?.message ?? e); return null; }))
+          // C21/C22: "undo" / "cancel that" right after an approval: the latest approved application or email, cancelled while it
+          // has not gone out, else said plainly that it already went (career_undo.ts). Code's, like the cancel.
+          ?? (await undoTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseUndoStore(admin) }).catch((e) => { console.error("undo turn:", (e as Error)?.message ?? e); return null; }))
         : null;
       // END FEATURE 17
       // APPLY HERE (apply_here.ts, Telegram): the link(s) or "apply to this" resolved and screened, no queueing; the tap on the one Apply

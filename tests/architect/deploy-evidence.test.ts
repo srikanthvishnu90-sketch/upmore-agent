@@ -98,8 +98,17 @@ Deno.test("S3: every supabase/ or packages/ module the brain eval imports is rep
 // ------------------------------------------------------------------------------------------------ S3: measurement mapping
 const C = "c".repeat(40), P = "b".repeat(40), D = "d".repeat(40), X = "e".repeat(40), Y = "f".repeat(40), Z = "9".repeat(40);
 const HEAD = "| run at (UTC) | brain commit | set | brain | set size | passed | score | judges | stopped | CI run |\n|---|---|---|---|---|---|---|---|---|---|\n";
-const row = (commit: string, brain: string, passed: number, run: string, set = "dev", size = 38) =>
-  `| 2026-10-31 10:00:00 | ${commit.slice(0, 7)} | ${set} | ${brain} | ${size} | ${passed} | x% | judges | no | ${run}; harness |\n`;
+// One SCORE-LOG row, as evals/career/score-log.ts writes it: the judges column carries each judge's own count (it differs
+// pass to pass), the CI run column the harness.
+interface RowOpts { set?: string; size?: number; judges?: [number, number]; pair?: string; harness?: string; stopped?: string }
+const line = (commit: string, brain: string, passed: number, run: string, o: RowOpts = {}) => {
+  const [j1, j2] = o.judges ?? [passed + 1, passed + 2];
+  const [m1, m2] = (o.pair ?? "gpt-5-mini,gpt-4.1-mini").split(",");
+  return `| 2026-10-31 10:00:00 | ${commit.slice(0, 7)} | ${o.set ?? "dev"} | ${brain} | ${o.size ?? 38} | ${passed} | x% | ${m1} ${j1}, ${m2} ${j2}; both-pass (Instinct scores beside them) | ${o.stopped ?? "no"} | ${run}; harness: ${o.harness ?? "parity 2026-10-26"} |\n`;
+};
+// A CI run of brain-eval: five passes, one row each (measure-reply.sh asks for five; brain-eval.yml refuses fewer).
+const row = (commit: string, brain: string, passed: number, run: string, set = "dev", size = 38, o: RowOpts = {}) =>
+  [0, 1, 0, -1, 0].map((d, i) => line(commit, brain, passed + d, run, { set, size, judges: [passed + d + i, passed + d + 2], ...o })).join("");
 interface W { log: string | null; trees: Record<string, string>; parents: Record<string, string>; second: Record<string, string>; ancestors: Record<string, string[]>; deployed: string | null }
 function world(): W {
   return {
@@ -158,6 +167,54 @@ Deno.test("--missing-measurement: the candidate first, then the deployed SHA on 
   ok(/both measured: candidate by CI run 200, deployed by CI run 100/.test(both.why), both.why);
   w = world(); w.log = HEAD + row(C, "router", 24, "200") + row(D, "router", 22, "100", "dev", 40);
   eq((await missingMeasurement(src(w), C, D, "router")).sha, D, "deployed measured on another set size");
+});
+
+// ------------------------------------------------------------------------------------------------ S3: comparable measurements
+// A measurement is one CI run's qualifying passes (stopped "no": a STOPPED or NOT A SCORE row does not count), all on one
+// set, size, harness and judge pair. The deployed side counts only on the
+// candidate's set, size, harness and judges: otherwise --missing-measurement names the deployed SHA, to measure it again
+// under the current harness.
+Deno.test("S3: only qualifying passes count: stopped and judge-error rows are not scores", async () => {
+  const cand = async (log: string) => (await missingMeasurement(src({ ...world(), log: HEAD + row(D, "router", 22, "100") + log }), C, D, "router")).sha;
+  eq(await cand(row(X, "router", 24, "200")), null, "five passes: measured");
+  eq(await cand(line(X, "router", 24, "200", { stopped: "STOPPED" }) + line(X, "router", 24, "200", { stopped: "NOT A SCORE: 3 judge errors" })), C, "a run of stopped and judge-error passes is no measurement");
+  // A sixth pass that stopped (0 passed) beside the five: the mean is over the five, not six.
+  const w = { ...world(), log: HEAD + row(D, "router", 22, "100") + row(X, "router", 24, "200") + line(X, "router", 0, "200", { stopped: "STOPPED" }) + line(X, "router", 0, "200", { stopped: "NOT A SCORE: 38 judge errors" }) };
+  const r = await s3(src(w), C, D, "router");
+  ok(r.pass, r.summary);
+  ok(/mean of 5 passes of CI run 200/.test(r.evidence.join("\n")), r.evidence.join("\n"));
+  // The mean is over the five: 24+25+24+23+24 = 120 of 5*38 against 22+23+22+21+22 = 110.
+  ok(/candidate \S+: 63\.2%/.test(r.evidence[0]) && /deployed +\S+: 57\.9%/.test(r.evidence[1]), r.evidence.join("\n"));
+});
+Deno.test("S3: the deployed measurement counts only under the candidate's harness and judges; else it is measured again", async () => {
+  const w = (dep: string) => ({ ...world(), log: HEAD + dep + row(X, "router", 24, "200", "dev", 38, { harness: "parity 2026-10-31" }) });
+  // Deployed measured only under the older harness: not comparable.
+  let m = await missingMeasurement(src(w(row(D, "router", 22, "100"))), C, D, "router");
+  eq(m.sha, D, m.why);
+  ok(/harness/.test(m.why), m.why);
+  let r = await s3(src(w(row(D, "router", 22, "100"))), C, D, "router");
+  ok(!r.pass && /deployed: /.test(r.summary) && /harness/.test(r.summary), r.summary);
+  // Re-measured under the current harness (a later run): comparable, and that run is the one compared.
+  const both = row(D, "router", 30, "100") + row(D, "router", 22, "300", "dev", 38, { harness: "parity 2026-10-31" });
+  m = await missingMeasurement(src(w(both)), C, D, "router");
+  eq(m.sha, null, m.why);
+  r = await s3(src(w(both)), C, D, "router");
+  ok(r.pass && /deployed .*CI run 300/.test(r.evidence.join("\n")), r.evidence.join("\n"));
+  // Another judge pair on the deployed side: not comparable either.
+  const judged = { ...world(), log: HEAD + row(D, "router", 22, "100", "dev", 38, { pair: "gpt-5-mini,gpt-4o-mini" }) + row(X, "router", 24, "200") };
+  m = await missingMeasurement(src(judged), C, D, "router");
+  eq(m.sha, D, m.why);
+  ok(/judges/.test(m.why), m.why);
+  ok(!(await s3(src(judged), C, D, "router")).pass);
+  // Each judge's own count differs pass to pass (the default rows): the same pair is still the same judges.
+  eq((await missingMeasurement(src(world()), C, D, "router")).sha, null);
+  // Within one run the five passes share a harness: a run whose passes disagree is no measurement.
+  const mixed = row(X, "router", 24, "200").split("\n").filter(Boolean);
+  mixed[4] = line(X, "router", 24, "200", { harness: "something else" }).trim();
+  eq((await missingMeasurement(src({ ...world(), log: HEAD + row(D, "router", 22, "100") + mixed.join("\n") + "\n" }), C, D, "router")).sha, C);
+  // Five on one harness and a sixth on another, in one run: still not one comparable five-pass measurement.
+  const sixth = row(X, "router", 24, "200") + line(X, "router", 24, "200", { harness: "something else" });
+  eq((await missingMeasurement(src({ ...world(), log: HEAD + row(D, "router", 22, "100") + sixth }), C, D, "router")).sha, C);
 });
 
 // ------------------------------------------------------------------------------------------------ S3: live git
@@ -313,6 +370,59 @@ Deno.test("deploy-production.yml mutations", () => {
   ok(/prints its environment/.test(mut((y) => { step(y).run = "set -x\n" + step(y).run; })));
   ok(/does not run every check/.test(mut((y) => { step(y).run += " --checks S1,S2,S3,S4"; })));
   ok(/not set up before/.test(mut((y) => { y.jobs.deploy.steps = y.jobs.deploy.steps.filter((s: Yaml) => !String(s.uses ?? "").startsWith("supabase/setup-cli@")); })));
+});
+
+// ------------------------------------------------------------------------------------------------ the measure loop, run
+// The measure step's own bash, run with stubs: deploy-standard.ts --missing-measurement answers from a script, git fetch is
+// a no-op, measure-reply.sh only records what it was asked to measure. What it must do: at most two measurements (the
+// candidate, then the deployed SHA), never the same SHA twice in one run (a SHA measured and still unscored fails S3 instead
+// of spending again), and stop as soon as nothing is missing.
+const measureRun = (wf: Yaml) => String((wf?.jobs?.measure?.steps ?? []).find((s: Yaml) => /--missing-measurement/.test(String(s.run ?? "")))?.run ?? "");
+async function runMeasureLoop(script: string, answers: string[]): Promise<{ code: number; measured: string[]; out: string }> {
+  const dir = await Deno.makeTempDir({ prefix: "measure-loop-" });
+  try {
+    await Deno.mkdir(`${dir}/bin`);
+    await Deno.mkdir(`${dir}/scripts/launch`, { recursive: true });
+    await Deno.writeTextFile(`${dir}/answers`, answers.map((a) => `${a}\n`).join(""));
+    await Deno.writeTextFile(`${dir}/bin/deno`, `#!/usr/bin/env bash\nn=$(cat "${dir}/n" 2>/dev/null || echo 0); echo $((n+1)) > "${dir}/n"\na=$(sed -n "$((n+1))p" "${dir}/answers")\n[ -n "$a" ] && [ "$a" != - ] && echo "measure=$a"\necho "why: stub answer $((n+1))"\n`);
+    await Deno.writeTextFile(`${dir}/bin/git`, "#!/usr/bin/env bash\nexit 0\n");
+    await Deno.writeTextFile(`${dir}/scripts/launch/measure-reply.sh`, `echo "$1" >> "${dir}/measured"\n`);
+    for (const f of ["deno", "git"]) await Deno.chmod(`${dir}/bin/${f}`, 0o755);
+    const r = await new Deno.Command("bash", {
+      args: ["-e", "-c", script], cwd: dir, clearEnv: true, stdout: "piped", stderr: "piped", signal: AbortSignal.timeout(20_000),
+      env: { PATH: `${dir}/bin:${Deno.env.get("PATH")}`, GH_TOKEN: "tok", GITHUB_TOKEN: "tok", GITHUB_SHA: C, GITHUB_RUN_ID: "1" },
+    }).output();
+    let measured: string[] = [];
+    try { measured = (await Deno.readTextFile(`${dir}/measured`)).trim().split("\n").filter(Boolean); } catch { /* none */ }
+    return { code: r.code, measured, out: new TextDecoder().decode(r.stdout) + new TextDecoder().decode(r.stderr) };
+  } finally { await Deno.remove(dir, { recursive: true }); }
+}
+async function measureLoopProblems(script: string): Promise<string[]> {
+  const out: string[] = [];
+  if (!script) return ["no measure step"];
+  let r = await runMeasureLoop(script, ["-"]);
+  if (r.code !== 0 || r.measured.length) out.push(`nothing missing: measured ${r.measured.join(",") || "nothing"}, exit ${r.code}`);
+  r = await runMeasureLoop(script, [C, "-"]);
+  if (r.code !== 0 || r.measured.join() !== C) out.push(`candidate missing once: measured ${r.measured.join(",")}, exit ${r.code}`);
+  r = await runMeasureLoop(script, [C, C, C, C]);
+  if (r.measured.join() !== C || r.code === 0 || !/still has no score/.test(r.out)) out.push(`the same SHA still missing after its measurement: measured ${r.measured.length} times, exit ${r.code} (it must fail, not measure again)`);
+  r = await runMeasureLoop(script, [C, D, X, Y, Z, P]);
+  if (r.measured.join() !== `${C},${D}`) out.push(`a new SHA missing every round: measured ${r.measured.length} times (at most two rounds: the candidate, then the deployed SHA)`);
+  return out;
+}
+Deno.test("deploy-production.yml measure loop, run: at most two rounds, never the same SHA twice, stops when nothing is missing", async () => {
+  eq(await measureLoopProblems(measureRun(parseYaml(read(".github/workflows/deploy-production.yml")))), []);
+});
+Deno.test("deploy-production.yml measure loop mutations: an endless loop, no done_shas guard, no done_shas record", async () => {
+  const run = measureRun(parseYaml(read(".github/workflows/deploy-production.yml")));
+  const mut = async (from: string | RegExp, to: string) => {
+    const m = run.replace(from, to);
+    ok(m !== run, `the mutation applied: ${from}`);
+    return (await measureLoopProblems(m)).join("\n");
+  };
+  ok(/at most two rounds/.test(await mut("for round in 1 2; do", "while true; do")));
+  ok(/same SHA still missing/.test(await mut(/^ *case " \$\{done_shas:-\} ".*$\n/m, "")));
+  ok(/same SHA still missing/.test(await mut(/^ *done_shas="\$\{done_shas:-\} \$need"$\n/m, "")));
 });
 
 // ------------------------------------------------------------------------------------------------ S5: no value printed

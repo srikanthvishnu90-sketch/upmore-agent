@@ -225,6 +225,18 @@ export async function s2(src: Sources, sha: string, deployed: string | null): Pr
 
 // ------------------------------------------------------------------------------------------------ S3
 export interface ScoreRow { commit: string; set: string; brain: string; size: number; passed: number; stopped: string; run: string }
+// What makes two measurements comparable beyond set and size: the harness (the CI run column's "; harness: ...") and the
+// judge pair. Kept off ScoreRow's own keys (tests/architect/deploy-standard.test.ts pins that shape) as non-enumerable
+// properties, read through these two functions.
+const HARNESS = Symbol("harness"), JUDGES = Symbol("judges");
+type Tagged = ScoreRow & { [HARNESS]?: string; [JUDGES]?: string };
+export const harnessOf = (r: ScoreRow) => (r as Tagged)[HARNESS] ?? "";
+export const judgesOf = (r: ScoreRow) => (r as Tagged)[JUDGES] ?? "";
+// The judges column names the judge pair with each judge's own count of that pass ("gpt-5-mini 35, gpt-4.1-mini 34;
+// both-pass ..."): the counts differ pass to pass, the pair does not. Without the counts it is the pair.
+export function judgePair(col: string): string {
+  return col.replace(/(^|[\s(])\d+(?=[\s,;)]|$)/g, "$1").replace(/\s+/g, " ").replace(/\s+([,;)])/g, "$1").trim();
+}
 export function parseScoreLog(text: string): ScoreRow[] {
   const rows: ScoreRow[] = [];
   for (const line of text.split("\n")) {
@@ -233,11 +245,18 @@ export function parseScoreLog(text: string): ScoreRow[] {
     if (c.length < 10 || !/^[0-9a-f]{7,40}$/.test(c[1])) continue;
     const size = Number(c[4]), passed = Number(c[5]);
     if (!Number.isFinite(size) || !Number.isFinite(passed) || size <= 0) continue;
-    rows.push({ commit: c[1], set: c[2], brain: c[3], size, passed, stopped: c[8], run: (/^(\d+)/.exec(c[9]) ?? [])[1] ?? "" });
+    const r: ScoreRow = { commit: c[1], set: c[2], brain: c[3], size, passed, stopped: c[8], run: (/^(\d+)/.exec(c[9]) ?? [])[1] ?? "" };
+    Object.defineProperty(r, HARNESS, { value: (/;\s*harness:\s*(.*)$/.exec(c[9]) ?? [])[1]?.trim() ?? "", enumerable: false });
+    Object.defineProperty(r, JUDGES, { value: judgePair(c[7]), enumerable: false });
+    rows.push(r);
   }
   return rows;
 }
-export interface Measurement { set: string; size: number; run: string; rate: number; passes: number; passed: number; commit: string }
+export interface Measurement { set: string; size: number; run: string; rate: number; passes: number; passed: number; commit: string; harness: string; judges: string }
+// The rows the deployed side may be measured by: the candidate's set, size, harness and judge pair. A deployed measurement
+// under another harness or other judges is not comparable, so --missing-measurement names the deployed SHA to re-measure.
+const comparable = (rows: ScoreRow[], m: Measurement) => rows.filter((r) => r.set === m.set && r.size === m.size && harnessOf(r) === m.harness && judgesOf(r) === m.judges);
+const onWhat = (m: Measurement) => `set ${m.set}/${m.size}, harness "${m.harness || "(none)"}", judges "${m.judges}"`;
 
 // The SHAs a measurement may stand for: sha and its first-parent ancestors within 10 commits, up to the first one whose
 // reply code differs from sha's.
@@ -279,10 +298,15 @@ export async function measurementOf(src: Sources, sha: string, rows: ScoreRow[],
   if (!mine.length) return { m: null, why: `no ${brain} measurement on ci/brain-eval for ${short(sha)} or its ${lineage.length - 1} same-reply-code ancestors` };
   const latestRun = mine.map((r) => r.run).sort((a, b) => Number(b) - Number(a))[0];
   const run = mine.filter((r) => r.run === latestRun);
-  const set = run[0].set, size = run[0].size;
-  const same = run.filter((r) => r.set === set && r.size === size);
+  const { set, size } = run[0], harness = harnessOf(run[0]), judges = judgesOf(run[0]);
+  // Only rows whose stopped column is "no" qualify (a STOPPED or NOT A SCORE row is not a score); one run's passes must
+  // share one set, size, harness and judge pair, or the run is no measurement.
+  const same = run.filter((r) => r.set === set && r.size === size && harnessOf(r) === harness && judgesOf(r) === judges);
+  if (same.length !== run.length) {
+    return { m: null, why: `CI run ${latestRun}, the latest ${brain} measurement of ${short(sha)}, mixes sets, harnesses or judge pairs across its passes` };
+  }
   const passed = same.reduce((a, r) => a + r.passed, 0);
-  return { m: { set, size, run: latestRun, rate: passed / size / same.length, passes: same.length, passed, commit: same[0].commit }, why: "" };
+  return { m: { set, size, run: latestRun, rate: passed / size / same.length, passes: same.length, passed, commit: same[0].commit, harness, judges }, why: "" };
 }
 
 export async function s3(src: Sources, sha: string, deployed: string | null, brain: string): Promise<Result> {
@@ -294,9 +318,9 @@ export async function s3(src: Sources, sha: string, deployed: string | null, bra
   const cand = await measurementOf(src, sha, rows, brain);
   if (!cand.m) return { id: "S3", pass: false, summary: `candidate: ${cand.why}`, evidence };
   evidence.push(`candidate ${short(sha)}: ${(cand.m.rate * 100).toFixed(1)}% (${brain}, ${cand.m.set}/${cand.m.size}, mean of ${cand.m.passes} passes of CI run ${cand.m.run}, brain commit ${cand.m.commit})`);
-  // The deployed side is measured on the candidate's set and size: only those rows count.
-  const dep = await measurementOf(src, deployed, rows.filter((r) => r.set === cand.m!.set && r.size === cand.m!.size), brain);
-  if (!dep.m) return { id: "S3", pass: false, summary: `deployed: ${dep.why} on set ${cand.m.set}/${cand.m.size}`, evidence };
+  // The deployed side is measured on the candidate's set, size, harness and judges: only those rows count.
+  const dep = await measurementOf(src, deployed, comparable(rows, cand.m), brain);
+  if (!dep.m) return { id: "S3", pass: false, summary: `deployed: ${dep.why} on ${onWhat(cand.m)}`, evidence };
   evidence.push(`deployed  ${short(deployed)}: ${(dep.m.rate * 100).toFixed(1)}% (${brain}, ${dep.m.set}/${dep.m.size}, mean of ${dep.m.passes} passes of CI run ${dep.m.run}, brain commit ${dep.m.commit})`);
   // Same size on both sides: mean(c) >= mean(d)  <=>  sum(c) * passes(d) >= sum(d) * passes(c). Exact, no tolerance.
   const pass = cand.m.passed * dep.m.passes >= dep.m.passed * cand.m.passes;
@@ -304,15 +328,15 @@ export async function s3(src: Sources, sha: string, deployed: string | null, bra
 }
 
 // The SHA S3 still needs a measurement for: the candidate when it has none; else the deployed SHA when it has none on the
-// candidate's set and size; else null. deploy-production.yml measures it (measure-reply.sh) and asks again.
+// candidate's set, size, harness and judge pair (so a harness change re-measures the deployed SHA); else null. deploy-production.yml measures it (measure-reply.sh) and asks again.
 export async function missingMeasurement(src: Sources, sha: string, deployed: string | null, brain: string): Promise<{ sha: string | null; why: string }> {
   const log = await src.scoreLog();
   const rows = log === null ? [] : parseScoreLog(log);
   const cand = await measurementOf(src, sha, rows, brain);
   if (!cand.m) return { sha, why: `candidate: ${cand.why}` };
   if (!deployed) return { sha: null, why: "no successful production deploy found: S3 fails whatever is measured" };
-  const dep = await measurementOf(src, deployed, rows.filter((r) => r.set === cand.m!.set && r.size === cand.m!.size), brain);
-  if (!dep.m) return { sha: deployed, why: `deployed: ${dep.why} on set ${cand.m.set}/${cand.m.size}` };
+  const dep = await measurementOf(src, deployed, comparable(rows, cand.m), brain);
+  if (!dep.m) return { sha: deployed, why: `deployed: ${dep.why} on ${onWhat(cand.m)}` };
   return { sha: null, why: `both measured: candidate by CI run ${cand.m.run}, deployed by CI run ${dep.m.run}` };
 }
 

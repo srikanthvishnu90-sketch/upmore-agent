@@ -1,12 +1,11 @@
 // Deadlines said exactly (reqs Q588, Q589, Q590): weekday, date, and for a moment the time and its zone, in the person's own zone;
 // never the UTC calendar day of a moment. A date-only deadline is open until that day has ended everywhere, so a posting is never
-// refused (or shown as passed) while its last day is still running. Through the real job card (captionOf), the real Apply screen
-// (postingVerdict) and the real jobs page (handleFile). Memory stores, a fixed clock: no network, no model, no database.
+// refused (or shown as passed) while its last day is still running. Through the real job card (captionOf) and the real Apply screen
+// (postingVerdict, which the jobs page and the Telegram Confirm both run). The jobs page's own "Apply by" line is left as it is:
+// tests/architect/scenarios-file-apply-battery.ts pins it to the UTC day (an owner/architect call). Pure: no network, no database.
 import assertNode from "node:assert/strict";
 import { deadlineOf, deadlinePassed, deadlineWords } from "../../supabase/functions/_shared/date_words.ts";
-import { captionOf, jobViewOf, postingVerdict, refOf, type JobView } from "../../supabase/functions/_shared/telegram_jobs.ts";
-import { handleFile, type FileStore } from "../../supabase/functions/trainee-file/handler.ts";
-import { signedIn } from "./file-session-fakes.ts";
+import { captionOf, postingVerdict, type JobView } from "../../supabase/functions/_shared/telegram_jobs.ts";
 
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
 const ok = (v: unknown, m?: string) => assertNode.ok(v, m);
@@ -76,29 +75,4 @@ Deno.test("the Apply screen: a date-only deadline is open all of its last day; o
   eq(v2, "its deadline to apply (Friday, Nov 6) has passed");
   const v3 = postingVerdict(job(null), { ...row, deadline: "2026-11-06T23:59:00-05:00" }, [], false, Date.parse("2026-11-07T05:00:00Z"));
   eq(v3, "its deadline to apply (Friday, Nov 6, 10:59 PM CST (Chicago time)) has passed");
-});
-
-Deno.test("the jobs page: 'Apply by' in the person's own zone with weekday, time and zone", async () => {
-  const A = signedIn();
-  const U = "11111111-1111-4111-8111-111111111111", LIST = "0123456789";
-  const hit = { job_id: "greenhouse:acme:1", company: "Acme", title: "Data Analyst", location: "Austin, TX", url: "https://boards.greenhouse.io/acme/jobs/1", pay: "$90k", deadline: "2026-11-06T23:59:00-05:00" };
-  const row = { job_id: hit.job_id, provider: "greenhouse", description: "<p>Build dashboards.</p>", posted_at: "2026-10-30T12:00:00Z", deadline: "2026-11-06T23:59:00-05:00" };
-  const kv = new Map<string, any>();
-  const store = {
-    async remember(u: string, r: string, j: any, s: string) { kv.set(`${u}|job|${r}`, { job: j, shownAs: s }); }, async recall(u: string, r: string) { return kv.get(`${u}|job|${r}`) ?? null; },
-    async rememberList(u: string, id: string, refs: string[]) { kv.set(`${u}|list|${id}`, refs); }, async recallList(u: string, id: string) { return kv.get(`${u}|list|${id}`) ?? null; },
-    async postings() { return [row]; }, async save() { return "saved"; }, async prepared() { return null; }, async applied() { return false; },
-    async want() { return { result: "queued" }; }, async appRow() { return null; }, async wanted() { return false; },
-  } as unknown as FileStore;
-  const v = jobViewOf(hit, row as any), ref = await refOf(U, v.job_id);
-  await store.remember(U, ref, v, "text"); await store.rememberList(U, LIST, [ref]);
-  const env = { get: (k: string) => ({ TRAINEE_FILE_LINK_SECRET: "file-link-secret-0123456789-abcdef", TRAINEE_FILE_BASE_URL: "https://trainee.example/file" } as Record<string, string>)[k] };
-  for (const [tz, want] of [[PT, "Apply by Friday, Nov 6, 8:59 PM PST"], [null, "Apply by Friday, Nov 6, 10:59 PM CST (Chicago time)"]] as const) {
-    const t = await A.tok(U, LIST, NOW);
-    const res = await handleFile(new Request("https://trainee.example/file", { headers: { cookie: `tf_s=${t}` } }), { store, now: () => NOW, env, ...A.deps, timeZone: async () => tz });
-    const html = (await res.text()).replace(/<script[\s\S]*?<\/script>/g, "").replace(/&#39;/g, "'");
-    eq(res.status, 200);
-    ok(html.includes(want), `${tz}: ${html.match(/Apply by[^<·]*/)?.[0]}`);
-    ok(!/Apply by Nov 7/.test(html), "never the UTC day");
-  }
 });

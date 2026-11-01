@@ -2026,6 +2026,12 @@ const CareerRouter = (() => {
     // the same entries the marker binds and the yes will approve.
     // A section this reader does not take entries from (a summary, interests) is named, never silently dropped.
     if (Array.isArray(res.unread_sections) && res.unread_sections.length) facts.push(`I did not read these sections into your record: ${res.unread_sections.slice(0, 8).join(", ")}. Nothing from them is used.`);
+    // ONBOARDING ROUND 3: a resume forwarded from someone else (a friend's, a template) is headed by their name. The
+    // header is never read onto the record, but a plain yes confirmed its jobs and school as the person's own. When the
+    // name at the top is not the name they gave, they are asked first, and only a yes that says it is theirs confirms.
+    const nameCheck = resumeNameMismatch(raw, ctx);
+    if (nameCheck && mir && mir.resumeIngest) mir.resumeIngest.nameCheck = nameCheck;
+    if (nameCheck) facts.push(nameMismatchLine(nameCheck));
     if (Array.isArray(res.replaced_drafts) && res.replaced_drafts.length) facts.push("This replaces the resume you pasted before it, which you had not confirmed.");
     if ((profile.facts || []).some((f) => f && f.source === "resume-ingest" && !f.needs_confirmation)) facts.push("Your confirmed resume stays in use until you confirm this one; then this one replaces it.");
     const reply = entriesReply("Your resume is on record — as drafts, awaiting your word.", facts, "Here is what I read from it, word for word:", presented.map((f, i) => `${i + 1}. ${f.text}`),
@@ -2048,6 +2054,23 @@ const CareerRouter = (() => {
   //   - a correction ("my title was X not Y", "change Y to X", "not Y, X") changes exactly the one shown entry that holds
   //     Y, keeps it a draft, and shows it again for a yes; Y in no entry, or in several, changes nothing and asks;
   //   - a no, a question, a hedge, a pause or an emoji confirms nothing, and the person is asked again plainly.
+  // ONBOARDING ROUND 3: the name heading a resume (its first line, when it reads as a name) against the name the person
+  // gave in chat. Null when they gave none, the resume has no name line, or the two share a name.
+  const NAME_LINE = /^[A-ZÀ-ɏ][\p{L}'’.-]+(?:\s+[A-ZÀ-ɏ][\p{L}'’.-]+){1,3}(?:\s+\(TEST\))?$/u;
+  const nameTokens = (v) => s(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\(test\)/g, " ").split(/[^\p{L}'’-]+/u).map((x) => x.replace(/^['’-]+|['’-]+$/g, "")).filter((x) => x.length >= 2);
+  function resumeNameMismatch(raw, ctx) {
+    const given = statedFactsOf(ctx).find((f) => f && f.kind === "name" && s(f.value).trim());
+    if (!given) return null;
+    const body = s(raw).replace(/^\s*(?:(?:here'?s|here is|this is|attached is|sending)\s+my\s+(?:updated\s+|new\s+|current\s+)?(?:resume|cv|r[ée]sum[ée])|my\s+(?:resume|cv))\s*:?\s*/i, "");
+    const first = (body.split(/\r?\n/).map((l) => l.trim()).find(Boolean) || "").replace(/\s*[|·•,].*$/, "").trim();
+    if (!first || first.length > 60 || !NAME_LINE.test(first)) return null;
+    const a = nameTokens(first), b = new Set(nameTokens(given.value));
+    if (!a.length || !b.size || a.some((x) => b.has(x))) return null;
+    return { resume: first, given: s(given.value).trim() };
+  }
+  const nameMismatchLine = (n) => `The name at the top of this resume is “${n.resume}”, not ${n.given}, the name you gave me. If it is someone else's resume, don't confirm it: nothing from it is yours until you say it is. If it is yours, reply "yes, that's my resume".`;
+  // A yes that says the resume is the person's own (not a bare "yes" / "ok").
+  const OWN_YES = /\b(?:(?:that|this|it)(?:'?s| is) (?:my|mine)\b|\bmy (?:resume|cv)\b|\b(?:it'?s|that'?s|this is) (?:me|mine)\b|\bmine\b)/i;
   function resumeAskReply(head, extra, lines) {
     return entriesReply(head, [...(extra || []), "Every entry is still a draft: nothing is tailored, put on a form or sent from a draft."], "Now it reads, word for word:", lines || [],
       "If every entry I showed you is right, reply \"yes, that's my resume\"; to fix one, tell me what it should say (for example \"my title was X, not Y\").");
@@ -2101,6 +2124,8 @@ const CareerRouter = (() => {
     }
     // A plain yes. After another turn it is a yes to whatever was asked last, unless it names the resume.
     if (stale && !/\b(?:resume|cv|r[eé]sum[eé]|entries)\b/i.test(raw)) return ask("I didn't take that yes as confirming your resume — it came after another question.", []);
+    // ONBOARDING ROUND 3: a resume headed by another name is confirmed only on a yes that says it is theirs.
+    if (mir.resumeIngest.nameCheck && !OWN_YES.test(raw)) return ask("I haven't confirmed anything yet.", [nameMismatchLine(mir.resumeIngest.nameCheck)]);
     // SPLIT-1146 (a): the yes binds to the PRESENTED content — when
     // the marker carries the presented drafts' ids, only those facts
     // confirm; a resume draft that was never in the presented content
@@ -2287,6 +2312,118 @@ const CareerRouter = (() => {
     const left = (profile.facts || []).filter((g) => g && RESUME_ENTRY_KINDS.has(g.kind) && !g.needs_confirmation).length;
     const reply = verbatim("I took this entry off your record:", [label(f)], { headline: "Nothing uses it any more: no application, letter, answer or alert.", facts: [`Your other ${left} confirmed entr${left === 1 ? "y stands" : "ies stand"} as you confirmed ${left === 1 ? "it" : "them"}.`], nextStep: "If something else on it is wrong, tell me what it should say." });
     return { intent: "career_resume_dispute", reply, resultStatus: "completed", sends: 0 };
+  }
+  // ONBOARDING ROUND 3 (2026-11-01, tests/architect/scenarios-onboarding-r3.test.ts; D-007): the person correcting ONE value
+  // of their resume in plain words. After the yes, "actually I graduated 2023", "my GPA is 3.8" or "change Brightline to
+  // Brightline Analytics" changed nothing: the turn went to a company-window answer ("your graduation date is not stated")
+  // or the catch-all, and every application kept the value they had just said was wrong. Before the yes, the stated
+  // forms ("actually I graduated 2023") were not read as a correction at all. Now:
+  //   - a graduation date or a GPA stated outright changes exactly that value in the one education entry that carries it
+  //     (the last date of its line; the number after "GPA"); nothing else in it moves, and a value the entry does not
+  //     carry is never added (they are told how to give the line as it should read);
+  //   - "change Y to X" / "my ... was X, not Y" / "Y should be X" after the yes changes the one confirmed entry holding Y;
+  //   - Y in several entries, or two education entries that both could hold the value, changes nothing and asks which;
+  //   - a changed confirmed entry stays confirmed, as the person's own correction (its corrections list names what they
+  //     said, when), and the host records a confirmation event for it (career_router_evidence.ts evidenceEntryCorrections);
+  //     a changed draft stays a draft and is shown again for the yes, the binding moved to its new words.
+  const GRAD_TOKEN = /\b(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|spring|summer|fall|autumn|winter)\.?\s+)?(?:\d{1,2}\/)?(?:19|20)\d\d\b/gi;
+  const GPA_TOKEN = /(\bGPA\b\s*(?:of\s+)?[:=]?\s*)([0-4]\.\d{1,2})\b|\b([0-4]\.\d{1,2})(\s*(?:\/\s*4(?:\.0+)?\s*)?GPA\b)/i;
+  const GENERIC_FIX = /^(?:(?:actually|oh|oops|sorry|wait|no|correction|small fix|quick fix|one thing)[\s,:;.!—–-]+)*(?:please\s+)?(?:change|replace|update|correct|fix|swap)\s|\b(?:my|the)\b[^,]{0,40}\b(?:was|is|should be)\b.+\b(?:not|instead of|rather than)\b|\bshould (?:be|say|read)\b/i;
+  function entryLine(f) { return s(f && (f.title || f.text) || ""); }
+  function fieldSpanOf(f, field, from) {
+    const line = entryLine(f);
+    if (field === "gpa") {
+      const m = GPA_TOKEN.exec(line);
+      if (!m) return null;
+      const value = m[2] || m[3];
+      if (from && value !== from) return null;
+      return { value };
+    }
+    // A line still running ("2022 - Present") shows no graduation date: its only year is when it began.
+    if (!from && /\b(?:present|current|now|ongoing)\b/i.test(line)) return null;
+    const all = [...line.matchAll(GRAD_TOKEN)].map((m) => m[0]);
+    if (!all.length) return null;
+    if (from) { const hit = all.find((d) => lc(d) === lc(from) || lc(d).endsWith(` ${lc(from)}`) || lc(d).endsWith(`/${lc(from)}`)); return hit ? { value: hit } : null; }
+    return { value: all[all.length - 1] };
+  }
+  function swapIn(f, from, to) {
+    const esc = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`${/^\w/.test(from) ? "\\b" : ""}${esc}${/\w$/.test(from) ? "\\b" : ""}`, "gi");
+    const swap = (x) => (typeof x === "string" ? x.replace(re, to) : x);
+    f.title = swap(f.title); f.text = swap(f.text); if (f.name) f.name = swap(f.name);
+    if (Array.isArray(f.bullets)) f.bullets = f.bullets.map(swap);
+    if (Array.isArray(f.skills)) f.skills = f.skills.map(swap);
+  }
+  function handleResumeFieldCorrection(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw || raw.length > 200 || /\n/.test(raw) || /\?/.test(raw)) return null;
+    const profile = ctx.profile && typeof ctx.profile === "object" && !ctx.profile._fromStatedFacts ? ctx.profile : null;
+    if (!profile || !Array.isArray(profile.facts) || !ProfileMod) return null;
+    const field = typeof ProfileMod.fieldCorrectionOf === "function" ? ProfileMod.fieldCorrectionOf(raw) : null;
+    const pending = resumeDraftsPending(ctx);
+    const confirmed = (profile.facts || []).filter((f) => f && f.source === "resume-ingest" && RESUME_ENTRY_KINDS.has(f.kind) && f.needs_confirmation === false && f.status === "confirmed"
+      && !(ProfileMod.quarantinedFact && ProfileMod.quarantinedFact(f)));
+    // While entries wait for a yes, a generic correction is the confirm step's (handleResumeIngestConfirm); only the stated
+    // forms of a graduation date or a GPA are read here, against the entries shown.
+    const pool = pending.length ? pending : confirmed;
+    if (!pool.length) return null;
+    let change = null;
+    const label = (f) => entryLine(f).slice(0, 160);
+    const verbatim = (head, lines, rest) => [Reply ? Reply.composeResult({ headline: head }).bubbles.join("\n") : head, lines.join("\n"), compose(rest)].join("\n\n");
+    const what = field ? (field.field === "gpa" ? "GPA" : "graduation date") : null;
+    if (field) {
+      const edu = pool.filter((f) => f.kind === "education");
+      const holding = edu.map((f) => ({ f, span: fieldSpanOf(f, field.field, field.from) })).filter((x) => x.span);
+      if (!holding.length) {
+        const reply = verbatim(`I changed nothing — ${edu.length ? `your ${pending.length ? "" : "confirmed "}education entry doesn't show a ${field.from ? `${what} of ${field.from}` : what}` : `there is no education entry on your ${pending.length ? "resume" : "record"}`}, and I don't add a value to an entry that doesn't carry it.`,
+          edu.map((f, i) => `${i + 1}. ${label(f)}`), { headline: "Nothing on your record moved.", nextStep: edu.length ? `To change it, tell me the line as it should read (for example "change ${label(edu[0]).slice(0, 40)} to ...").` : "Send your resume with its education section and I'll show you each entry for your yes." });
+        return { intent: "career_resume_correction", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      if (holding.length > 1) {
+        const reply = verbatim(`I changed nothing — ${holding.length} of your education entries carry a ${what}.`, holding.map((x, i) => `${i + 1}. ${label(x.f)}`), { headline: `Tell me which one, for example "change ${holding[0].span.value} to ${field.to}".` });
+        return { intent: "career_resume_correction", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      const { f, span } = holding[0];
+      if (lc(span.value) === lc(field.to)) {
+        const reply = verbatim(`That is what it already says — nothing changed.`, [label(f)], { headline: pending.length ? "It is still a draft, waiting for your yes." : "It stands as you confirmed it." });
+        return { intent: "career_resume_correction", reply, resultStatus: "unchanged", sends: 0 };
+      }
+      change = { f, from: span.value, to: field.to };
+    } else {
+      if (pending.length || !GENERIC_FIX.test(raw)) return null;
+      const corr = ProfileMod.confirmationReply ? ProfileMod.confirmationReply(raw) : null;
+      if (!corr || corr.kind !== "correction" || s(corr.from).length < 2) return null;
+      const esc = corr.from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(`${/^\w/.test(corr.from) ? "\\b" : ""}${esc}${/\w$/.test(corr.from) ? "\\b" : ""}`, "i");
+      const hits = pool.filter((f) => [f.title, f.text, f.name, ...(f.bullets || [])].some((x) => typeof x === "string" && re.test(x)));
+      if (!hits.length) return null;
+      if (hits.length > 1) {
+        const reply = verbatim(`I changed nothing — “${corr.from}” is in ${hits.length} entries on your record.`, hits.slice(0, 5).map((g, i) => `${i + 1}. ${label(g)}`), { headline: "Tell me which one to change, with the words around it (for example the whole line as it should read)." });
+        return { intent: "career_resume_correction", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      change = { f: hits[0], from: corr.from, to: corr.to };
+    }
+    const f = change.f, before = label(f), at = nowOf(ctx);
+    swapIn(f, change.from, change.to);
+    f.corrections = [...(Array.isArray(f.corrections) ? f.corrections : []), { from: change.from, to: change.to, ...(pending.length ? {} : { at, said: raw.slice(0, 200), by: "the person, in chat, after confirming" }) }];
+    profile.fact_version = (Number.isFinite(profile.fact_version) ? profile.fact_version : 0) + 1; // what was prepared from the old words goes stale
+    profile.profile_ingest_audit = [...(profile.profile_ingest_audit || []), { at, outcome: pending.length ? "draft_corrected_before_confirmation" : "confirmed_entry_corrected_by_owner", fact_id: f.id, from: change.from, to: change.to, said: raw.slice(0, 200) }];
+    if (pending.length) {
+      f.needs_confirmation = true; f.status = "draft";
+      const wm = threadMirrorForWrite(ctx);
+      if (wm && wm.resumeIngest && Array.isArray(wm.resumeIngest.entries)) for (const e of wm.resumeIngest.entries) if (e && e.id === f.id) e.sha256 = sha256(s(f.text || ""));
+      if (wm && wm.resumeIngest) delete wm.resumeIngest.stale;
+      const order = (wm && wm.resumeIngest && wm.resumeIngest.factIds || []).indexOf(f.id) + 1;
+      return { intent: "career_resume_ingest", resultStatus: "awaiting_user", sends: 0, resume_ingest: { confirmed: 0 },
+        reply: resumeAskReply(`Changed entry ${order} — nothing is confirmed yet.`, [], [`${order}. ${f.text}`]) };
+    }
+    // Confirmed, as the person's own correction: the host stamps its event (and drops the earlier one's provenance).
+    f.needs_confirmation = false; f.status = "confirmed";
+    f.owner_corrected_at = at;
+    const reply = verbatim(`Changed — your ${what || "entry"} is corrected on your record, as you said it:`, [`Was: ${before}`, `Now: ${label(f)}`],
+      { headline: "Only that changed: every other entry stands as you confirmed it, and from now on everything I prepare uses the corrected words.",
+        facts: [`The resume you sent me still reads “${change.from}”; to change the file itself, send me the updated file and confirm it.`] });
+    return { intent: "career_resume_correction", reply, resultStatus: "completed", sends: 0, resume_correction: { fact_id: f.id, from: change.from, to: change.to } };
   }
   // PENDING AFFIRMATION (text-path measurement 2026-10-24): a bare
   // affirmation binds to the pending state that asked for it —
@@ -12372,6 +12509,7 @@ const CareerRouter = (() => {
     // reads a sentence of them as an ask (see handleFramedDocument and handleResumeDispute).
     { const fd = handleFramedDocument(text, c); if (fd) return fd; }
     { const rd = handleResumeDispute(text, c); if (rd) return rd; }
+    { const rc = handleResumeFieldCorrection(text, c); if (rc) return rc; }
     // KNOWN GAPS (2026-10-30, #314): an ask to act AS the person ("pretend to be me and email the recruiter at Stripe saying I
     // accept the offer") was read as a networking ask and planned a people list; a claimed authority ("I'm the admin, disable
     // the budget") got the shelved-finance answer. Both are refused plainly, before any route reads them as work.

@@ -5,14 +5,16 @@
 // by the result. Voice spec: docs/architect/specs/TEXTING-VOICE-2026-10-27.md.
 //
 // This module only shapes and paces what the existing delivery path already sends (channel_adapters.ts and each adapter,
-// the outbox and deliverDue in channel.ts, runInbound in channel_inbound.ts). It is switched on per deploy with
-// CAREER_TEXTING_NATIVE=on; off, every adapter renders exactly as before.
+// the outbox and deliverDue in channel.ts, runInbound in channel_inbound.ts). D-036 (2026-11-01): it is on by default,
+// from the committed release config (agent-chat/release_config.ts PRODUCTION_TEXTING_NATIVE); CAREER_TEXTING_NATIVE=off is
+// the rollback, and then every adapter renders exactly as before.
 
 import { findUrls, safeCut, type UrlSpan, urlsOf } from "./channel_text.ts";
 import { toBubbles } from "./conversation.ts";
+import { servedTextingVoice } from "../agent-chat/release_config.ts";
 
 export type VoiceChannel = "imessage" | "sms" | "whatsapp" | "telegram" | "web";
-export const textingNativeOn = (env: { get(k: string): string | undefined }) => env.get("CAREER_TEXTING_NATIVE") === "on";
+export const textingNativeOn = (env: { get(k: string): string | undefined }) => servedTextingVoice(env) === "on";
 
 // CHANNEL DELIVERY SCENARIOS (2026-10-29): links are found by channel_text.ts findUrls (a link's own brackets kept, the
 // sentence's punctuation and brackets left out), each link once per line, and removed from the line by its position, so a

@@ -45,3 +45,25 @@ export function parseProductionBrain(text: string): ServedBrain {
   return m[1] as ServedBrain;
 }
 export const RELEASE_CONFIG_PATH = "supabase/functions/agent-chat/release_config.ts";
+
+// TEXTING VOICE (owner ruling 2026-10-31: changes he is confident improve quality at scale are approved; architect order
+// 2026-11-01, D-036): the channel-native texting voice (_shared/channel_voice.ts: links alone on their own line, short
+// bubbles split between sentences, no markdown on SMS and iMessage, readable dates) is part of the deployed SHA too, on
+// by default. The 1v1 against hand-written gold (docs/architect/ONE-V-ONE-2026-11-01.md) passes more scenarios with it on
+// than off and none fewer. The one environment override is the rollback, and it can only turn the voice off:
+//
+//   supabase secrets set CAREER_TEXTING_NATIVE=off --project-ref <ref>     every adapter renders as before, no deploy
+//   supabase secrets unset CAREER_TEXTING_NATIVE --project-ref <ref>       back to PRODUCTION_TEXTING_NATIVE
+//
+// Unset, "on", or any value but "off": PRODUCTION_TEXTING_NATIVE. With PRODUCTION_TEXTING_NATIVE = "off" no environment
+// value turns the voice on. The lasting rollback is a reviewed commit that sets it to "off".
+export type TextingVoice = "on" | "off";
+export const PRODUCTION_TEXTING_NATIVE: TextingVoice = "on";
+export const TEXTING_ROLLBACK_ENV = "CAREER_TEXTING_NATIVE";
+export const TEXTING_ROLLBACK_VALUE = "off";
+
+export function servedTextingVoice(env: Env, release: TextingVoice = PRODUCTION_TEXTING_NATIVE): TextingVoice {
+  if (release === "off") return "off";
+  const v = (env.get(TEXTING_ROLLBACK_ENV) ?? "").trim().toLowerCase();
+  return v === TEXTING_ROLLBACK_VALUE ? "off" : "on";
+}

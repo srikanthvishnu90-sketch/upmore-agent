@@ -78,9 +78,11 @@ const ROLE_ALIASES: Record<string, string[]> = {
   interns: ["intern", "internship", "co-op"],
 };
 // Short forms of places, read against the location (review of #366).
-const PLACE_ALIASES: Record<string, string[]> = {
-  nyc: ["new york", "nyc"], "new york": ["new york", "nyc"], sf: ["san francisco", "bay area"], "san francisco": ["san francisco", "bay area"],
-  "bay area": ["bay area", "san francisco"], la: ["los angeles"], "los angeles": ["los angeles"], dc: ["washington", "d.c."], "washington dc": ["washington"],
+// Each is a pattern on the location; "dc" is the city (Washington, DC / D.C.), never Washington state (review of #366).
+const DC = /\bwashington,?\s*d\.?\s?c\.?(?![a-z])|(?:^|[\s,(])d\.?\s?c\.?(?![a-z])/i;
+const PLACE_ALIASES: Record<string, RegExp> = {
+  nyc: /\bnew york\b|\bnyc\b/i, "new york": /\bnew york\b|\bnyc\b/i, sf: /\bsan francisco\b|\bbay area\b/i, "san francisco": /\bsan francisco\b|\bbay area\b/i,
+  "bay area": /\bbay area\b|\bsan francisco\b/i, la: /\blos angeles\b/i, "los angeles": /\blos angeles\b/i, dc: DC, "washington dc": DC, "washington d.c.": DC, "d.c.": DC,
 };
 const FILTER_NOISE = new Set(["the", "of", "a", "an", "my", "those", "these", "them", "that", "you", "i", "just", "jobs", "job", "roles", "role", "ones", "one", "postings", "posting", "positions", "position", "openings", "opening", "listings", "listing", "remaining", "other"]);
 // The words of an "all <words> ones" / "every <words> role you found" ask, or null when it is not that shape. "remote" is
@@ -113,7 +115,8 @@ export function manyWhatOf(rest: string): ManyWhat | null {
   const r = String(rest ?? "").toLowerCase().replace(/[.!?]+$/, "").trim();
   if (!r || /^(?:of\s+)?(?:them|these|those|ones?|on the list|from the list|you (?:found|listed|showed))\b/.test(r)) return null;
   // A search names what it is for: a role noun ("internships", "jobs", "roles", ...) must be in it.
-  if (!/\b(?:internships?|interns?|jobs?|roles?|positions?|openings?|postings?|co-?ops?)\b/.test(r) && !/^at\s+[a-z0-9]/.test(r)) return null;
+  // Any word left after the count that is not filler is a search (review of #366): "top 5 swe in la" searches; a count with
+  // only filler ("top 3 for me", "top 3 instead") is the thread's list. It never queues from the list with words dropped.
   // "at <company>" (review of #366): a company filter, anywhere after the role ("swe internships at google in nyc").
   let rr = r, company: string | null = null;
   const cm = /\s+at\s+([a-z0-9&.' -]{2,40}?)(?=\s+(?:in|near|around|based in)\s|$)/.exec(` ${rr}`);
@@ -140,15 +143,15 @@ async function postingsFor(o: ApplyChatDeps, what: ManyWhat): Promise<{ list: Sh
   // "internship" and "intern" apart, so they are not search words; the other role words and the place are.
   // A short form ("swe", "nyc") is never a search word (titles and places spell it out); it is read through its aliases below.
   const roleWords = what.words.filter((w) => !ROLE_ALIASES[w]);
-  const places = place && place !== "remote" ? (PLACE_ALIASES[place] ?? [place]).map(lower) : [];
+  const placeMatch = place && place !== "remote" ? (PLACE_ALIASES[place] ?? null) : null;
   const words = searchWords([...roleWords, ...(place && place !== "remote" && !PLACE_ALIASES[place] ? [place] : []), ...(place === "remote" ? ["remote"] : []),
     ...(what.company ? [what.company] : [])].join(" "));
   const hits = await o.postings.search(words, 500);
   const seen = new Set<string>();
   const matched = hits
     .filter((p) => p && !p.closed_at && what.words.every((w) => titleHas(String(p?.title ?? ""), w)))
-    .filter((p) => !place || (place === "remote" ? /\bremote\b/i.test(`${p?.location ?? ""} ${p?.title ?? ""}`) : places.some((x) => lower(p?.location).includes(x))))
-    .filter((p) => !what.company || sameCompany(p?.company, what.company) || lower(p?.company) === lower(what.company))
+    .filter((p) => !place || (place === "remote" ? /\bremote\b/i.test(`${p?.location ?? ""} ${p?.title ?? ""}`) : (placeMatch ? placeMatch.test(String(p?.location ?? "")) : lower(p?.location).includes(place))))
+    .filter((p) => !what.company || sameCompany(p?.company, what.company))
     // The same role at the same company and place, posted twice, is one application (review of #366).
     .filter((p) => { const k = `${lower(p?.company)}|${lower(p?.title)}|${lower(p?.location)}`; if (seen.has(k)) return false; seen.add(k); return true; });
   let rankedBy: "fit" | "newest" = "newest";

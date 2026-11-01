@@ -36,7 +36,7 @@ Deno.test("the one-message ask is read: count, role words, place; no role noun i
   eq(applyManyAsk("Apply me to the first 4 remote data analyst jobs"), { kind: "first", n: 4, what: { role: "data analyst jobs", words: ["data", "analyst"], place: "remote" } });
   eq(applyManyAsk("apply to the top 2"), { kind: "first", n: 2 });
   eq(applyManyAsk("apply to the top 3 of them"), { kind: "first", n: 3 });
-  eq(applyManyAsk("apply to the top 3 quickly"), { kind: "first", n: 3 });
+  eq(applyManyAsk("apply to the top 3 for me"), { kind: "first", n: 3 });
   eq(applyManyAsk("apply me to the top 3 jobs that fit this"), { kind: "first", n: 3 });
   // Polite commands stay commands.
   for (const m of ["I would like to apply to the top 5 frontend internships in Chicago", "please apply me to the top 5 frontend internships in Chicago"]) eq((applyManyAsk(m) as any)?.n, 5, m);
@@ -196,4 +196,44 @@ Deno.test("the reply: N of N counted, nothing past the Nth named (a refusal incl
   const v = await world([cleared, plain], { facts });
   await v.turn("apply to the top 1 frontend internships in Chicago");
   eq(await v.keys(), [plain.job_id], "a posting the fit excludes (clearance) ranks after one it does not");
+});
+
+// Review of #366, round 4.
+Deno.test("'dc' is Washington, DC, never Washington state", async () => {
+  const dc = [posting("Software Engineer Intern", "Washington, DC", 5), posting("Software Engineer Intern", "Washington D.C.", 6)];
+  const state = [posting("Software Engineer Intern", "Seattle, Washington", 1), posting("Software Engineer Intern", "Spokane, WA", 2)];
+  const w = await world([...state, ...dc]);
+  await w.turn("apply to the top 5 swe roles in dc");
+  eq(await w.keys(), keysOf(dc));
+});
+
+Deno.test("leftover words after the count always search or refuse, never the thread's list with words dropped", async () => {
+  const la = Array.from({ length: 2 }, (_, i) => posting(`Software Engineer Intern ${i}`, "Los Angeles, CA", i));
+  const other = [posting("Software Engineer Intern", "Austin, TX", 3)];
+  const list = [{ id: "lever:other:0e0c3b0e-0000-4000-8000-000000000001", company: "TEST Listed", title: "Data Analyst", location: "Chicago, IL", url: "https://jobs.lever.co/other/0e0c3b0e-0000-4000-8000-000000000001" }];
+  const w = await world([...other, ...la], { shortlist: list });
+  await w.turn("apply to the top 5 swe in la");
+  eq(await w.keys(), keysOf(la));
+  const v = await world([...other, ...la], { shortlist: list });
+  const r = await v.turn("apply to the top 3 quickly");
+  eq(r?.status, "none", r?.reply);
+  eq(await v.keys(), [], "nothing from the list");
+});
+
+Deno.test("'at <company>': the company itself, not a name that starts with it; found behind 600 newer postings of the role", async () => {
+  const google = [{ ...posting("Software Engineering Intern", "Chicago, IL", 900), company: "Google" }];
+  const lookalike = [{ ...posting("Software Engineering Intern, Platform", "Chicago, IL", 1), company: "Googleplex Labs" }];
+  const many = Array.from({ length: 600 }, (_, i) => posting(`Software Engineering Intern ${i}`, "Chicago, IL", 2 + i));
+  const w = await world([...lookalike, ...many, ...google]);
+  await w.turn("apply to the top 3 swe internships at google");
+  eq(await w.keys(), keysOf(google));
+});
+
+Deno.test("knocked-out postings rank after every other, even the newest with the most overlap", async () => {
+  const facts = [{ id: "f1", kind: "skill", text: "React", status: "confirmed" }, { id: "f3", kind: "education", text: "BS Computer Science, TEST University, 2028", status: "confirmed" }];
+  const knocked = [0, 1].map((m) => ({ ...posting(`Frontend Engineering Intern ${m}`, "Chicago, IL", m), description: "Security clearance required. React React React React." }));
+  const plain = [50, 51].map((m) => posting(`Frontend Engineering Intern ${m}`, "Chicago, IL", m));
+  const w = await world([...knocked, ...plain], { facts });
+  await w.turn("apply to the top 2 frontend internships in Chicago");
+  eq(await w.keys(), keysOf(plain));
 });

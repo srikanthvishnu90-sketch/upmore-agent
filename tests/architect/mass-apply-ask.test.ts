@@ -275,3 +275,37 @@ Deno.test("'at <company>': the reply names the companies included, exactly that 
   eq(await w.keys(), keysOf(google));
   assert(/Companies included: Google \(only that employer; no subsidiaries are on record\)\./.test(r!.reply), r!.reply);
 });
+
+// Review of #366, round 6: each named place in the search itself, behind 600 newer postings elsewhere.
+Deno.test("named places are searched by their spelled-out names: nyc, la, dc, texas, each behind 600 newer postings", async () => {
+  const cases: [string, any[]][] = [
+    ["apply to the top 5 swe jobs in nyc", [posting("Software Engineer", "New York, NY", 900), posting("Software Engineer II", "NYC", 901)]],
+    ["apply to the top 5 swe jobs in la", [posting("Software Engineer", "Los Angeles, CA", 900)]],
+    ["apply to the top 5 swe jobs in dc", [posting("Software Engineer", "Washington, DC", 900), posting("Software Engineer II", "Washington D.C.", 901)]],
+    ["apply to the top 5 in texas", [posting("Accountant", "Dallas, TX", 900), posting("Nurse", "Houston, Texas", 901)]],
+  ];
+  const many = Array.from({ length: 600 }, (_, i) => posting(`Software Engineer ${i}`, "Chicago, IL", 1 + i));
+  for (const [ask, want] of cases) {
+    const w = await world([...many, ...want, posting("Software Engineer", "Seattle, Washington", 950)]);
+    await w.turn(ask);
+    eq(await w.keys(), keysOf(want), ask);
+  }
+});
+
+Deno.test("'<City>, <ST>' and 'in or near <place>' are places, never role words", async () => {
+  const austin = [posting("Software Engineer", "Austin, TX", 5)], portland = [posting("Barista", "Portland, OR", 6)];
+  const chicago = [posting("Frontend Engineering Intern", "Chicago, IL", 7)];
+  const all = [...austin, ...portland, ...chicago, posting("Software Engineer", "Dallas, TX", 1)];
+  const a = await world(all); await a.turn("apply to the top 5 swe jobs in Austin, TX"); eq(await a.keys(), keysOf(austin));
+  const b = await world(all); await b.turn("apply to the top 5 roles in Portland, OR"); eq(await b.keys(), keysOf(portland));
+  const c = await world(all); await c.turn("apply to the top 5 frontend internships in or near chicago"); eq(await c.keys(), keysOf(chicago));
+});
+
+Deno.test("'at google' is exactly Google: never Google DeepMind, and the reply names only what was queued", async () => {
+  const google = [{ ...posting("Software Engineering Intern", "Chicago, IL", 3), company: "Google LLC" }];
+  const dm = [{ ...posting("Software Engineering Intern", "Chicago, IL", 4), company: "Google DeepMind" }];
+  const w = await world([...dm, ...google]);
+  const r = await w.turn("apply to the top 5 swe internships at google");
+  eq(await w.keys(), keysOf(google));
+  assert(/Companies included: Google LLC \(only that employer/.test(r!.reply) && !/DeepMind/.test(r!.reply), r!.reply);
+});

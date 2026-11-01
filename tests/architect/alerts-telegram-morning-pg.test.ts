@@ -38,8 +38,19 @@ const tickAt = (from: number, tz: string, hour: number, minute = 4) => {
   throw new Error(`no ${hour}:${minute} in ${tz} after ${new Date(from).toISOString()}`);
 };
 const NY = "America/New_York", CHI = "America/Chicago";
-const _d = new Date();
-const T0 = tickAt(Date.UTC(_d.getUTCFullYear(), _d.getUTCMonth(), _d.getUTCDate() + 1, 12), NY, 11, 0); // tomorrow 11:00 New York
+// Fixed dates, never today's (review of PR #365): each run deliberately crosses a US clock change between the ask and the
+// mornings, so "8 on the person's clock" is held across a 25-hour and a 23-hour day.
+//   fall-back:     ask Sat 2026-10-31 11:00 New York (EDT); clocks go back Sun 2026-11-01 02:00; mornings Nov 1, 2, 3 (EST)
+//   spring-forward: ask Sat 2027-03-13 11:00 New York (EST); clocks go forward Sun 2027-03-14 02:00; mornings Mar 14, 15, 16 (EDT)
+const offsetMin = (at: number, tz: string) => {
+  const p = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "longOffset" }).formatToParts(new Date(at)).find((x) => x.type === "timeZoneName")!.value;
+  const m = /GMT([+-])(\d\d):(\d\d)/.exec(p);
+  return m ? (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) : 0;
+};
+const RUNS: { name: string; T0: number; offsets: [number, number] }[] = [
+  { name: "across the fall-back (Nov 1 2026)", T0: tickAt(Date.UTC(2026, 9, 31, 12), NY, 11, 0), offsets: [-240, -300] },
+  { name: "across the spring-forward (Mar 14 2027)", T0: tickAt(Date.UTC(2027, 2, 13, 12), NY, 11, 0), offsets: [-300, -240] },
+];
 const PEOPLE: Record<string, string> = { "tok-1": "00000000-0000-4000-8000-000000000a01", "tok-2": "00000000-0000-4000-8000-000000000a02", "tok-3": "00000000-0000-4000-8000-000000000a03" };
 const CHAT: Record<string, string> = { "tok-1": "tg:7100000001", "tok-2": "tg:7100000002", "tok-3": "tg:7100000003" };
 
@@ -98,10 +109,12 @@ const prefsOf = async (pg: Pg, id: string) => JSON.parse((await pg.sql(`select c
 // The numbered items of a morning message, in order: [n, url].
 const items = (text: string) => [...text.matchAll(/^(\d+)\. [^\n]*\n\s*(https:\/\/\S+)/gm)].map((m) => [Number(m[1]), m[2]] as const);
 
-Deno.test({
-  name: "job alerts on Telegram: said once -> one morning message a day on the person's chat, live postings only, quiet hours and zone, never twice, feedback and stop obeyed",
+for (const { name: run, T0, offsets } of RUNS) Deno.test({
+  name: `job alerts on Telegram, ${run}: said once -> one morning message a day on the person's chat, live postings only, quiet hours and zone, never twice, feedback and stop obeyed`,
   sanitizeResources: false, sanitizeOps: false,
   async fn(t) {
+    // The dates really do cross the change: New York's offset at the ask differs from its offset at the first morning.
+    eq([offsetMin(T0, NY), offsetMin(tickAt(T0, NY, 8), NY)], offsets, `${run}: the ask and the first morning are on either side of the change`);
     if (!pgBinDir()) { if (CI) throw Error("needs Postgres 16 binaries in CI"); console.log("NOT_RUN locally: no Postgres binaries"); return; }
     const pg = await startPg();
     let handler: Awaited<ReturnType<typeof careerHandler>> | null = null;
@@ -264,7 +277,8 @@ import { parseFeedback } from "../../supabase/functions/_shared/career_alert_fee
 Deno.test("cadence and feedback are read only from what the person said", () => {
   eq(cadenceFrom("send me new frontend internships in Chicago every morning"), { digest: true, report_hour: 8 }, "every morning");
   eq(cadenceFrom("data analyst roles in Chicago every morning at 6am central"), { digest: true, report_hour: 6, tz: CHI }, "hour and zone");
-  eq(cadenceFrom("send me pm jobs every evening at 7"), { digest: true, report_hour: 19 }, "evening hour");
+  eq(cadenceFrom("send me pm jobs every evening at 7pm"), { digest: true, report_hour: 19 }, "evening hour");
+  eq(cadenceFrom("send me pm jobs every evening at 7"), { digest: true, report_hour: 18 }, "a bare number is not a time: the evening's default hour");
   eq(cadenceFrom("tell me right away when a data analyst role opens"), { digest: false }, "instant");
   eq(cadenceFrom("watch for data analyst roles in Chicago"), null, "nothing said, nothing changed");
   eq(cadenceFrom("what did I do this morning"), null, "a morning that is not a cadence");

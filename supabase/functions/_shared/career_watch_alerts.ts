@@ -84,14 +84,47 @@ export function cadenceFrom(message: unknown): Cadence | null {
   if (!when) return null;
   const part = when[1] ?? when[3] ?? "day";
   let hour = part === "evening" ? 18 : 8;
-  const at = m.match(/\bat (\d{1,2})(?::00)? ?(am|pm|a\.m\.|p\.m\.)?(?=\W|$)/);
-  if (at) {
-    const h = Number(at[1]), pm = at[2]?.startsWith("p") || (!at[2] && part === "evening" && h < 12);
+  const t = timeSaid(m);
+  if (t) {
+    const h = t.h, pm = t.ampm === "pm" || (t.ampm === "am" ? false : (t.dayPart ?? part) === "evening" && h < 12);
     if (h >= 1 && h <= 12) hour = (h % 12) + (pm ? 12 : 0);
     else if (h === 0 || (h > 12 && h <= 23)) hour = h;
   }
-  const z = m.match(/\b(eastern|central|mountain|pacific|et|ct|mt|pt|est|edt|cst|cdt|mst|mdt|pst|pdt)\b(?: time)?|\b(new york|chicago|denver) time\b/);
-  return { digest: true, report_hour: hour, ...(z ? { tz: ZONES[z[1] ?? z[2]] } : {}) };
+  const tz = zoneSaid(m, t);
+  return { digest: true, report_hour: hour, ...(tz ? { tz } : {}) };
+}
+// A time of day, only in a time's own form (review of PR #365: "at 3 companies" set the hour to 3): "6am", "6 pm", "6:30",
+// "6 o'clock", or "at 6" followed by a time-of-day word ("at 7 in the evening", "at 6 tomorrow morning") or by a zone
+// ("at 6 central"). A bare number is never an hour.
+const AMPM = "(am|pm|a\\.m\\.|p\\.m\\.)";
+const ZONE_WORDS = "eastern|central|mountain|pacific|et|ct|mt|pt|est|edt|cst|cdt|mst|mdt|pst|pdt";
+const TIME_FORMS: RegExp[] = [
+  new RegExp(`\\b(?:at )?(\\d{1,2})(?::(\\d\\d))? ?${AMPM}(?=\\W|$)`),
+  new RegExp(`\\b(?:at )?(\\d{1,2}):(\\d\\d)\\b`),
+  new RegExp(`\\b(?:at )?(\\d{1,2}) ?o'?clock\\b`),
+  new RegExp(`\\bat (\\d{1,2}) (?:in the |tomorrow |each |every )?(morning|evening|afternoon|night|tonight)\\b`),
+  new RegExp(`\\bat (\\d{1,2}) (?=(?:${ZONE_WORDS})\\b)`),
+];
+export function timeSaid(m: string): { h: number; ampm: "am" | "pm" | null; dayPart: "morning" | "evening" | null; end: number } | null {
+  for (const re of TIME_FORMS) {
+    const x = re.exec(m);
+    if (!x) continue;
+    const a = x.slice(2).find((g) => g && /^[ap]\.?m\.?$/.test(g)) ?? null;
+    const dp = x.slice(2).find((g) => g && /^(morning|evening|afternoon|night|tonight)$/.test(g)) ?? null;
+    return { h: Number(x[1]), ampm: a ? (a.startsWith("p") ? "pm" : "am") : null, dayPart: dp ? (dp === "morning" ? "morning" : "evening") : null, end: x.index + x[0].length };
+  }
+  return null;
+}
+// A zone only where it can only be a zone (review of PR #365: "central London" became Chicago, "PT" is also part-time):
+// right after a time ("at 6am PT", "6:30 central"), or said as a time zone ("eastern time", "Chicago time", "PST").
+const UNAMBIGUOUS = /\b(est|edt|cst|cdt|mst|mdt|pst|pdt)\b|\b(eastern|central|mountain|pacific|new york|chicago|denver) time\b/;
+export function zoneSaid(m: string, t: { end: number } | null = timeSaid(m)): string | null {
+  if (t) {
+    const after = new RegExp(`^ ?(?:${ZONE_WORDS})\\b`).exec(m.slice(t.end));
+    if (after) return ZONES[after[0].trim()] ?? null;
+  }
+  const u = UNAMBIGUOUS.exec(m);
+  return u ? ZONES[u[1] ?? u[2]] ?? null : null;
 }
 function withCadence(prefs: AlertPrefs, c: Cadence | null): AlertPrefs {
   if (!c) return prefs;

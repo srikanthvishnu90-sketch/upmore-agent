@@ -71,7 +71,7 @@ import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_opti
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
 import { boardFetchFeed, supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts"; // FEATURE E2E: boardFetchFeed
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
-import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
+import { previewWatchAlerts, scheduleLine, syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { alertFeedbackTurn, supabaseFeedbackReads } from "../_shared/career_alert_feedback.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
 import { feature1Deps, resumeOnFileReader } from "../_shared/career_apply_from_chat.ts"; // FEATURE 1; FEATURE 16: resumeOnFileReader
@@ -1157,6 +1157,15 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (spendNote) {
         out = { ...out, reply: `${out.reply}\n${spendNote}`, ...(out.parts ? { parts: [...out.parts, spendNote] } : {}) };
         agentMeta = { ...(agentMeta || {}), model_limit: spend.refused() };
+      }
+      // Re-review of PR #365: the daily schedule this turn sets is decided BEFORE the reply is written (previewWatchAlerts,
+      // the bridge's own code with nothing written), so the reply states the exact hour, minute and zone the save below
+      // writes, weekdays only when so, and when quiet hours move it (6 AM -> 7 AM); midnight is asked about, not set.
+      if (ctx._hostPatch?.erase !== true) {
+        const preview = await previewWatchAlerts({ userId: user.id, before: loaded.watchState, after: ctx.alertWatchState, store: supabaseAlertStore(admin), now: Date.now(), message })
+          .catch((e) => { console.error("career watch alerts preview:", e?.message ?? e); return null; });
+        const line = preview ? scheduleLine(preview) : null;
+        if (line) out = { ...out, reply: `${out.reply}\n\n${line}`, ...(out.parts ? { parts: [...out.parts, line] } : {}) };
       }
       const reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
       const reminderLines = reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "").filter(Boolean);

@@ -23,7 +23,7 @@ const text = (v: unknown) => String(v ?? "").replace(/\s+/g, " ").trim();
 const texts = (v: unknown, n = 20) => [...new Set((Array.isArray(v) ? v : []).map(text).filter((x) => x && x.length <= 60))].slice(0, n);
 
 export type WatchSync =
-  | { action: "unchanged" | "none" | "saved" | "off" | "removed" }
+  | { action: "unchanged" | "none" | "saved" | "off" | "removed"; schedule?: Schedule }
   | { action: "refused"; reason: string };
 
 // Each watch of a profile, as the alerts run matches it. A profile that is not 152's, or a watch with no title term, gives none.
@@ -67,7 +67,7 @@ const same = (a: any, b: any) => JSON.stringify(a ? { ...a, updated_at: null } :
 // JOB ALERTS AS A REAL OUTCOME (2026-10-31): the cadence the person said with a watch ("every morning", "every morning at
 // 6am central", "once a day", "every evening"), read from their own words: one message a day at that hour (Q326, Q336), with
 // no instant alerts between, in the zone they named. "right away" / "as soon as" / "instantly" turns the daily message back
-// into instant alerts. Nothing said: nothing changed. The default hours: morning 8, evening 18, a day 8.
+// into instant alerts. Nothing said: nothing changed.
 const ZONES: Record<string, string> = {
   eastern: "America/New_York", et: "America/New_York", est: "America/New_York", edt: "America/New_York", "new york": "America/New_York",
   central: "America/Chicago", ct: "America/Chicago", cst: "America/Chicago", cdt: "America/Chicago", chicago: "America/Chicago",
@@ -76,44 +76,79 @@ const ZONES: Record<string, string> = {
 };
 const canon = (v: unknown): unknown => Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v as object).sort().map((k) => [k, canon((v as any)[k])])) : v;
 const canonJson = (v: unknown) => JSON.stringify(canon(v));
-export interface Cadence { digest: boolean; report_hour?: number; tz?: string }
+// Re-review of PR #365: a stated hour is honored ("every evening at 7" is 7 PM, "every morning at 7" 7 AM, "every night
+// at 9" 9 PM, "every evening at 7:30" 7:30 PM, "every day at noon" 12 PM); minutes are kept (report_minute); "every
+// weekday" sends Monday to Friday only (weekdays_only); midnight is asked about, never set (it is inside quiet hours).
+// Defaults with no time said: morning 8, evening 18, night 21, a day 8.
+export interface Cadence { digest: boolean; report_hour?: number; report_minute?: number; tz?: string; weekdays?: boolean; ask?: "midnight" }
+type Part = "morning" | "evening" | "night" | "day";
+const DEFAULT_HOUR: Record<Part, number> = { morning: 8, evening: 18, night: 21, day: 8 };
+const WEEKDAYS = /\b(?:every|each|on) weekdays?\b|\bweekdays only\b|\b(?:monday|mon)\s*(?:-|to|through|thru)\s*(?:friday|fri)\b|\bweekdays\b/;
 export function cadenceFrom(message: unknown): Cadence | null {
   const m = String(message ?? "").toLowerCase().replace(/\s+/g, " ");
   if (/\b(right away|as soon as (?:they|it|one|there)|instantly|in real[- ]time)\b/.test(m)) return { digest: false };
-  const when = m.match(/\b(?:every|each) (morning|evening|day|weekday)\b|\b(daily|once a day)\b/);
+  const when = m.match(/\b(?:every|each) (morning|evening|night|day|weekday)s?\b|\b(daily|once a day|nightly|weekdays)\b/);
   if (!when) return null;
-  const part = when[1] ?? when[3] ?? "day";
-  let hour = part === "evening" ? 18 : 8;
+  const w = when[1] ?? when[2];
+  // "every weekday evening", "daily in the morning": a part of day said beside a day-only cadence is that part's.
+  const named = w === "day" || w === "weekday" || w === "daily" || w === "once a day" || w === "weekdays" ? /\b(morning|evening|night)s?\b/.exec(m)?.[1] : w;
+  const part: Part = named === "morning" ? "morning" : named === "evening" ? "evening" : named === "night" || named === "nightly" ? "night" : "day";
+  const weekdays = WEEKDAYS.test(m);
+  const base = { digest: true as const, ...(weekdays ? { weekdays: true } : {}) };
   const t = timeSaid(m);
-  if (t) {
-    const h = t.h, pm = t.ampm === "pm" || (t.ampm === "am" ? false : (t.dayPart ?? part) === "evening" && h < 12);
-    if (h >= 1 && h <= 12) hour = (h % 12) + (pm ? 12 : 0);
-    else if (h === 0 || (h > 12 && h <= 23)) hour = h;
-  }
   const tz = zoneSaid(m, t);
-  return { digest: true, report_hour: hour, ...(tz ? { tz } : {}) };
+  const zoned = tz ? { tz } : {};
+  if (!t) return { ...base, report_hour: DEFAULT_HOUR[part], report_minute: 0, ...zoned };
+  const hour = hourOf(t, part);
+  if (hour === null) return { ...base, ...zoned };
+  if (hour === 0 && t.minute === 0 || t.midnight) return { ...base, ask: "midnight", ...zoned };
+  return { ...base, report_hour: hour, report_minute: t.minute, ...zoned };
+}
+// The hour on a 24-hour clock from what was said: am/pm as said; otherwise the part of day the time or the cadence names
+// (evening, night and afternoon: 1-11 are PM); "every day at N" with no am/pm: 7-11 AM, 1-6 PM, 12 noon. 13-23 as said.
+function hourOf(t: TimeSaid, part: Part): number | null {
+  if (t.noon) return 12;
+  if (t.midnight) return 0;
+  const h = t.h;
+  if (h > 23) return null;
+  if (t.ampm) return h > 12 ? null : (h % 12) + (t.ampm === "pm" ? 12 : 0);
+  if (h === 0 || h > 12) return h;
+  const p = t.dayPart ?? part;
+  if (p === "morning") return h === 12 ? 12 : h;
+  if (p === "evening" || p === "night") return h === 12 ? 0 : h + 12;
+  return h === 12 ? 12 : h >= 7 ? h : h + 12; // a day
 }
 // A time of day, only in a time's own form (review of PR #365: "at 3 companies" set the hour to 3): "6am", "6 pm", "6:30",
-// "6 o'clock", or "at 6" followed by a time-of-day word ("at 7 in the evening", "at 6 tomorrow morning") or by a zone
-// ("at 6 central"). A bare number is never an hour.
+// "6 o'clock", "noon", "midnight", "at 6" followed by a time-of-day word ("at 7 in the evening") or a zone ("at 6
+// central"), or "at 7" said right after the cadence ("every evening at 7", "daily at 9, please"). A number that runs on
+// into other words ("at 3 companies") is never an hour.
 const AMPM = "(am|pm|a\\.m\\.|p\\.m\\.)";
 const ZONE_WORDS = "eastern|central|mountain|pacific|et|ct|mt|pt|est|edt|cst|cdt|mst|mdt|pst|pdt";
+const CADENCE = "(?:(?:every|each) (?:morning|evening|night|day|weekday)s?|daily|nightly|once a day|weekdays)";
 const TIME_FORMS: RegExp[] = [
   new RegExp(`\\b(?:at )?(\\d{1,2})(?::(\\d\\d))? ?${AMPM}(?=\\W|$)`),
   new RegExp(`\\b(?:at )?(\\d{1,2}):(\\d\\d)\\b`),
   new RegExp(`\\b(?:at )?(\\d{1,2}) ?o'?clock\\b`),
   new RegExp(`\\bat (\\d{1,2}) (?:in the |tomorrow |each |every )?(morning|evening|afternoon|night|tonight)\\b`),
   new RegExp(`\\bat (\\d{1,2}) (?=(?:${ZONE_WORDS})\\b)`),
+  new RegExp(`\\b${CADENCE},? at (\\d{1,2})(?=\\s*(?:$|[,.;!?)]|and\\b|please\\b|then\\b|instead\\b|from now\\b|time\\b))`),
 ];
-export function timeSaid(m: string): { h: number; ampm: "am" | "pm" | null; dayPart: "morning" | "evening" | null; end: number } | null {
+export interface TimeSaid { h: number; minute: number; ampm: "am" | "pm" | null; dayPart: "morning" | "evening" | null; end: number; noon?: boolean; midnight?: boolean }
+export function timeSaid(m: string): TimeSaid | null {
+  let best: TimeSaid | null = null;
   for (const re of TIME_FORMS) {
     const x = re.exec(m);
     if (!x) continue;
     const a = x.slice(2).find((g) => g && /^[ap]\.?m\.?$/.test(g)) ?? null;
     const dp = x.slice(2).find((g) => g && /^(morning|evening|afternoon|night|tonight)$/.test(g)) ?? null;
-    return { h: Number(x[1]), ampm: a ? (a.startsWith("p") ? "pm" : "am") : null, dayPart: dp ? (dp === "morning" ? "morning" : "evening") : null, end: x.index + x[0].length };
+    const mm = x.slice(2).find((g) => g && /^\d\d$/.test(g));
+    const t: TimeSaid = { h: Number(x[1]), minute: mm && Number(mm) < 60 ? Number(mm) : 0, ampm: a ? (a.startsWith("p") ? "pm" : "am") : null,
+      dayPart: dp ? (dp === "morning" ? "morning" : "evening") : null, end: x.index + x[0].length };
+    return t;
   }
-  return null;
+  const n = /\b(?:at )?(noon|midday|midnight)\b/.exec(m);
+  if (n) best = { h: n[1] === "midnight" ? 0 : 12, minute: 0, ampm: null, dayPart: null, end: n.index + n[0].length, ...(n[1] === "midnight" ? { midnight: true } : { noon: true }) };
+  return best;
 }
 // A zone only where it can only be a zone (review of PR #365: "central London" became Chicago, "PT" is also part-time):
 // right after a time ("at 6am PT", "6:30 central"), or said as a time zone ("eastern time", "Chicago time", "PST").
@@ -127,9 +162,41 @@ export function zoneSaid(m: string, t: { end: number } | null = timeSaid(m)): st
   return u ? ZONES[u[1] ?? u[2]] ?? null : null;
 }
 function withCadence(prefs: AlertPrefs, c: Cadence | null): AlertPrefs {
-  if (!c) return prefs;
+  if (!c || c.ask) return prefs; // midnight: asked about, nothing set
   if (!c.digest) return prefs.digest ? { ...prefs, digest: false, max_instant_per_day: DEFAULT_PREFS.max_instant_per_day } : prefs;
-  return { ...prefs, digest: true, max_instant_per_day: 0, report_hour: c.report_hour ?? prefs.report_hour };
+  const { weekdays_only: _w, report_minute: _m, ...rest } = prefs;
+  const report_minute = c.report_hour !== undefined ? c.report_minute ?? 0 : prefs.report_minute ?? 0;
+  return { ...rest, digest: true, max_instant_per_day: 0, report_hour: c.report_hour ?? prefs.report_hour,
+    ...(report_minute ? { report_minute } : {}), ...(c.weekdays ?? prefs.weekdays_only ? { weekdays_only: true } : {}) };
+}
+// What the person is told after a turn that set or changed their daily message (handler-career.ts): the exact hour,
+// minute and zone saved, weekdays only when so, and when quiet hours move it, the time it will really arrive. Midnight
+// is asked about instead. Null when this turn set no daily schedule.
+export function scheduleLine(r: WatchSync): string | null {
+  if (!("schedule" in r) || !r.schedule) return null;
+  const s = r.schedule;
+  const quiet = `${clock(s.quiet_start, 0)} to ${clock(s.quiet_end, 0)}`;
+  if (s.ask === "midnight") return `You asked for midnight, which is inside your quiet hours (${quiet}), so I didn't set a time for your daily job message. What time should it come?`;
+  if (!s.digest) return null;
+  const at = clock(s.hour, s.minute);
+  const days = s.weekdays_only ? "every weekday (Monday to Friday)" : "every day";
+  const moved = inQuiet(s.hour, s.quiet_start, s.quiet_end) ? ` ${at} is inside your quiet hours (${quiet}), so it will arrive at ${clock(s.quiet_end, 0)} instead.` : "";
+  return `Your job matches will come once a day, ${days} at ${at} ${s.tz} time, with no alerts in between.${moved}`;
+}
+const clock = (h: number, m: number) => `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+const inQuiet = (h: number, a: number, b: number) => a === b ? false : a > b ? h >= a || h < b : h >= a && h < b;
+export interface Schedule { digest: boolean; hour: number; minute: number; tz: string; weekdays_only: boolean; quiet_start: number; quiet_end: number; ask?: "midnight" }
+const scheduleOf = (row: { tz: string; prefs: AlertPrefs }, c: Cadence | null): Schedule | undefined => c && (c.digest || c.ask)
+  ? { digest: !!row.prefs.digest, hour: row.prefs.report_hour, minute: row.prefs.report_minute ?? 0, tz: row.tz, weekdays_only: !!row.prefs.weekdays_only,
+    quiet_start: row.prefs.quiet_start, quiet_end: row.prefs.quiet_end, ...(c.ask ? { ask: c.ask } : {}) }
+  : undefined;
+
+// The same decision as syncWatchAlerts with nothing written (re-review of PR #365): the handler reads it BEFORE the reply
+// is written, so the reply states the exact schedule the save after the turn's commit writes (that save stays after the
+// commit: a refused save writes no alert settings). Same inputs, same code, so the same row.
+export function previewWatchAlerts(o: Parameters<typeof syncWatchAlerts>[0]): Promise<WatchSync> {
+  const store: AlertStore = { ...o.store, save: async () => {}, ...(o.store.remove ? { remove: async () => {} } : {}) } as AlertStore;
+  return syncWatchAlerts({ ...o, store });
 }
 
 export async function syncWatchAlerts(o: {
@@ -161,10 +228,11 @@ export async function syncWatchAlerts(o: {
   // since the last run were never alerted) and, past the report hour, today's report marked done before it was sent.
   if (prev && prev.prefs.on && canonJson(prev.prefs.interests ?? null) === canonJson(interests)) {
     // The same watches, a new cadence ("make it every evening instead"): only the cadence changes, the counters stay.
-    const next = withCadence(prev.prefs, cadence), tz = cadence?.tz ?? prev.tz;
-    if (canonJson(next) === canonJson(prev.prefs) && tz === prev.tz) return { action: "unchanged" };
+    const next = withCadence(prev.prefs, cadence), tz = cadence?.ask ? prev.tz : cadence?.tz ?? prev.tz;
+    const schedule = scheduleOf({ tz, prefs: next }, cadence);
+    if (canonJson(next) === canonJson(prev.prefs) && tz === prev.tz) return { action: "unchanged", ...(schedule ? { schedule } : {}) };
     await o.store.save({ ...prev, tz, prefs: next });
-    return { action: "saved" };
+    return { action: "saved", ...(schedule ? { schedule } : {}) };
   }
   // The table keeps the watches' words in `keywords` (1 to 10) and their places in `locations` (up to 10); the
   // watches themselves decide the match.
@@ -174,9 +242,10 @@ export async function syncWatchAlerts(o: {
   const keywords = [...new Set(interests.flatMap((i) => i.keywords))].slice(0, 10);
   const v = validPrefs({ keywords, locations: [...new Set(interests.flatMap((i) => i.locations))].slice(0, 10) }, prev?.prefs ?? DEFAULT_PREFS);
   if (!v.ok) return { action: "refused", reason: v.error };
-  const row = startWatching(prev, { userId: o.userId, prefs: withCadence({ ...v.prefs, interests }, cadence), tz: cadence?.tz ?? prev?.tz ?? DEFAULT_TZ, now: o.now });
+  const row = startWatching(prev, { userId: o.userId, prefs: withCadence({ ...v.prefs, interests }, cadence), tz: (cadence?.ask ? null : cadence?.tz) ?? prev?.tz ?? DEFAULT_TZ, now: o.now });
   await o.store.save(row);
-  return { action: "saved" };
+  const schedule = scheduleOf(row, cadence);
+  return { action: "saved", ...(schedule ? { schedule } : {}) };
 }
 
 // JOB ALERTS AS A REAL OUTCOME (2026-10-31): the person's "less like N" / "more like N" (career_alert_feedback.ts) kept on

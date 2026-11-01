@@ -31,6 +31,10 @@ export interface AlertPrefs {
   // report_hour with only the matches new since the last one, numbered, and nothing on a day without any (Q326, Q336);
   // the bridge sets max_instant_per_day to 0 with it, so nothing goes out between.
   digest?: boolean;
+  // Re-review of PR #365: the minute of the daily message ("7:30 PM"; absent: on the hour), and "every weekday" (no message
+  // on Saturday or Sunday in the person's zone; what matched over the weekend goes in Monday's).
+  report_minute?: number;
+  weekdays_only?: boolean;
   // The person's "less like N" / "more like N" on a delivered alert (career_alert_feedback.ts), standing rules (Q498): a
   // posting like a "less" one (its company, or a distinct word of its title) is never news unless it is also like a
   // "more" one; one like a "more" one goes first.
@@ -208,6 +212,11 @@ function local(at: number, tz: string): { date: string; hour: number; minute: nu
   const g = (t: string) => parts.find((x) => x.type === t)?.value ?? "0";
   return { date: `${g("year")}-${g("month")}-${g("day")}`, hour: Number(g("hour")) % 24, minute: Number(g("minute")) };
 }
+// At or after the person's report time on their clock; with weekdays_only, never on a Saturday or Sunday.
+export function reportDue(l: { date: string; hour: number; minute: number }, p: Pick<AlertPrefs, "report_hour" | "report_minute" | "weekdays_only">): boolean {
+  if (p.weekdays_only) { const wd = new Date(`${l.date}T12:00:00Z`).getUTCDay(); if (wd === 0 || wd === 6) return false; }
+  return l.hour * 60 + l.minute >= p.report_hour * 60 + (p.report_minute ?? 0);
+}
 const isQuiet = (hour: number, p: AlertPrefs) =>
   p.quiet_start === p.quiet_end ? false : p.quiet_start > p.quiet_end ? hour >= p.quiet_start || hour < p.quiet_end : hour >= p.quiet_start && hour < p.quiet_end;
 // Whether an instant falls in the person's quiet hours, in their zone.
@@ -254,8 +263,8 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
       out.push({ userId: u.id, kind: "alert", key: `alert:${p.job_id}`, at, job_id: p.job_id,
         text: `New match: ${line(p)}, first seen ${ago(mins)}.\n${httpsUrl(p.url)}` });
     }
-    // The daily report: once per local day, at or after the person's hour.
-    if (l.hour >= prefs.report_hour && u.last_report_on !== l.date) {
+    // The daily report: once per local day, at or after the person's hour and minute (and, weekdays only, Monday to Friday).
+    if (reportDue(l, prefs) && u.last_report_on !== l.date) {
       const held = new Set(u.held || []);
       const listed = new Map<string, Set<string>>();
       // A morning message (prefs.digest) lists only what is new since the last one: what was held since (every match is

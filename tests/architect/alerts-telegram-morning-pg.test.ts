@@ -157,6 +157,7 @@ for (const { name: run, T0, offsets } of RUNS) Deno.test({
         assert(r?.prefs?.on === true && r.prefs.interests?.length === 1, `the bridge saved the person's settings: ${JSON.stringify(r)}`);
         eq([r.prefs.digest, r.prefs.max_instant_per_day, r.prefs.report_hour], [true, 0, 8], "every morning: one message at 8, no instant alerts");
         eq(r.tz, NY, "no zone said: the default zone");
+        assert(w.reply.includes("once a day, every day at 8:00 AM America/New_York time"), `the reply states the schedule saved: ${w.reply}`);
         eq(await prefsOf(pg, B), null, "nobody else's settings were written");
       });
 
@@ -245,9 +246,11 @@ for (const { name: run, T0, offsets } of RUNS) Deno.test({
         eq(w.intent, "career_watch_create", w.reply);
         const r = await prefsOf(pg, B);
         eq([r.tz, r.prefs.report_hour, r.prefs.digest, r.prefs.max_instant_per_day], [CHI, 6, true, 0], `the zone and hour said: ${JSON.stringify(r)}`);
+        assert(w.reply.includes("at 6:00 AM America/Chicago time") && w.reply.includes("so it will arrive at 7:00 AM instead"), `the reply states the hour, zone and quiet hours' move: ${w.reply}`);
         // Someone who asked for nothing in particular keeps instant alerts.
         const c = await sayC("watch for data analyst roles in Chicago", at);
         eq(c.intent, "career_watch_create", c.reply);
+        assert(!/once a day/.test(c.reply), `no schedule said: none stated: ${c.reply}`);
         eq([(await prefsOf(pg, C)).prefs.digest ?? false, (await prefsOf(pg, C)).prefs.max_instant_per_day], [false, 3], "no cadence said: instant alerts as before");
         // Rewind: B's own morning, from a fresh posting after the ask.
         await pg.sql(`delete from public.career_outbox where user_id in ('${B}', '${C}')`);
@@ -275,10 +278,10 @@ for (const { name: run, T0, offsets } of RUNS) Deno.test({
 import { cadenceFrom } from "../../supabase/functions/_shared/career_watch_alerts.ts";
 import { parseFeedback } from "../../supabase/functions/_shared/career_alert_feedback.ts";
 Deno.test("cadence and feedback are read only from what the person said", () => {
-  eq(cadenceFrom("send me new frontend internships in Chicago every morning"), { digest: true, report_hour: 8 }, "every morning");
-  eq(cadenceFrom("data analyst roles in Chicago every morning at 6am central"), { digest: true, report_hour: 6, tz: CHI }, "hour and zone");
-  eq(cadenceFrom("send me pm jobs every evening at 7pm"), { digest: true, report_hour: 19 }, "evening hour");
-  eq(cadenceFrom("send me pm jobs every evening at 7"), { digest: true, report_hour: 18 }, "a bare number is not a time: the evening's default hour");
+  eq(cadenceFrom("send me new frontend internships in Chicago every morning"), { digest: true, report_hour: 8, report_minute: 0 }, "every morning");
+  eq(cadenceFrom("data analyst roles in Chicago every morning at 6am central"), { digest: true, report_hour: 6, report_minute: 0, tz: CHI }, "hour and zone");
+  eq(cadenceFrom("send me pm jobs every evening at 7pm"), { digest: true, report_hour: 19, report_minute: 0 }, "evening hour");
+  eq(cadenceFrom("send me pm jobs every evening at 7"), { digest: true, report_hour: 19, report_minute: 0 }, "a stated hour is honored: evening at 7 is 7 PM");
   eq(cadenceFrom("tell me right away when a data analyst role opens"), { digest: false }, "instant");
   eq(cadenceFrom("watch for data analyst roles in Chicago"), null, "nothing said, nothing changed");
   eq(cadenceFrom("what did I do this morning"), null, "a morning that is not a cadence");

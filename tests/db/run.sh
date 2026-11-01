@@ -256,8 +256,8 @@ if [[ -f "$BRIDGE_PATH" ]]; then
     # 20261031040000 redefines channel_link_nonce_redeem and channel_link_confirm (20261021070000, 20261030120000, 20261031030000),
     # which the channel phases below re-create and test as they were: applied last, below.
     [[ "$(basename "$file")" == 20261031040000_* ]] && continue
-    # 20261031050000 builds on 20261031040000 (by_code) and redefines its link functions: applied last, below, after it.
-    [[ "$(basename "$file")" == 20261031050000_* ]] && continue
+    # 20261031060000 builds on 20261031040000 (by_code) and redefines its link functions: applied last, below, after it.
+    [[ "$(basename "$file")" == 20261031060000_* ]] && continue
     cp "$file" "$PENDING_ROOT/supabase/migrations/"
   done
 fi
@@ -498,6 +498,8 @@ echo "== career_turn_gate.test.sql (a person's turns one at a time, in ticket or
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_turn_gate.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_turn_gate_race.py (two real sessions enter at once: the second waits; S4)"
 python3 "$HERE/career_turn_gate_race.py" "${PSQL[@]}"
+echo "== career_account_memory_one_copy_race.py (two threads of one person save at once: no deadlock, one copy; root cause 3)"
+python3 "$HERE/career_account_memory_one_copy_race.py" "${PSQL[@]}"
 echo "== career_kb_postings_recency_index.test.sql (the pool read walks the posted_at index, no sort)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_kb_postings_recency_index.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # Every turn leaves a cost row (20261028050000): zero calls and unrecorded are different rows; applied twice (idempotent).
@@ -859,10 +861,10 @@ echo "== telegram_link_code_kept.test.sql (another account's chat links nothing 
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261031040000_telegram_link_confirm.sql"
 echo "== telegram_link_confirm.test.sql (a code asks the account's own channel; only its YES links, once; strangers, races, STOP, deletion, expiry: nothing; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/telegram_link_confirm.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
-# TELEGRAM LINK REPLY CODE (20261031050000; review #348): a plain yes never answers a link code's question; only
+# TELEGRAM LINK REPLY CODE (20261031060000; review #348): a plain yes never answers a link code's question; only
 # "LINK <the request's 4-digit code>" from the asked contact links, once, within 15 minutes; 3 open per account. Twice, then its test.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261031050000_telegram_link_reply_code.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261031050000_telegram_link_reply_code.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261031060000_telegram_link_reply_code.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261031060000_telegram_link_reply_code.sql"
 echo "== telegram_link_reply_code.test.sql (the plain-yes hijack closed; LINK <code> bound to its request, once, 15 minutes; wrong, late, reused, other: nothing; cap 3; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/telegram_link_reply_code.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left

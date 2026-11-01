@@ -247,7 +247,8 @@ MIGRATIONS=(
   20261031020000_career_outreach_r3.sql
   20261031030000_telegram_link_code_kept.sql
   20261031040000_telegram_link_confirm.sql
-  20261031050000_telegram_link_reply_code.sql
+  20261031050000_career_account_memory_one_copy.sql
+  20261031060000_telegram_link_reply_code.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -374,6 +375,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_send_go' and pg_get_functiondef(oid) like '%career_send_bad_addresses%')"
   "exists (select 1 from pg_proc where proname = 'channel_link_nonce_redeem' and prosrc like '%the code stays unused%')"
   "exists (select 1 from pg_proc where proname = 'channel_link_nonce_ask') and exists (select 1 from pg_proc where proname = 'channel_link_code_pending') and exists (select 1 from pg_proc where proname = 'channel_link_confirm' and (prosrc like '%ambiguous%' or prosrc like '%not by_code%')) and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'channel_link_requests' and column_name = 'by_code')"
+  "exists (select 1 from pg_trigger where tgname = 'career_account_memory_one_copy' and tgrelid = 'public.agent_flow_state'::regclass)"
   "exists (select 1 from pg_proc where proname = 'channel_link_confirm_code') and exists (select 1 from pg_proc where proname = 'channel_link_confirm' and prosrc like '%not by_code%') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'channel_link_requests' and column_name = 'reply_code')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

@@ -141,3 +141,60 @@ Deno.test("#348: a stranger with no username is named by Telegram id; at most 3 
   await w.lm(HOME, "yes");
   for (const c of [7600000010, 7600000011, 7600000012, 7600000013]) assertNode.equal(w.owner(`tg:${c}`), null);
 });
+
+// Review of #363: the RIGHT code still links nothing when it comes late, after STOP, from another of the owner's channels, from
+// another account, or after five wrong codes; and "LINK" must be followed by whitespace ("LINK1234" is not a link reply).
+async function opened(w: ReturnType<typeof world>, chat: number) {
+  const m = w.mark();
+  await w.tg(chat, `/start ${await w.code()}`, `opener_${chat % 1000}`);
+  const c = codeIn(w.read(HOME, m)[0] ?? "");
+  assertNode.ok(c, "setup: the owner's channel got a LINK code");
+  return c!;
+}
+Deno.test("#348 review: the right LINK code after its 15 minutes links nothing", async () => {
+  const w = world(), M = 7600000020;
+  const c = await opened(w, M);
+  w.clock.t += 15 * MIN + 1000;
+  await w.lm(HOME, `LINK ${c}`);
+  assertNode.equal(w.owner(`tg:${M}`), null, "a late LINK code linked the chat");
+});
+Deno.test("#348 review: the right LINK code after STOP on the asked channel links nothing", async () => {
+  const w = world(), M = 7600000021;
+  const c = await opened(w, M);
+  await w.lm(HOME, "STOP");
+  await w.lm(HOME, `LINK ${c}`);
+  assertNode.equal(w.owner(`tg:${M}`), null, "a LINK code after STOP linked the chat");
+});
+Deno.test("#348 review: the right LINK code from another of the owner's channels (not the one asked) links nothing", async () => {
+  const w = world(), M = 7600000022, OTHER = "+15550600002";
+  w.W.link(OTHER, w.A, w.clock.t - 3 * 3600000, { lastInboundAt: w.clock.t - 3 * 3600000, threadId: `t-${w.A}`, phone: OTHER });
+  const c = await opened(w, M);
+  assertNode.equal(w.read(OTHER).length, 0, "setup: the other channel was asked");
+  await w.lm(OTHER, `LINK ${c}`);
+  assertNode.equal(w.owner(`tg:${M}`), null, "a LINK code from a channel that was not asked linked the chat");
+});
+Deno.test("#348 review: the right LINK code from another account links nothing", async () => {
+  const w = world(), M = 7600000023, B_HOME = "+15550600003";
+  const B = w.W.newUser();
+  w.W.link(B_HOME, B, w.clock.t - 3600000, { lastInboundAt: w.clock.t - 3600000, threadId: `t-${B}`, phone: B_HOME });
+  const c = await opened(w, M);
+  await w.lm(B_HOME, `LINK ${c}`);
+  assertNode.equal(w.owner(`tg:${M}`), null, "another account's LINK code linked the chat");
+});
+Deno.test("#348 review: after five wrong codes the right LINK code links nothing", async () => {
+  const w = world(), M = 7600000024;
+  const c = await opened(w, M);
+  for (let i = 1; i <= 5; i++) await w.lm(HOME, `LINK ${String((Number(c) + i) % 10000).padStart(4, "0")}`);
+  await w.lm(HOME, `LINK ${c}`);
+  assertNode.equal(w.owner(`tg:${M}`), null, "the right code linked after five wrong ones");
+});
+Deno.test("#348 review: \"LINK\" needs whitespace before the code; case and surrounding spaces do not matter", async () => {
+  const w = world(), M = 7600000025;
+  const c = await opened(w, M);
+  for (const t of [`LINK${c}`, `link${c}`, `LINK-${c}`]) {
+    await w.lm(HOME, t);
+    assertNode.equal(w.owner(`tg:${M}`), null, `${JSON.stringify(t)} linked the chat`);
+  }
+  await w.lm(HOME, `  lInK \t${c}  `);
+  assertNode.equal(w.owner(`tg:${M}`), w.A, "a spaced, mixed-case LINK <code> did not link");
+});

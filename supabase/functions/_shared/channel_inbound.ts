@@ -244,7 +244,8 @@ export async function turnKeyFor(messageId: string): Promise<string> {
 // LoopMessage keeps its keys (reply:<id>); the other providers' ids are namespaced, so a Telegram update id and a
 // LoopMessage id that happen to be equal never collide in one person's outbox.
 const scoped = (m: InboundMessage) => (m.provider === "loopmessage" ? m.messageId : `${m.provider === "telegram" ? "tg" : "wa"}:${m.messageId}`);
-const YES = /^yes[.!]*$/i, LINK_REPLY = /^link\s*#?\s*([0-9]{4})[.!]*$/i, CONNECT_TELEGRAM = /^connect telegram[.!]*$/i;
+// LINK_REPLY (review of #363): "LINK", whitespace, the 4-digit code; any case, the message trimmed ("LINK1234" is not one).
+const YES = /^yes[.!]*$/i, LINK_REPLY = /^link\s+([0-9]{4})[.!]*$/i, CONNECT_TELEGRAM = /^connect telegram[.!]*$/i;
 
 // F09: the Yes / No buttons under the posting screen's yes/no question. Their callback data is scr:<question id>:yes|no, bound to the one
 // question that is open; a tap is an explicit screen answer (never a typed "yes" for another consumer).

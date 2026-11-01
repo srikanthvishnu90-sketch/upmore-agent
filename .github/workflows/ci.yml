@@ -482,3 +482,24 @@ jobs:
         with: { deno-version: "v2.9.6" }
       - name: The sending rail under load
         run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH deno test -A --no-check tests/load/send-rail-load.test.ts
+  acceptance-telegram:
+    name: acceptance (telegram)
+    runs-on: ubuntu-24.04
+    # D-034, the deploy standard's S4: the Telegram acceptance suite on its own check, so the deploy standard can read its
+    # verdict on the exact SHA. It also runs inside an architect shard (every tests/architect file does); this job is the
+    # check scripts/launch/deploy-standard.ts reads. Real Postgres 16, the real webhook and agent-chat, a scripted model;
+    # nothing leaves the runner. KNOWN_GAP steps run and print their state; every other step must pass.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: Telegram acceptance suite
+        run: |
+          set -o pipefail
+          PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH deno test -A --no-check tests/architect/telegram-acceptance.test.ts 2>&1 | tee "$RUNNER_TEMP/acceptance.log"
+      - name: Each step's outcome
+        if: always()
+        run: |
+          test -f "$RUNNER_TEMP/acceptance.log" || exit 0
+          grep -E '^TELEGRAM_ACCEPTANCE ' "$RUNNER_TEMP/acceptance.log" | sed 's/\x1b\[[0-9;]*m//g' | tee -a "$GITHUB_STEP_SUMMARY"

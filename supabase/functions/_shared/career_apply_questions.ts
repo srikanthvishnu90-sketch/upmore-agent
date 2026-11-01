@@ -91,6 +91,14 @@ const REMOVED = /\[(?:SSN|card number|number|password|code|security code) remove
 // I'll answer later" is not anyone's first name).
 const SKIP = /^(skip|later|pass|not now|not yet|leave it|skip it|maybe later|ask me later|i'?ll (?:do|answer) (?:it |that |this )?later)\b/;
 const YES_NO_TYPE = /checkbox|boolean/;
+// "Not yet" on its own answers a yes or no question asked with "yet" ("Have you graduated yet?": a no). With anything
+// after it ("not yet, I'll answer later"), or to any other question, it stays a deferral.
+const NOT_YET_ALONE = /^(?:no,? )?not yet[\s,;:.!?\u2014\u2013-]*$/;
+function asksYet(q: OpenQuestion, type: string): boolean {
+  if (q.kind === "consent" || !/\byet\b/i.test(q.label)) return false;
+  if (q.options.length) return q.options.some((l) => yesNoOf(l) === "no");
+  return YES_NO_TYPE.test(type) || (q.key.startsWith("fact:") && factType(q.key.slice(5)) === "yesno");
+}
 
 export type Check =
   | { ok: true; value: string }
@@ -103,9 +111,11 @@ export function checkAnswer(q: OpenQuestion, raw: string): Check {
   const row = decodeRowQuestionType(q.type);
   if (/^row:/i.test(q.type) && (!row || row.key !== q.key)) return { ok: false, why: "has no valid binding to its original form row; show the current questions again" };
   const type = row?.type ?? q.type;
-  const value = String(raw ?? "").replace(/\s+/g, " ").trim().replace(/^["“]|["”]$/g, "");
+  let value = String(raw ?? "").replace(/\s+/g, " ").trim().replace(/^["“]|["”]$/g, "");
   if (!value) return { ok: false, why: "had no answer" };
-  if (SKIP.test(plain(value))) return { ok: false, why: "left for later", skip: true };
+  const yetNo = NOT_YET_ALONE.test(plain(value)) && asksYet(q, type);
+  if (!yetNo && SKIP.test(plain(value))) return { ok: false, why: "left for later", skip: true };
+  if (yetNo) value = "no";
   if (REMOVED.test(value)) return { ok: false, why: "had a number Upmore never keeps; type that one on the form yourself" };
   // TAILORING SCENARIOS (2026-10-29): the chat input is redacted before it gets here, but a draft saved by "use N" (one
   // written by a model, or ahead on the person's computer) never passed that redaction. An SSN, card number, password or

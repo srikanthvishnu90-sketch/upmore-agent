@@ -48,7 +48,11 @@ export function applyAsk(message: string): { company: string; role: string | nul
 // D-MS-2 (2026-10-27): "all" may carry a filter over the listed postings ("apply to all remote ones", "apply to every
 // SWE intern role you found"): only the listed postings that match it are queued, as one batch.
 export type ListFilter = { remote: boolean; words: string[]; said: string };
-export type ManyAsk = { kind: "all"; filter?: ListFilter } | { kind: "first"; n: number } | { kind: "nth"; i: number } | { kind: "pick"; is: number[] };
+// MASS APPLY (owner, 2026-11-01): "apply to the top 10 frontend internships in Chicago" names what to search for in the same
+// message (`what`): the role words, read against the title, and the place, read against the location. Without `what`,
+// "the top N" is the thread's last list, as before.
+export interface ManyWhat { role: string; words: string[]; place: string | null }
+export type ManyAsk = { kind: "all"; filter?: ListFilter } | { kind: "first"; n: number; what?: ManyWhat } | { kind: "nth"; i: number } | { kind: "pick"; is: number[] };
 // Short forms a person types for a role family, read against the listed titles.
 const ROLE_ALIASES: Record<string, string[]> = {
   swe: ["software engineer", "software engineering", "software developer", "swe"],
@@ -91,6 +95,32 @@ export function matchesFilter(e: { title?: string | null; location?: string | nu
 const WORD_N: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
 const ORD: Record<string, number> = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 };
 const numOf = (w: string) => /^\d+$/.test(w) ? Number(w) : WORD_N[w.toLowerCase()];
+const WHAT_NOISE = new Set([...FILTER_NOISE, "for", "me", "please", "now", "open", "new", "available", "listed", "on", "file", "instead", "that", "which",
+  "fit", "fits", "match", "matches", "matching", "this", "best", "good", "right", "you", "found", "showed", "show", "then", "too", "also", "here"]);
+// The role and place of "top N <role> in <place>", or null when the words after the count name no role ("of them", "").
+export function manyWhatOf(rest: string): ManyWhat | null {
+  const r = String(rest ?? "").toLowerCase().replace(/[.!?]+$/, "").trim();
+  if (!r || /^(?:of\s+)?(?:them|these|those|ones?|on the list|from the list|you (?:found|listed|showed))\b/.test(r)) return null;
+  // A search names what it is for: a role noun ("internships", "jobs", "roles", ...) must be in it.
+  if (!/\b(?:internships?|interns?|jobs?|roles?|positions?|openings?|postings?|co-?ops?)\b/.test(r)) return null;
+  const pm = /^(.*?)\s+(?:in|near|around|based in)\s+([a-z][a-z .'-]{1,40})$/.exec(r);
+  const role = (pm ? pm[1] : r).trim(), place = pm ? pm[2].trim() : null;
+  const all = role.replace(/[^a-z0-9+#/ -]/g, " ").split(/\s+/).filter((w) => w && !WHAT_NOISE.has(w));
+  // "remote" is where, not what.
+  const words = all.filter((w) => w !== "remote");
+  return words.length ? { role: role.replace(/\bremote\s+/, ""), words, place: place ?? (all.includes("remote") ? "remote" : null) } : null;
+}
+// The postings on file that are what the person named: every role word in the title, the place in the location (or the
+// title says remote when they asked for remote), newest first as the search returns them.
+async function postingsFor(o: ApplyChatDeps, what: ManyWhat, n: number): Promise<ShortlistEntry[]> {
+  const hits = await o.postings.search(searchWords(`${what.words.join(" ")}`), Math.max(50, n * 5));
+  const place = what.place ? lower(what.place) : null;
+  return hits
+    .filter((p) => what.words.every((w) => titleHas(String(p?.title ?? ""), w)))
+    .filter((p) => !place || (place === "remote" ? /\bremote\b/i.test(`${p?.location ?? ""} ${p?.title ?? ""}`) : lower(p?.location).includes(place)))
+    .slice(0, n)
+    .map((p) => ({ id: p.job_id ?? null, title: p.title ?? null, company: p.company ?? null, location: p.location ?? null, url: p.url ?? null }));
+}
 export function applyManyAsk(message: string): ManyAsk | null {
   const raw = applyText(message);
   if (raw === null || !/\bapply\b/i.test(raw) || QUESTION.test(raw) || /\bapplied\b/i.test(raw) || /\bat\s+[A-Z]/.test(raw)) return null;
@@ -99,8 +129,8 @@ export function applyManyAsk(message: string): ManyAsk | null {
   if (after === undefined) return null;
   let m = after.match(/^(?:the\s+)?(first|second|third|fourth|fifth)\s+one\b/);
   if (m) return { kind: "nth", i: ORD[m[1]] };
-  m = after.match(/^(?:the\s+)?(?:top|first|best)\s+(\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten)\b/);
-  if (m) return { kind: "first", n: numOf(m[1]) };
+  m = after.match(/^(?:the\s+)?(?:top|first|best)\s+(\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten)\b\s*(.*)$/);
+  if (m) { const what = manyWhatOf(m[2]); return what ? { kind: "first", n: numOf(m[1]), what } : { kind: "first", n: numOf(m[1]) }; }
   // A bare count of the listed postings ("3 roles", "2 of them"). A count with a role family in it ("15 software
   // engineering intern roles") is the broad ask, the batch delegation's (career_batch_apply), never this turn's.
   m = after.match(/^(?:all\s+)?(\d{1,3}|two|three|four|five|six|seven|eight|nine|ten)\s+(?:roles?|jobs?|postings?|positions?|internships?|openings?|of (?:them|these|those))\b/);
@@ -357,8 +387,15 @@ const listed = (names: string[], max = 12) => names.length <= max ? names.join("
 export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | null> {
   const ask = applyManyAsk(o.message);
   if (!ask) return null;
-  const list = (o.shortlist ?? []).filter((e) => e && (e.url || e.id));
   const intent = APPLY_QUEUE_INTENT;
+  // MASS APPLY: "the top N <role> in <place>" is searched for here, not read from the thread's last list.
+  const what = ask.kind === "first" ? ask.what : undefined;
+  let list: ShortlistEntry[];
+  if (what) {
+    try { list = await postingsFor(o, what, ask.kind === "first" ? ask.n : 0); }
+    catch { return { reply: `I couldn't search the postings just now, so nothing was queued. Ask again in a minute.`, status: "unreadable", intent }; }
+    if (!list.length) return { reply: `I have no open ${what.role} postings${what.place ? ` in ${what.place.replace(/\b\w/g, (c) => c.toUpperCase())}` : ""} on file, so nothing was queued. Say "find <role> jobs in <place>" to look wider.`, status: "none", intent, queued: [], refused: [] };
+  } else list = (o.shortlist ?? []).filter((e) => e && (e.url || e.id));
   // SERIAL-1440 (2): with no list on this thread the ask still gets an answer that says what to say, never a catch-all.
   if (!list.length) {
     return { reply: `I haven't listed any postings in this thread yet, so there is nothing for "these" to mean; nothing was queued. Say "find <role> jobs in <place>" first and then "apply to these", or name one: "apply to the <role> role at <Company>".`, status: "no_list", intent, queued: [], refused: [] };
@@ -371,7 +408,7 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   } else if (ask.kind === "first") {
     if (ask.n < 1) return null;
     slice = list.slice(0, ask.n);
-    if (ask.n > list.length) note = `I listed ${list.length}, not ${ask.n}, so these ${list.length}. `;
+    if (ask.n > list.length) note = what ? `I found ${list.length} open, not ${ask.n}, so these ${list.length}. ` : `I listed ${list.length}, not ${ask.n}, so these ${list.length}. `;
   } else if (ask.kind === "pick") {
     // FEATURE 1: "apply to 1 and 3": the positions on the list; one past its end is named, never guessed.
     const inRange = ask.is.filter((i) => i <= list.length), outRange = ask.is.filter((i) => i > list.length);

@@ -57,6 +57,7 @@ export function planSystem(): string {
     "kind: task when the message asks for actions; not_a_task for conversation, advice or a question.",
     "One step per action, in the order the person wants them done. A compound ask is several steps; never leave a part out.",
     "Each step's text is that part of the person's message in their own words. Never put an email address, name, link or day in a step unless the person wrote it.",
+    `At most ${MAX_STEPS} steps. Every application goes in ONE apply.queue step (all its picks together); at most ${MAX_REMINDERS} reminder.set steps; at most ${MAX_PICKS} picks per step. Code refuses the rest and tells the person.`,
     "Capabilities:",
     ...CAPABILITIES.map((c) => `- ${c.name}: ${c.summary}${c.args ? ` args: ${JSON.stringify(c.args)}` : ""}`),
   ].join("\n");
@@ -150,7 +151,14 @@ export function unsaidWords(message: string, text: string): string[] {
 }
 
 export interface Step { capability: string; text: string; args: Record<string, unknown> }
-export interface Refused { capability: string; text: string; why: "unknown_capability" | "never_automated" | "untrusted_source" | "not_their_words" | "duplicate" | "bad_args"; detail?: string[] }
+export interface Refused { capability: string; text: string; why: "unknown_capability" | "never_automated" | "untrusted_source" | "not_their_words" | "duplicate" | "bad_args" | "over_cap"; detail?: string[] }
+// Caps (review of PR #362: one message ran 40 apply turns and wrote 40 reminders). One message runs at most MAX_STEPS
+// steps; every apply goes through ONE apply step (one card: later apply steps' picks join the first's, anything else is
+// over the cap); at most MAX_REMINDERS reminders; at most MAX_PICKS postings per step (each tailored pick is a turn). What
+// is over a cap is refused and named in the reply ("over_cap"), never run and never dropped silently.
+export const MAX_STEPS = 8, MAX_REMINDERS = 3, MAX_PICKS = 5;
+export const PER_TYPE: Readonly<Record<string, number>> = { "apply.queue": 1, "reminder.set": MAX_REMINDERS };
+export type CapKind = "steps" | "apply.queue" | "reminder.set" | "picks";
 // Code checks every step the model proposed; a refused step is named in the reply, never run.
 export function checkPlan(raw: unknown, message: string): { kind: "task" | "not_a_task"; steps: Step[]; refused: Refused[] } {
   const u: any = raw && typeof raw === "object" ? raw : {};
@@ -174,7 +182,24 @@ export function checkPlan(raw: unknown, message: string): { kind: "task" | "not_
     const key = `${name}|${text.toLowerCase()}|${JSON.stringify(args)}`;
     if (seen.has(key)) { refused.push({ capability: name, text, why: "duplicate" }); continue; }
     seen.add(key);
-    steps.push({ capability: name, text, args });
+    // Applies are one card: a later apply step's picks join the first apply step's (positions on the same list).
+    const first = name === "apply.queue" ? steps.find((x) => x.capability === "apply.queue") : undefined;
+    if (first && Array.isArray(first.args.picks) && Array.isArray(args.picks)) {
+      first.args = { ...first.args, picks: [...new Set([...(first.args.picks as number[]), ...(args.picks as number[])])] };
+      first.text = `${first.text}; ${text}`.slice(0, 400);
+    } else if ((PER_TYPE[name] ?? Infinity) <= steps.filter((x) => x.capability === name).length) {
+      refused.push({ capability: name, text, why: "over_cap", detail: [name] }); continue;
+    } else if (steps.length >= MAX_STEPS) {
+      refused.push({ capability: name, text, why: "over_cap", detail: ["steps"] }); continue;
+    } else steps.push({ capability: name, text, args });
+  }
+  // A step's picks past MAX_PICKS are named, never run.
+  for (const st of steps) {
+    const picks = st.args.picks;
+    if (Array.isArray(picks) && picks.length > MAX_PICKS) {
+      st.args = { ...st.args, picks: picks.slice(0, MAX_PICKS) };
+      refused.push({ capability: st.capability, text: st.text, why: "over_cap", detail: ["picks", ...picks.slice(MAX_PICKS).map(String)] });
+    }
   }
   return { kind: "task", steps, refused };
 }

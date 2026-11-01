@@ -393,9 +393,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       let poolRead = false;
       // TASK PLANNER: a planned step that the router answers reads the pool for its own words (`text`); a turn the pool is
       // not needed for leaves it unread, so a later step that needs it still reads it once.
-      const ensurePool = async (text: string = message) => {
+      // `message` inside readPool is the text the pool is read for: this turn's message, or a planned step's own words.
+      const readPool = async (message: string) => {
         if (poolRead) return;
-        if (!poolNeeded({ host, message: text, ctx: ctx as unknown as Record<string, unknown> }).needed) return;
+        if (!poolNeeded({ host, message, ctx: ctx as unknown as Record<string, unknown> }).needed) return;
         poolRead = true;
         const pool = await poolLoader.loadPool();
         if (pool.error) console.error("career pool load failed:", pool.error);
@@ -410,7 +411,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // named stop, never a crash, never an invented role.
         postings = pool.postings;
         try {
-          const target = typeof (CareerRouter as any).namedRoleTargetOf === "function" ? (CareerRouter as any).namedRoleTargetOf(text, null) : null;
+          const target = typeof (CareerRouter as any).namedRoleTargetOf === "function" ? (CareerRouter as any).namedRoleTargetOf(message, null) : null;
           if (target && target.company) {
             const extra = await poolLoader.loadTargeted(target);
             if (extra.postings.length) {
@@ -421,6 +422,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         } catch { /* the window pool stands on its own */ }
         (ctx as any).postings = postings;
       };
+      const ensurePool = (text: string = message) => readPool(text);
       // MUSE-F-002: the thread's batch, if it has one, read back from the worker's own record so a plain-words status ask
       // answers with its true state. Read only; a failed read leaves the thread's standing state to answer.
       let batchRunRecord: unknown = null;
@@ -479,12 +481,22 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await outlookChatTurn({ admin, message, userId: user.id, threadId: tid, bridge: isBridgeCall, now: Date.now(), env: Deno.env })
           .catch((e) => { console.error("outlook turn:", e?.message ?? e); return null; })
         : null;
+      const card = !tapIn && !connAns && !outlookAns && !siteNo && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        // FEATURE 16: OWNER RULE (2026-10-26): no card without a confirmed resume on file (resumeReady).
+        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
+        : null;
+      // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
+      // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
+      const mock = !card && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await mockTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseMockStore(admin) })
+        : null;
       // TASK PLANNER (career_planner.ts; CAREER_PLANNER=on with the brain released, default off): a message asking for two or
       // more actions is planned into steps, and each step runs through the code path that already does that one thing (the
       // router, the apply turn, the networking turn, the tracker and standing-instruction tools, the reminder store), on
-      // this turn's state; every turn below is then skipped. A turn it does not claim falls through to them unchanged.
+      // this turn's state; every turn below is then skipped. A turn it does not claim falls through to them unchanged. It
+      // runs after the card and the mock: their own commands and their prompts waiting for an answer are theirs (WO-025/14).
       let planned: Extract<PlannerTurn, { claimed: true }> | null = null;
-      if (!tapIn && !connAns && !outlookAns && !siteNo && !careerTask && !careerBatch && plannerOn(Deno.env, user.id) && !host.isHostControlled(message, ctx)) {
+      if (!tapIn && !connAns && !outlookAns && !siteNo && !card && !mock && !careerTask && !careerBatch && plannerOn(Deno.env, user.id) && !host.isHostControlled(message, ctx)) {
         const pMeter = ledger.track(newMeter()), pCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         const pModel = (payload: any) => callModel(pCfg, payload, { meter: pMeter, role: "chat" });
         try {
@@ -521,15 +533,6 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         finally { await ledger.record(pMeter); }
       }
       // END TASK PLANNER
-      const card = !tapIn && !connAns && !outlookAns && !siteNo && !planned && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        // FEATURE 16: OWNER RULE (2026-10-26): no card without a confirmed resume on file (resumeReady).
-        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
-        : null;
-      // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
-      // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
-      const mock = !card && !planned && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await mockTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseMockStore(admin) })
-        : null;
       // Ask once: "what do you need from me" shows the questions only the person can answer, and the text right after
       // answers them by number. Code checks every answer against the employer's own choices; the model never decides.
       // Each of card, mock and questions answers only while its own prompt is the thread's last word, so they never overlap.

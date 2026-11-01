@@ -19,7 +19,7 @@
 // refused by code, a step its path did not do, and an action no step took are each named in the reply. The reply is
 // each path's own reply, in order; this module writes no claim of its own.
 // deno-lint-ignore-file no-explicit-any
-import { actionsIn, capability, checkPlan, compoundAsk, dueDate, PLAN_INTENT, PLAN_TOOL, planSystem, type Refused, type Step, uncovered, unsaidWords } from "../_shared/task/plan.ts";
+import { actionsIn, capability, checkPlan, compoundAsk, dueDate, MAX_PICKS, MAX_REMINDERS, MAX_STEPS, PLAN_INTENT, PLAN_TOOL, planSystem, type Refused, type Step, uncovered, unsaidWords } from "../_shared/task/plan.ts";
 import type { ReminderStore } from "../_shared/task/reminders.ts";
 import type { ToolCtx, ToolSpec } from "../_shared/agent/loop.ts";
 import { whenSaid } from "../_shared/agent/career_tools.ts";
@@ -84,6 +84,14 @@ const WHY: Record<Refused["why"], string> = {
   unknown_capability: "not something I can do from chat", never_automated: "I never act on LinkedIn, Indeed or Handshake",
   untrusted_source: "it named an address or link you didn't write", not_their_words: "it wasn't in your words",
   duplicate: "it repeated another part", bad_args: "I couldn't tell which postings you meant",
+  over_cap: "over what I do from one message",
+};
+// What each cap is, said plainly when a plan went over it (plan.ts MAX_STEPS, PER_TYPE, MAX_PICKS).
+const CAP_SAYS: Record<string, string> = {
+  steps: `I run at most ${MAX_STEPS} steps from one message`,
+  "apply.queue": "all applications from one message go on one card",
+  "reminder.set": `I keep at most ${MAX_REMINDERS} reminders from one message`,
+  picks: `I take at most ${MAX_PICKS} postings per step`,
 };
 
 export async function plannerTurn(io: PlannerIO, message: string): Promise<PlannerTurn> {
@@ -115,7 +123,14 @@ export async function plannerTurn(io: PlannerIO, message: string): Promise<Plann
     }
     if (r.res.status !== "done") parts.push(`Not done: ${quote(s.text)}${r.res.why ? ` (${r.res.why})` : ""}.`);
   }
-  for (const x of plan.refused) parts.push(`Not done: ${quote(x.text || x.capability)} (${WHY[x.why]}).`);
+  for (const x of plan.refused.filter((r) => r.why !== "over_cap")) parts.push(`Not done: ${quote(x.text || x.capability)} (${WHY[x.why]}).`);
+  // Over a cap: one line per cap, naming every part left out, so nothing over it is dropped silently.
+  const over = new Map<string, Refused[]>();
+  for (const x of plan.refused.filter((r) => r.why === "over_cap")) { const k = String(x.detail?.[0] ?? "steps"); over.set(k, [...(over.get(k) ?? []), x]); }
+  for (const [k, xs] of over) {
+    const named = k === "picks" ? xs.map((x) => `postings ${(x.detail ?? []).slice(1).join(", ")} for ${quote(x.text)}`) : xs.map((x) => quote(x.text || x.capability));
+    parts.push(`Not done, ${CAP_SAYS[k] ?? WHY.over_cap}: ${named.slice(0, 10).join("; ")}${named.length > 10 ? `; and ${named.length - 10} more` : ""}. Ask me for ${xs.length === 1 && k !== "picks" ? "it" : "the rest"} in another message.`);
+  }
   const left = uncovered(message, plan.steps);
   if (left.length) parts.push(`Not started from your message: the part to ${left.join(", ")}. Ask me for it on its own and I'll do it.`);
   const done = results.filter((r) => r.status === "done").length;

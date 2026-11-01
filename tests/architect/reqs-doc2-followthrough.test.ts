@@ -386,10 +386,11 @@ Deno.test("DOC2/9 re-review: an invalid or unread clock is never 9 AM; 8a/8p; pa
   eq(at("tmrw 8p"), ch(2026, 11, 4, 20));
   eq(at("tomorrow at 8 a.m."), ch(2026, 11, 4, 8));
   eq(at("tomorrow at 8am"), ch(2026, 11, 4, 8));
-  for (const m of ["remind me tmrw 8ish to send the deck", "remind me tomorrow at 9.30 to call Acme", "remind me tomorrow at 8 oclock to call Acme"]) {
+  // ("9.30" and "8 oclock" are read since DOC2/10.)
+  for (const m of ["remind me tmrw 8ish to send the deck", "remind me tomorrow around 9ish to call Acme"]) {
     const r = await turn(m);
     eq([r.status, r.intent], ["needs_time", "career_reminder_when"], `${m}: ${r.reply}`);
-    assert(!/8ish to|9\.30 to|oclock to/.test(r.reply), `the time is never left in the text: ${r.reply}`);
+    assert(!/8ish to|9ish to/.test(r.reply), `the time is never left in the text: ${r.reply}`);
   }
   eq(s.dump().rows, [], "nothing above saved anything");
   const p = await turn("remind me tomorrow at 9am to call Dana", "P");
@@ -411,4 +412,45 @@ Deno.test("DOC2/9 re-review: an invalid or unread clock is never 9 AM; 8a/8p; pa
   eq(at.call(null, "next tuesday") , ch(2026, 11, 10, 9), "on a Tuesday, next Tuesday is a week away");
   const tue = whenOf("tuesday", sun, "America/Chicago");
   eq("error" in tue ? tue.error : tue.at, ch(2026, 11, 3, 9));
+});
+
+Deno.test("DOC2/10 a default time only when the message has no time-like token: 0900, 1530, half past, quarter to, '9am:', 9.30; else asked", async () => {
+  const ch = (y: number, m: number, d: number, h: number, mi = 0) => zonedInstant(y, m, d, h, mi, "America/Chicago");
+  const parsed: [string, number, string][] = [
+    ["remind me tomorrow at 0900 to call Acme", ch(2026, 11, 4, 9), "call Acme"],
+    ["remind me at 1530 to call Acme", ch(2026, 11, 3, 15, 30), "call Acme"],
+    ["remind me tomorrow 1530 to call Acme", ch(2026, 11, 4, 15, 30), "call Acme"],
+    ["remind me tomorrow at half past 3 to call Acme", ch(2026, 11, 4, 15, 30), "call Acme"],
+    ["remind me tomorrow at quarter to 9 to call Acme", ch(2026, 11, 4, 8, 45), "call Acme"],
+    ["remind me tomorrow at quarter past 9 to call Acme", ch(2026, 11, 4, 9, 15), "call Acme"],
+    ["remind me tomorrow 9am: call Acme", ch(2026, 11, 4, 9), "call Acme"],
+    ["remind me at 9am: call Acme", ch(2026, 11, 4, 9), "call Acme"],
+    ["remind me at 9.30am to call Acme", ch(2026, 11, 3, 9, 30), "call Acme"],
+    ["remind me at 9.30 to call Acme", ch(2026, 11, 3, 9, 30), "call Acme"],
+    ["remind me at half past 3 to call Acme", ch(2026, 11, 3, 15, 30), "call Acme"],
+    ["remind me tomorrow at 8 o'clock to call Acme", ch(2026, 11, 4, 8), "call Acme"],
+  ];
+  for (const [m, at, what] of parsed) {
+    const s = memoryReminderStore({ zones: { U: "America/Chicago" }, reachable: { U: true } });
+    const r = (await reminderTurn({ message: m, userId: "U", now: T0, store: s }))!;
+    assert(r, m);
+    eq(r.status, "set", `${m}: ${r.reply}`);
+    eq(s.dump().rows.map((x) => x.at), [at], `${m}: ${r.reply}`);
+    assert(s.dump().rows[0].text.startsWith(`Reminder: ${what}. You asked`), `${m}: ${s.dump().rows[0].text}`);
+    assert(!/didn't say a time/.test(r.reply), `${m}: ${r.reply}`);
+  }
+  const asked = ["remind me at 8ish to call Acme", "remind me at 9.75 to call Acme", "remind me around 8ish to call Acme", "remind me tomorrow to prep for the 3pm call", "remind me friday to book the 9:30 slot"];
+  for (const m of asked) {
+    const s = memoryReminderStore({ zones: { U: "America/Chicago" }, reachable: { U: true } });
+    const r = await reminderTurn({ message: m, userId: "U", now: T0, store: s });
+    assert(r, `${m}: never the general reply path`);
+    assert(["needs_time", "bad_time"].includes(r!.status), `${m}: ${r!.status} ${r!.reply}`);
+    eq(s.dump().rows, [], `${m}: nothing saved`);
+    assert(!/didn't say a time/.test(r!.reply), r!.reply);
+  }
+  // No time-like token at all: the default is used, and said.
+  const s = memoryReminderStore({ zones: { U: "America/Chicago" }, reachable: { U: true } });
+  const d = (await reminderTurn({ message: "remind me tomorrow to call Acme", userId: "U", now: T0, store: s }))!;
+  assert(d.status === "set" && /9:00 AM, since you didn't say a time/.test(d.reply), d.reply);
+  eq(reminderAsk("remind me tomorrow to file the 2026 taxes"), { kind: "set", what: "file the 2026 taxes", when: "tomorrow" }, "a year is not a time");
 });

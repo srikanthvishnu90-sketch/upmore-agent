@@ -64,7 +64,11 @@ const NUM = String.raw`(?:\d{1,3}(?:\.\d)?|a|an|one|two|three|four|five|six|seve
 const UNIT = String.raw`(?:min(?:ute)?s?|hours?|hrs?|days?|weeks?)`;
 const WEEKDAY = String.raw`(?:mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?|sun)(?:day)?`;
 const MONTH = String.raw`(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)`;
-const CLOCK = String.raw`(?:\d{1,2}(?::\d{2})?(?:\s*(?:am|pm|a\.m\.|p\.m\.)|[ap]\b)?|noon|midnight)`;
+// RE-REVIEW 2 (PR #355): also 24-hour "0900"/"1530", "9.30", "half past 3", "quarter to 9", "8 o'clock".
+const CLOCK = String.raw`(?:(?:half|quarter) (?:past|after|to|til) \d{1,2}|\d{1,2} ?o'?clock|(?:[01]\d|2[0-3])[0-5]\d|\d{1,2}(?:[:.]\d{2})?(?:\s*(?:am|pm|a\.m\.|p\.m\.)|[ap]\b)?|noon|midnight)`;
+// Anything in a message that names a time of day. A default time (9 AM, or a part of the day's hour) is used only when
+// the message has none of these: one the parser could not place is asked about, never saved as 9 AM (RE-REVIEW 2).
+const TIMELIKE = /\b(?:\d{1,2}[:.]\d{2}|\d{1,2}\s*(?:am|pm|a\.m\.|p\.m\.)|\d{1,2}[ap]\b|\d{1,2}\s*ish|\d{1,2} ?o'?clock|o'?clock|half past|quarter (?:past|after|to|til)|(?:at|around|by) \d{1,4}\b|noon|midnight)/i;
 // Something time-like left at the start of the reminder's text ("8ish to ...", "9.30 to ...", "o'clock to ..."): a time
 // that could not be read. Asked, never saved as 9 AM with the time in the text (RE-REVIEW, PR #355).
 const TIMEISH = /^(?:(?:at|around|by) )?(?:\d{1,2}(?:[:.]\d+)?[a-z.']*|\d{1,2} ?o'?clock|o'?clock|ish)(?=,? (?:to|about|that) |$)/i;
@@ -75,7 +79,7 @@ const DAYWORD = String.raw`(?:today|tonight|tomorrow|tmrw|tmr|(?:on |this |next 
 const SLOT = String.raw`(?:,? (?:at |around |by )?(?:${CLOCK}|${PART}))`;
 const WHEN = String.raw`(?:in ${NUM} ${UNIT}(?: and ${NUM} ${UNIT})?|(?:${DAYWORD})${SLOT}?${SLOT}?|(?:at |around |by )(?:${CLOCK})(?: (?:today|tonight|tomorrow|tmrw|(?:on |this |next )?${WEEKDAY}))?(?: ${PART})?|(?:this|tomorrow|${WEEKDAY}) ${PART}${SLOT}?|tonight)(?:,? ${ZONE})?`;
 const WHEN_END = new RegExp(String.raw`^(.+?),? (${WHEN})$`, "i");
-const WHEN_START = new RegExp(String.raw`^(${WHEN}),? (?:to |about |that )?(.+)$`, "i");
+const WHEN_START = new RegExp(String.raw`^(${WHEN})[,:]? (?:to |about |that )?(.+)$`, "i");
 const LEAD = /^(?:(?:hey|hi|ok|okay|so|please|pls|trainee)[,!]? )*(?:(?:can|could|would|will) you (?:please )?)?(?:remind me|set (?:a|me a) reminder|reminder:?|make a reminder|add a reminder)(?: for\b)?,? ?/i;
 // REVIEW (PR #355): the lead swallowed "at" and "on", so "remind me at 3pm to call Acme" was not read. They stay with the
 // time now; only "for" is dropped ("set a reminder for 3pm to ..." reads as "at 3pm").
@@ -110,12 +114,14 @@ export function reminderAsk(message: string): ReminderAsk | null {
     const what = s2 && !/^(?:to|about|that)$/i.test(s2[2]) ? s2[2] : e2 ? e2[1] : left;
     return { kind: "repeat", what: clean(what.replace(/^(?:to|about|that|of) /i, "")), every: rep[0].toLowerCase() };
   }
-  if (/^(?:\d|noon\b|midnight\b)/i.test(rest)) rest = `at ${rest}`;
+  if (/^(?:\d|noon\b|midnight\b|(?:half|quarter) (?:past|after|to|til) \d)/i.test(rest)) rest = `at ${rest}`;
   const start = WHEN_START.exec(rest);
   if (start && !/^(?:to|about|that)$/i.test(start[2])) return set(start[2], start[1]);
   rest = rest.replace(/^(?:to|about|that|of) /i, "");
   const end = WHEN_END.exec(rest);
   if (end) return set(end[1], end[2]);
+  // A time that could not be read ("at 8ish to ...", "at 9.30am. to ..."): asked when, never left to the general reply.
+  if (TIMELIKE.test(rest)) return { kind: "when", what: clean(untimed(rest)) };
   // "remind me about the Acme interview" with no time: a reminder, asked when; "remind me what ..." returned above.
   return /^(?:me )?(?:to|about) /i.test(t.slice(lead[0].length).trim()) || /remind me (?:to|about) /i.test(t) ? { kind: "when", what: clean(rest) } : null;
 }
@@ -124,6 +130,8 @@ function set(what: string, when: string): ReminderAsk {
   if (odd) return { kind: "when", what: clean(what.trim().slice(odd[0].length).replace(/^,? (?:to|about|that) /i, "")) };
   return { kind: "set", what: clean(what.replace(/^(?:to|about|that|of) /i, "")), when: when.trim() };
 }
+// The text with a leading time phrase that could not be read taken off ("at 8ish to call Acme" -> "call Acme").
+const untimed = (s: string) => s.replace(/^(?:(?:at|around|by) )?\S*\d\S*(?: ?o'?clock)?,?:? (?:to |about |that )?/i, "").replace(/^(?:(?:at|around|by) )?(?:half past|quarter (?:past|after|to|til)) \S+,? (?:to |about |that )?/i, "");
 const clean = (s: string) => norm(s).replace(/^(?:to|about|that) /i, "").replace(/[,;:]+$/, "").slice(0, MAX_WHAT);
 
 // ------------------------------------------------------------------------------------------------ the time
@@ -153,9 +161,20 @@ export function zonedInstant(y: number, m: number, d: number, h: number, mi: num
 type Clock = { h: number; mi: number; bare?: boolean; am?: boolean };
 // bare: an hour from 1 to 12 with no am or pm (which of the two is settled by the words around it, or said).
 function clockOf(s: string): Clock | null {
-  const c = s.toLowerCase().replace(/\./g, "").trim();
+  const c = s.toLowerCase().replace(/(\d)\.(\d)/g, "$1:$2").replace(/\./g, "").replace(/\s+/g, " ").trim();
   if (c === "noon") return { h: 12, mi: 0 };
   if (c === "midnight") return { h: 0, mi: 0 };
+  const hhmm = /^([01]\d|2[0-3])([0-5]\d)$/.exec(c); // 24-hour "0900", "1530": no am or pm to settle
+  if (hhmm) return { h: +hhmm[1], mi: +hhmm[2] };
+  const oc = /^(\d{1,2}) ?o'?clock$/.exec(c);
+  if (oc) return +oc[1] >= 1 && +oc[1] <= 12 ? { h: +oc[1], mi: 0, bare: true } : null;
+  const q = /^(half|quarter) (past|after|to|til) (\d{1,2})$/.exec(c);
+  if (q) {
+    const n = +q[3];
+    if (n < 1 || n > 12) return null;
+    if (q[2] === "to" || q[2] === "til") return { h: n === 1 ? 12 : n - 1, mi: q[1] === "half" ? 30 : 45, bare: true };
+    return { h: n, mi: q[1] === "half" ? 30 : 15, bare: true };
+  }
   const m = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)?$/.exec(c);
   if (!m) return null;
   let h = +m[1];
@@ -170,7 +189,8 @@ function clockOf(s: string): Clock | null {
 const ampm = (h: number, mi: number) => `${h % 12 || 12}:${String(mi).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 const PART_HOURS: Record<string, number> = { morning: 9, afternoon: 14, evening: 18, night: 20, tonight: 20 };
 
-export type When = { at: number; zone: string; assumed: string[] } | { error: string };
+// defaulted: no time of day was said, and one was picked (9 AM, or a part of the day's hour).
+export type When = { at: number; zone: string; assumed: string[]; defaulted?: boolean } | { error: string };
 // The instant a when-phrase names, from now, in the zone it names, else their saved zone, else the default (said so).
 export function whenOf(phrase: string, now: number, saved: string | null): When {
   let p = phrase.toLowerCase().replace(/\s+/g, " ").trim();
@@ -269,7 +289,7 @@ export function whenOf(phrase: string, now: number, saved: string | null): When 
     }
   }
   if (dd.m < 1 || dd.m > 12 || dd.d < 1 || dd.d > 31 || new Date(Date.UTC(dd.y, dd.m - 1, dd.d)).getUTCDate() !== dd.d) return { error: `there is no such date as ${phrase}` };
-  return { at: zonedInstant(dd.y, dd.m, dd.d, hm.h, hm.mi, zone), zone, assumed };
+  return { at: zonedInstant(dd.y, dd.m, dd.d, hm.h, hm.mi, zone), zone, assumed, ...(c0 ? {} : { defaulted: true }) };
 }
 
 // "Fri, Nov 1, 9:00 AM CDT"
@@ -323,6 +343,9 @@ export async function reminderTurn(o: { message: string; userId: string; now: nu
     if (paused) return { reply: "Nothing is set: my texts to you are on hold (your account is paused, or you texted STOP on one of your linked numbers), and a reminder can't go out while they're held. Resume in the Trainee app or text START where you sent STOP, then ask me again.", status: "paused", intent: REMINDER_SET_INTENT };
     const w = whenOf(ask.when, o.now, mine.tz);
     if ("error" in w) return { reply: `Nothing is set: ${w.error}. Say it like "remind me tomorrow at 9am to ${ask.what}" or "in 2 hours".`, status: "bad_time", intent: REMINDER_SET_INTENT };
+    // RE-REVIEW 2 (PR #355): a default time only when the message names no time at all ("tomorrow to prep for the 3pm call").
+    const tl = w.defaulted ? TIMELIKE.exec(ask.what) : null;
+    if (tl) return { reply: `When should I remind you to ${ask.what}? I see "${tl[0]}" in it but I'm not sure that's when you want the reminder. Say it like "remind me tomorrow at 9am to ${ask.what}". Nothing is set yet.`, status: "needs_time", intent: REMINDER_ASK_INTENT };
     if (w.at <= o.now + 30_000) return { reply: `Nothing is set: ${whenLabel(w.at, w.zone)} has already passed. Give me a time that's still ahead.`, status: "past", intent: REMINDER_SET_INTENT };
     if (w.at > o.now + YEAR) return { reply: "Nothing is set: that's more than a year away. Give me a time within the next year.", status: "too_far", intent: REMINDER_SET_INTENT };
     const key = reminderKey((o.newKey ?? (() => crypto.randomUUID()))(), w.zone);

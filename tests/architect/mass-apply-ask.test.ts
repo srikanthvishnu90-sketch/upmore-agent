@@ -1,70 +1,144 @@
 // MASS APPLY (owner, 2026-11-01): "apply to the top 10 frontend internships in Chicago" in ONE message: the postings on
-// file that match the role (every role word in the title) and the place (in the location) are searched for and queued,
-// up to the number asked, with no list shown first. Without role words, "the top N" stays the thread's last list.
-// Synthetic only; no network, no database.
+// file that match the role (every role word in the title) and the place (in the location, or remote) are searched for,
+// screened, and the first N that pass are queued, with no list shown first. Review of #366: the place and remote go into
+// the search itself (never cut by a nationwide newest-first limit); at most 50 per message, said plainly; ranked by fit from
+// confirmed facts when it can be computed, else said to be newest first; screens before the cut to N; hedged, negated,
+// conditional and second-person phrasings queue nothing. Without role words, "the top N" stays the thread's last list.
+// The search is the in-memory store with the production search's semantics (career_ingest.ts memoryPostingsDb: every word
+// in the title, company, place or description; title matches first, newest first; the limit honored). No network, no database.
 import assertNode from "node:assert/strict";
-import { applyManyAsk, applyTurn, manyWhatOf } from "../../supabase/functions/_shared/career_apply_chat.ts";
+import { applyManyAsk, applyTurn, MANY_MAX, manyWhatOf } from "../../supabase/functions/_shared/career_apply_chat.ts";
 import { memoryWantStore } from "../../supabase/functions/_shared/career_apply_want.ts";
+import { memoryPostingsDb } from "../../supabase/functions/_shared/career_ingest.ts";
 
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const T = Date.parse("2026-11-01T18:00:00Z");
-const posting = (i: number, title: string, location: string) => ({ job_id: `greenhouse:co${i}:${i}`, company: `TEST Co ${i}`, title, location, url: `https://boards.greenhouse.io/co${i}/jobs/${i}`, first_seen_at: new Date(T - i * 60000).toISOString() });
-const ON_FILE = [
-  ...Array.from({ length: 14 }, (_, i) => posting(i + 1, "Frontend Engineering Intern", "Chicago, IL")),
-  posting(20, "Frontend Engineering Intern", "New York, NY"),
-  posting(21, "Backend Engineering Intern", "Chicago, IL"),
-  posting(22, "Senior Frontend Engineer", "Chicago, IL"),
-];
-const world = () => {
-  const wants = memoryWantStore();
-  const searched: string[][] = [];
-  const turn = (message: string, shortlist: any[] | null = null) => applyTurn({ message, userId: "u1", now: T, wants, apps: async () => [], facts: [], shortlist,
-    postings: { search: async (words) => { searched.push(words); return ON_FILE.slice(); } }, resumeOnFile: async () => true });
-  return { wants, turn, searched, keys: async () => (await wants.list("u1")).map((w) => w.posting_key).sort() };
+let seq = 0;
+const posting = (title: string, location: string, minutesAgo: number) => {
+  const i = ++seq;
+  return { job_id: `greenhouse:co${i}:${1000 + i}`, provider: "greenhouse", board: `co${i}`, company: `TEST Co ${i}`, title, location, url: `https://boards.greenhouse.io/co${i}/jobs/${1000 + i}`,
+    description: "Build product UI.", first_seen_at: new Date(T - minutesAgo * 60000).toISOString(), last_seen_at: new Date(T).toISOString(), posted_at: null, closed_at: null } as any;
 };
+async function world(rows: any[], o: { apps?: any[]; facts?: any[]; failSearch?: boolean; shortlist?: any[] | null } = {}) {
+  const db = memoryPostingsDb();
+  await db.putMany(rows);
+  const wants = memoryWantStore();
+  const limits: number[] = [];
+  const postings = { search: async (words: string[], limit: number) => { limits.push(limit); if (o.failSearch) throw new Error("TEST search down"); return await db.search(words, limit); } };
+  const turn = (message: string) => applyTurn({ message, userId: "u1", now: T, wants, apps: async () => o.apps ?? [], facts: o.facts ?? [], shortlist: o.shortlist ?? null, postings, resumeOnFile: async () => true });
+  return { turn, limits, keys: async () => (await wants.list("u1")).map((w) => w.posting_key).sort() };
+}
+const keysOf = (ps: any[]) => ps.map((p) => p.job_id).sort();
 
-Deno.test("the one-message ask is read: count, role words, place", () => {
+Deno.test("the one-message ask is read: count, role words, place; no role noun is not a search", () => {
   eq(applyManyAsk("apply to the top 10 frontend internships in Chicago"), { kind: "first", n: 10, what: { role: "frontend internships", words: ["frontend", "internships"], place: "chicago" } });
   eq(applyManyAsk("Apply me to the first 4 remote data analyst jobs"), { kind: "first", n: 4, what: { role: "data analyst jobs", words: ["data", "analyst"], place: "remote" } });
-  // No role words: the thread's list, as before.
   eq(applyManyAsk("apply to the top 2"), { kind: "first", n: 2 });
   eq(applyManyAsk("apply to the top 3 of them"), { kind: "first", n: 3 });
-  // Words with no role noun are not a search ("quickly", "instead", "jobs that fit this").
   eq(applyManyAsk("apply to the top 3 quickly"), { kind: "first", n: 3 });
   eq(applyManyAsk("apply me to the top 3 jobs that fit this"), { kind: "first", n: 3 });
+  // Polite commands stay commands.
+  for (const m of ["I would like to apply to the top 5 frontend internships in Chicago", "please apply me to the top 5 frontend internships in Chicago"]) eq((applyManyAsk(m) as any)?.n, 5, m);
   eq(manyWhatOf("of these"), null);
   eq(manyWhatOf(""), null);
 });
 
-Deno.test("'apply to the top 10 frontend internships in Chicago' with no list: the 10 newest matching postings queued, nothing else", async () => {
-  const w = world();
-  const r = await w.turn("apply to the top 10 frontend internships in Chicago");
-  eq([r?.intent, r?.status], ["career_apply_queue", "queued"], r?.reply);
-  eq(await w.keys(), ON_FILE.slice(0, 10).map((p) => p.job_id).sort(), "exactly the first 10 Chicago frontend internships");
-  assert(/Queued 10\b/.test(r!.reply) && /nothing is sent|Nothing is sent/i.test(r!.reply), r!.reply);
-  assert(!/New York|Backend|Senior/.test(r!.reply), `nothing outside the ask: ${r!.reply}`);
-  assert(w.searched.length === 1 && w.searched[0].includes("frontend"), JSON.stringify(w.searched));
+Deno.test("hedged, negated, conditional and second-person phrasings are not a command: nothing queued", async () => {
+  const rows = Array.from({ length: 8 }, (_, i) => posting("Frontend Engineering Intern", "Chicago, IL", i));
+  for (const m of ["I wouldn't apply to the top 5 frontend internships in Chicago", "shouldn't I apply to the top 5 frontend internships in Chicago",
+    "would you apply to the top 5 frontend internships in Chicago", "if i applied to the top 5 frontend internships in Chicago, what happens",
+    "i don't want to apply to the top 5 frontend internships in Chicago", "what if I apply to the top 5 frontend internships in Chicago"]) {
+    eq(applyManyAsk(m), null, m);
+    const w = await world(rows);
+    const r = await w.turn(m);
+    assert(r === null || r.status !== "queued", `${m}: ${r?.reply}`);
+    eq(await w.keys(), [], m);
+  }
 });
 
-Deno.test("fewer on file than asked: says how many it found; none: queues nothing and says so", async () => {
-  const w = world();
-  const r = await w.turn("apply to the top 50 frontend internships in Chicago");
+Deno.test("the place goes into the search: 5 in Chicago are found behind 600 newer elsewhere; 'Chicago' only in a description is not Chicago", async () => {
+  const chicago = Array.from({ length: 5 }, (_, i) => posting("Frontend Engineering Intern", "Chicago, IL", 1000 + i));
+  const elsewhere = Array.from({ length: 600 }, (_, i) => posting("Frontend Engineering Intern", "New York, NY", 1 + i));
+  const mentions = { ...posting("Frontend Engineering Intern", "New York, NY", 0), description: "Work with our Chicago partners." };
+  const w = await world([mentions, ...elsewhere, ...chicago]);
+  const r = await w.turn("apply to the top 5 frontend internships in Chicago");
+  eq([r?.intent, r?.status], ["career_apply_queue", "queued"], r?.reply);
+  eq(await w.keys(), keysOf(chicago));
+  assert(!/New York/.test(r!.reply), r!.reply);
+});
+
+Deno.test("remote: only postings that say remote", async () => {
+  const remote = Array.from({ length: 3 }, (_, i) => posting("Frontend Engineering Intern", "Remote - US", 10 + i));
+  const onsite = Array.from({ length: 6 }, (_, i) => ({ ...posting("Frontend Engineering Intern", "Austin, TX", i), description: "Hybrid; remote Fridays." }));
+  const w = await world([...onsite, ...remote]);
+  const r = await w.turn("apply to the first 3 remote frontend internships");
+  eq(r?.status, "queued", r?.reply);
+  eq(await w.keys(), keysOf(remote));
+});
+
+Deno.test("screens first, then N: the 3 newest already applied to, 'top 10' still queues 10 others and names no one past the 10th", async () => {
+  const rows = Array.from({ length: 60 }, (_, i) => posting("Frontend Engineering Intern", "Chicago, IL", i));
+  const applied = rows.slice(0, 3).map((p, i) => ({ id: `a${i}`, company: p.company, title: p.title, url: p.url, created_at: new Date(T - 86400000).toISOString(), state: "submitted_unconfirmed", job_id: p.job_id }));
+  const w = await world(rows, { apps: applied });
+  const r = await w.turn("apply to the top 10 frontend internships in Chicago");
+  eq(r?.status, "queued", r?.reply);
+  eq(await w.keys(), keysOf(rows.slice(3, 13)), "the next 10 that pass");
+  for (const p of rows.slice(13)) assert(!new RegExp(`${p.company}\\b`).test(r!.reply), `nothing past the 10th named: ${p.company} in ${r!.reply}`);
+  assert(w.limits.every((l) => l >= 60), `the search is asked for every match, not N: ${w.limits}`);
+});
+
+Deno.test(`at most ${MANY_MAX} from one message, said plainly`, async () => {
+  const rows = Array.from({ length: 70 }, (_, i) => posting("Frontend Engineering Intern", "Chicago, IL", i));
+  const w = await world(rows);
+  const r = await w.turn("apply to the top 999 frontend internships in Chicago");
+  eq(r?.status, "queued", r?.reply);
+  eq((await w.keys()).length, MANY_MAX);
+  assert(r!.reply.includes(`One message queues at most ${MANY_MAX}, so I took ${MANY_MAX} of the 999 you asked for`), r!.reply);
+});
+
+Deno.test("ranking said honestly: with no confirmed facts to score fit, 'newest first' (never 'top' by fit)", async () => {
+  const rows = Array.from({ length: 4 }, (_, i) => posting("Frontend Engineering Intern", "Chicago, IL", i));
+  const w = await world(rows);
+  const r = await w.turn("apply to the top 4 frontend internships in Chicago");
+  assert(/Ranked newest first \(I couldn't rank them by fit\)/.test(r!.reply), r!.reply);
+});
+
+Deno.test("ranked by fit from confirmed facts when it can be computed: the better fit first, said so", async () => {
+  const facts = [{ id: "f1", kind: "skill", text: "React", status: "confirmed" }, { id: "f2", kind: "skill", text: "TypeScript", status: "confirmed" },
+    { id: "f3", kind: "education", text: "BS Computer Science, TEST University, 2028", status: "confirmed" }];
+  const newer = posting("Frontend Engineering Intern", "Chicago, IL", 1);
+  const better = { ...posting("Frontend Engineering Intern", "Chicago, IL", 50), description: "React TypeScript components, React hooks, TypeScript types, accessibility." };
+  const w = await world([newer, better], { facts });
+  const r = await w.turn("apply to the top 1 frontend internships in Chicago");
+  eq(await w.keys(), [better.job_id], r?.reply);
+  assert(/Ranked best fit for your confirmed facts first/.test(r!.reply), r!.reply);
+});
+
+Deno.test("fewer on file than asked: says how many; none: nothing queued, said; the search down: nothing queued, said", async () => {
+  const rows = Array.from({ length: 14 }, (_, i) => posting("Frontend Engineering Intern", "Chicago, IL", i));
+  const w = await world([...rows, posting("Backend Engineering Intern", "Chicago, IL", 1), posting("Senior Frontend Engineer", "Chicago, IL", 1)]);
+  const r = await w.turn("apply to the top 30 frontend internships in Chicago");
   eq(r?.status, "queued");
-  assert(/^I found 14 open, not 50, so these 14\./.test(r!.reply), r!.reply);
-  eq((await w.keys()).length, 14);
-  const none = await world().turn("apply to the top 5 frontend internships in Boston");
+  assert(/I found 14 open, not 30\./.test(r!.reply), r!.reply);
+  eq(await w.keys(), keysOf(rows));
+  const none = await (await world(rows)).turn("apply to the top 5 frontend internships in Boston");
   eq(none?.status, "none");
   assert(/no open frontend internships postings in Boston on file, so nothing was queued/.test(none!.reply), none!.reply);
+  const down = await world(rows, { failSearch: true });
+  const d = await down.turn("apply to the top 5 frontend internships in Chicago");
+  eq(d?.status, "unreadable");
+  assert(/couldn't search the postings just now, so nothing was queued/.test(d!.reply), d!.reply);
+  eq(await down.keys(), []);
 });
 
-Deno.test("the ask names its role even when a list is on the thread: the search wins, the list is not used", async () => {
-  const w = world();
-  const list = [{ id: "lever:other:1", company: "TEST Listed", title: "Data Analyst", location: "Chicago, IL", url: "https://jobs.lever.co/other/0e0c3b0e-0000-4000-8000-000000000001" }];
-  await w.turn("apply to the top 3 frontend internships in Chicago", list);
-  eq(await w.keys(), ON_FILE.slice(0, 3).map((p) => p.job_id).sort());
-  // Without role words the list is the ask's, as before.
-  const v = world();
-  await v.turn("apply to the top 1", list);
-  eq(await v.keys(), ["lever:other:0e0c3b0e-0000-4000-8000-000000000001"]);
+Deno.test("the ask names its role even when a list is on the thread: the search wins; without role words, the list", async () => {
+  const rows = Array.from({ length: 5 }, (_, i) => posting("Frontend Engineering Intern", "Chicago, IL", i));
+  const list = [{ id: "lever:other:0e0c3b0e-0000-4000-8000-000000000001", company: "TEST Listed", title: "Data Analyst", location: "Chicago, IL", url: "https://jobs.lever.co/other/0e0c3b0e-0000-4000-8000-000000000001" }];
+  const w = await world(rows, { shortlist: list });
+  await w.turn("apply to the top 3 frontend internships in Chicago");
+  eq(await w.keys(), keysOf(rows.slice(0, 3)));
+  const v = await world(rows, { shortlist: list });
+  await v.turn("apply to the top 1");
+  eq(await v.keys(), [list[0].id]);
 });

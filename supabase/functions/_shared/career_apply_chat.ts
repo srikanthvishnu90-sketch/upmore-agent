@@ -17,6 +17,7 @@ import type { AppRow } from "./career_apply_status.ts";
 import { type FetchFeed, type PostingsDb, searchWords } from "./career_ingest.ts";
 import { applyText, linkAsk, possessiveAsk, postingForLink, postingsForRole } from "./career_apply_link.ts";
 import { sameCompany, type TrackedApp } from "./career_mail.ts";
+import { fitOf, scoringProfileFor } from "./career_search.ts";
 // FEATURE 1 (2026-10-25): positions in the list, the listed postings checked on file, no resume on file, the server
 // prepare asked for the rows queued, and the coverage line (career_apply_from_chat.ts).
 import { contentOf, type GateResult, gateSummary } from "./career_apply_gate.ts";
@@ -110,18 +111,39 @@ export function manyWhatOf(rest: string): ManyWhat | null {
   const words = all.filter((w) => w !== "remote");
   return words.length ? { role: role.replace(/\bremote\s+/, ""), words, place: place ?? (all.includes("remote") ? "remote" : null) } : null;
 }
-// The postings on file that are what the person named: every role word in the title, the place in the location (or the
-// title says remote when they asked for remote), newest first as the search returns them.
-async function postingsFor(o: ApplyChatDeps, what: ManyWhat, n: number): Promise<ShortlistEntry[]> {
-  const hits = await o.postings.search(searchWords(`${what.words.join(" ")}`), Math.max(50, n * 5));
+// One message queues at most this many (owner review of #366): a bigger ask is told plainly how many went and why.
+export const MANY_MAX = 50;
+// Not a command (review of #366): a hedge, a negation, a condition or a question about applying ("I wouldn't apply to the
+// top 5 ...", "shouldn't I apply ...", "would you apply ...", "if I applied to ...") queues nothing.
+const NOT_A_COMMAND = /\b(?:i|we)\s+(?:wouldn'?t|would\s+not|won'?t|will\s+not|shouldn'?t|should\s+not|don'?t|do\s+not|didn'?t|did\s+not|never)\b|\b(?:shouldn'?t|should|would)\s+(?:i|we|you)\b|\b(?:if|what\s+if|suppose|unless|whether)\s+(?:i|we|you)\b|\bwould\s+you\b/i;
+// The postings on file that are what the person named: every role word in the title, the place in the location (or
+// remote), passed to the search itself so a place is never cut by a nationwide newest-first limit. Ranked by fit from
+// their confirmed facts when it can be computed (career_search.ts fitOf), else newest first, and the reply says which.
+async function postingsFor(o: ApplyChatDeps, what: ManyWhat): Promise<{ list: ShortlistEntry[]; rankedBy: "fit" | "newest" }> {
   const place = what.place ? lower(what.place) : null;
-  return hits
-    .filter((p) => what.words.every((w) => titleHas(String(p?.title ?? ""), w)))
-    .filter((p) => !place || (place === "remote" ? /\bremote\b/i.test(`${p?.location ?? ""} ${p?.title ?? ""}`) : lower(p?.location).includes(place)))
-    .slice(0, n)
-    .map((p) => ({ id: p.job_id ?? null, title: p.title ?? null, company: p.company ?? null, location: p.location ?? null, url: p.url ?? null }));
+  // "intern", "internship(s)", "co-op" are read against the title below (the alias table): the search's stemmer keeps
+  // "internship" and "intern" apart, so they are not search words; the other role words and the place are.
+  const roleWords = what.words.filter((w) => !/^(?:intern(?:ship)?s?|co-?ops?)$/.test(w));
+  const words = searchWords([...roleWords, ...(place && place !== "remote" ? [place] : []), ...(place === "remote" ? ["remote"] : [])].join(" "));
+  const hits = await o.postings.search(words, 500);
+  const matched = hits
+    .filter((p) => p && !p.closed_at && what.words.every((w) => titleHas(String(p?.title ?? ""), w)))
+    .filter((p) => !place || (place === "remote" ? /\bremote\b/i.test(`${p?.location ?? ""} ${p?.title ?? ""}`) : lower(p?.location).includes(place)));
+  let rankedBy: "fit" | "newest" = "newest";
+  let ordered = matched;
+  try {
+    const sp = scoringProfileFor({ facts: o.facts ?? [] });
+    if (sp) {
+      const scored = matched.map((p, i) => ({ p, i, f: fitOf(p, sp) }));
+      scored.sort((a, b) => (a.f.excluded === b.f.excluded ? 0 : a.f.excluded ? 1 : -1) || ((b.f.score ?? -1) - (a.f.score ?? -1)) || a.i - b.i);
+      ordered = scored.map((x) => x.p);
+      rankedBy = "fit";
+    }
+  } catch { /* fit unknown: newest first, and said so */ }
+  return { rankedBy, list: ordered.map((p) => ({ id: p.job_id ?? null, title: p.title ?? null, company: p.company ?? null, location: p.location ?? null, url: p.url ?? null })) };
 }
 export function applyManyAsk(message: string): ManyAsk | null {
+  if (NOT_A_COMMAND.test(String(message ?? ""))) return null;
   const raw = applyText(message);
   if (raw === null || !/\bapply\b/i.test(raw) || QUESTION.test(raw) || /\bapplied\b/i.test(raw) || /\bat\s+[A-Z]/.test(raw)) return null;
   const t = raw.toLowerCase().replace(/[.!]+$/, "").replace(/\s+/g, " ");
@@ -390,10 +412,10 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   const intent = APPLY_QUEUE_INTENT;
   // MASS APPLY: "the top N <role> in <place>" is searched for here, not read from the thread's last list.
   const what = ask.kind === "first" ? ask.what : undefined;
-  let list: ShortlistEntry[];
+  let list: ShortlistEntry[], rankedBy: "fit" | "newest" = "newest";
   if (what) {
-    try { list = await postingsFor(o, what, ask.kind === "first" ? ask.n : 0); }
-    catch { return { reply: `I couldn't search the postings just now, so nothing was queued. Ask again in a minute.`, status: "unreadable", intent }; }
+    try { ({ list, rankedBy } = await postingsFor(o, what)); }
+    catch { return { reply: `I couldn't search the postings just now, so nothing was queued. Ask again in a minute.`, status: "unreadable", intent, queued: [], refused: [] }; }
     if (!list.length) return { reply: `I have no open ${what.role} postings${what.place ? ` in ${what.place.replace(/\b\w/g, (c) => c.toUpperCase())}` : ""} on file, so nothing was queued. Say "find <role> jobs in <place>" to look wider.`, status: "none", intent, queued: [], refused: [] };
   } else list = (o.shortlist ?? []).filter((e) => e && (e.url || e.id));
   // SERIAL-1440 (2): with no list on this thread the ask still gets an answer that says what to say, never a catch-all.
@@ -407,8 +429,17 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
     slice = list.slice(ask.i - 1, ask.i);
   } else if (ask.kind === "first") {
     if (ask.n < 1) return null;
-    slice = list.slice(0, ask.n);
-    if (ask.n > list.length) note = what ? `I found ${list.length} open, not ${ask.n}, so these ${list.length}. ` : `I listed ${list.length}, not ${ask.n}, so these ${list.length}. `;
+    if (what) {
+      // Every match goes through the screens below; the first N that pass are queued (never N cut before the screens).
+      slice = list.slice();
+      const want = Math.min(ask.n, MANY_MAX);
+      const capped = ask.n > MANY_MAX ? `One message queues at most ${MANY_MAX}, so I took ${MANY_MAX} of the ${ask.n} you asked for; ask again for more. ` : "";
+      const order = rankedBy === "fit" ? "best fit for your confirmed facts first" : "newest first (I couldn't rank them by fit)";
+      note = `${capped}${list.length < want ? `I found ${list.length} open, not ${want}. ` : ""}Ranked ${order}. `;
+    } else {
+      slice = list.slice(0, ask.n);
+      if (ask.n > list.length) note = `I listed ${list.length}, not ${ask.n}, so these ${list.length}. `;
+    }
   } else if (ask.kind === "pick") {
     // FEATURE 1: "apply to 1 and 3": the positions on the list; one past its end is named, never guessed.
     const inRange = ask.is.filter((i) => i <= list.length), outRange = ask.is.filter((i) => i > list.length);
@@ -423,10 +454,11 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
     }
     if (slice.length < list.length) note = `${slice.length} of the ${list.length} I listed ${slice.length === 1 ? "is" : "are"} ${ask.filter.said}: those ${slice.length === 1 ? "one" : String(slice.length)}. `;
   } else slice = list.slice();
-  const total = slice.length + missing.length;
+  let total = slice.length + missing.length;
   const listedPicks: Pick[] = slice.map((e) => ({ job_id: e.id ?? undefined, url: e.url ?? undefined, company: e.company ?? undefined, title: e.title ?? undefined, location: e.location ?? undefined }));
   // FEATURE 1: each listed posting by its record on file; a closed one, or one not found with no link, is refused by name.
-  const onFile = await checkListed(listedPicks, o.posting);
+  // (A searched ask's postings were just read open from the file: no second read per posting.)
+  const onFile = what ? { ok: listedPicks, refused: [] } : await checkListed(listedPicks, o.posting);
   const picks: Pick[] = onFile.ok;
   missing.push(...onFile.refused);
   let apps: TrackedApp[];
@@ -434,6 +466,17 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   catch { return { reply: "I couldn't read your applications just now, so I couldn't rule out one already sent to any of these; nothing was queued. Ask again in a minute.", status: "unreadable", intent }; }
   // Each posting through the same screens as a single ask, on its own: their current employer, this exact posting already applied to.
   const screened = screenPicks(picks, { apps, facts: o.facts ?? [], now: o.now, resolved: await answersOf(o) });
+  // MASS APPLY: the searched ask takes the first N that passed every screen; the rest of the matches are not queued.
+  // Only the matches up to the Nth that passed are this ask's: refusals past it are not named, and the count is of those.
+  if (what && ask.kind === "first") {
+    const want = Math.min(ask.n, MANY_MAX), ok = new Set(screened.ok.map((p) => p.job_id));
+    let kept = 0, cut = picks.length;
+    for (let i = 0; i < picks.length; i++) if (ok.has(picks[i].job_id) && ++kept === want) { cut = i + 1; break; }
+    const inAsk = new Set(picks.slice(0, cut).map((p) => p.job_id));
+    screened.ok = screened.ok.filter((p) => inAsk.has(p.job_id));
+    screened.refused = screened.refused.filter((r) => inAsk.has(r.posting.job_id ?? undefined));
+    total = cut;
+  }
   // SERIAL-1491: the possible-match question attaches to its own posting; the rest of the batch goes on.
   const asking = screened.refused.filter((r) => r.ask === "employer");
   const refused = [...missing, ...screened.refused.filter((r) => r.ask !== "employer").map((r) => ({ job_id: r.posting.job_id, company: r.posting.company, title: r.posting.title, reason: r.reason, said: r.said }))];

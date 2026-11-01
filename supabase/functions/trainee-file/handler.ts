@@ -13,12 +13,12 @@
 // read. Taps at once are each judged against the list as it is when they run: an Apply that queued a row first changes the set
 // (the Apply to all then approves nothing and says so); an Apply to all that ran first leaves that Apply "Already in your
 // applications". Either way each posting is approved once.
+import { dayIn, FALLBACK_ZONE } from "../_shared/file_page.ts";
 import { FILE_TTL_MS, verifyFileToken, type FileClaims } from "../_shared/file_link.ts";
 import { checkSession, CLEAR_LOGIN, CLEAR_SESSION, codeOf, LOGIN_TTL_MS, loginCookie, MAX_CODE_SENDS, MAX_CODE_TRIES, normalizePhone, SESSION_ID, sessionCookie, startSession, type PhoneAuth, type SessionStore } from "../_shared/file_session.ts";
 import { verifyInitData } from "../_shared/telegram_webapp.ts";
 import { BOOT_SCRIPT, cut, FEED_SCRIPT, fullOf, hostOf, renderBootstrap, renderFeed, renderLinkState, renderPhoneLogin, renderPreview, renderText, signOutFoot, snippetOf, statusOf, type AppRow, type Feed, type Row } from "../_shared/file_page.ts";
 import { dayOf, BRAND, esc, layout, postedLine } from "../_shared/file_page.ts";
-import { dayIn, FALLBACK_ZONE } from "../_shared/file_page.ts";
 import { actOn, bodyHtml, COPY_SCRIPT, KIND_CSS, KIND_LABEL, textOf, type Effects, type FileRecord } from "../_shared/file_kinds.ts";
 import type { FileService } from "../_shared/file_service.ts";
 import { byHandUrl, FEED_ROWS, foreignFact, hashTag, isSecretField, NOT_YOURS, logoDomain, logoUrl, postingVerdict, secretFields, secretKey, tapJob, unsendable, type JobDeps, type JobSender, type JobStore, type JobView, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
@@ -179,8 +179,8 @@ async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: R
     const tag = prep && !sd?.secret && !status && !byHand && !blocked && /^[0-9a-f]{16}$/.test(hashTag(prep.payload_hash)) ? hashTag(prep.payload_hash) : null;
     // The short description and the key details: the stored posting's own words; a search-only detail only in the labelled line.
     const stated = { ...job, location: post?.location ?? "", remote: post ? job.remote : null };
-    return { ref, job, logo: rowLogo(job, d.env), snippet: snippetOf(stated, post?.description), full: fullOf(post?.description),
-      status, inApps: !!app || away, tag, resume: app || away ? null : resumeOf(prep), byHand, blocked, note: notes[ref], ...metaOf(job, post), closed, posted: postedLine({ posted_at: post?.posted_at ?? job.posted_at, first_seen_at: post?.first_seen_at ?? job.first_seen_at }, d.now(), tz), why: job.reasons.slice(0, 2),
+    return { ref, job, closed, logo: rowLogo(job, d.env), snippet: snippetOf(stated, post?.description), full: fullOf(post?.description),
+      status, inApps: !!app || away, tag, resume: app || away ? null : resumeOf(prep), byHand, blocked, note: notes[ref], ...metaOf(job, post), posted: postedLine({ posted_at: post?.posted_at ?? job.posted_at, first_seen_at: post?.first_seen_at ?? job.first_seen_at }, d.now(), tz), why: job.reasons.slice(0, 2),
       sends: sd && !sd.secret ? `Sends: ${[resumeOf(prep) ?? "no resume", sd.answers ? "your saved answers" : "", sd.cover ? "a cover note" : ""].filter(Boolean).join(" + ")}` : undefined, send: sd?.items };
   }));
   // The same posting twice on one list (the same link under two ids): only the first row offers Apply.

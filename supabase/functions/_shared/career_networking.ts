@@ -21,7 +21,7 @@ import { batchMessages, confirmed, draftFor, parseBatchYes, parseOutreachReply, 
   type KeyedContact, type OutreachStore, payloadHash, type Recipient, recordOutreach, blockedAddresses, BLOCKED_WHY, draftLangOf } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
 import { siteAsk, siteOfLink, trackAsk, trackTurn } from "./career_outreach_track.ts";
-import { factHost, factQuestion, factsFromPage, factsFromPaste, factsFromStatement, isInstruction, type RecipientFact } from "./career_outreach_personalize.ts";
+import { factHost, factQuestion, firmDomains, factsFromPage, factsFromPaste, factsFromStatement, isInstruction, type RecipientFact } from "./career_outreach_personalize.ts";
 import { fetchHtml, pinnedGet } from "./career_people_page.ts";
 
 export const IMPORT_INTENT = "career_contacts_import";
@@ -474,10 +474,13 @@ async function saveFacts(o: NetworkingDeps, who: { key: string; name: string; fi
   const notes: string[] = [];
   const url = URL_RX.exec(text)?.[0]?.replace(/[.,;:!?]+$/, "") ?? null;
   if (url) {
+    // The firm's verified domain: the contact's work email.
     const known = [who.email ?? null];
     const kind = factHost(url, who.firm, known);
     if (siteOfLink(url)) notes.push(`I never open ${siteOfLink(url)}, so I didn't read that link; paste the text you want me to use instead.`);
-    else if (!kind) notes.push(`I read only ${who.firm ? `${who.firm}'s own site, ` : ""}SEC EDGAR and paper sites, so I didn't open that link; paste the part about ${first} instead.`);
+    else if (!kind) notes.push(firmDomains(known).length
+      ? `I read only ${who.firm ? `${who.firm}'s own site, ` : ""}SEC EDGAR and paper sites, so I didn't open that link; paste the part about ${first} instead.`
+      : `I read only SEC EDGAR and paper sites, and a firm's own site only at the domain of a work email I have for them (I have none for ${first}), so I didn't open that link; paste the part about ${first} instead.`);
     else {
       const page = await fetchHtml(o.people?.pageGet ?? pinnedGet(), url, o.people?.resolve, (u) => factHost(u.toString(), who.firm, known) === kind);
       if (!page.ok) notes.push(`I couldn't read that page (${page.why === "robots" ? "the site asks not to be read by tools" : page.why === "blocked_site" ? "I never open that site" : page.detail ?? page.why}); paste the part about ${first} instead.`);

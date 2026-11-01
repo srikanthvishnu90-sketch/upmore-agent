@@ -87,11 +87,24 @@ const hostOf = (u: string) => { try { return new URL(u).hostname.toLowerCase().r
 const blockedUrl = (u: string) => { const h = hostOf(u); return !!h && BLOCKED_HOSTS.some((b) => h === b || h.endsWith(`.${b}`)); };
 // Text in a bio or a page that speaks to an assistant is an instruction, never a fact: the sentence is dropped.
 const INSTRUCTION = new RegExp([
-  String.raw`\b(?:ignore|disregard|forget|override)\b[^.!?\n]{0,40}\b(?:instruction|instructions|prompt|rules?|above|previous|prior|everything)\b`,
+  String.raw`\b(?:ignore|disregard|forget|override)\b[^.!?\n]{0,40}\b(?:instruction|instructions|prompt|rules?|above|previous|prior|earlier|everything|guidance|context)\b`,
   String.raw`\bsystem prompt\b`, String.raw`\byou are (?:now )?(?:an? )?(?:ai|assistant|language model|chatbot|gpt)\b`,
   String.raw`\b(?:ai|assistant|model|chatgpt|claude|gpt|llm|bot)s?\b[^.!?\n]{0,30}\b(?:must|should|shall|always|never|will)\b`,
   String.raw`^\s*(?:please\s+)?(?:write|say|tell|include|mention|add|respond|reply|claim|state|insert|append)\b`,
   String.raw`\b(?:when|if)\s+(?:you|anyone)\s+(?:write|writes|email|emails|draft|drafts|contact)\b`, String.raw`<\|[^|]*\|>`, String.raw`\[\[?(?:system|inst)\]?\]`,
+  // #361 re-review (2026-11-01): a sentence addressed to whoever drafts the email, or one that directs what the email
+  // says, is an instruction however it is phrased ("Note to the assistant: ...", "Whoever drafts this email must ...",
+  // "The email should state ...", "disregard all earlier guidance").
+  String.raw`\b(?:note|message|memo|instructions?|reminder|attention|attn|dear|hey|psst)\b[\s,:-]*(?:(?:to|for)\s+)?(?:the\s+|any\s+|this\s+|an?\s+)?(?:assistant|ai|model|bot|llm|chatgpt|gpt|claude|writer|drafter|copywriter|agent)\b`,
+  String.raw`\bwhoever\s+(?:drafts?|writes?|reads?|sends?|composes?|is\s+(?:writing|drafting))\b`,
+  String.raw`\b(?:the|this|that|your|any|each|every|an?)\s+(?:e-?mails?|message|note|draft|reply|letter|response|intro(?:duction)?|outreach|writer|drafter)\b(?:\s+to\s+\S+)?\s+(?:must|should|shall|needs?\s+to|has\s+to|ought\s+to|is\s+to)\b`,
+  String.raw`\b(?:must|should|shall|needs?\s+to|has\s+to|have\s+to|ought\s+to)\s+(?:also\s+)?(?:state|say|mention|include|claim|add|insert|tell|request|open|begin|thank|congratulate|praise|sign|reference)\b`,
+  String.raw`\b(?:disregard|ignore|override|bypass)\b`,
+  String.raw`\binstructions?\b`, String.raw`\b(?:system|previous|prior|earlier|original|your|this)\s+prompts?\b`,
+  String.raw`^\s*(?:you|u)\s+(?:must|should|shall|need\s+to|have\s+to|will|are\s+to|are\s+required\s+to)\b`,
+  String.raw`\b(?:make|be)\s+sure\s+(?:to|that|you)\b`, String.raw`\b(?:do\s+not|don'?t|never)\s+(?:mention|say|include|state|write|tell|reveal|disclose)\b`,
+  String.raw`\bfrom\s+now\s+on\b`, String.raw`\bnew\s+(?:instructions?|rules|task|directives?)\b`, String.raw`\bpretend\b`, String.raw`\brole-?\s?play\b`,
+  String.raw`\bwhen\s+(?:writing|drafting|composing)\b`,
 ].join("|"), "iu");
 export const isInstruction = (s: string) => INSTRUCTION.test(s) || readsAsInstruction(s);
 const clean = (s: unknown, max = 400) => String(s ?? "").replace(/[\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
@@ -179,17 +192,22 @@ export function factsFromPage(html: string, o: { name: string; url: string; at: 
 // Which public pages Trainee reads for facts about someone, and as what: SEC EDGAR, a few paper hosts, and the contact's
 // own firm's site. LinkedIn, Indeed and the rest are refused before this by career_people_page.ts (checkUrl) as well.
 // The firm's site is matched on its registrable domain (eTLD+1), exactly: the host is that domain or a subdomain of it,
-// and that domain is either one known for the firm (the contact's work-email domain) or "<the firm's name>.<suffix>"
-// ("Stripe, Inc." stripe.com, jobs.stripe.com, stripe.co.uk). A label elsewhere in the host never counts
-// (stripe.attacker.io, stripe.com.evil.net, stripeinc-careers.xyz), nor a punycode (IDN) lookalike (its "xn--" label is
-// never a firm name's letters and digits), nor a shared-hosting suffix where anyone can hold a subdomain (#361 takeover, 2026-11-01).
+// and that domain is a VERIFIED one for the firm, the contact's work-email domain (passed in `known`). The firm's name
+// is never guessed into a domain (stripe.xyz, stripe.ai, stripe.com.de are anyone's), a label elsewhere in the host never
+// counts (stripe.attacker.io, stripe.com.evil.net), and freemail or shared-hosting domains are never a firm's: without a
+// verified domain the person is asked to paste the text (#361 re-review, 2026-11-01).
 const PAPER_HOSTS = ["arxiv.org", "dl.acm.org", "ieeexplore.ieee.org", "openreview.net", "ssrn.com", "aclanthology.org", "proceedings.mlr.press", "nber.org", "usenix.org"];
 const SHARED_HOSTING = ["github.io", "gitlab.io", "vercel.app", "netlify.app", "pages.dev", "workers.dev", "herokuapp.com", "web.app", "firebaseapp.com",
   "azurewebsites.net", "cloudfront.net", "appspot.com", "blogspot.com", "wordpress.com", "substack.com", "medium.com", "notion.site", "wixsite.com",
   "squarespace.com", "webflow.io", "carrd.co", "glitch.me", "replit.app", "onrender.com", "fly.dev", "s3.amazonaws.com"];
 const FREEMAIL_DOMAINS = ["gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "msn.com", "icloud.com", "me.com", "aol.com",
   "proton.me", "protonmail.com", "gmx.com", "mail.com", "yandex.com", "zoho.com"];
-export function factHost(rawUrl: string, firm: string | null | undefined, known: (string | null | undefined)[] = []): RecipientSourceKind | null {
+// The verified firm domains among addresses or domains we hold: registrable, never freemail or shared hosting.
+export function firmDomains(known: (string | null | undefined)[]): string[] {
+  return known.map((d) => String(d ?? "").toLowerCase().trim().replace(/^.*@/, "").replace(/\.$/, "")).filter((d) => d.includes("."))
+    .map((d) => registrable(d).full).filter((d) => !FREEMAIL_DOMAINS.includes(d)); // a shared-hosting host is refused before this is asked
+}
+export function factHost(rawUrl: string, _firm: string | null | undefined, known: (string | null | undefined)[] = []): RecipientSourceKind | null {
   const h = hostOf(rawUrl);
   if (!h || blockedUrl(rawUrl)) return null;
   const under = (d: string) => h === d || h.endsWith(`.${d}`);
@@ -197,12 +215,10 @@ export function factHost(rawUrl: string, firm: string | null | undefined, known:
   if (PAPER_HOSTS.some(under)) return "paper";
   if (SHARED_HOSTING.some(under) || !h.includes(".")) return null;
   const reg = registrable(h);
-  // A known domain: the contact's work email ("maya@stripe.com"), never a freemail or shared-hosting one.
-  const domains = known.map((d) => String(d ?? "").toLowerCase().replace(/^.*@/, "").replace(/\.$/, "")).filter((d) => d.includes("."))
-    .map((d) => registrable(d).full).filter((d) => !FREEMAIL_DOMAINS.includes(d)); // a shared-hosting host was refused above
-  if (domains.includes(reg.full)) return "company_page";
-  const compact = plain(firm ?? "").replace(/\b(?:inc|llc|llp|lp|ltd|corp|company|co|group|the|and)\b/g, " ").replace(/[^a-z0-9]/g, "");
-  return reg.label === compact ? "company_page" : null;
+  // Only a verified domain: the contact's work email ("maya@stripe.com"), or a domain on a record we hold, never a freemail
+  // or shared-hosting one. The firm's name is never turned into a domain (stripe.xyz, stripe.ai are anyone's).
+  if (firmDomains(known).includes(reg.full)) return "company_page";
+  return null;
 }
 
 // The one question asked when nothing sourced would make the email theirs alone.
@@ -357,7 +373,11 @@ export function personalGate(d: { subject: string; body: string }, plan: Persona
   // Unsourced claims, either side: the fact-lock with the brief's sourced facts as the recipient's sources.
   const facts = confirmed(o.facts);
   const shared: Shared[] = sharedFacts(facts, o.r);
-  const src: LockSources = { facts: facts.map(factText), recipient: o.r, shared, recipientFacts: plan.brief.facts.map((f) => `${f.text} \n ${f.anchor ?? ""}`),
+  // Only descriptive text about them is a source: a sentence that reads as an instruction never clears the lock, even one
+  // that reached the brief some other way (#361 re-review, 2026-11-01).
+  const about = plan.brief.facts.map((f) => [sentencesOf(clean(f.text)).filter((x) => !isInstruction(x)).join(" "), isInstruction(f.anchor ?? "") ? "" : (f.anchor ?? "")])
+    .filter(([t]) => t).map(([t, a]) => `${t} \n ${a}`);
+  const src: LockSources = { facts: facts.map(factText), recipient: o.r, shared, recipientFacts: about,
     ...(o.topic ? { topic: o.topic } : {}), ...(plan.role ? { topic: `${o.topic ?? ""} ${plan.role}`.trim() } : {}), ...(o.lang ? { lang: o.lang } : {}) };
   // Overlap the finder found is on both sides, so the draft may call it shared.
   for (const ov of plan.overlap) if (!src.shared.some((s) => plain(s.value) === plain(ov.value))) src.shared = [...src.shared, { kind: ov.kind === "school" ? "school" : "firm", value: ov.value, fact: ov.sender_fact, field: "school" }];

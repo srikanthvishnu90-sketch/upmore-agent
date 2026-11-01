@@ -181,8 +181,8 @@ Deno.test("personalize intake: what the person says, a page, and which hosts are
   assertEquals(page.map((f) => f.text), ["Dana Lopez leads the ledger reconciliation pipeline."]);
   assertEquals(factHost("https://www.sec.gov/Archives/edgar/data/1/x.htm", "Plaid"), "sec_edgar");
   assertEquals(factHost("https://arxiv.org/abs/2501.00001", null), "paper");
-  assertEquals(factHost("https://plaidfixture.com/team", "Plaidfixture"), "company_page");
-  assertEquals(factHost("https://stripe.com/about", "Stripe, Inc."), "company_page");
+  assertEquals(factHost("https://plaidfixture.com/team", "Plaidfixture", ["dana.lopez@plaidfixture.com"]), "company_page");
+  assertEquals(factHost("https://stripe.com/about", "Stripe, Inc.", ["maya@stripe.com"]), "company_page");
   assertEquals(factHost("https://someblog.example-host.com/dana", "Plaid"), null);
   assertEquals(factHost("https://www.linkedin.com/in/dana", "LinkedIn"), null, "never LinkedIn, even as the firm's own site");
   assertEquals(factHost("https://www.indeed.com/cmp/plaid", "Plaid"), null);

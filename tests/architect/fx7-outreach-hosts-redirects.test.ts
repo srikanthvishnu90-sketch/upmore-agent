@@ -22,7 +22,7 @@ Deno.test("H1 lookalike hosts are not the firm's site", () => {
     "https://stripe.attacker.io/team", "https://stripe.com.evil.net/team", "https://stripeinc-careers.xyz/team",
     "https://www.stripe.com.evil.net/", "https://stripe-careers.com/", "https://careers-stripe.com/", "https://stripes.com/",
     "https://stripe.attacker.co.uk/", "https://stripe.github.io/", "https://stripe.vercel.app/",
-  ]) eq(factHost(u, "Stripe, Inc."), null, u);
+  ]) eq(factHost(u, "Stripe, Inc.", ["maya@stripe.com"]), null, u);
   for (const u of ["https://www.sec.gov.evil.net/x", "https://evilsec.gov.io/x", "https://arxiv.org.evil.net/abs/1"]) eq(factHost(u, "Acme"), null, u);
 });
 
@@ -33,16 +33,19 @@ Deno.test("H2 IDN and punycode homographs are refused", () => {
     "https://ѕtripe.com/", // Cyrillic s
     "https://xn--stripe-0ta.com/",
     "https://stripe.xn--80ak6aa92e.com/", // a stripe label under someone else's IDN domain
-  ]) eq(factHost(u, "Stripe"), null, u);
+  ]) eq(factHost(u, "Stripe", ["maya@stripe.com"]), null, u);
 });
 
-Deno.test("H3 the firm's own registrable domain and its subdomains are its site", () => {
-  for (const u of ["https://stripe.com/about", "https://www.stripe.com/about", "https://jobs.stripe.com/x", "https://stripe.co.uk/team", "https://STRIPE.COM./a"]) {
-    eq(factHost(u, "Stripe, Inc."), "company_page", u);
+Deno.test("H3 only a verified domain is the firm's site: its registrable domain and subdomains, never one guessed from the name", () => {
+  const known = ["maya.chen@stripe.com"];
+  for (const u of ["https://stripe.com/about", "https://www.stripe.com/about", "https://jobs.stripe.com/x", "https://STRIPE.COM./a"]) {
+    eq(factHost(u, "Stripe, Inc.", known), "company_page", u);
   }
-  eq(factHost("https://plaidfixture.com/team", "Plaidfixture"), "company_page");
-  eq(factHost("https://janestreet.com/", "Jane Street"), "company_page");
-  eq(factHost("https://jane.com/", "Jane Street"), null, "a first word alone is someone else's domain");
+  for (const u of ["https://stripe.com/about", "https://stripe.xyz/", "https://stripe.ai/", "https://stripe.com.de/", "https://stripe.co.uk/team", "https://janestreet.com/"]) {
+    eq(factHost(u, u.includes("jane") ? "Jane Street" : "Stripe", []), null, `no verified domain: ${u}`);
+  }
+  for (const u of ["https://stripe.xyz/", "https://stripe.ai/", "https://stripe.com.de/", "https://stripe.co.uk/team"]) eq(factHost(u, "Stripe", known), null, `not the verified domain: ${u}`);
+  eq(factHost("https://plaidfixture.com/team", "Plaidfixture", ["dana@plaidfixture.com"]), "company_page");
 });
 
 Deno.test("H4 a domain known from the contact's work email is the firm's; freemail never is", () => {
@@ -50,9 +53,9 @@ Deno.test("H4 a domain known from the contact's work email is the firm's; freema
   eq(factHost("https://google.com.evil.net/team", "Alphabet", ["google.com"]), null);
   eq(factHost("https://gmail.com/x", "Acme", ["gmail.com"]), null, "a freemail domain is no firm's site");
   eq(factHost("https://evil.net/x", "Acme", ["evil.net.example"]), null);
-  eq(factHost("https://anyone.vercel.app/x", "Vercel"), null, "a shared-hosting subdomain is no firm's site");
+  eq(factHost("https://anyone.vercel.app/x", "Vercel", ["ops@anyone.vercel.app"]), null, "a shared-hosting subdomain is no firm's site");
   eq(factHost("https://anyone.github.io/x", "Acme", ["github.io"]), null, "nor is a shared-hosting domain from an email");
-  eq(factHost("https://vercel.com/about", "Vercel"), "company_page");
+  eq(factHost("https://vercel.com/about", "Vercel", ["rauch@vercel.com"]), "company_page");
   eq(factHost("https://stripe/team", "Stripe"), null, "a single-label host is no one's site");
 });
 
@@ -70,7 +73,7 @@ function net(routes: Record<string, { status: number; location?: string; html?: 
   return { get, got };
 }
 const resolveAll = (ips: Record<string, string> = {}) => async (h: string) => [ips[h] ?? PUBLIC_IP];
-const allowStripe = (u: URL) => factHost(u.toString(), "Stripe") === "company_page";
+const allowStripe = (u: URL) => factHost(u.toString(), "Stripe", ["stripe.com"]) === "company_page";
 
 Deno.test("R1 a redirect to an off-list host is refused before it is resolved or fetched", async () => {
   const n = net({ "https://stripe.com/team": { status: 302, location: "https://stripe.attacker.io/team" }, "https://stripe.attacker.io/team": { status: 200 } });
@@ -160,4 +163,17 @@ Deno.test("L1 in chat: a LinkedIn link sent about a contact gets the LinkedIn no
   assert(li && /I never open LinkedIn/.test(li.reply), li?.reply);
   assert(!/I read only/.test(li!.reply), li!.reply);
   assert(!n.got.some((u) => /linkedin/.test(u)), n.got.join(" "));
+});
+
+Deno.test("R8 in chat: with no work email on record, the firm's site is never guessed and the note says why", async () => {
+  const U = "u-fx7n", T = "t-fx7n";
+  const store = memoryOutreachStore();
+  await store.setPrefs(U, { signature: "Test Person" });
+  const row = { file: "contacts.csv", row: 2, name: "Lee Park", email: null, firm: "Stripe", firm_raw: "Stripe", company: "Stripe", title: "Engineer", school: "", connected_on: null, verified: true } as ContactRow;
+  await store.putContacts!(U, await store.accountEpoch!(U), [keyedContact(row)]);
+  const state: Record<string, unknown> = { profile: { facts: SENDER_FACTS } };
+  const n = net({ "https://stripe.com/team/lee": { status: 200, html: "<p>Lee Park leads the payments ledger rebuild.</p>" } });
+  const r = await networkingTurn({ message: "Lee Park's team page: https://stripe.com/team/lee", userId: U, threadId: T, now: NOW, state, store, model: fakeWriter(), people: { pageGet: n.get, resolve: resolveAll() } as any });
+  assert(r && /a firm's own site only at the domain of a work email I have for them \(I have none for Lee\)/.test(r.reply), r?.reply);
+  eq(n.got, []);
 });

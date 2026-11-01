@@ -1,7 +1,8 @@
 // REQS DOC 2 (tasks and follow-through), evidence asks: Q451 (an audit, "prove you applied", answered from the receipts in
 // one message: employer-confirmed apart from sent-not-confirmed, each with its confirmation id, Submit time and posting) and
 // Q395 ("apply to Acme" when Acme was already applied to: the earlier application's date and where it stands, read from
-// career_apply_jobs, nothing queued, and the person asked whether this is a new role).
+// career_apply_jobs, nothing queued, and the person asked whether this is a new role). The refusal keeps its status and its
+// first sentence (apply-chat.test.ts, flow-chat-journey.test.ts); the date and outcome follow it.
 // Outcome checks run the REAL handler (handleChat) on real Postgres: the queue (career_apply_wanted), the applications
 // (career_apply_jobs) and the outbox are read back after each turn; the pure parts (the asks, the proof list) first.
 // Run: deno test -A --no-check --import-map=tests/flow/supabase-npm.json tests/architect/reqs-doc2-evidence.test.ts
@@ -104,12 +105,12 @@ Deno.test({ name: "EVIDENCE/3 the real handler on real Postgres: 'apply to Acme'
     await t.step("Q395: 'apply to the Data Analyst role at Acme' after a confirmed application says when and how it went, queues nothing, asks", async () => {
       const before = await state(E1);
       const r = await say(c1, "apply to the Data Analyst role at Acme");
-      eq([r.intent, r.resultStatus], ["career_apply_queue", "already_applied"], r.reply);
-      assert(/^You already applied to Data Analyst at Acme on Oct 28, 2026\. Where it stands: Acme \(Data Analyst\): submitted, and Acme confirmed it \(confirmation ACME-77\)\./.test(r.reply), r.reply);
-      assert(/nothing was queued/i.test(r.reply) && /different role at Acme\?/.test(r.reply), r.reply);
+      eq([r.intent, r.resultStatus], ["career_apply_queue", "refused"], r.reply);
+      assert(/^0\/1 queued\. Not queued: Data Analyst at Acme is already in your applications as the same posting; nothing was queued\. You applied on Oct 28, 2026\. Where it stands: Acme \(Data Analyst\): submitted, and Acme confirmed it \(confirmation ACME-77\)\./.test(r.reply), r.reply);
+      assert(/different role at Acme\?/.test(r.reply), r.reply);
       eq(await state(E1), before, "no queue row, no application row, no outbox row");
       const g = await say(c1, "apply to the Data Analyst role at Globex");
-      eq(g.resultStatus, "already_applied", g.reply);
+      eq(g.resultStatus, "refused", g.reply);
       assert(/on Oct 31, 2026\. Where it stands: Globex \(Data Analyst\): submitted on Oct 31; Globex has not confirmed it yet\./.test(g.reply), g.reply);
       assert(!/Globex confirmed it/.test(g.reply), "an unconfirmed application is never said confirmed");
       eq(await state(E1), before);

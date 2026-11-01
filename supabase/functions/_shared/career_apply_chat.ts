@@ -161,7 +161,7 @@ export interface ApplyChatDeps {
 export interface EmployerQuestion { job_id: string | null; url: string; company: string; title: string }
 export interface ShortlistEntry { id?: string | null; title?: string | null; company?: string | null; location?: string | null; url?: string | null }
 export type ApplyChatResult = {
-  reply: string; status: "queued" | "already" | "already_applied" | "none" | "which" | "refused" | "unreadable" | "pace_unknown" | "pace_unreadable" | "no_list" | "asking_employer" | "no_resume" | "resume_unreadable"; intent: typeof APPLY_QUEUE_INTENT;
+  reply: string; status: "queued" | "already" | "none" | "which" | "refused" | "unreadable" | "pace_unknown" | "pace_unreadable" | "no_list" | "asking_employer" | "no_resume" | "resume_unreadable"; intent: typeof APPLY_QUEUE_INTENT;
   // FEATURE 1: how many of the postings asked for went into the queue, and whether the server prepare was asked to run.
   coverage?: { queued: number; total: number }; prepare?: PrepareKick;
   posting?: { job_id: string; company: string; title: string };
@@ -345,11 +345,12 @@ function priorReply(rows: AppRow[], p: any, why: Refusal): ApplyChatResult {
   const what = `${p.title || "this posting"} at ${p.company || "this employer"}`;
   if (!newest) return { reply: `${coverageLine(0, 1)} Not queued: ${why.said}.`, status: "refused", intent: APPLY_QUEUE_INTENT, posting, coverage: { queued: 0, total: 1 } };
   const on = dayOf(newest.created_at);
-  const earlier = `${exact.length ? `You already applied to ${what}` : `You already applied to ${newest.company}${newest.title ? ` (${newest.title})` : ""}`}${on ? ` on ${on}` : ""}. Where it stands: ${statusLine(newest)}`;
+  // The refusal's own words first (status "refused", as every refusal), then the earlier application from the record.
+  const earlier = `${exact.length ? "You applied" : `You applied to ${newest.company}${newest.title ? ` (${newest.title})` : ""}`}${on ? ` on ${on}` : ""}. Where it stands: ${statusLine(newest)}`;
   const ask = exact.length
-    ? `Applying again to the same posting would look careless to ${p.company || "the employer"}, so nothing was queued. Is this a different role at ${p.company || "that employer"}? If so, send me its link.`
-    : `Nothing was queued. Is ${what} a new role you want to apply to as well, or the same one?`;
-  return { reply: `${earlier} ${ask}`, status: "already_applied", intent: APPLY_QUEUE_INTENT, posting, coverage: { queued: 0, total: 1 },
+    ? `Applying again to the same posting would look careless to ${p.company || "the employer"}. Is this a different role at ${p.company || "that employer"}? If so, send me its link.`
+    : `Is ${what} a new role you want to apply to as well, or the same one?`;
+  return { reply: `${coverageLine(0, 1)} Not queued: ${why.said}. ${earlier} ${ask}`, status: "refused", intent: APPLY_QUEUE_INTENT, posting, coverage: { queued: 0, total: 1 },
     prior: { id: newest.id, state: newest.state, applied_at: newest.created_at } };
 }
 

@@ -496,6 +496,8 @@ echo "== career_turn_gate.test.sql (a person's turns one at a time, in ticket or
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_turn_gate.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_turn_gate_race.py (two real sessions enter at once: the second waits; S4)"
 python3 "$HERE/career_turn_gate_race.py" "${PSQL[@]}"
+echo "== career_account_memory_one_copy_race.py (two threads of one person save at once: no deadlock, one copy; root cause 3)"
+python3 "$HERE/career_account_memory_one_copy_race.py" "${PSQL[@]}"
 echo "== career_kb_postings_recency_index.test.sql (the pool read walks the posted_at index, no sort)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_kb_postings_recency_index.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # Every turn leaves a cost row (20261028050000): zero calls and unrecorded are different rows; applied twice (idempotent).

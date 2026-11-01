@@ -50,6 +50,7 @@ import { DEFAULT_SEARCH_MODEL } from "../_shared/career_people_provider.ts";
 const researchCache = memoryGroundCache();
 import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
 import { STAGED_TOOL_POLICY, stagedRoute } from "./career_staged.ts";
+import { CRISIS_INTENT, crisisReply } from "./crisis.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_ANSWER_INTENT, CARD_INTENT, cardTurn, cardWaiting, supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { billingTurn, PAY_BY_CHECKOUT, stripeFromEnv, supabaseBillingStore } from "../_shared/career_billing.ts";
@@ -93,7 +94,7 @@ import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.t
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
 import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
-import { askFor, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
+import { askFor, isJudgePromptAsk, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
 import { connectorAsk, connectorChatTurn, connectorFailure } from "../_shared/connectors.ts"; // Task 3 (FEATURE GV's disconnect included)
 import { networkingTurn, siteRefusedTurn } from "../_shared/career_networking.ts"; // FEATURE 10
@@ -782,8 +783,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         : null;
       // FEATURE 13: staged brain release. With CAREER_BRAIN=staged, a turn that every code-first turn above passed on, and
       // that the router itself would answer only with advice or conversation, goes to the brain (career_staged.ts); every
-      // action stays code's and the router still answers a model failure. Unset or CAREER_BRAIN=router, it is never
-      // taken and the router answers exactly as before. Read lazily, only when the brain test below is reached.
+      // action stays code's and the router still answers a model failure. D-035: staged is the committed release
+      // (release_config.ts PRODUCTION_BRAIN), so CAREER_BRAIN unset serves it; CAREER_BRAIN=router is the emergency
+      // rollback, and then it is never taken and the router answers exactly as before. Read lazily, only when the brain
+      // test below is reached.
       const staged = stagedRoute({ env: Deno.env, message, ctx: ctx as unknown as Record<string, unknown>, host, structured: !!(careerTask || careerBatch) });
       // FEATURE GV (Google verification, 2026-10-26): "disconnect gmail" is answered by the connector framework above
       // (connAns), through the same _shared/google_disconnect.ts: revoked at Google, tokens, rows and mail rows deleted,
@@ -870,7 +873,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (offerAns.card) agentMeta = { offer_card: offerAns.card };
       } else if (outreachStatus) {
         out = { reply: outreachStatus.reply, intent: outreachStatus.intent, resultStatus: outreachStatus.status, contained: false, handler: "outreach_status" };
-      } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || staged.toBrain()) && !host.isHostControlled(message, ctx)) {
+      } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || (!isJudgePromptAsk(message) && staged.toBrain())) && !host.isHostControlled(message, ctx)) {
         const meter = ledger.track(newMeter());
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         // WO-027 (B5): the last 40 messages after the latest erase; one more row says whether the thread is longer.
@@ -972,6 +975,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           await ledger.record(f5Meter);
         }
         // FEATURE 5 (end)
+        // D-035: a crisis message the staged route kept off the brain gets code's crisis reply (crisis.ts: the core's own
+        // 988 text) when the router did not answer it with one. Under the rollback (CAREER_BRAIN=router) the staged
+        // decision is never "crisis", so the router's turn stands exactly as before.
+        if (staged.decision?.reason === "crisis" && out.intent !== CRISIS_INTENT) {
+          const crisisText = crisisReply(message);
+          if (crisisText) out = { reply: crisisText, intent: CRISIS_INTENT, resultStatus: "completed", contained: false, handler: "crisis" };
+        }
       }
       // SUBMIT-STEER-1130: the router's confirm of a pasted resume carries no confirmation event, so no application could
       // ever use it. Each fact this turn confirmed whose words Trainee showed the person, and that is in their own upload,

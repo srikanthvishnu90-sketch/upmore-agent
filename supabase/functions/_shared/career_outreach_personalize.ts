@@ -21,6 +21,7 @@
 // stays the person's own channel.
 import PLAYBOOKS from "./outreach_playbooks.ts";
 import { sameFirm } from "./career_contacts.ts";
+import { registrable } from "./career_people_gmail.ts";
 import { readsAsInstruction } from "./career_people_import.ts";
 import { confirmed, type DraftLang, factText, LANG_NAME, type LockSources, type ModelFn, outreachLock, type Recipient, type Shared, sharedFacts } from "./career_outreach.ts";
 
@@ -176,20 +177,32 @@ export function factsFromPage(html: string, o: { name: string; url: string; at: 
   return kept.map((s, i) => ({ id: `page:${i}:${o.url.slice(0, 80)}`, kind: "work", work_kind: work, text: s, anchor: s.replace(/[.!?]+$/, ""), source_kind: o.source_kind, source_url: o.url, retrieved_at: o.at }));
 }
 // Which public pages Trainee reads for facts about someone, and as what: SEC EDGAR, a few paper hosts, and the contact's
-// own firm's site (a host label that is the firm's name). Anything else is not fetched: the person pastes the text.
-// LinkedIn, Indeed and the rest are refused before this by career_people_page.ts (checkUrl) as well.
+// own firm's site. LinkedIn, Indeed and the rest are refused before this by career_people_page.ts (checkUrl) as well.
+// The firm's site is matched on its registrable domain (eTLD+1), exactly: the host is that domain or a subdomain of it,
+// and that domain is either one known for the firm (the contact's work-email domain) or "<the firm's name>.<suffix>"
+// ("Stripe, Inc." stripe.com, jobs.stripe.com, stripe.co.uk). A label elsewhere in the host never counts
+// (stripe.attacker.io, stripe.com.evil.net, stripeinc-careers.xyz), nor a punycode (IDN) lookalike (its "xn--" label is
+// never a firm name's letters and digits), nor a shared-hosting suffix where anyone can hold a subdomain (#361 takeover, 2026-11-01).
 const PAPER_HOSTS = ["arxiv.org", "dl.acm.org", "ieeexplore.ieee.org", "openreview.net", "ssrn.com", "aclanthology.org", "proceedings.mlr.press", "nber.org", "usenix.org"];
-export function factHost(rawUrl: string, firm: string | null | undefined): RecipientSourceKind | null {
+const SHARED_HOSTING = ["github.io", "gitlab.io", "vercel.app", "netlify.app", "pages.dev", "workers.dev", "herokuapp.com", "web.app", "firebaseapp.com",
+  "azurewebsites.net", "cloudfront.net", "appspot.com", "blogspot.com", "wordpress.com", "substack.com", "medium.com", "notion.site", "wixsite.com",
+  "squarespace.com", "webflow.io", "carrd.co", "glitch.me", "replit.app", "onrender.com", "fly.dev", "s3.amazonaws.com"];
+const FREEMAIL_DOMAINS = ["gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "msn.com", "icloud.com", "me.com", "aol.com",
+  "proton.me", "protonmail.com", "gmx.com", "mail.com", "yandex.com", "zoho.com"];
+export function factHost(rawUrl: string, firm: string | null | undefined, known: (string | null | undefined)[] = []): RecipientSourceKind | null {
   const h = hostOf(rawUrl);
   if (!h || blockedUrl(rawUrl)) return null;
   const under = (d: string) => h === d || h.endsWith(`.${d}`);
   if (under("sec.gov")) return "sec_edgar";
   if (PAPER_HOSTS.some(under)) return "paper";
-  const f = plain(firm ?? "").replace(/\b(?:inc|llc|llp|lp|ltd|corp|company|co|group|the|and)\b/g, " ").trim();
-  if (!f) return null;
-  const compact = f.replace(/\s+/g, ""), firstWord = f.split(" ")[0];
-  const labels = h.split(".").slice(0, -1).filter((x) => x !== "www");
-  return labels.some((l) => l === compact || (firstWord.length >= 4 && l === firstWord) || (compact.length >= 5 && l.startsWith(compact))) ? "company_page" : null;
+  if (SHARED_HOSTING.some(under) || !h.includes(".")) return null;
+  const reg = registrable(h);
+  // A known domain: the contact's work email ("maya@stripe.com"), never a freemail or shared-hosting one.
+  const domains = known.map((d) => String(d ?? "").toLowerCase().replace(/^.*@/, "").replace(/\.$/, "")).filter((d) => d.includes("."))
+    .map((d) => registrable(d).full).filter((d) => !FREEMAIL_DOMAINS.includes(d)); // a shared-hosting host was refused above
+  if (domains.includes(reg.full)) return "company_page";
+  const compact = plain(firm ?? "").replace(/\b(?:inc|llc|llp|lp|ltd|corp|company|co|group|the|and)\b/g, " ").replace(/[^a-z0-9]/g, "");
+  return reg.label === compact ? "company_page" : null;
 }
 
 // The one question asked when nothing sourced would make the email theirs alone.

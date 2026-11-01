@@ -466,19 +466,20 @@ async function factIntakeTurn(o: NetworkingDeps): Promise<NetworkingResult | nul
   if (!who.length) return null; // not someone in their contacts (a firm's page, a name they haven't sent): another turn's
   if (who.length > 1) return { reply: `More than one ${hit[1]} is in your contacts (${who.slice(0, 5).map((r) => `${r.name}${r.firm ? ` at ${r.firm}` : ""}`).join("; ")}). Say it again with the full name.`, intent: FACTS_INTENT, status: "which" };
   const r = who[0];
-  return await saveFacts(o, { key: personKey(r), name: r.name, firm: r.firm }, said ? `${r.name.split(" ")[0]} ${hit[2]}` : hit[2], pending && pending.key === personKey(r) ? pending : null);
+  return await saveFacts(o, { key: personKey(r), name: r.name, firm: r.firm, email: r.email }, said ? `${r.name.split(" ")[0]} ${hit[2]}` : hit[2], pending && pending.key === personKey(r) ? pending : null);
 }
-async function saveFacts(o: NetworkingDeps, who: { key: string; name: string; firm: string }, text: string, pending: FactAsk | null): Promise<NetworkingResult> {
+async function saveFacts(o: NetworkingDeps, who: { key: string; name: string; firm: string; email?: string | null }, text: string, pending: FactAsk | null): Promise<NetworkingResult> {
   const at = new Date(o.now).toISOString(), ref = `${o.now.toString(36)}`, first = who.name.split(" ")[0];
   const add: RecipientFact[] = [];
   const notes: string[] = [];
   const url = URL_RX.exec(text)?.[0]?.replace(/[.,;:!?]+$/, "") ?? null;
   if (url) {
-    const kind = factHost(url, who.firm);
+    const known = [who.email ?? null];
+    const kind = factHost(url, who.firm, known);
     if (siteOfLink(url)) notes.push(`I never open ${siteOfLink(url)}, so I didn't read that link; paste the text you want me to use instead.`);
     else if (!kind) notes.push(`I read only ${who.firm ? `${who.firm}'s own site, ` : ""}SEC EDGAR and paper sites, so I didn't open that link; paste the part about ${first} instead.`);
     else {
-      const page = await fetchHtml(o.people?.pageGet ?? pinnedGet(), url, o.people?.resolve);
+      const page = await fetchHtml(o.people?.pageGet ?? pinnedGet(), url, o.people?.resolve, (u) => factHost(u.toString(), who.firm, known) === kind);
       if (!page.ok) notes.push(`I couldn't read that page (${page.why === "robots" ? "the site asks not to be read by tools" : page.why === "blocked_site" ? "I never open that site" : page.detail ?? page.why}); paste the part about ${first} instead.`);
       else {
         const got = factsFromPage(page.html, { name: who.name, url: page.url, at, source_kind: kind });

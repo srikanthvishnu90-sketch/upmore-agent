@@ -57,7 +57,7 @@ export function planSystem(): string {
     "kind: task when the message asks for actions; not_a_task for conversation, advice or a question.",
     "One step per action, in the order the person wants them done. A compound ask is several steps; never leave a part out.",
     "Each step's text is that part of the person's message in their own words. Never put an email address, name, link or day in a step unless the person wrote it.",
-    `At most ${MAX_STEPS} steps. Every application goes in ONE apply.queue step (all its picks together); at most ${MAX_REMINDERS} reminder.set steps; at most ${MAX_PICKS} picks per step. Code refuses the rest and tells the person.`,
+    `At most ${MAX_STEPS} steps. Every application goes in ONE apply.queue step and all tailoring in ONE resume.tailor step (all picks together); at most ${MAX_REMINDERS} reminder.set steps; at most ${MAX_PICKS} picks per step. Code refuses the rest and tells the person.`,
     "Capabilities:",
     ...CAPABILITIES.map((c) => `- ${c.name}: ${c.summary}${c.args ? ` args: ${JSON.stringify(c.args)}` : ""}`),
   ].join("\n");
@@ -155,10 +155,14 @@ export interface Refused { capability: string; text: string; why: "unknown_capab
 // Caps (review of PR #362: one message ran 40 apply turns and wrote 40 reminders). One message runs at most MAX_STEPS
 // steps; every apply goes through ONE apply step (one card: later apply steps' picks join the first's, anything else is
 // over the cap); at most MAX_REMINDERS reminders; at most MAX_PICKS postings per step (each tailored pick is a turn). What
-// is over a cap is refused and named in the reply ("over_cap"), never run and never dropped silently.
+// is over a cap is refused and named in the reply ("over_cap"), never run and never dropped silently. Tailoring is capped
+// the same way (re-review: 7 tailor steps x 5 picks ran 35 tailoring turns): ONE tailor step, later picks join it, so
+// one message tailors at most MAX_PICKS postings.
 export const MAX_STEPS = 8, MAX_REMINDERS = 3, MAX_PICKS = 5;
-export const PER_TYPE: Readonly<Record<string, number>> = { "apply.queue": 1, "reminder.set": MAX_REMINDERS };
-export type CapKind = "steps" | "apply.queue" | "reminder.set" | "picks";
+export const PER_TYPE: Readonly<Record<string, number>> = { "apply.queue": 1, "resume.tailor": 1, "reminder.set": MAX_REMINDERS };
+// The capabilities whose later steps' picks join the first step's (positions on the same list).
+const JOIN_PICKS = new Set(["apply.queue", "resume.tailor"]);
+export type CapKind = "steps" | "apply.queue" | "resume.tailor" | "reminder.set" | "picks";
 // Code checks every step the model proposed; a refused step is named in the reply, never run.
 export function checkPlan(raw: unknown, message: string): { kind: "task" | "not_a_task"; steps: Step[]; refused: Refused[] } {
   const u: any = raw && typeof raw === "object" ? raw : {};
@@ -182,8 +186,8 @@ export function checkPlan(raw: unknown, message: string): { kind: "task" | "not_
     const key = `${name}|${text.toLowerCase()}|${JSON.stringify(args)}`;
     if (seen.has(key)) { refused.push({ capability: name, text, why: "duplicate" }); continue; }
     seen.add(key);
-    // Applies are one card: a later apply step's picks join the first apply step's (positions on the same list).
-    const first = name === "apply.queue" ? steps.find((x) => x.capability === "apply.queue") : undefined;
+    // Applies are one card and tailoring one step: a later step's picks join the first such step's (the same list).
+    const first = JOIN_PICKS.has(name) ? steps.find((x) => x.capability === name) : undefined;
     if (first && Array.isArray(first.args.picks) && Array.isArray(args.picks)) {
       first.args = { ...first.args, picks: [...new Set([...(first.args.picks as number[]), ...(args.picks as number[])])] };
       first.text = `${first.text}; ${text}`.slice(0, 400);

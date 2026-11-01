@@ -124,3 +124,22 @@ Deno.test("one step: a compound message planned as one step is today's chain's; 
   eq([r.claimed, (r as any).why], [false, "one_step"]);
   eq([calls.model, calls.router, calls.apply], [1, [], []]);
 });
+
+Deno.test(`caps: tailoring is ONE step: 7 tailor steps x 5 picks are at most ${MAX_PICKS} tailoring turns; named-role extras are named`, async () => {
+  const msg = "find frontend internships in Chicago, tailor my resume for all of them and apply to the first one";
+  const plan = { kind: "task", steps: [{ capability: "jobs.search", text: "find frontend internships in Chicago" },
+    ...Array.from({ length: 7 }, (_, k) => ({ capability: "resume.tailor", text: "tailor my resume for all of them", args: { picks: [1, 2, 3, 4, 5].map((n) => n + 5 * k) } })),
+    { capability: "apply.queue", text: "apply to the first one", args: { picks: [1] } }] };
+  const { io, calls } = fake(plan);
+  const r = claimed(await plannerTurn(io, msg));
+  const tailors = calls.router.filter((t) => /^tailor/.test(t));
+  eq(tailors.length, MAX_PICKS, `one tailor step, ${MAX_PICKS} postings: ${tailors.length} tailoring turns`);
+  eq((r.meta.planner as any).steps.map((s: any) => s.capability), ["jobs.search", "resume.tailor", "apply.queue"]);
+  ok(r.reply.includes(`at most ${MAX_PICKS} postings`) && r.reply.includes("postings 6, 7"), r.reply);
+  // A second tailor step without picks cannot join: refused and named, never run.
+  const named = fake({ kind: "task", steps: [{ capability: "resume.tailor", text: "tailor my resume for the analyst role at Stripe" }, { capability: "resume.tailor", text: "tailor my resume for the analyst role at Ramp" },
+    { capability: "reminder.set", text: "remind me Friday", args: { when: "Friday" } }] });
+  const r2 = claimed(await plannerTurn(named.io, "tailor my resume for the analyst role at Stripe, tailor my resume for the analyst role at Ramp and remind me Friday"));
+  eq(named.calls.router, ["tailor my resume for the analyst role at Stripe"]);
+  ok(/one step per message/.test(r2.reply) && r2.reply.includes("Ramp"), r2.reply);
+});

@@ -12,7 +12,8 @@
 //      outreach answer turn (nothing sent: the rail is off).
 //   3. Guards at the handler: a plan step on LinkedIn, a step in words the person did not say, an unregistered capability:
 //      each refused and named, nothing queued from it, the other parts done.
-//   4. Kill switches: CAREER_BRAIN unset or =router with CAREER_PLANNER=on, CAREER_PLANNER_USERS without the person: the
+//   4. Kill switches: CAREER_BRAIN=router (and unset while the release serves the router) with CAREER_PLANNER=on,
+//      CAREER_PLANNER_USERS without the person: the
 //      planner's model is never called and the reply is today's, byte for byte.
 //   5. A model outage: today's chain answers exactly as with the planner off.
 //   6. A code-first prompt waiting for its answer (the outreach batch) is never taken by the planner.
@@ -23,6 +24,7 @@ import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
 import { careerHandler, type Chat, supabaseParity } from "../flow/handler.ts";
 import { calls, clearOracle, fakeOpenAI, setOracle } from "../../evals/career/tasks/fake_model.ts";
 import { dueDate } from "../../supabase/functions/_shared/task/plan.ts";
+import { brainMode } from "../../supabase/functions/agent-chat/career_staged.ts";
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
@@ -71,7 +73,7 @@ Deno.test({ name: "TASK PLANNER: compound asks complete at the real handler, thr
     const n = async (s: string) => Number(await sql(s));
     const say = async (c: Chat, m: string, extra: Record<string, unknown> = {}) => { const r = await c.say(m, extra); eq(r.status, 200, r.reply); return r; };
     const setup = async (tok: string, o: { resume?: boolean; contacts?: boolean } = { resume: true }) => {
-      set({ CAREER_BRAIN: null, CAREER_PLANNER: null });
+      set({ CAREER_BRAIN: "router", CAREER_PLANNER: null });
       const c = h!.chat(tok);
       if (o.resume) { await say(c, `here is my resume:\n${RESUME}`); await say(c, "yes, that's my resume"); }
       if (o.contacts) {
@@ -93,7 +95,7 @@ Deno.test({ name: "TASK PLANNER: compound asks complete at the real handler, thr
     const plannerCalls = () => calls.filter((c) => c.kind === "plan").length;
 
     await t.step("fail-first: OFF (router, then staged), the compound ask loses its parts: nothing queued, nothing tailored, no reminder", async () => {
-      for (const [tok, brain] of [["tok-p0", null], ["tok-p1", "staged"]] as const) {
+      for (const [tok, brain] of [["tok-p0", "router"], ["tok-p1", "staged"]] as const) {
         const c = await setup(tok);
         set({ CAREER_BRAIN: brain, CAREER_PLANNER: null });
         setOracle({ [COMPOUND]: PLAN });
@@ -164,9 +166,11 @@ Deno.test({ name: "TASK PLANNER: compound asks complete at the real handler, thr
     await t.step("kill switches: CAREER_BRAIN unset or router, or the person not on CAREER_PLANNER_USERS: no planner call, today's reply byte for byte", async () => {
       const m = "find data analyst jobs in Chicago and apply to the top one";
       setOracle({ [m]: SET.tasks.find((x: any) => x.id === "T02").oracle[m] });
-      set({ CAREER_BRAIN: null, CAREER_PLANNER: null });
+      set({ CAREER_BRAIN: "router", CAREER_PLANNER: null });
       const base = await say(await setup("tok-p5"), m);
-      for (const [tok, o] of [["tok-p6", { CAREER_BRAIN: null, CAREER_PLANNER: "on" }], ["tok-p7", { CAREER_BRAIN: "router", CAREER_PLANNER: "on" }],
+      // Unset is a kill switch only while the release serves the router (before D-035); after it, unset serves staged.
+      const unset = brainMode({ get: () => undefined }) === "router" ? [["tok-p6", { CAREER_BRAIN: null, CAREER_PLANNER: "on" }]] as const : [];
+      for (const [tok, o] of [...unset, ["tok-p7", { CAREER_BRAIN: "router", CAREER_PLANNER: "on" }],
         ["tok-p8", { CAREER_BRAIN: "staged", CAREER_PLANNER: "on", CAREER_PLANNER_USERS: "someone-else" }]] as const) {
         const c = await setup(tok);
         set(o as any);

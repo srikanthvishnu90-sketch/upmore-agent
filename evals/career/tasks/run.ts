@@ -8,7 +8,8 @@
 //    workflow_dispatch suite=tasks)
 //
 // Brains (production's own switches, read per request by the handler):
-//   router   CAREER_BRAIN unset: today's production (the code-first chain, then the regex router)
+//   router   CAREER_BRAIN=router: the code-first chain, then the regex router (named, not unset: after D-035 unset serves
+//            the release config's brain)
 //   staged   CAREER_BRAIN=staged: questions and advice to the model, every action to code
 //   planner  CAREER_BRAIN=staged and CAREER_PLANNER=on: compound asks planned into steps over the code paths
 //   agent    CAREER_BRAIN=agent: the full agent brain behind the chain. It is pinned off in production
@@ -83,6 +84,7 @@ export async function endState(pg: Pg, u: string): Promise<EndState & { metas: a
 
 function brainEnv(brain: BrainName | "setup") {
   for (const k of ["CAREER_BRAIN", "CAREER_PLANNER"]) Deno.env.delete(k);
+  if (brain === "router" || brain === "setup") Deno.env.set("CAREER_BRAIN", "router");
   if (brain === "staged" || brain === "planner") Deno.env.set("CAREER_BRAIN", "staged");
   if (brain === "planner") Deno.env.set("CAREER_PLANNER", "on");
   if (brain === "agent") Deno.env.set("CAREER_BRAIN", "agent");

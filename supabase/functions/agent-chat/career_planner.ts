@@ -1,6 +1,6 @@
 // Compound and multi-step asks (task planner P1 at the handler; ports the sound parts of PR #252, see
-// _shared/task/plan.ts). With CAREER_PLANNER=on, a brain released (CAREER_BRAIN=staged or agent; CAREER_BRAIN=router or
-// unset is the kill switch for this too) and, when CAREER_PLANNER_USERS is set, only for those accounts: a message that
+// _shared/task/plan.ts). With CAREER_PLANNER=on, the served brain staged or agent (brainMode: CAREER_BRAIN, or after
+// D-035 the committed release config when CAREER_BRAIN is unset; CAREER_BRAIN=router is the kill switch for this too) and, when CAREER_PLANNER_USERS is set, only for those accounts: a message that
 // asks for two or more actions ("find 5 frontend internships in Chicago, tailor my resume for the best 2, apply and remind
 // me Friday") is planned by ONE model call into steps over registered capabilities, code checks every step, and each step
 // runs, in order, through the path that already does that one thing on trunk:
@@ -40,7 +40,8 @@ import { BILLING_CANCEL_INTENT } from "../_shared/career_billing.ts";
 export { PLAN_INTENT };
 type Env = { get(k: string): string | undefined };
 
-// The switch: per person and reversible, and off whenever the brain is off.
+// The switch: per person and reversible, and off whenever the served brain is the router (brainMode decides what is
+// served: CAREER_BRAIN, or the release config when it is unset; CAREER_BRAIN=router always rolls back).
 export function plannerOn(env: Env, userId: string): boolean {
   if (String(env.get("CAREER_PLANNER") ?? "").trim().toLowerCase() !== "on") return false;
   if (brainMode(env) === "router") return false;
@@ -90,6 +91,7 @@ const WHY: Record<Refused["why"], string> = {
 const CAP_SAYS: Record<string, string> = {
   steps: `I run at most ${MAX_STEPS} steps from one message`,
   "apply.queue": "all applications from one message go on one card",
+  "resume.tailor": "I tailor for postings in one step per message",
   "reminder.set": `I keep at most ${MAX_REMINDERS} reminders from one message`,
   picks: `I take at most ${MAX_PICKS} postings per step`,
 };

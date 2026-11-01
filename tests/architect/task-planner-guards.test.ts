@@ -6,12 +6,15 @@
 //                        the person did not say, a bad pick and a repeated step are refused, never run
 //   uncovered            a part of the message no step took is named, never dropped
 //   dueDate              a reminder's day only from the person's words; no day said, no reminder
-//   plannerOn            off unless CAREER_PLANNER=on AND a brain is released; CAREER_BRAIN=router or unset kills it;
+//   plannerOn            off unless CAREER_PLANNER=on AND the served brain (brainMode) is staged or agent; CAREER_BRAIN=router
+//                        kills it; CAREER_BRAIN unset follows whatever brain the release config serves (router before D-035,
+//                        staged after);
 //                        CAREER_PLANNER_USERS limits it
 //   deno test -A --no-check tests/architect/task-planner-guards.test.ts
 import assertNode from "node:assert/strict";
 import { actionsIn, checkPlan, compoundAsk, dueDate, forbiddenTargets, uncovered, unsaidWords } from "../../supabase/functions/_shared/task/plan.ts";
 import { plannerOn, positionsAsk } from "../../supabase/functions/agent-chat/career_planner.ts";
+import { brainMode } from "../../supabase/functions/agent-chat/career_staged.ts";
 
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
 const env = (o: Record<string, string>) => ({ get: (k: string) => o[k] });
@@ -77,7 +80,9 @@ Deno.test("dueDate: the day only from the person's words, counted from today; no
 
 Deno.test("plannerOn: off unless CAREER_PLANNER=on with a brain released; the router switch kills it; the allow-list limits it", () => {
   eq(plannerOn(env({}), "u1"), false);
-  eq(plannerOn(env({ CAREER_PLANNER: "on" }), "u1"), false, "CAREER_BRAIN unset is the router: off");
+  // Unset serves the release's brain: on exactly when that brain is not the router (true before and after D-035/#371).
+  eq(plannerOn(env({ CAREER_PLANNER: "on" }), "u1"), brainMode(env({})) !== "router", `CAREER_BRAIN unset serves ${brainMode(env({}))}`);
+  eq(plannerOn(env({}), "u1"), false, "CAREER_PLANNER unset: off whatever brain is served");
   eq(plannerOn(env({ CAREER_PLANNER: "on", CAREER_BRAIN: "router" }), "u1"), false, "the kill switch");
   eq(plannerOn(env({ CAREER_PLANNER: "on", CAREER_BRAIN: "staged" }), "u1"), true);
   eq(plannerOn(env({ CAREER_PLANNER: "on", CAREER_BRAIN: "agent" }), "u1"), true);

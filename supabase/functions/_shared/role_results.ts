@@ -6,7 +6,7 @@
 // facts), roles whose listed pay reaches the floor first, then the roles that list no pay (a separate group, never counted as
 // meeting it). A role whose listed pay is below the floor is not on the list. Nothing about pay is invented.
 import { jobViewOf, refOf, type JobStore, type ListMeta, type PostingRow } from "./telegram_jobs.ts";
-import { type Floor, parsePay, payGroup, payText, resultsReply, type What } from "./role_pay.ts";
+import { type Floor, parsePay, type Pay, payGroup, payText, resultsReply, type What } from "./role_pay.ts";
 import type { SearchHit } from "./career_search.ts";
 import type { SourcePosting } from "./career_search_judge.ts";
 import type { Limits } from "./posting_constraints.ts";
@@ -32,12 +32,12 @@ export async function resultsFile(o: {
   if (!o.store.rememberListMeta) return null;
   const meets: Picked[] = [], unlisted: Picked[] = [], unchecked: Picked[] = [];
   let below = 0;
-  const pays = new Map<string, string | null>();
+  const pays = new Map<string, Pay | null>();
   for (const p of o.picked) {
     const pay = parsePay(p.posting?.pay ?? p.hit.pay, p.posting?.description);
     const g = payGroup(pay, o.floor);
     if (g === "below") { below++; continue; }
-    pays.set(p.hit.job_id, pay ? payText(pay) : null);
+    pays.set(p.hit.job_id, pay);
     (g === "meets" ? meets : g === "unchecked" ? unchecked : unlisted).push(p);
   }
   const ordered = [...meets, ...unchecked, ...unlisted].slice(0, RESULTS_MAX);
@@ -49,7 +49,8 @@ export async function resultsFile(o: {
     const row: PostingRow = { job_id: p.hit.job_id, provider: live.provider ?? null, company: p.posting?.company ?? p.hit.company, title: p.posting?.title ?? p.hit.title, location: p.posting?.location ?? p.hit.location,
       url: p.posting?.url ?? p.hit.url, description: p.posting?.description ?? null, remote: live.remote ?? null, seniority_band: live.seniority_band ?? null, posted_at: live.posted_at ?? null,
       first_seen_at: p.posting?.first_seen_at ?? p.hit.first_seen_at, pay: p.posting?.pay ?? null, company_domain: live.company_domain ?? null };
-    const view = { ...jobViewOf(p.hit, row), pay: pays.get(p.hit.job_id) ?? null };
+    const pay = pays.get(p.hit.job_id) ?? null;
+    const view = { ...jobViewOf(p.hit, row), pay: pay ? payText(pay) : null, pay_parsed: pay };
     const ref = await refOf(o.userId, view.job_id);
     await o.store.remember(o.userId, ref, view, "text");
     refs.push(ref);

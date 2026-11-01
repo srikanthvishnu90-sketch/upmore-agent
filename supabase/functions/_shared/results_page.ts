@@ -14,7 +14,8 @@ export type PayFilter = "any" | "meets" | "listed";
 export interface ResultRow extends Row {
   payShown: string | null; // "$30-40/hr" as the posting lists it; null: not listed
   payGroup: "meets" | "unlisted" | "unchecked" | "below"; // below: the posting's pay changed since the list was made
-  payNote: string | null; // "the range starts below $30/hr"
+  payNote: string | null; // "the range starts below $30/hr", "in CAD, not compared with your $30/hr"
+  payConv: string | null; // "≈ $43-58/hr, assuming 2,080 hrs/yr": a converted figure, never labelled as the posting's
   place: string; // "Austin, TX · Hybrid"
 }
 export interface ResultsFeed {
@@ -65,8 +66,8 @@ const approvable = (r: Row) => !r.status && !r.byHand && !r.blocked;
 
 function payFact(r: ResultRow): string {
   if (!r.payShown) return `<dt>Pay</dt><dd>Pay not listed</dd>`;
-  const src = r.payGroup === "unchecked" ? "as the posting lists it; not in US dollars, so not checked" : "listed on the posting";
-  return `<dt>Pay</dt><dd class="paid">${esc(r.payShown)} <span class="src">· ${esc(src)}${r.payNote ? `; ${esc(r.payNote)}` : ""}</span></dd>`;
+  // The posting's own figure is "listed on the posting"; a conversion is its own line and says how it was made (Q672, Q684).
+  return `<dt>Pay</dt><dd class="paid">${esc(r.payShown)} <span class="src">· listed on the posting${r.payNote ? `; ${esc(r.payNote)}` : ""}</span>${r.payConv ? `<br><span class="src conv">${esc(r.payConv)}</span>` : ""}</dd>`;
 }
 function card(r: ResultRow, f: ResultsFeed): string {
   const j = r.job, link = webUrl(j.url), host = link ? hostOf(link) : "";
@@ -95,10 +96,13 @@ export function renderResults(f: ResultsFeed): string {
   const filters = `<form method="get" class="filters" role="search"><label>Pay${sel("pay", f.filters.pay, payOpts)}</label><label>Where${sel("where", f.filters.where, [["", "Anywhere"], ["remote", "Remote"], ...f.places.map((p) => [p, p] as [string, string])])}</label><button type="submit" class="ghost">Show</button></form>`;
   const canPick = f.rows.some(approvable);
   const selbar = canPick ? `<div class="selbar"><form method="post" id="sel">${hidden(f.token, "review_sel")}<button type="submit" class="apply">Apply to selected</button></form><p>Tick the roles you want, then review them together.</p></div>` : "";
-  const meets = f.rows.filter((r) => r.payGroup === "meets" || r.payGroup === "unchecked"), unlisted = f.rows.filter((r) => r.payGroup === "unlisted"), below = f.rows.filter((r) => r.payGroup === "below");
+  const meets = f.rows.filter((r) => r.payGroup === "meets"), unchecked = f.rows.filter((r) => r.payGroup === "unchecked"), unlisted = f.rows.filter((r) => r.payGroup === "unlisted"), below = f.rows.filter((r) => r.payGroup === "below");
   const group = (title: string, note: string, rows: ResultRow[]) => rows.length ? `<h2 class="group">${esc(title)} (${rows.length})</h2>${note ? `<p class="groupnote">${esc(note)}</p>` : ""}<ul class="cards">${rows.map((r) => card(r, f)).join("")}</ul>` : "";
   const body = f.rows.length
-    ? group(floor ? `Lists ${floor} or more` : "Lists pay", "", meets) + group("Pay not listed", floor ? `These don't list pay, so they weren't checked against ${floor}.` : "These don't list pay.", unlisted) + group(`Lists less than ${floor ?? "you asked"}`, "Their posted pay changed since this list was made.", below)
+    ? group(floor ? `Lists ${floor} or more` : "Lists pay", "", meets)
+      + group("Pay in another currency", floor ? `Shown as each posting lists it; not compared with ${floor}.` : "", unchecked.filter((r) => /^in /.test(r.payNote ?? "")))
+      + group("Pay without a period", floor ? `The posting doesn't say per hour or per year, so it wasn't compared with ${floor}.` : "", unchecked.filter((r) => !/^in /.test(r.payNote ?? "")))
+      + group("Pay not listed", floor ? `These don't list pay, so they weren't checked against ${floor}.` : "These don't list pay.", unlisted) + group(`Lists less than ${floor ?? "you asked"}`, "Their posted pay changed since this list was made.", below)
     : `<div class="empty" role="status"><p>No roles match these filters.</p><p><a class="back" href="?">Show all ${f.total}</a></p></div>`;
   const shown = f.rows.length < f.total ? `<p class="lede">Showing ${f.rows.length} of ${f.total}. <a class="back" href="?">Show all</a></p>` : "";
   const top = f.top ? `<p class="top-note" role="alert">${esc(f.top)}</p>` : "";

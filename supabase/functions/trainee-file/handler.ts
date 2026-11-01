@@ -21,7 +21,7 @@ import { dayOf, BRAND, esc, layout, postedLine } from "../_shared/file_page.ts";
 import { actOn, bodyHtml, COPY_SCRIPT, KIND_CSS, KIND_LABEL, textOf, type Effects, type FileRecord } from "../_shared/file_kinds.ts";
 import type { FileService } from "../_shared/file_service.ts";
 import { renderResults, renderReview, type PayFilter, type ResultRow, type ReviewItem } from "../_shared/results_page.ts";
-import { floorText, parsePay, payGroup, payText, startsBelow } from "../_shared/role_pay.ts";
+import { conversionNote, floorText, type Pay, payGroup, payText, startsBelow } from "../_shared/role_pay.ts";
 import type { ApprovalCodes } from "../_shared/approval_code.ts";
 import type { ListMeta } from "../_shared/telegram_jobs.ts";
 import { byHandUrl, FEED_ROWS, foreignFact, hashTag, isSecretField, NOT_YOURS, logoDomain, logoUrl, postingVerdict, secretFields, secretKey, tapJob, unsendable, type JobDeps, type JobSender, type JobStore, type JobView, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
@@ -587,8 +587,11 @@ async function handleResults(o: { meta: ListMeta; d: FileDeps; claims: FileClaim
   if (o.req.method === "GET" && o.url.searchParams.get("format") === "text") return o.text(renderText(feed));
   const pf = o.url.searchParams.get("pay") as PayFilter, filters = { pay: PAY_FILTERS.has(pf) ? pf : "any" as PayFilter, where: (o.url.searchParams.get("where") ?? "").trim().slice(0, 80) };
   const all: ResultRow[] = feed.rows.map((r) => {
-    const pay = parsePay(r.job.pay), g = payGroup(pay, floor);
-    return { ...r, payShown: pay ? payText(pay) : null, payGroup: g, payNote: g !== "below" && startsBelow(pay, floor) && floor ? `the range starts below ${floorText(floor)}` : null, place: placeOf(r.job) };
+    // The numbers stored with the role when the list was made; the display text is never read back (it is not the posting's words).
+    const pay = (r.job.pay_parsed ?? null) as Pay | null, g = payGroup(pay, floor);
+    const other = g === "unchecked" && pay ? (pay.currency !== "USD" ? `in ${pay.currency === "unknown" ? "a currency it doesn't name" : pay.currency}` : "no period stated") : null;
+    const payNote = other && floor ? `${other}, not compared with your ${floorText(floor)}` : other ?? (g === "meets" && startsBelow(pay, floor) && floor ? `the range starts below ${floorText(floor)}` : null);
+    return { ...r, payShown: pay ? payText(pay) : null, payGroup: g, payNote, payConv: conversionNote(pay, floor), place: placeOf(r.job) };
   });
   const rows = all.filter((r) => (filters.pay === "meets" ? r.payGroup === "meets" : filters.pay === "listed" ? !!r.payShown : true)
     && (!filters.where ? true : filters.where === "remote" ? r.job.remote === "remote" || /\bremote\b/i.test(r.job.location) : r.job.location.toLowerCase().includes(filters.where.toLowerCase())));

@@ -31,8 +31,8 @@ Deno.test("pay: read from the posting into numbers; one format; a floor keeps on
   const p = (s: unknown, d?: unknown) => parsePay(s, d);
   eq(payText(p("$35 - $40 per hour")!), "$35-40/hr");
   eq(payText(p("$30/hr")!), "$30/hr");
-  eq(payText(p("$90k-$120k")!), "$90-120k");
-  eq(payText(p("$153,000 - $221,000 USD")!), "$153-221k");
+  eq(payText(p("$90k-$120k")!), "$90-120k/yr");
+  eq(payText(p("$153,000 - $221,000 USD")!), "$153-221k/yr");
   eq(payText(p(null, "<p>Pay: $35 - $40 per hour.</p>")!), "$35-40/hr", "read from the description when the field is empty");
   eq(p(null, "We raised $40M in funding."), null, "funding is not pay");
   eq(p(null, "Ship UI features."), null, "no pay stated: none invented");

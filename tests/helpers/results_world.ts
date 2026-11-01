@@ -16,7 +16,7 @@ export const env = { get: (k: string) => ENV[k] };
 export const plain = (h: string) => h.replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/\s+/g, " ");
 
 // ---------------------------------------------------------------- the postings (synthetic)
-export const POSTINGS: (PostingRow & { fitReasons: string[]; score: number })[] = [
+export const POSTINGS: Posting[] = [
   { job_id: "greenhouse:acme:1", provider: "greenhouse", company: "Acme Web", title: "Frontend Engineering Intern", location: "Austin, TX", url: "https://boards.greenhouse.io/acme/jobs/1",
     description: "<p>Build React components for our checkout.</p><p>Pay: $35 - $40 per hour.</p>", remote: "hybrid", posted_at: new Date(NOW - 2 * DAY).toISOString(), first_seen_at: new Date(NOW - 2 * DAY).toISOString(),
     pay: null, fitReasons: ["You listed React and TypeScript."], score: 82 },
@@ -29,7 +29,8 @@ export const POSTINGS: (PostingRow & { fitReasons: string[]; score: number })[] 
   { job_id: "greenhouse:hooli:4", provider: "greenhouse", company: "Hooli", title: "Frontend Intern", location: "Austin, TX", url: "https://boards.greenhouse.io/hooli/jobs/4",
     description: "<p>Frontend internship. $25/hr.</p>", remote: "onsite", posted_at: new Date(NOW - 3 * DAY).toISOString(), first_seen_at: null, pay: null, fitReasons: ["You listed React."], score: 90 },
 ];
-export const picked = (): Picked[] => POSTINGS.map((p) => ({
+export type Posting = PostingRow & { fitReasons: string[]; score: number };
+export const picked = (list: Posting[] = POSTINGS): Picked[] => list.map((p) => ({
   hit: { job_id: p.job_id, company: p.company!, title: p.title!, location: p.location!, url: p.url!, first_seen_at: p.first_seen_at ?? null, role_match: true,
     fit: { score: p.score, bucket: null, excluded: false, reasons: p.fitReasons, gaps: [] }, pay: null },
   // As the live board returns it: the whole career_postings row.
@@ -37,15 +38,19 @@ export const picked = (): Picked[] => POSTINGS.map((p) => ({
     first_seen_at: p.first_seen_at ?? null, pay: p.pay ?? null } as Picked["posting"],
 }));
 export const HASH = (n: number) => String(n).repeat(64).slice(0, 64).replace(/[^0-9a-f]/g, "a");
-export const prep = (jobId: string, n: number): PreparedRow => ({ id: `33333333-3333-4333-8333-00000000000${n}`, job_id: jobId, company: POSTINGS[n - 1].company!, url: POSTINGS[n - 1].url!, state: "ready", card_lines: [],
-  payload_hash: HASH(n), payload: { resume_sha256: "f".repeat(64), resume_name: "ada-resume.pdf", destination: POSTINGS[n - 1].url, cover_note: `I'd love to build at ${POSTINGS[n - 1].company}.`,
-    fields: [{ name: "first_name", label: "First name", value: "Ada" }, { name: "email", label: "Email", value: "ada@example.test" }, { name: "auth", label: "Are you authorized to work in the US?", value: "Yes" }] } });
+export const prep = (jobId: string, n: number, list: Posting[] = POSTINGS, extra: { label: string; value: string }[] = []): PreparedRow => ({ id: `33333333-3333-4333-8333-00000000000${n}`, job_id: jobId, company: list[n - 1].company!, url: list[n - 1].url!, state: "ready", card_lines: [],
+  payload_hash: HASH(n), payload: { resume_sha256: "f".repeat(64), resume_name: "ada-resume.pdf", destination: list[n - 1].url, cover_note: `I'd love to build at ${list[n - 1].company}.`,
+    fields: [{ name: "first_name", label: "First name", value: "Ada" }, { name: "email", label: "Email", value: "ada@example.test" }, { name: "auth", label: "Are you authorized to work in the US?", value: "Yes" },
+      ...extra.map((x, i) => ({ name: `extra_${i}`, ...x }))] } });
 
 // ---------------------------------------------------------------- the world: a memory store, the queue, the chat outbox
-export function world(o: { unprepared?: string[] } = {}) {
+// postings: the board (default POSTINGS); fields: extra answers on every prepared application; clock.t: the time now; closed: job
+// ids whose posting has closed since the list was made.
+export function world(o: { unprepared?: string[]; postings?: Posting[]; fields?: { label: string; value: string }[] } = {}) {
   const kv = new Map<string, any>();
   const preps = new Map<string, PreparedRow>();
-  POSTINGS.forEach((p, i) => { if (!(o.unprepared ?? []).includes(p.job_id)) preps.set(p.job_id, prep(p.job_id, i + 1)); });
+  const postings = o.postings ?? POSTINGS, clock = { t: NOW }, closed = new Set<string>();
+  postings.forEach((p, i) => { if (!(o.unprepared ?? []).includes(p.job_id)) preps.set(p.job_id, prep(p.job_id, i + 1, postings, o.fields)); });
   const queue: { user: string; prepared_id: string; payload_hash: string; payload: Record<string, unknown>; job_id: string }[] = [];
   const outbox: { user: string; key: string; text: string }[] = [];
   const wants: string[] = [];
@@ -56,7 +61,7 @@ export function world(o: { unprepared?: string[] } = {}) {
     async recallList(u, id) { return kv.get(`${u}|list|${id}`) ?? null; },
     async rememberListMeta(u, id, m) { kv.set(`${u}|meta|${id}`, m); },
     async recallListMeta(u, id) { return (kv.get(`${u}|meta|${id}`) as ListMeta) ?? null; },
-    async postings(ids) { return POSTINGS.filter((p) => ids.includes(p.job_id)).map(({ fitReasons: _f, score: _s, ...p }) => p); },
+    async postings(ids) { return postings.filter((p) => ids.includes(p.job_id)).map(({ fitReasons: _f, score: _s, ...p }) => ({ ...p, closed_at: closed.has(p.job_id) ? new Date(clock.t).toISOString() : null })); },
     async save() { return "saved"; },
     async prepared(u, jobId) { return u === U ? preps.get(jobId) ?? null : null; },
     async applied(u, jobId) { return queue.some((q) => q.user === u && q.job_id === jobId); },
@@ -65,11 +70,11 @@ export function world(o: { unprepared?: string[] } = {}) {
       const q = queue.find((x) => x.user === u && x.job_id === jobId);
       return q ? { id: "j", state: "queued", reason: null, confirmation_id: null, created_at: new Date(NOW).toISOString(), updated_at: new Date(NOW).toISOString(), email_confirmed_at: null, payload: q.payload, company: "x", url: "u" } as AppRow : null;
     },
-    async wanted(u, url) { return u === U && wants.some((w) => POSTINGS.find((p) => p.job_id === w)?.url === url); },
+    async wanted(u, url) { return u === U && wants.some((w) => postings.find((p) => p.job_id === w)?.url === url); },
   };
   const A = signedIn();
   const codes = approvalCodes(memoryCodeStore(), async (user, m) => { outbox.push({ user, key: m.key, text: m.text }); return true; });
-  const deps: FileDeps = { ...A.deps, store, now: () => NOW, env, codes,
+  const deps: FileDeps = { ...A.deps, store, now: () => clock.t, env, codes,
     tap: { async card() { return null as any; }, async prepared() { return []; }, async answer() { return []; } },
     // The hash-bound approval (production: career_apply_card_confirm, one transaction bound to exactly this hash): the queue row
     // carries the prepared application whose hash was approved.
@@ -83,12 +88,12 @@ export function world(o: { unprepared?: string[] } = {}) {
       },
     } as any,
   };
-  return { store, preps, queue, outbox, wants, A, deps };
+  return { store, preps, queue, outbox, wants, A, deps, postings, clock, closed };
 }
 export type W = ReturnType<typeof world>;
-export async function made(w: W, user = U) {
-  const ask = searchTextOf("I want frontend internships that pay $30/hr");
-  const r = await resultsFile({ userId: user, now: NOW, what: whatOf({ role: ask.role, place: ask.place, remote: ask.remote, limits: ask.limits }), floor: ask.limits.pay, picked: picked(), store: w.store,
+export async function made(w: W, user = U, said = "I want frontend internships that pay $30/hr") {
+  const ask = searchTextOf(said);
+  const r = await resultsFile({ userId: user, now: NOW, what: whatOf({ role: ask.role, place: ask.place, remote: ask.remote, limits: ask.limits }), floor: ask.limits.pay, picked: picked(w.postings), store: w.store,
     links: (u, l) => feedUrlsFor(env, u, l, NOW) });
   if (!r) throw new Error("the results page was not made");
   return r!;

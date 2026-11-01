@@ -9,6 +9,9 @@ import { ERASE_SENTENCE } from "../../supabase/functions/_shared/career_trust_tu
 
 const OVERCLAIM = /on every channel|every channel|from (?:every|all) (?:your )?(?:apps?|channels?|devices?)|from telegram|from imessage|from whatsapp|everywhere/i;
 const RECORDS = /from Trainee's records/;
+// The erase keeps the erase turn's own two messages (the person's "yes, erase it" and the answer; migration
+// 20261031080000), so a reply may say only "this exchange" is kept, never only the answer.
+const ONLY_ANSWER = /only (?:this|the) answer|answer confirming the erase is kept/i;
 
 Deno.test("the erase confirmation says the messages leave Trainee's records, and that delivered copies stay in the person's app", () => {
   const host = (CareerHost as any).createCareerHost(B);
@@ -25,10 +28,11 @@ Deno.test("the erase confirmation says the messages leave Trainee's records, and
   eq(ask.intent, "career_erase_confirm", ask.reply);
   assert(!OVERCLAIM.test(ask.reply), `no claim beyond Trainee's records: ${ask.reply}`);
   assert(RECORDS.test(ask.reply) && /chat messages/.test(ask.reply), `the messages go from Trainee's records: ${ask.reply}`);
+  assert(!ONLY_ANSWER.test(ask.reply) && /only this exchange is kept/i.test(ask.reply), `what is kept is the exchange: ${ask.reply}`);
   assert(/Telegram/.test(ask.reply) && /iMessage/.test(ask.reply) && /WhatsApp/.test(ask.reply) && /stay/.test(ask.reply), `where copies stay is said: ${ask.reply}`);
   const done = say("yes, erase it");
   eq(done.intent, "career_profile_erased", done.reply);
-  assert(!OVERCLAIM.test(done.reply) && RECORDS.test(done.reply), done.reply);
+  assert(!OVERCLAIM.test(done.reply) && RECORDS.test(done.reply) && !ONLY_ANSWER.test(done.reply), done.reply);
 });
 
 Deno.test("every erase description in code says 'from Trainee's records' and none says 'every channel'", () => {
@@ -36,7 +40,7 @@ Deno.test("every erase description in code says 'from Trainee's records' and non
   const HOST = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_host.js", import.meta.url));
   assert(!OVERCLAIM.test(ERASE_SENTENCE) && RECORDS.test(ERASE_SENTENCE), ERASE_SENTENCE);
   const erased = HOST.match(/intent: "career_profile_erased", reply: "([^"]+)"/)?.[1] ?? "";
-  assert(erased && !OVERCLAIM.test(erased) && RECORDS.test(erased), erased);
+  assert(erased && !OVERCLAIM.test(erased) && RECORDS.test(erased) && !ONLY_ANSWER.test(erased) && /only this exchange is kept/i.test(erased), erased);
   for (const line of ROUTER.split("\n").filter((l) => /career_erase_confirm|career_profile_erased/.test(l) && /chat messages/.test(l))) {
     assert(!OVERCLAIM.test(line) && RECORDS.test(line), line.trim().slice(0, 200));
   }

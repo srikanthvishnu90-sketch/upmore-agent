@@ -15357,7 +15357,7 @@ const CareerRouter = (() => {
           facts: ["To delete your data: say \"yes, erase it\" and I remove your saved career facts and profile, job watches and alerts, application tracker, and the plans and drafts I act on.", "Nothing is deleted until you send that exact yes."],
           nextStep: "Which would you like?" }) };
       }
-      return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({ headline: "Before anything is deleted — here is exactly what an erase removes.", facts: ["It goes: your saved career facts and profile, your job watches and alerts, your application tracker, and the standing plans, drafts and conversation state I act on.", "Our chat messages go too, from Trainee's records in every thread, and only the answer confirming the erase is kept there; copies already delivered stay in your Telegram, iMessage or WhatsApp app."], nextStep: "Say “yes, erase it” if that is what you want. Nothing is deleted until that yes — and a yes to anything else does not count." }) };
+      return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({ headline: "Before anything is deleted — here is exactly what an erase removes.", facts: ["It goes: your saved career facts and profile, your job watches and alerts, your application tracker, and the standing plans, drafts and conversation state I act on.", "Our chat messages go too, from Trainee's records in every thread, and only this exchange is kept there; copies already delivered stay in your Telegram, iMessage or WhatsApp app."], nextStep: "Say “yes, erase it” if that is what you want. Nothing is deleted until that yes — and a yes to anything else does not count." }) };
     }
     return null;
   }

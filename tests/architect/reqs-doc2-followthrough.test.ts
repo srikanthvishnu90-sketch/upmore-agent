@@ -11,7 +11,7 @@ import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
 import { careerHandler, type Chat, SERVICE_KEY, SUPABASE_URL, supabaseParity } from "../flow/handler.ts";
 import { deliverDue } from "../../supabase/functions/_shared/channel.ts";
 import { supabaseChannelStore } from "../../supabase/functions/_shared/channel_store.ts";
-import { memoryReminderStore, REMINDER_PREFIX, supabaseReminderStore, reminderAsk, reminderTurn, whenOf, zonedInstant } from "../../supabase/functions/_shared/career_reminders.ts";
+import { memoryReminderStore, REMINDER_PREFIX, supabaseReminderStore, reminderAsk, reminderTurn, whenLabel, whenOf, zonedInstant } from "../../supabase/functions/_shared/career_reminders.ts";
 import { overviewAsk, overviewTurn } from "../../supabase/functions/_shared/career_overview.ts";
 import { situationFrom, type SituationRows } from "../../supabase/functions/_shared/career_situation.ts";
 
@@ -49,7 +49,7 @@ Deno.test("DOC2/2 when-phrases: the exact instant in the person's zone; a picked
   eq(at("in 2 hours").at, T0 + 2 * HOUR);
   eq(at("on Friday at noon").at, ch(2026, 11, 6, 12));
   eq(at("at 3").at, ch(2026, 11, 3, 15), "a bare 3 is the afternoon");
-  eq(at("at 8").at, ch(2026, 11, 4, 8), "8 AM today has passed: tomorrow");
+  eq(at("at 8").at, ch(2026, 11, 3, 20), "a bare 8 with 8 AM gone: the next 8 o'clock, 8 PM today (said: DOC2/6)");
   eq(at("tonight at 9").at, ch(2026, 11, 3, 21));
   eq(at("on Nov 10").at, ch(2026, 11, 10, 9));
   eq(at("11/5 at 10am pacific time").at, zonedInstant(2026, 11, 5, 10, 0, "America/Los_Angeles"));
@@ -68,7 +68,7 @@ Deno.test("DOC2/3 the reminder turn on a store: saved with its exact time and te
   const s = memoryReminderStore({ zones: { U: "America/Chicago" }, reachable: { U: true, W: false } });
   const set = (await reminderTurn({ message: "remind me tomorrow at 9am to send my transcript to Acme", userId: "U", now: T0, store: s, newKey: () => "k1" }))!;
   eq(set.status, "set", set.reply);
-  eq(s.dump().rows.map((r) => [r.key, r.at]), [[`${REMINDER_PREFIX}k1`, zonedInstant(2026, 11, 4, 9, 0, "America/Chicago")]]);
+  eq(s.dump().rows.map((r) => [r.key, r.at]), [[`${REMINDER_PREFIX}k1:America/Chicago`, zonedInstant(2026, 11, 4, 9, 0, "America/Chicago")]]);
   assert(/^Reminder: send my transcript to Acme\. You asked me on Nov 3 to remind you at Wed, Nov 4, 9:00 AM CST\.$/.test(s.dump().rows[0].text), s.dump().rows[0].text);
   assert(set.reply.includes(s.dump().rows[0].text), `the reply shows the exact text: ${set.reply}`);
   const night = (await reminderTurn({ message: "remind me tonight at 11pm to check Acme", userId: "U", now: T0, store: s, newKey: () => "k2" }))!;
@@ -88,7 +88,7 @@ Deno.test("DOC2/3 the reminder turn on a store: saved with its exact time and te
   eq(s.dump().rows.length, 2, "only the two set reminders exist");
   const cancel = (await reminderTurn({ message: "cancel my reminder about the transcript", userId: "U", now: T0, store: s }))!;
   eq(cancel.status, "cancelled", cancel.reply);
-  eq(s.dump().rows.map((r) => r.key), [`${REMINDER_PREFIX}k2`]);
+  eq(s.dump().rows.map((r) => r.key), [`${REMINDER_PREFIX}k2:America/Chicago`]);
   const miss = (await reminderTurn({ message: "cancel reminder 5", userId: "U", now: T0, store: s }))!;
   eq(miss.status, "none", miss.reply);
   eq(s.dump().rows.length, 1, "a cancel that matched nothing removed nothing");
@@ -218,6 +218,24 @@ Deno.test({ name: "DOC2/5 the real handler on real Postgres: reminders set, list
       eq(await outbox(pg, R3), []);
     });
 
+    await t.step("one zone: quiet hours on the zone the person named, stored on the reminder, at set time and at delivery", async () => {
+      await pg.sql(`delete from public.career_outbox where user_id = '${R1}'`);
+      // Saved zone Chicago. 9 AM London is 3 AM in Chicago (quiet there, not in London); 11 PM London is 5 PM in Chicago.
+      const day = await say(c1, "remind me tomorrow at 9am London time to call the London office");
+      assert(/Wed, Nov 4, 9:00 AM GMT/.test(day.reply) && !/quiet hours/.test(day.reply), day.reply);
+      const night = await say(c1, "remind me tonight at 11pm London time to check the London offer");
+      assert(/Tue, Nov 3, 11:00 PM GMT/.test(night.reply) && /inside your quiet hours \(10:00 PM to 7:00 AM\), so it will come when they end, at Wed, Nov 4, 7:00 AM GMT/.test(night.reply), night.reply);
+      const box = await outbox(pg, R1);
+      assert(box.every((o: any) => o.key.endsWith(":Europe/London")), JSON.stringify(box));
+      const held = await delivery(admin, Date.UTC(2026, 10, 3, 23));
+      eq(held.sent, [], "11 PM London is inside quiet hours in London: held");
+      eq((await outbox(pg, R1)).map((o: any) => [o.status, Number(o.at)]).sort(), [["queued", Date.UTC(2026, 10, 4, 7)], ["queued", Date.UTC(2026, 10, 4, 9)]].sort(), "held to 7 AM London, the time the reply said");
+      const morning = await delivery(admin, Date.UTC(2026, 10, 4, 7));
+      eq(morning.sent.map((x) => x.text.slice(0, 40)), ["Reminder: check the London offer. You as"]);
+      const nine = await delivery(admin, Date.UTC(2026, 10, 4, 9));
+      eq(nine.sent.map((x) => x.text.slice(0, 41)), ["Reminder: call the London office. You ask"], "9 AM London goes at 9 AM London, though it is 3 AM on the saved Chicago clock");
+    });
+
     await t.step("any update and what's waiting on me: from the account's own records, confirmed apart from unconfirmed", async () => {
       const row = (company: string, state: string, daysAgo: number, conf: string | null, reason: string | null) => {
         const payload = JSON.stringify({ version: "1", user_id: R1, job_id: `gh:${company}`, company, url: `https://${company.toLowerCase()}.example.test/apply`, fields: [], title: "Data Analyst" });
@@ -247,3 +265,88 @@ Deno.test({ name: "DOC2/5 the real handler on real Postgres: reminders set, list
     await pg.stop();
   }
 } });
+
+Deno.test("DOC2/6 review fixes: midnight tonight, 'remind me at', a part of day with a clock, am/pm said, a past time today", () => {
+  const ch = (y: number, m: number, d: number, h: number, mi = 0) => zonedInstant(y, m, d, h, mi, "America/Chicago");
+  const at = (p: string, now = T0) => { const w = whenOf(p, now, "America/Chicago"); if ("error" in w) throw new Error(w.error); return w; };
+  for (const p of ["tonight at midnight", "tonight at 12", "tonight at 12am"]) eq(at(p).at, ch(2026, 11, 4, 0), `${p}: 00:00 of the next day, never noon today`);
+  eq(at("tonight at 1am").at, ch(2026, 11, 4, 1), "1 AM tonight is after midnight");
+  eq(at("tonight at 9").at, ch(2026, 11, 3, 21));
+  eq(reminderAsk("remind me at 3pm to call Acme"), { kind: "set", what: "call Acme", when: "at 3pm" });
+  eq(reminderAsk("remind me at 9am tomorrow to email Dana"), { kind: "set", what: "email Dana", when: "at 9am tomorrow" });
+  eq(at("at 9am tomorrow").at, ch(2026, 11, 4, 9));
+  eq(reminderAsk("set a reminder for 3pm to call Acme"), { kind: "set", what: "call Acme", when: "at 3pm" });
+  eq(reminderAsk("remind me on Friday to send the deck"), { kind: "set", what: "send the deck", when: "on Friday" });
+  eq(reminderAsk("remind me tomorrow morning at 7 to run"), { kind: "set", what: "run", when: "tomorrow morning at 7" });
+  eq(at("tomorrow morning at 7").at, ch(2026, 11, 4, 7), "the clock wins over 'morning', and 'morning' makes it AM");
+  eq(at("tomorrow evening at 7").at, ch(2026, 11, 4, 19));
+  eq(at("this evening at 6").at, ch(2026, 11, 3, 18));
+  eq(at("tomorrow morning at 7").assumed, []);
+  // "at 9" said at 9:00 AM: 9 AM is not ahead, so the next 9 o'clock is 9 PM today, and the reply says which.
+  const nine = at("at 9");
+  eq(nine.at, ch(2026, 11, 3, 21));
+  assert(nine.assumed.some((a) => /9:00 PM/.test(a) && /am or pm/i.test(a)), JSON.stringify(nine.assumed));
+  const early = at("at 9", T0 - 2 * HOUR); // 7 AM: the next 9 o'clock is 9 AM today
+  eq(early.at, ch(2026, 11, 3, 9));
+  assert(early.assumed.some((a) => /9:00 AM/.test(a) && /am or pm/i.test(a)), JSON.stringify(early.assumed));
+  const tmw = at("tomorrow at 9");
+  eq(tmw.at, ch(2026, 11, 4, 9));
+  assert(tmw.assumed.some((a) => /9:00 AM/.test(a) && /am or pm/i.test(a)), JSON.stringify(tmw.assumed));
+  eq(at("tomorrow at 9am").assumed, [], "nothing assumed when am or pm is said");
+  // A past time today with no day: tomorrow, said; with "today" named: refused (DOC2/3).
+  const past = at("at 8am");
+  eq(past.at, ch(2026, 11, 4, 8));
+  assert(past.assumed.some((a) => /tomorrow/.test(a) && /8:00 AM/.test(a) && /passed/.test(a)), JSON.stringify(past.assumed));
+});
+
+Deno.test("DOC2/7 repeats are never truncated; one zone for a reminder in its reply, its list and its quiet hours", async () => {
+  const s = memoryReminderStore({ zones: { U: "America/Chicago" }, reachable: { U: true } });
+  for (const m of ["remind me to call mom every Friday", "remind me every day at 8am to stretch", "remind me daily to log my hours", "remind me to check the portal every week", "remind me on Mondays to update the tracker"]) {
+    const r = (await reminderTurn({ message: m, userId: "U", now: T0, store: s }))!;
+    assert(r, m);
+    eq(r.status, "repeat_unsupported", `${m}: ${r.reply}`);
+    assert(/repeating reminders/i.test(r.reply) && /nothing is set/i.test(r.reply) && /just the next one/i.test(r.reply), r.reply);
+    assert(!/\bevery"|call mom every/.test(r.reply), `never the truncated text: ${r.reply}`);
+  }
+  assert(/Friday/.test((await reminderTurn({ message: "remind me to call mom every Friday", userId: "U", now: T0, store: s }))!.reply), "the next one offered is a Friday");
+  eq(s.dump().rows, [], "a repeat request saves nothing");
+  eq(reminderAsk("remind me tomorrow to read every email from Acme"), { kind: "set", what: "read every email from Acme", when: "tomorrow" }, "'every' inside the task is not a repeat");
+  // The zone the person named: in the reply, on the row, in the list, in the quiet-hours check.
+  const set = (await reminderTurn({ message: "remind me tomorrow at 9am London time to call the London office", userId: "U", now: T0, store: s, newKey: () => "L" }))!;
+  eq(set.status, "set", set.reply);
+  assert(/Wed, Nov 4, 9:00 AM GMT/.test(set.reply) && !/quiet hours/.test(set.reply), `9 AM London is not quiet in London (3 AM Chicago is): ${set.reply}`);
+  eq(s.dump().rows[0].key, `${REMINDER_PREFIX}L:Europe/London`);
+  const late = (await reminderTurn({ message: "remind me tonight at 11pm London time to check the offer", userId: "U", now: T0, store: s, newKey: () => "M" }))!;
+  assert(/inside your quiet hours \(10:00 PM to 7:00 AM\), so it will come when they end, at Wed, Nov 4, 7:00 AM GMT/.test(late.reply), `11 PM London is quiet in London (5 PM Chicago is not): ${late.reply}`);
+  const list = (await reminderTurn({ message: "my reminders", userId: "U", now: T0, store: s }))!;
+  assert(/1\. Tue, Nov 3, 11:00 PM GMT: check the offer\n2\. Wed, Nov 4, 9:00 AM GMT: call the London office/.test(list.reply), list.reply);
+});
+
+Deno.test("DOC2/8 daylight saving (US fall back, Nov 1 2026), the one-year cap, and waited days", async () => {
+  const ch = (y: number, m: number, d: number, h: number, mi = 0) => zonedInstant(y, m, d, h, mi, "America/Chicago");
+  // Saturday Oct 31, 8:00 PM CDT; the clocks fall back at 2:00 AM Sunday.
+  const sat = Date.UTC(2026, 10, 1, 1);
+  const w = (p: string) => { const r = whenOf(p, sat, "America/Chicago"); if ("error" in r) throw new Error(r.error); return r; };
+  eq(w("tomorrow at 9am").at, Date.UTC(2026, 10, 1, 15), "9 AM CST");
+  eq(w("tomorrow at 3am").at, Date.UTC(2026, 10, 1, 9), "3 AM CST, after the change (one pass of the offset lands on 2 AM)");
+  eq(zonedInstant(2026, 11, 1, 3, 0, "America/New_York"), Date.UTC(2026, 10, 1, 8));
+  eq(zonedInstant(2026, 11, 1, 5, 30, "America/Chicago"), Date.UTC(2026, 10, 1, 11, 30));
+  eq(w("in 24 hours").at, sat + 24 * HOUR, "a span is elapsed time, through the extra hour");
+  eq(whenLabel(w("tomorrow at 9am").at, "America/Chicago"), "Sun, Nov 1, 9:00 AM CST");
+  eq(whenLabel(w("tonight at 11pm").at, "America/Chicago"), "Sat, Oct 31, 11:00 PM CDT");
+  const s = memoryReminderStore({ zones: { U: "America/Chicago" }, reachable: { U: true } });
+  const r = (await reminderTurn({ message: "remind me tomorrow at 9am to call Dana", userId: "U", now: sat, store: s, newKey: () => "d" }))!;
+  assert(/At Sun, Nov 1, 9:00 AM CST/.test(r.reply), r.reply);
+  eq(s.dump().rows[0].at, ch(2026, 11, 1, 9));
+  // One year: 365 days is kept, 367 days is refused and nothing is saved.
+  const ok = (await reminderTurn({ message: "remind me in 365 days to renew my license", userId: "U", now: T0, store: s, newKey: () => "y" }))!;
+  eq(ok.status, "set", ok.reply);
+  const far = (await reminderTurn({ message: "remind me in 367 days to renew my license", userId: "U", now: T0, store: s, newKey: () => "z" }))!;
+  eq(far.status, "too_far", far.reply);
+  eq(s.dump().rows.map((x) => x.key.split(":")[2]), ["d", "y"]);
+  // Waited days are whole days elapsed, never rounded up.
+  const waiting = (daysAgo: number) => overviewTurn({ message: "what's waiting on me?", situation: situationFrom(rows({ jobs: [job("h", "Hooli", "needs_user", daysAgo, { reason: "email_code" })] }), T0), now: T0 })!.reply;
+  assert(/Waiting 4 days\.$/.test(waiting(4.6)), waiting(4.6));
+  assert(/Waiting 1 day\.$/.test(waiting(1.4)), waiting(1.4));
+  assert(/Waiting since today\.$/.test(waiting(0.7)), waiting(0.7));
+});

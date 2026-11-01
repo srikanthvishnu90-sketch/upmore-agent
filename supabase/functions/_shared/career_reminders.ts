@@ -15,7 +15,7 @@
 // reminder read late or out of context still says what it is. Delivery keeps every hold the channel has: a pause, STOP
 // or an erased account sends nothing. Nothing here sends anything to anyone but the person.
 // Without a texting channel linked there is no way to deliver one, so none is saved and the reply says how to link one.
-import { DEFAULT_PREFS, DEFAULT_ZONE, quietAt, zoneOr } from "./career_alerts.ts";
+import { DEFAULT_PREFS, DEFAULT_ZONE, nextAwake, quietAt, zoneOr } from "./career_alerts.ts";
 import { trackAsk } from "./career_outreach_track.ts";
 
 export const REMINDER_SET_INTENT = "career_reminder_set";
@@ -40,6 +40,7 @@ export interface ReminderStore {
 export type ReminderAsk =
   | { kind: "set"; what: string; when: string }
   | { kind: "when"; what: string } // a reminder with no time: asked once, nothing saved
+  | { kind: "repeat"; what: string; every: string } // a repeating reminder: not supported, said so, nothing saved
   | { kind: "list" }
   | { kind: "cancel"; which: { all: true } | { n: number } | { about: string } | { last: true } };
 
@@ -62,10 +63,17 @@ const CLOCK = String.raw`(?:\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?|noon|m
 const PART = String.raw`(?:morning|afternoon|evening|night|tonight)`;
 const ZONE = String.raw`(?:(?:chicago|central|eastern|pacific|mountain|new york|los angeles|denver|phoenix|london|ct|et|pt|mt|cst|cdt|est|edt|pst|pdt|mst|mdt|utc|gmt)(?: time)?)`;
 const DAYWORD = String.raw`(?:today|tonight|tomorrow|tmrw|tmr|(?:on |this |next )?${WEEKDAY}|(?:on )?${MONTH}\.? \d{1,2}(?:st|nd|rd|th)?|(?:on )?\d{1,2}\/\d{1,2})`;
-const WHEN = String.raw`(?:in ${NUM} ${UNIT}(?: and ${NUM} ${UNIT})?|(?:${DAYWORD})(?:,? (?:at |around |by )?(?:${CLOCK}|${PART}))?|(?:at |around |by )(?:${CLOCK})(?: (?:today|tonight|tomorrow|tmrw|(?:on |this |next )?${WEEKDAY}))?|(?:this|tomorrow|${WEEKDAY}) ${PART}|tonight)(?:,? ${ZONE})?`;
+// A day may carry both a part of the day and a clock ("tomorrow morning at 7"): the clock is the time, the part says am or pm.
+const SLOT = String.raw`(?:,? (?:at |around |by )?(?:${CLOCK}|${PART}))`;
+const WHEN = String.raw`(?:in ${NUM} ${UNIT}(?: and ${NUM} ${UNIT})?|(?:${DAYWORD})${SLOT}?${SLOT}?|(?:at |around |by )(?:${CLOCK})(?: (?:today|tonight|tomorrow|tmrw|(?:on |this |next )?${WEEKDAY}))?(?: ${PART})?|(?:this|tomorrow|${WEEKDAY}) ${PART}${SLOT}?|tonight)(?:,? ${ZONE})?`;
 const WHEN_END = new RegExp(String.raw`^(.+?),? (${WHEN})$`, "i");
 const WHEN_START = new RegExp(String.raw`^(${WHEN}),? (?:to |about |that )?(.+)$`, "i");
-const LEAD = /^(?:(?:hey|hi|ok|okay|so|please|pls|trainee)[,!]? )*(?:(?:can|could|would|will) you (?:please )?)?(?:remind me|set (?:a|me a) reminder|reminder:?|make a reminder|add a reminder)(?: (?:for|at|on))?\b,? ?/i;
+const LEAD = /^(?:(?:hey|hi|ok|okay|so|please|pls|trainee)[,!]? )*(?:(?:can|could|would|will) you (?:please )?)?(?:remind me|set (?:a|me a) reminder|reminder:?|make a reminder|add a reminder)(?: for\b)?,? ?/i;
+// REVIEW (PR #355): the lead swallowed "at" and "on", so "remind me at 3pm to call Acme" was not read. They stay with the
+// time now; only "for" is dropped ("set a reminder for 3pm to ..." reads as "at 3pm").
+// A repeating reminder ("every Friday", "daily", "on Mondays"): not supported. Read whole, so "call mom every Friday" is never
+// saved as one reminder saying "call mom every".
+const REPEAT = new RegExp(String.raw`\b(?:every (?:single )?(?:day|night|morning|afternoon|evening|week|weekday|weekend|month|year|hour|other ${WEEKDAY}|other \w+|\d+ ${UNIT}|${NUM} ${UNIT}|${WEEKDAY})|each (?:day|night|morning|afternoon|evening|week|weekday|month|${WEEKDAY})|daily|nightly|weekly|monthly|(?:on )?(?:mon|tues|wednes|thurs|fri|satur|sun)days)\b`, "i");
 
 export function reminderAsk(message: string): ReminderAsk | null {
   const t = norm(message).replace(/[?!.]+$/, "").trim();
@@ -87,6 +95,14 @@ export function reminderAsk(message: string): ReminderAsk | null {
   // do not exist, so it must never get this turn).
   if (!rest) return { kind: "when", what: "" };
   if (RECALL.test(rest)) return null;
+  const rep = REPEAT.exec(rest);
+  if (rep) {
+    const left = norm(rest.slice(0, rep.index) + " " + rest.slice(rep.index + rep[0].length)).replace(/^(?:to|about|that|of) /i, "");
+    const s2 = WHEN_START.exec(left), e2 = WHEN_END.exec(left);
+    const what = s2 && !/^(?:to|about|that)$/i.test(s2[2]) ? s2[2] : e2 ? e2[1] : left;
+    return { kind: "repeat", what: clean(what.replace(/^(?:to|about|that|of) /i, "")), every: rep[0].toLowerCase() };
+  }
+  if (/^(?:\d|noon\b|midnight\b)/i.test(rest)) rest = `at ${rest}`;
   const start = WHEN_START.exec(rest);
   if (start && !/^(?:to|about|that)$/i.test(start[2])) return set(start[2], start[1]);
   rest = rest.replace(/^(?:to|about|that|of) /i, "");
@@ -124,7 +140,9 @@ export function zonedInstant(y: number, m: number, d: number, h: number, mi: num
   }
   return t;
 }
-function clockOf(s: string): { h: number; mi: number } | null {
+type Clock = { h: number; mi: number; bare?: boolean; am?: boolean };
+// bare: an hour from 1 to 12 with no am or pm (which of the two is settled by the words around it, or said).
+function clockOf(s: string): Clock | null {
   const c = s.toLowerCase().replace(/\./g, "").trim();
   if (c === "noon") return { h: 12, mi: 0 };
   if (c === "midnight") return { h: 0, mi: 0 };
@@ -135,10 +153,9 @@ function clockOf(s: string): { h: number; mi: number } | null {
   if (h > 23 || mi > 59) return null;
   if (m[3] === "pm" && h < 12) h += 12;
   if (m[3] === "am" && h === 12) h = 0;
-  // A bare hour with no am or pm: 1 to 7 is read as the afternoon or evening (nobody sets a 3 AM reminder by "at 3").
-  if (!m[3] && h >= 1 && h <= 7) h += 12;
-  return { h, mi };
+  return { h, mi, bare: !m[3] && h >= 1 && h <= 12, am: m[3] === "am" };
 }
+const ampm = (h: number, mi: number) => `${h % 12 || 12}:${String(mi).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 const PART_HOURS: Record<string, number> = { morning: 9, afternoon: 14, evening: 18, night: 20, tonight: 20 };
 
 export type When = { at: number; zone: string; assumed: string[] } | { error: string };
@@ -171,7 +188,7 @@ export function whenOf(phrase: string, now: number, saved: string | null): When 
   let day: { y: number; m: number; d: number } | null = null, clock: { h: number; mi: number } | null = null, dayNamed = false;
   const take = (re: RegExp, f: (m: RegExpExecArray) => void) => { const m = re.exec(p); if (m) { f(m); p = (p.slice(0, m.index) + " " + p.slice(m.index + m[0].length)).replace(/\s+/g, " ").trim(); } return !!m; };
   const plus = (n: number) => { const t = new Date(Date.UTC(today.y, today.m - 1, today.d + n)); return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() }; };
-  let tonight = false;
+  let tonight = false, part: string | null = null;
   take(/\b(today|tonight)\b/, (m) => { day = plus(0); dayNamed = true; tonight = m[1] === "tonight"; });
   take(/\b(tomorrow|tmrw|tmr)\b/, () => { day = plus(1); dayNamed = true; });
   take(new RegExp(String.raw`\b(?:on |this |(next) )?(${WEEKDAY})\b`), (m) => {
@@ -190,22 +207,45 @@ export function whenOf(phrase: string, now: number, saved: string | null): When 
     const y = mo < today.m || (mo === today.m && d < today.d) ? today.y + 1 : today.y;
     day = { y, m: mo, d }; dayNamed = true;
   });
-  // The day first (a date's number is never read as a clock time), then the time of day.
+  // The day first (a date's number is never read as a clock time), then the part of the day, then the clock.
+  take(new RegExp(String.raw`\b(?:this )?(${PART})\b`), (m) => { part = m[1]; if (m[1] === "tonight") { day = plus(0); dayNamed = true; tonight = true; } });
   take(/\b(?:at|around|by) /, () => {});
   take(new RegExp(String.raw`\b(${CLOCK})(?=$| )`), (m) => { const c = clockOf(m[1]); if (c) clock = c; });
-  if (!clock) take(new RegExp(String.raw`\b(${PART})\b`), (m) => { clock = { h: PART_HOURS[m[1]], mi: 0 }; if (m[1] === "tonight") { day = plus(0); dayNamed = true; } });
-  if (!clock && tonight) clock = { h: 20, mi: 0 };
-  if (tonight && clock && (clock as { h: number }).h < 12) (clock as { h: number }).h += 12;
   if (p.replace(/[ ,]/g, "")) return { error: `I couldn't read "${phrase}" as a time` };
-  if (!clock && !dayNamed) return { error: `I couldn't read "${phrase}" as a time` };
-  const c = clock as { h: number; mi: number } | null;
-  if (!c) assumed.unshift("9:00 AM, since you didn't say a time");
-  const hm = c ?? { h: 9, mi: 0 };
+  const c0 = clock as Clock | null;
+  if (!c0 && !dayNamed && !part) return { error: `I couldn't read "${phrase}" as a time` };
+  const late = tonight || part === "night" || part === "evening" || part === "afternoon";
+  let hm: { h: number; mi: number }, nextDay = false;
+  if (!c0) {
+    hm = part ? { h: PART_HOURS[part], mi: 0 } : tonight ? { h: 20, mi: 0 } : { h: 9, mi: 0 };
+    if (!part && !tonight) assumed.unshift("9:00 AM, since you didn't say a time");
+  } else if (tonight && (c0.h === 0 || (c0.bare && c0.h === 12) || (c0.am && c0.h < 6))) {
+    // REVIEW (PR #355): "tonight at midnight" (or 12, or 12am, or 1am) is after midnight: the next day, never noon today.
+    hm = { h: c0.bare && c0.h === 12 ? 0 : c0.h, mi: c0.mi }; nextDay = true;
+  } else if (c0.bare && (late || part === "morning")) {
+    hm = { h: late ? (c0.h % 12) + 12 : c0.h % 12, mi: c0.mi };
+  } else if (c0.bare && dayNamed) {
+    // A day with a bare hour: 1 to 7 is the afternoon or evening, 8 to 12 the morning or noon; said either way.
+    hm = { h: c0.h <= 7 ? c0.h + 12 : c0.h, mi: c0.mi };
+    assumed.unshift(`${ampm(hm.h, hm.mi)}, since you didn't say am or pm`);
+  } else if (c0.bare) {
+    // No day and no am or pm: the next time the clock reads that hour, said (REVIEW, PR #355).
+    const cands = [c0.h % 12, (c0.h % 12) + 12].flatMap((h) => [0, 1].map((n) => { const d = plus(n); return { h, d, at: zonedInstant(d.y, d.m, d.d, h, c0.mi, zone!) }; }))
+      .filter((x) => x.at > now).sort((a, b) => a.at - b.at);
+    const pick = cands[0];
+    hm = { h: pick.h, mi: c0.mi };
+    day = pick.d;
+    assumed.unshift(`${ampm(pick.h, c0.mi)} ${pick.d.d === today.d ? "today" : "tomorrow"}, the next ${c0.h}${c0.mi ? `:${String(c0.mi).padStart(2, "0")}` : " o'clock"} (say am or pm to change it)`);
+  } else hm = { h: c0.h, mi: c0.mi };
   let dd = day as { y: number; m: number; d: number } | null;
+  if (dd && nextDay) { const t = new Date(Date.UTC(dd.y, dd.m - 1, dd.d + 1)); dd = { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() }; }
   if (!dd) {
-    // A time with no day: today if it is still ahead, else tomorrow.
+    // A time with no day: today if it is still ahead, else tomorrow (said, unless it is midnight).
     dd = plus(0);
-    if (zonedInstant(dd.y, dd.m, dd.d, hm.h, hm.mi, zone) <= now) dd = plus(1);
+    if (zonedInstant(dd.y, dd.m, dd.d, hm.h, hm.mi, zone) <= now) {
+      dd = plus(1);
+      if (hm.h || hm.mi) assumed.unshift(`tomorrow, since ${ampm(hm.h, hm.mi)} today has already passed`);
+    }
   }
   if (dd.m < 1 || dd.m > 12 || dd.d < 1 || dd.d > 31 || new Date(Date.UTC(dd.y, dd.m - 1, dd.d)).getUTCDate() !== dd.d) return { error: `there is no such date as ${phrase}` };
   return { at: zonedInstant(dd.y, dd.m, dd.d, hm.h, hm.mi, zone), zone, assumed };
@@ -221,6 +261,13 @@ const dayLabel = (at: number, zone: string) => new Date(at).toLocaleDateString("
 export function reminderText(what: string, setAt: number, at: number, zone: string): string {
   return `Reminder: ${what}. You asked me on ${dayLabel(setAt, zone)} to remind you at ${whenLabel(at, zone)}.`;
 }
+// The zone a reminder was set in rides on its key (status:reminder:<id>:<zone>), so its reply, its list line and the
+// quiet-hours hold at delivery (channel.ts deliverDue) all use the one zone the person named. No migration needed.
+export const reminderKey = (id: string, zone: string) => `${REMINDER_PREFIX}${id}:${zone}`;
+export function reminderZone(key: string): string | null {
+  const m = /^status:reminder:[^:]+:([A-Za-z0-9_+\-\/]+)$/.exec(key);
+  return m ? zoneOr(m[1], "") || null : null;
+}
 const whatOf = (text: string) => (/^Reminder: (.*)\. You asked me on /.exec(text)?.[1] ?? text);
 
 // ------------------------------------------------------------------------------------------------ the turn
@@ -235,6 +282,13 @@ export async function reminderTurn(o: { message: string; userId: string; now: nu
   if (net?.kind === "remind") return null;
   const yieldEmpty = net?.kind === "no_remind";
   const s = o.store;
+  if (ask.kind === "repeat") {
+    const wd = new RegExp(WEEKDAY, "i").exec(ask.every)?.[0];
+    const FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const nextDay = wd ? FULL[DAYS.indexOf(wd.slice(0, 3).toLowerCase())] : "tomorrow";
+    const what = ask.what || "...";
+    return { reply: `I can't set repeating reminders yet (you asked for "${ask.every}"), so nothing is set. Want just the next one? Say "remind me ${nextDay} at 9am to ${what}" and I'll set that one.`, status: "repeat_unsupported", intent: REMINDER_ASK_INTENT };
+  }
   if (ask.kind === "when") {
     if (!ask.what) return { reply: `What should I remind you about, and when? Say it like "remind me tomorrow at 9am to send my transcript". Nothing is set yet.`, status: "needs_text", intent: REMINDER_ASK_INTENT };
     return { reply: `When should I remind you to ${ask.what}? Say it with a time, like "remind me tomorrow at 9am to ${ask.what}". Nothing is set yet.`, status: "needs_time", intent: REMINDER_ASK_INTENT };
@@ -249,14 +303,15 @@ export async function reminderTurn(o: { message: string; userId: string; now: nu
     if ("error" in w) return { reply: `Nothing is set: ${w.error}. Say it like "remind me tomorrow at 9am to ${ask.what}" or "in 2 hours".`, status: "bad_time", intent: REMINDER_SET_INTENT };
     if (w.at <= o.now + 30_000) return { reply: `Nothing is set: ${whenLabel(w.at, w.zone)} has already passed. Give me a time that's still ahead.`, status: "past", intent: REMINDER_SET_INTENT };
     if (w.at > o.now + YEAR) return { reply: "Nothing is set: that's more than a year away. Give me a time within the next year.", status: "too_far", intent: REMINDER_SET_INTENT };
-    const key = `${REMINDER_PREFIX}${(o.newKey ?? (() => crypto.randomUUID()))()}`;
+    const key = reminderKey((o.newKey ?? (() => crypto.randomUUID()))(), w.zone);
     const text = reminderText(ask.what, o.now, w.at, w.zone);
     let ok = false;
     try { ok = await s.add(o.userId, { key, text, at: w.at }); }
     catch (e) { console.error("reminder: save:", e instanceof Error ? e.message : String(e)); }
     if (!ok) return { reply: "I couldn't save that reminder just now, so nothing is set. Ask me again in a minute.", status: "not_saved", intent: REMINDER_SET_INTENT };
     const note = w.assumed.length ? ` I used ${w.assumed.join(", and ")}.` : "";
-    const quiet = quietAt(w.at, w.zone, mine) ? ` That's inside your quiet hours (${hour12(mine.quiet_start)} to ${hour12(mine.quiet_end)}), so it will come when they end, around ${hour12(mine.quiet_end)}.` : "";
+    // Quiet hours on the clock of the zone the reminder is in: the same zone delivery holds it by.
+    const quiet = quietAt(w.at, w.zone, mine) ? ` That's inside your quiet hours (${hour12(mine.quiet_start)} to ${hour12(mine.quiet_end)}), so it will come when they end, at ${whenLabel(nextAwake(w.at, w.zone, mine), w.zone)}.` : "";
     return { reply: `Set. At ${whenLabel(w.at, w.zone)} I'll text you: "${text}"${note}${quiet} Say "my reminders" to see them, or "cancel my reminder about ${short(ask.what)}" to drop it.`, status: "set", intent: REMINDER_SET_INTENT };
   }
   let rows: ReminderRow[], zone = DEFAULT_ZONE;
@@ -269,7 +324,8 @@ export async function reminderTurn(o: { message: string; userId: string; now: nu
     if (yieldEmpty && await s.networking(o.userId).catch(() => true)) return null;
     return { reply: "I couldn't read your reminders just now, so I can't say which are set; nothing was changed. Ask me again in a minute.", status: "unreadable", intent: ask.kind === "list" ? REMINDER_LIST_INTENT : REMINDER_CANCEL_INTENT };
   }
-  const line = (r: ReminderRow, i: number) => `${i + 1}. ${whenLabel(r.at, zone)}: ${whatOf(r.text)}`;
+  const zoneOf = (r: ReminderRow) => reminderZone(r.key) ?? zone;
+  const line = (r: ReminderRow, i: number) => `${i + 1}. ${whenLabel(r.at, zoneOf(r))}: ${whatOf(r.text)}`;
   if (ask.kind === "list") {
     if (!rows.length) return { reply: "You have no reminders set. Say \"remind me tomorrow at 9am to ...\" to set one.", status: "none", intent: REMINDER_LIST_INTENT };
     return { reply: [`Your reminders, soonest first:`, ...rows.map(line), `Say "cancel reminder 1" to drop one.`].join("\n"), status: "shown", intent: REMINDER_LIST_INTENT };
@@ -287,7 +343,7 @@ export async function reminderTurn(o: { message: string; userId: string; now: nu
   try { removed = await s.remove(o.userId, pick.map((r) => r.key)); }
   catch (e) { console.error("reminder: cancel:", e instanceof Error ? e.message : String(e)); return { reply: "I couldn't cancel that just now, so the reminder still stands. Ask me again in a minute.", status: "unreadable", intent: REMINDER_CANCEL_INTENT }; }
   if (removed < pick.length) return { reply: `${removed ? `Cancelled ${removed} of ${pick.length}; the rest` : "Nothing was cancelled: it"} had already gone out.`, status: removed ? "partial" : "already_sent", intent: REMINDER_CANCEL_INTENT };
-  return { reply: [`Cancelled ${pick.length === 1 ? "this reminder" : `these ${pick.length} reminders`}; ${pick.length === 1 ? "it" : "they"} won't be sent:`, ...pick.map((r) => `- ${whenLabel(r.at, zone)}: ${whatOf(r.text)}`)].join("\n"), status: "cancelled", intent: REMINDER_CANCEL_INTENT };
+  return { reply: [`Cancelled ${pick.length === 1 ? "this reminder" : `these ${pick.length} reminders`}; ${pick.length === 1 ? "it" : "they"} won't be sent:`, ...pick.map((r) => `- ${whenLabel(r.at, zoneOf(r))}: ${whatOf(r.text)}`)].join("\n"), status: "cancelled", intent: REMINDER_CANCEL_INTENT };
 }
 const hour12 = (h: number) => `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}`;
 const STOP = new Set(["the", "a", "an", "my", "to", "for", "about", "on", "at", "of", "and", "with"]);

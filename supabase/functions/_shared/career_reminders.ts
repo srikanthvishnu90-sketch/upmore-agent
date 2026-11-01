@@ -17,6 +17,7 @@
 // Without a texting channel linked there is no way to deliver one, so none is saved and the reply says how to link one.
 import { DEFAULT_PREFS, DEFAULT_ZONE, nextAwake, quietAt, zoneOr } from "./career_alerts.ts";
 import { trackAsk } from "./career_outreach_track.ts";
+import { WHATSAPP_WINDOW_MS } from "./channel_adapters.ts";
 
 export const REMINDER_SET_INTENT = "career_reminder_set";
 export const REMINDER_LIST_INTENT = "career_reminder_list";
@@ -30,6 +31,10 @@ export interface ReminderSettings { tz: string | null; quiet_start: number; quie
 export interface ReminderStore {
   settings(userId: string): Promise<ReminderSettings>; // their saved zone (career_alert_prefs.tz; null: none on file) and quiet hours
   reachable(userId: string): Promise<boolean>; // a texting contact that is not opted out
+  // RE-REVIEW (PR #355): paused, opted out or erased (career_user_quiet): delivery skips every row then and nothing resumes
+  // it, so no reminder is saved. And the contact delivery would use (channel_target), for WhatsApp's 24-hour window.
+  paused?(userId: string): Promise<boolean>;
+  target?(userId: string): Promise<{ contact: string; lastInboundAt: number | null } | null>;
   add(userId: string, r: ReminderRow): Promise<boolean>; // false: that key exists already
   pending(userId: string): Promise<ReminderRow[]>; // not yet sent, soonest first
   remove(userId: string, keys: string[]): Promise<number>; // only rows not yet sent; the count removed
@@ -59,7 +64,10 @@ const NUM = String.raw`(?:\d{1,3}(?:\.\d)?|a|an|one|two|three|four|five|six|seve
 const UNIT = String.raw`(?:min(?:ute)?s?|hours?|hrs?|days?|weeks?)`;
 const WEEKDAY = String.raw`(?:mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?|sun)(?:day)?`;
 const MONTH = String.raw`(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)`;
-const CLOCK = String.raw`(?:\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?|noon|midnight)`;
+const CLOCK = String.raw`(?:\d{1,2}(?::\d{2})?(?:\s*(?:am|pm|a\.m\.|p\.m\.)|[ap]\b)?|noon|midnight)`;
+// Something time-like left at the start of the reminder's text ("8ish to ...", "9.30 to ...", "o'clock to ..."): a time
+// that could not be read. Asked, never saved as 9 AM with the time in the text (RE-REVIEW, PR #355).
+const TIMEISH = /^(?:(?:at|around|by) )?(?:\d{1,2}(?:[:.]\d+)?[a-z.']*|\d{1,2} ?o'?clock|o'?clock|ish)(?=,? (?:to|about|that) |$)/i;
 const PART = String.raw`(?:morning|afternoon|evening|night|tonight)`;
 const ZONE = String.raw`(?:(?:chicago|central|eastern|pacific|mountain|new york|los angeles|denver|phoenix|london|ct|et|pt|mt|cst|cdt|est|edt|pst|pdt|mst|mdt|utc|gmt)(?: time)?)`;
 const DAYWORD = String.raw`(?:today|tonight|tomorrow|tmrw|tmr|(?:on |this |next )?${WEEKDAY}|(?:on )?${MONTH}\.? \d{1,2}(?:st|nd|rd|th)?|(?:on )?\d{1,2}\/\d{1,2})`;
@@ -112,6 +120,8 @@ export function reminderAsk(message: string): ReminderAsk | null {
   return /^(?:me )?(?:to|about) /i.test(t.slice(lead[0].length).trim()) || /remind me (?:to|about) /i.test(t) ? { kind: "when", what: clean(rest) } : null;
 }
 function set(what: string, when: string): ReminderAsk {
+  const odd = TIMEISH.exec(what.trim());
+  if (odd) return { kind: "when", what: clean(what.trim().slice(odd[0].length).replace(/^,? (?:to|about|that) /i, "")) };
   return { kind: "set", what: clean(what.replace(/^(?:to|about|that|of) /i, "")), when: when.trim() };
 }
 const clean = (s: string) => norm(s).replace(/^(?:to|about|that) /i, "").replace(/[,;:]+$/, "").slice(0, MAX_WHAT);
@@ -146,14 +156,16 @@ function clockOf(s: string): Clock | null {
   const c = s.toLowerCase().replace(/\./g, "").trim();
   if (c === "noon") return { h: 12, mi: 0 };
   if (c === "midnight") return { h: 0, mi: 0 };
-  const m = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/.exec(c);
+  const m = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)?$/.exec(c);
   if (!m) return null;
   let h = +m[1];
   const mi = m[2] ? +m[2] : 0;
   if (h > 23 || mi > 59) return null;
-  if (m[3] === "pm" && h < 12) h += 12;
-  if (m[3] === "am" && h === 12) h = 0;
-  return { h, mi, bare: !m[3] && h >= 1 && h <= 12, am: m[3] === "am" };
+  const sfx = m[3] ? (m[3][0] === "a" ? "am" : "pm") : null;
+  if (sfx && (h < 1 || h > 12)) return null; // "13pm", "0am"
+  if (sfx === "pm" && h < 12) h += 12;
+  if (sfx === "am" && h === 12) h = 0;
+  return { h, mi, bare: !sfx && h >= 1 && h <= 12, am: sfx === "am" };
 }
 const ampm = (h: number, mi: number) => `${h % 12 || 12}:${String(mi).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 const PART_HOURS: Record<string, number> = { morning: 9, afternoon: 14, evening: 18, night: 20, tonight: 20 };
@@ -194,7 +206,13 @@ export function whenOf(phrase: string, now: number, saved: string | null): When 
   take(new RegExp(String.raw`\b(?:on |this |(next) )?(${WEEKDAY})\b`), (m) => {
     const wd = DAYS.indexOf(m[2].slice(0, 3));
     let n = (wd - today.wd + 7) % 7;
-    if (m[1] === "next" && n === 0) n = 7;
+    // RE-REVIEW (PR #355): "next Tuesday" is the Tuesday of next week, 7 to 13 days away, said with its date ("Tuesday" or
+    // "this Tuesday" is the coming one).
+    if (m[1] === "next") {
+      if (n < 7) n += 7;
+      const d = plus(n);
+      assumed.push(`next ${m[2]} as ${new Date(Date.UTC(d.y, d.m - 1, d.d)).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })}, the one next week`);
+    }
     day = plus(n); dayNamed = true;
   });
   take(new RegExp(String.raw`\b(?:on )?(${MONTH})\.? (\d{1,2})(?:st|nd|rd|th)?\b`), (m) => {
@@ -210,7 +228,10 @@ export function whenOf(phrase: string, now: number, saved: string | null): When 
   // The day first (a date's number is never read as a clock time), then the part of the day, then the clock.
   take(new RegExp(String.raw`\b(?:this )?(${PART})\b`), (m) => { part = m[1]; if (m[1] === "tonight") { day = plus(0); dayNamed = true; tonight = true; } });
   take(/\b(?:at|around|by) /, () => {});
-  take(new RegExp(String.raw`\b(${CLOCK})(?=$| )`), (m) => { const c = clockOf(m[1]); if (c) clock = c; });
+  let badClock: string | null = null;
+  take(new RegExp(String.raw`\b(${CLOCK})(?=$| )`), (m) => { const c = clockOf(m[1]); if (c) clock = c; else badClock = m[1]; });
+  // RE-REVIEW (PR #355): "25:00" or "9:75" was dropped and 9 AM saved "since you didn't say a time".
+  if (badClock) return { error: `"${badClock}" isn't a valid time` };
   if (p.replace(/[ ,]/g, "")) return { error: `I couldn't read "${phrase}" as a time` };
   const c0 = clock as Clock | null;
   if (!c0 && !dayNamed && !part) return { error: `I couldn't read "${phrase}" as a time` };
@@ -295,10 +316,11 @@ export async function reminderTurn(o: { message: string; userId: string; now: nu
   }
   if (ask.kind === "set") {
     if (!ask.what) return { reply: "What should the reminder say? Nothing is set yet.", status: "needs_text", intent: REMINDER_ASK_INTENT };
-    let mine: ReminderSettings, reach = false;
-    try { [mine, reach] = await Promise.all([s.settings(o.userId), s.reachable(o.userId)]); }
+    let mine: ReminderSettings, reach = false, paused = false, target: { contact: string; lastInboundAt: number | null } | null = null;
+    try { [mine, reach, paused, target] = await Promise.all([s.settings(o.userId), s.reachable(o.userId), s.paused ? s.paused(o.userId) : false, s.target ? s.target(o.userId) : null]); }
     catch (e) { console.error("reminder: read:", e instanceof Error ? e.message : String(e)); return { reply: "I couldn't save that reminder just now, so nothing is set. Ask me again in a minute.", status: "unreadable", intent: REMINDER_SET_INTENT }; }
     if (!reach) return { reply: "I can only send reminders by text, and no texting channel is linked to your account (or texts are stopped), so nothing is set. Link Telegram, WhatsApp or iMessage from the Trainee app, then ask again.", status: "no_channel", intent: REMINDER_SET_INTENT };
+    if (paused) return { reply: "Nothing is set: my texts to you are on hold (your account is paused, or you texted STOP on one of your linked numbers), and a reminder can't go out while they're held. Resume in the Trainee app or text START where you sent STOP, then ask me again.", status: "paused", intent: REMINDER_SET_INTENT };
     const w = whenOf(ask.when, o.now, mine.tz);
     if ("error" in w) return { reply: `Nothing is set: ${w.error}. Say it like "remind me tomorrow at 9am to ${ask.what}" or "in 2 hours".`, status: "bad_time", intent: REMINDER_SET_INTENT };
     if (w.at <= o.now + 30_000) return { reply: `Nothing is set: ${whenLabel(w.at, w.zone)} has already passed. Give me a time that's still ahead.`, status: "past", intent: REMINDER_SET_INTENT };
@@ -312,7 +334,11 @@ export async function reminderTurn(o: { message: string; userId: string; now: nu
     const note = w.assumed.length ? ` I used ${w.assumed.join(", and ")}.` : "";
     // Quiet hours on the clock of the zone the reminder is in: the same zone delivery holds it by.
     const quiet = quietAt(w.at, w.zone, mine) ? ` That's inside your quiet hours (${hour12(mine.quiet_start)} to ${hour12(mine.quiet_end)}), so it will come when they end, at ${whenLabel(nextAwake(w.at, w.zone, mine), w.zone)}.` : "";
-    return { reply: `Set. At ${whenLabel(w.at, w.zone)} I'll text you: "${text}"${note}${quiet} Say "my reminders" to see them, or "cancel my reminder about ${short(ask.what)}" to drop it.`, status: "set", intent: REMINDER_SET_INTENT };
+    // RE-REVIEW (PR #355): WhatsApp delivers free text only within its window after the person's last message; a reminder
+    // due after that waits for their next message (channel.ts deliverDue hold). Said, with when the window closes.
+    const closes = target && /^wa:/.test(target.contact) ? (target.lastInboundAt ?? -Infinity) + WHATSAPP_WINDOW_MS : null;
+    const wa = closes !== null && w.at >= closes ? ` One thing: this goes to WhatsApp, which only lets me text you within 24 hours of your last message to me${Number.isFinite(closes) ? ` (that window closes ${whenLabel(closes, w.zone)})` : ""}. Unless you message me in the 24 hours before it's due, it will wait until you next message me.` : "";
+    return { reply: `Set. At ${whenLabel(w.at, w.zone)} I'll text you: "${text}"${note}${quiet}${wa} Say "my reminders" to see them, or "cancel my reminder about ${short(ask.what)}" to drop it.`, status: "set", intent: REMINDER_SET_INTENT };
   }
   let rows: ReminderRow[], zone = DEFAULT_ZONE;
   try {
@@ -371,6 +397,14 @@ export function supabaseReminderStore(admin: any): ReminderStore {
     },
     // deno-lint-ignore no-explicit-any
     reachable: async (u) => (must<any[]>(await admin.from("channel_contacts").select("contact").eq("user_id", u).eq("opted_out", false).limit(1), "read the texting channel") ?? []).length > 0,
+    paused: async (u) => must<boolean>(await admin.rpc("career_user_quiet", { p_user: u }), "read the pause") === true,
+    target: async (u) => {
+      const contact = must<string | null>(await admin.rpc("channel_target", { p_user: u, p_channel: null }), "read the texting contact");
+      if (!contact) return null;
+      // deno-lint-ignore no-explicit-any
+      const r = must<any>(await admin.from("channel_contacts").select("last_inbound_at").eq("contact", contact).maybeSingle(), "read the last message");
+      return { contact, lastInboundAt: r?.last_inbound_at ? Date.parse(r.last_inbound_at) : null };
+    },
     add: async (u, r) => {
       const res = await admin.from("career_outbox").insert({ user_id: u, key: r.key, kind: "status", text: r.text, deliver_at: new Date(r.at).toISOString() });
       if (res.error) { if (String(res.error.code) === "23505") return false; throw new Error(`save the reminder: ${res.error.message}`); }
@@ -386,13 +420,15 @@ export function supabaseReminderStore(admin: any): ReminderStore {
   };
 }
 
-export interface MemoryReminders { networking?: Record<string, boolean>; prefs?: Record<string, { quiet_start?: number; quiet_end?: number }>; zones: Record<string, string | null>; reachable: Record<string, boolean>; rows: (ReminderRow & { userId: string; created: number; sent?: boolean })[] }
+export interface MemoryReminders { networking?: Record<string, boolean>; prefs?: Record<string, { quiet_start?: number; quiet_end?: number }>; zones: Record<string, string | null>; reachable: Record<string, boolean>; paused?: Record<string, boolean>; targets?: Record<string, { contact: string; lastInboundAt: number | null }>; rows: (ReminderRow & { userId: string; created: number; sent?: boolean })[] }
 export function memoryReminderStore(init: Partial<MemoryReminders> = {}): ReminderStore & { dump(): MemoryReminders } {
   const st: MemoryReminders = { zones: {}, reachable: {}, rows: [], ...init };
   let n = 0;
   return {
     settings: async (u) => ({ tz: st.zones[u] ?? null, ...hours(st.prefs?.[u]) }),
     reachable: async (u) => !!st.reachable[u],
+    paused: async (u) => !!st.paused?.[u],
+    target: async (u) => st.targets?.[u] ?? null,
     networking: async (u) => !!st.networking?.[u],
     add: async (u, r) => { if (st.rows.some((x) => x.userId === u && x.key === r.key)) return false; st.rows.push({ ...r, userId: u, created: ++n }); return true; },
     pending: async (u) => st.rows.filter((x) => x.userId === u && !x.sent).map((x) => ({ key: x.key, text: x.text, at: x.at, created: x.created })),

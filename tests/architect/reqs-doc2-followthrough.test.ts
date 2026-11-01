@@ -218,6 +218,24 @@ Deno.test({ name: "DOC2/5 the real handler on real Postgres: reminders set, list
       eq(await outbox(pg, R3), []);
     });
 
+    await t.step("paused: nothing saved, said so; WhatsApp: a reminder past the 24-hour window says it waits for their next message", async () => {
+      // Paused: the handler answers before any turn and starts nothing; the reminder turn's own check (paused, held by
+      // career_user_quiet) is DOC2/9's, for any path that reaches it.
+      const before = await outbox(pg, R2);
+      const p = await say(chat("tok-r2"), "remind me tomorrow at 9am to call Dana");
+      assert(p.intent !== "career_reminder_set" && !/^Set\./.test(p.reply) && /paused/i.test(p.reply), p.reply);
+      eq(await outbox(pg, R2), before, "a paused account gets no reminder saved");
+      await pg.sql(`insert into public.channel_contacts (contact, user_id, last_inbound_at, phone) values ('wa:15550200003', '${R3}', '${new Date(T0 - HOUR).toISOString()}', '+15550200003')`);
+      const c3 = chat("tok-r3");
+      const soon = await say(c3, "remind me in 2 hours to call the recruiter");
+      eq(soon.resultStatus, "set", soon.reply);
+      assert(!/WhatsApp/.test(soon.reply), `inside the window: no note: ${soon.reply}`);
+      const later = await say(c3, "remind me tomorrow at 9am to send the deck");
+      eq(later.resultStatus, "set", later.reply);
+      assert(/WhatsApp/.test(later.reply) && /24 hours/.test(later.reply) && /until you (?:next )?message me/.test(later.reply), later.reply);
+      await pg.sql(`delete from public.channel_contacts where user_id = '${R3}'; delete from public.career_outbox where user_id = '${R3}'`);
+    });
+
     await t.step("one zone: quiet hours on the zone the person named, stored on the reminder, at set time and at delivery", async () => {
       await pg.sql(`delete from public.career_outbox where user_id = '${R1}'`);
       // Saved zone Chicago. 9 AM London is 3 AM in Chicago (quiet there, not in London); 11 PM London is 5 PM in Chicago.
@@ -349,4 +367,48 @@ Deno.test("DOC2/8 daylight saving (US fall back, Nov 1 2026), the one-year cap, 
   assert(/Waiting 4 days\.$/.test(waiting(4.6)), waiting(4.6));
   assert(/Waiting 1 day\.$/.test(waiting(1.4)), waiting(1.4));
   assert(/Waiting since today\.$/.test(waiting(0.7)), waiting(0.7));
+});
+
+Deno.test("DOC2/9 re-review: an invalid or unread clock is never 9 AM; 8a/8p; paused; WhatsApp window; next Tuesday", async () => {
+  const ch = (y: number, m: number, d: number, h: number, mi = 0) => zonedInstant(y, m, d, h, mi, "America/Chicago");
+  const s = memoryReminderStore({ zones: { U: "America/Chicago" }, reachable: { U: true, P: true, W: true, G: true }, paused: { P: true },
+    targets: { W: { contact: "wa:15550200009", lastInboundAt: T0 - HOUR }, G: { contact: "tg:42", lastInboundAt: T0 - 3 * DAY } } });
+  const turn = async (message: string, userId = "U", now = T0) => (await reminderTurn({ message, userId, now, store: s }))!;
+  for (const m of ["remind me tomorrow at 25:00 to call Acme", "remind me tomorrow at 9:75 to call Acme", "remind me at 13pm to call Acme"]) {
+    const r = await turn(m);
+    eq(r.status, "bad_time", `${m}: ${r.reply}`);
+    assert(/isn't a valid time/.test(r.reply) && !/since you didn't say a time/.test(r.reply), r.reply);
+  }
+  assert("error" in whenOf("tomorrow at 25:00", T0, "America/Chicago"));
+  eq(reminderAsk("remind me tmrw 8a to send the deck"), { kind: "set", what: "send the deck", when: "tmrw 8a" });
+  const at = (p: string) => { const w = whenOf(p, T0, "America/Chicago"); if ("error" in w) throw new Error(w.error); return w.at; };
+  eq(at("tmrw 8a"), ch(2026, 11, 4, 8));
+  eq(at("tmrw 8p"), ch(2026, 11, 4, 20));
+  eq(at("tomorrow at 8 a.m."), ch(2026, 11, 4, 8));
+  eq(at("tomorrow at 8am"), ch(2026, 11, 4, 8));
+  for (const m of ["remind me tmrw 8ish to send the deck", "remind me tomorrow at 9.30 to call Acme", "remind me tomorrow at 8 oclock to call Acme"]) {
+    const r = await turn(m);
+    eq([r.status, r.intent], ["needs_time", "career_reminder_when"], `${m}: ${r.reply}`);
+    assert(!/8ish to|9\.30 to|oclock to/.test(r.reply), `the time is never left in the text: ${r.reply}`);
+  }
+  eq(s.dump().rows, [], "nothing above saved anything");
+  const p = await turn("remind me tomorrow at 9am to call Dana", "P");
+  eq(p.status, "paused", p.reply);
+  assert(/paused/i.test(p.reply) && /nothing is set/i.test(p.reply), p.reply);
+  eq(s.dump().rows, [], "paused: nothing saved");
+  const soon = await turn("remind me in 2 hours to call Dana", "W");
+  assert(soon.status === "set" && !/WhatsApp/.test(soon.reply), soon.reply);
+  const far = await turn("remind me tomorrow at 9am to call Dana", "W");
+  assert(far.status === "set" && /WhatsApp/.test(far.reply) && /until you (?:next )?message me/.test(far.reply), far.reply);
+  const tg = await turn("remind me in 3 days to call Dana", "G");
+  assert(tg.status === "set" && !/WhatsApp/.test(tg.reply), tg.reply);
+  // Sunday Nov 1, noon: "next Tuesday" is the Tuesday of next week (Nov 10), said with its date; "Tuesday" is Nov 3.
+  const sun = Date.UTC(2026, 10, 1, 18);
+  const nt = whenOf("next tuesday", sun, "America/Chicago");
+  if ("error" in nt) throw new Error(nt.error);
+  eq(nt.at, ch(2026, 11, 10, 9));
+  assert(nt.assumed.some((a) => /Nov 10/.test(a)), JSON.stringify(nt.assumed));
+  eq(at.call(null, "next tuesday") , ch(2026, 11, 10, 9), "on a Tuesday, next Tuesday is a week away");
+  const tue = whenOf("tuesday", sun, "America/Chicago");
+  eq("error" in tue ? tue.error : tue.at, ch(2026, 11, 3, 9));
 });

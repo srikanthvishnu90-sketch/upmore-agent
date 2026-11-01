@@ -37,12 +37,12 @@ export interface FileDeps extends Omit<JobDeps, "store"> {
   store: FileStore;
   userOfTelegram?: (telegramId: string) => Promise<string | null>; // channel_contacts: 'tg:<id>' -> the linked account
   sessions?: SessionStore; // server-side, revocable sessions and the phone sign-ins links open (file_session.ts); absent, nothing opens
+  // Q509/Q717: every sign-in by a texted code queues one notice into the person's own chat (signin_notice.ts). Absent: none.
+  signinNotices?: NoticeQueue;
   phone?: PhoneAuth; // the account's confirmed phone and the texted code; absent, phone sign-in is off
   files?: FileService; // the other file kinds (introduction, proof, plan, comparison, draft, brief); an id not found there is a jobs list
   fileEffects?: Effects; // what Introduce really does (send); absent, an approved introduction says it was not sent
   timeZone?: (userId: string) => Promise<string | null>; // the person's own zone (dates on the page are their day); absent or unknown, Chicago, said
-  // Q509/Q717: every sign-in by a texted code queues one notice into the person's own chat (signin_notice.ts). Absent: none.
-  signinNotices?: NoticeQueue;
 }
 export const MAX_ROWS = FEED_ROWS;
 

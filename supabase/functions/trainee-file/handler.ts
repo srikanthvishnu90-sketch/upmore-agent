@@ -150,6 +150,7 @@ async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: R
   // The account's stamp, once (apply_trust.ts): a payload prepared under another account state is not offered.
   const account = d.account ? await d.account(claims.u).catch(() => "unreadable" as const) : undefined;
   const tz = d.timeZone ? await d.timeZone(claims.u).catch(() => null) : null;
+  const closedOf = new Map<string, string | null>(); // Q558: a row's closed label, set as each row is read
   const rows: Row[] = await Promise.all(got.map(async ({ ref, c }) => {
     const job = { ...c!.job }, post = postings.find((p) => p.job_id === job.job_id) ?? null;
     job.company_domain = job.company_domain ?? post?.company_domain ?? null;
@@ -175,14 +176,15 @@ async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: R
       else blocked = postingVerdict(job, post, facts, !!d.facts, d.now());
     }
     // Q558/Q635/Q661: a closed posting keeps its row, labelled (the employer's closed date in the person's day, or its passed deadline).
-    const closed = post?.closed_at && Date.parse(post.closed_at) <= d.now() ? `Closed ${closedDay(post.closed_at, tz)}` : blocked && /^its deadline to apply \(.+\) has passed$/.test(blocked) ? "Closed: the deadline to apply has passed" : null;
+    closedOf.set(ref, post?.closed_at && Date.parse(post.closed_at) <= d.now() ? `Closed ${closedDay(post.closed_at, tz)}` : blocked && /^its deadline to apply \(.+\) has passed$/.test(blocked) ? "Closed: the deadline to apply has passed" : null);
     const tag = prep && !sd?.secret && !status && !byHand && !blocked && /^[0-9a-f]{16}$/.test(hashTag(prep.payload_hash)) ? hashTag(prep.payload_hash) : null;
     // The short description and the key details: the stored posting's own words; a search-only detail only in the labelled line.
     const stated = { ...job, location: post?.location ?? "", remote: post ? job.remote : null };
-    return { ref, job, closed, logo: rowLogo(job, d.env), snippet: snippetOf(stated, post?.description), full: fullOf(post?.description),
+    return { ref, job, logo: rowLogo(job, d.env), snippet: snippetOf(stated, post?.description), full: fullOf(post?.description),
       status, inApps: !!app || away, tag, resume: app || away ? null : resumeOf(prep), byHand, blocked, note: notes[ref], ...metaOf(job, post), posted: postedLine({ posted_at: post?.posted_at ?? job.posted_at, first_seen_at: post?.first_seen_at ?? job.first_seen_at }, d.now(), tz), why: job.reasons.slice(0, 2),
       sends: sd && !sd.secret ? `Sends: ${[resumeOf(prep) ?? "no resume", sd.answers ? "your saved answers" : "", sd.cover ? "a cover note" : ""].filter(Boolean).join(" + ")}` : undefined, send: sd?.items };
   }));
+  for (const r of rows) r.closed = closedOf.get(r.ref) ?? null;
   // The same posting twice on one list (the same link under two ids): only the first row offers Apply.
   const seenUrl = new Set<string>();
   for (const r of rows) {

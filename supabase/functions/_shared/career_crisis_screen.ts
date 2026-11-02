@@ -6,12 +6,15 @@
 //      OpenAI: the key, the kill switch and the only unreserved send live there; this module holds no URL or key).
 // FAIL-SAFE: if either layer flags, the crisis reply wins. Moderation never blocks the conversation: it starts as soon as
 // the message is known (beside the turn's own reads), and if it errors or has not answered within MODERATION_TIMEOUT_MS
-// the list's verdict stands and the failure is logged (never the message text). The second layer is on with
-// CAREER_CRISIS_MODERATION=on (the gateway needs its key too): scripts/launch/trainee-go-live.sh sets the switch on every
-// deploy, and test environments (which fake OpenAI's chat endpoint) leave it unset, so the list answers alone there.
-// A list hit answers at once: there is nothing moderation could add to it.
+// the list's verdict stands and the failure is logged (never the message text). A list hit answers at once.
+//
+// ARCHITECT DECISION (2026-11-02): moderation is the PRIMARY layer; a word list overfits to the phrasings it has seen
+// (evals/crisis/: the sealed corpus measures both layers). It is ON BY DEFAULT from this committed release constant, not
+// from a deploy script; the one environment override is the EMERGENCY DISABLE, CAREER_CRISIS_MODERATION=off. (This
+// constant moves into agent-chat/release_config.ts once that file lands, #371.) With no OpenAI key the list answers
+// alone and one loud error line says so per cold start.
 import { CareerSafety } from "./router_core.career.js";
-import { moderate } from "./model_gateway.ts";
+import { moderate, moderationConfigured } from "./model_gateway.ts";
 
 export const MODERATION_TIMEOUT_MS = 1500;
 export const SELF_HARM_CATEGORIES = ["self-harm", "self-harm/intent", "self-harm/instructions"] as const;
@@ -40,11 +43,25 @@ export function gatewayModeration(door: ModerateDoor = moderate): Moderate {
   return async (text, signal) => readModeration(await door(text, { signal, timeoutMs: MODERATION_TIMEOUT_MS }));
 }
 
-// The client agent-chat uses, or null when the second layer is off. On with CAREER_CRISIS_MODERATION=on, which
-// scripts/launch/trainee-go-live.sh sets on every deploy. Left unset in test environments: their OpenAI fakes count every
-// request to api.openai.com, so a moderation call there would read as a model call.
-export function moderationFromEnv(env: { get(name: string): string | undefined }, door?: ModerateDoor): Moderate | null {
-  return (env.get("CAREER_CRISIS_MODERATION") || "").toLowerCase() === "on" ? gatewayModeration(door) : null;
+// The release: moderation on. Read as text by tests; keep it one quoted line.
+export const PRODUCTION_CRISIS_MODERATION: "on" | "off" = "on";
+export const CRISIS_MODERATION_DISABLE_ENV = "CAREER_CRISIS_MODERATION";
+let warnedNoKey = false;
+// THE ONE READ of the release flag. When the release-flags PR lands, this body becomes
+//   return releaseFlagOn(env, "CAREER_CRISIS_MODERATION");   (import from ../agent-chat/release_config.ts)
+// and this file goes into RELEASE_FLAG_PATHS in scripts/launch/reply-code.ts. Same meaning: on unless rolled back (=off).
+export function moderationReleaseOn(env: Env, release: "on" | "off" = PRODUCTION_CRISIS_MODERATION): boolean {
+  return release === "on" && (env.get(CRISIS_MODERATION_DISABLE_ENV) || "").trim().toLowerCase() !== "off";
+}
+// The client agent-chat uses, or null when the second layer is off: the release constant, unless the emergency disable is
+// set (CAREER_CRISIS_MODERATION=off); without a key it is off and says so loudly, once per cold start.
+export function moderationFromEnv(env: Env, door?: ModerateDoor, o: { release?: "on" | "off"; log?: (line: string) => void } = {}): Moderate | null {
+  if (!moderationReleaseOn(env, o.release)) return null;
+  if (!door && !moderationConfigured(env)) {
+    if (!warnedNoKey) { warnedNoKey = true; (o.log ?? ((l: string) => console.error(l)))("CRISIS SCREEN DEGRADED: no OpenAI key, so the moderation layer is OFF and the word list alone screens for crisis messages. Set the key."); }
+    return null;
+  }
+  return gatewayModeration(door);
 }
 
 // Start the screen for one message. The returned promise always resolves (never rejects) within the timeout.

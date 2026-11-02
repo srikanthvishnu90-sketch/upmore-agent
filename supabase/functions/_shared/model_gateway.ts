@@ -365,6 +365,8 @@ export async function responsesCall(o: { apiKey: string; model: string; body: Re
 // provider's JSON body, or throws (not configured, paused, HTTP error, timeout after timeoutMs, default 1.5 s).
 const MODERATIONS_URL = "https://api.openai.com/v1/moderations";
 export const MODERATION_MODEL = "omni-moderation-latest";
+// Whether the moderation door has a key to send with (never the key itself).
+export function moderationConfigured(env: Env): boolean { return !!modelConfig(env, "probe").apiKey; }
 export async function moderate(text: string, o: { env?: Env; request?: typeof fetch; timeoutMs?: number; signal?: AbortSignal } = {}): Promise<unknown> {
   const send = o.request || fetch;
   const get = denoEnvGet();

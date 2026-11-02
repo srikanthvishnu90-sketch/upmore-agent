@@ -86,6 +86,7 @@ Deno.test({ name: "people finding and intros at the real handler: import, who, a
       const u = new URL(req.url);
       if (u.origin === new URL(SUPABASE_URL).origin) return await viaDouble(req);
       outside.push(`${req.method} ${u.host}${u.pathname}${u.search}`);
+      if (u.pathname === "/v1/moderations") return Response.json({ results: [{ flagged: false, categories: {} }] }); // #354: the crisis screen's moderation call, not a model call (architect OK 2026-11-02)
       if (u.host === "api.openai.com") return fakeOpenAI(await req.json());
       if (u.host === "gmail.googleapis.com") return fakeGmail(u);
       return new Response("not faked", { status: 599 });

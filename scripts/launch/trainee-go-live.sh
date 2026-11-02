@@ -987,10 +987,6 @@ else
   # no texting channel is told plainly that no message comes (career_outreach_track.ts reminderWords). Before the brain
   # lines: CAREER_BRAIN stays the env file's last name, as F13-10 reads it.
   add CAREER_OUTREACH_FOLLOWUPS on on
-  # Crisis screen, second layer (#354 safety re-review, 2026-11-01): every inbound chat message is also read by OpenAI's
-  # free moderation endpoint (self-harm categories, through model_gateway.ts moderate()) beside the deterministic list; either flagging gives the crisis
-  # reply, and a moderation error or timeout never blocks a turn (_shared/career_crisis_screen.ts). On for every deploy.
-  add CAREER_CRISIS_MODERATION on on
   # The router answers unless the owner asks for the agent brain on this run (D-008); the environment never decides it.
   if [[ "$BRAIN" == agent ]]; then add CAREER_BRAIN agent agent; fi
   # FEATURE 13: the staged release (question and advice turns to the brain, every action to code) only with --brain staged.

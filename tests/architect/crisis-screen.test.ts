@@ -2,7 +2,7 @@
 // Fail-safe: either layer flagging gives the crisis reply; moderation erroring or timing out leaves the list's verdict
 // and never blocks the turn. A fake moderation client stands in for OpenAI: nothing here leaves the process.
 import assertNode from "node:assert/strict";
-import { crisisScreen, gatewayModeration, type Moderate, moderationFromEnv, readModeration } from "../../supabase/functions/_shared/career_crisis_screen.ts";
+import { crisisScreen, gatewayModeration, type Moderate, moderationFromEnv, moderationReleaseOn, PRODUCTION_CRISIS_MODERATION, readModeration } from "../../supabase/functions/_shared/career_crisis_screen.ts";
 import { moderate, MODERATION_MODEL } from "../../supabase/functions/_shared/model_gateway.ts";
 import { SAFETY_REPLY, trustTurn } from "../../supabase/functions/_shared/career_trust_turn.ts";
 
@@ -92,19 +92,33 @@ Deno.test("the gateway's moderation door: /v1/moderations only, the key from the
   assert(Date.now() - t0 < 1000, "cut at the deadline");
 });
 
-Deno.test("the second layer is on only with CAREER_CRISIS_MODERATION=on, through the gateway door", async () => {
+Deno.test("moderation is ON by default from the committed release constant; =off is the emergency disable; no key logs loudly once", async () => {
   const env = (o: Record<string, string>) => ({ get: (k: string) => o[k] });
-  eq(moderationFromEnv(env({})), null);
-  eq(moderationFromEnv(env({ OPENAI_API_KEY: "k" })), null, "a key alone does not turn it on");
+  eq(PRODUCTION_CRISIS_MODERATION, "on", "the release ships it on");
   let doorCalls = 0;
-  const client = moderationFromEnv(env({ CAREER_CRISIS_MODERATION: "on" }), () => { doorCalls++; return Promise.resolve({ results: [{ categories: { "self-harm": true } }] }); });
-  assert(client, "on");
+  const door = () => { doorCalls++; return Promise.resolve({ results: [{ categories: { "self-harm": true } }] }); };
+  const client = moderationFromEnv(env({}), door);
+  assert(client, "on with no environment setting at all");
   eq((await crisisScreen(OBLIQUE, client)).distress, true);
-  eq(doorCalls, 1, "the door was used");
+  eq(doorCalls, 1, "the gateway door was used");
+  for (const v of ["off", "OFF", " off "]) eq(moderationFromEnv(env({ CAREER_CRISIS_MODERATION: v }), door), null, `the emergency disable: ${v}`);
+  for (const v of ["on", "yes", "typo"]) assert(moderationFromEnv(env({ CAREER_CRISIS_MODERATION: v }), door), `only "off" disables: ${v}`);
+  eq(moderationFromEnv(env({}), door, { release: "off" }), null, "a release that ships it off is off");
+  eq(moderationReleaseOn(env({})), true); eq(moderationReleaseOn(env({ CAREER_CRISIS_MODERATION: "off" })), false);
+  // no key: off, and one loud line per cold start (never the text)
+  const q = quiet();
+  eq(moderationFromEnv(env({}), undefined, { log: q.log }), null);
+  eq(moderationFromEnv(env({}), undefined, { log: q.log }), null);
+  eq(q.lines.length, 1, "said once");
+  assert(/CRISIS SCREEN DEGRADED/.test(q.lines[0]) && /word list alone/.test(q.lines[0]), q.lines[0]);
+  assert(typeof moderationFromEnv(env({ OPENAI_API_KEY: "k" })) === "function", "with a key, the real gateway door");
   const live = Deno.readTextFileSync(new URL("../../scripts/launch/trainee-go-live.sh", import.meta.url));
-  assert(/^\s*add CAREER_CRISIS_MODERATION on on$/m.test(live), "every deploy turns it on");
-  const src = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_crisis_screen.ts", import.meta.url)).replace(/\/\/[^\n]*/g, "");
-  assert(!/api\.openai\.com|OPENAI_API_KEY/.test(src), "the screen holds no URL and reads no key");
+  assert(!/CAREER_CRISIS_MODERATION/.test(live), "not gated by the deploy script");
+  const src = Deno.readTextFileSync(new URL("../../supabase/functions/_shared/career_crisis_screen.ts", import.meta.url));
+  assert(/^export const PRODUCTION_CRISIS_MODERATION: "on" \| "off" = "on";$/m.test(src), "the committed release line");
+  const code = src.replace(/\/\/[^\n]*/g, "");
+  assert(!/api\.openai\.com|OPENAI_API_KEY/.test(code), "the screen holds no URL and reads no key");
+  eq((code.match(/env\.get\(/g) ?? []).length, 1, "one read of the flag, in moderationReleaseOn");
 });
 
 Deno.test("the handler starts the screen before the turn's reads and decides distress from its verdict", () => {

@@ -180,12 +180,35 @@ const CareerSafety = (() => {
     /\b(?:lethal|fatal|deadly) (?:dose|amount|overdose|combination|mix)\b/,
     /\b(?:painless|easiest|easy|quickest|quick|fastest|best|surest|least painful|most painless|simplest) (?:way|ways|method|methods) (?:to|of) (?:die|dying|kill myself|killing myself|end it|end my life|commit suicide)\b/,
     /\bways to (?:die|kill myself|end my life)\b/,
-    /\b(?:want|wanna|going|gonna|plan|planning|thinking (?:about|of)|try|tried|trying|about|ready|decided) (?:to )?(?:od|oding|odd)\b/, /\b(?:i|just|almost|nearly) (?:odd|oded|od)(?: last night| on| tonight|$)/,
-    /\bod(?:d|ing|ed)? on\b/, /\boverdos\w*/,
+    /\b(?:want|wanna|going|gonna|plan|planning|thinking (?:about|of)|try|tried|trying|about|ready|decided) (?:to )?(?:od|oding|odd)\b/, /\b(?:i|just|almost|nearly) (?:odd|oded|od)(?: last night| tonight|$)/,
+    new RegExp(String.raw`\bod(?:d|ing|ed)? on\b(?! (?:coffee|caffeine|sugar|meetings|work|info|information|netflix|tv|memes)\b)`),
+    new RegExp(String.raw`\boverdos\w*\b(?! (?:of|on|from) (?!(?:my |the |some |all |a bottle of )?${DRUG})\w)`),          // never "overdose of coffee"
     /\b(?:tie|tied|tying|make|made|making|got|have|bought|buy) (?:a |the |my )?noose\b/, /\bnoose\b/,
     /\b(?:bought|buy|got|get|have|found) (?:a |some |the )?rope\b(?! access)/, /\brope\b.{0,30}\b(?:neck|hang|ceiling|beam|closet)\b/,
     /\b(?:gun|pistol|rifle|firearm|knife|blade|razor)\b.{0,60}\b(?:on myself|to my (?:head|wrist|throat|chest)|in my mouth|end it|kill myself|use it on me)\b/,
     /\buse (?:it|that|this|the gun|the knife) on myself\b/, /\bgun to my head\b/, /\bblow my (?:brains|head) out\b/, /\bdisappear forever\b/, /\bmy (?:last|final) goodbye\b/,
+    // Re-review 2 (2026-11-01): method, intent and time cues.
+    new RegExp(String.raw`\b(?:off|offing|offed) ${SELF}`),
+    /\bbullet (?:in|into|through) my (?:head|brain|skull|mouth)\b/, /\bput a (?:bullet|gun) (?:in|to) my (?:head|brain|mouth)\b/,
+    /\b(?:how|best way|ways?|easiest way|painless(?:ly)?|quickest way|fastest way|surest way) (?:to |do (?:i|you) )?(?:kill|hang|shoot|drown|poison|off|cut) (?:yourself|myself|urself|oneself|ur self|your self)\b/,
+    /\b(?:going to|gonna|gon|will|plan to|planning to|about to|ready to|want to|wanna|im gonna|ima|imma) (?:jump|hang|rope)(?: (?:myself|tonight|today|now|soon|off something))*$/,
+    /\b(?:going to|gonna|will|plan to|planning to|about to|ready to|want to|wanna|imma) end(?:ing)? things(?: (?:tonight|today|now|soon|for good|this week|this weekend|forever))?$/,
+    /\b(?:end|ending) things (?:tonight|today|this week|this weekend|for good|forever)\b/, /\bi(?:ll| will) end things(?: soon| tonight)?$/,
+    /\bhope i (?:die|dont wake up|never wake up|just die)\b(?! laughing| of laughter)/, /\bi (?:want|wanna) (?:to )?be dead\b/, /\b(?:just )?let me die\b/,
+    /\b(?:pills?|meds|tablets) to end it\b/, /\bbought (?:pills|a gun|rope|a rope|a razor|razor blades) (?:to|so i can) (?:end|die|kill)/,
+    /\b(?:bath|bathtub|tub|shower)\b.{0,30}\b(?:razor|blade|knife)\b/, /\b(?:razor|blade|knife)\b.{0,30}\b(?:bath|bathtub|tub|wrists?)\b/,
+    /\bkills? (?:you|me|a person|someone|people)$/,
+    // Italian, Portuguese, Dutch, Polish, Turkish, Indonesian, Tagalog, Hindi (romanized), Vietnamese, Swedish (Latin script, accents dropped).
+    /\b(?:voglio|vorrei) (?:morire|uccidermi|ammazzarmi|farla finita)\b/, /\bmi voglio (?:uccidere|ammazzare)\b/, /\bnon voglio piu vivere\b/, /\bla faccio finita\b/,
+    /\bquero (?:morrer|me matar|me suicidar|sumir para sempre)\b/, /\bnao quero mais viver\b/, /\bvou me (?:matar|suicidar)\b/,
+    /\bik wil (?:dood|sterven|niet meer leven|zelfmoord)\b/, /\bzelfmoord\b/, /\bvan kant maken\b/,
+    /\bchce (?:umrzec|sie zabic|zabic sie)\b/, /\bnie chce (?:juz )?zyc\b/, /\bsamoboj\w*/,
+    /\bolmek istiyorum\b/, /\bkendimi oldur\w*/, /\bintihar\w*/, /\byasamak istemiyorum\b/,
+    /\b(?:ingin|mau|pengen|pingin) mati\b/, /\bbunuh diri\b/, /\btidak mau hidup lagi\b/,
+    /\b(?:mamatay|magpakamatay|magpapakamatay)\b/, /\bayoko nang mabuhay\b/,
+    /\bmarna (?:chahta|chahti|hai|chahiye)\b/, /\b(?:khudkushi|aatmahatya|atmahatya)\b/, /\bjeena nahi\b/,
+    /\bmuon (?:chet|tu tu)\b/, /\btu sat\b/,
+    /\bvill (?:do|inte leva)\b/, /\bta livet av mig\b/, /\bsjalvmord\b/,
     // Spanish, French, German: the core phrases (accents are dropped before reading).
     /\b(?:quiero|quisiera|voy a|me voy a|ganas de) (?:morir(?:me)?|matarme|suicidarme|quitarme la vida|desaparecer para siempre)\b/,
     /\bme (?:quiero|voy a) (?:morir|matar|suicidar)\b/, /\bno quiero (?:vivir|seguir viviendo|estar viva?|despertar)\b/,
@@ -195,17 +218,34 @@ const CareerSafety = (() => {
     /\bich (?:will|mochte|moechte|werde) (?:sterben|mich umbringen|mich toten|mich toeten|nicht mehr leben)\b/, /\bmich umbringen\b/,
     /\bich bring(?:e)? mich um\b/, /\bselbstmord\w*/, /\bsuizid\w*/, /\bnicht mehr leben\b/, /\bmein leben beenden\b/,
   ];
+  // Normalizing (re-review 2): a word mixing letters and digits is leetspeak (mys3lf, d13, k1ll; a pure number stays a
+  // number, so "30 advil" keeps its count); "*" inside a word is a censored letter (k*ll, f***ing); a letter typed three
+  // or more times is one (diiiie, suuuicidal); three or more single letters in a row are one word (k i l l); inserted
+  // profanity and fillers are dropped (fucking, fr, ngl, deadass); common misspellings of "myself" are mended.
+  const LEET = { 0: "o", 1: "i", 3: "e", 4: "a", 5: "s", 7: "t", 8: "b", 9: "g" };
+  const FILLER = /\b(?:fucking|fuckin|fking|fkn|fcking|freaking|frickin|effing|f+ing|goddamn|damn|bloody|literally|honestly|lowkey|highkey|ngl|fr|tbh|deadass|on god|ong|rn|lol|lmao)\b/g;
   function distressClauses(text) {
     const t = String(text == null ? "" : text).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\u00df/g, "ss").toLowerCase()
       .replace(/[‘’ʼ`´]/g, "'").replace(/'/g, "")
-      .replace(/(\w)-(\w)/g, "$1 $2");
+      .replace(/(\w)-(\w)/g, "$1 $2")
+      .replace(/\b(?=[a-z0-9@$*]*[a-z])(?=[a-z0-9@$*]*[0-9@$])[a-z0-9@$*]+\b/g, (w) => w.replace(/[0-9]/g, (d) => LEET[d] ?? d).replace(/@/g, "a").replace(/\$/g, "s"))
+      .replace(/\bk\*+ll/g, "kill").replace(/\bf\*+(?:ing|in|k)\b/g, "fucking").replace(/\*/g, "")
+      .replace(/([a-z])\1{2,}/g, "$1");
     return t.split(/[.!?,;:\n]+/).map((c) => {
       let x = c.replace(/[^a-z0-9 ]+/g, " ").replace(/\b2\b/g, "to").replace(/\s+/g, " ").trim();
+      x = x.replace(/\b(?:[a-z] ){2,}[a-z]\b/g, (m) => m.replace(/ /g, ""));
+      x = x.replace(FILLER, " ").replace(/\bmy ?(?:slf|slef|sef|sefl|elf|selfe)\b/g, "myself").replace(/\s+/g, " ").trim();
       for (const b of BENIGN) x = x.replace(b, " ").replace(/\s+/g, " ").trim();
       return x;
     }).filter(Boolean);
   }
+  // Scripts the normalizer cannot keep (Cyrillic, Japanese, Korean, Chinese, Arabic): read on the raw text.
+  const NON_LATIN = [/умер(?:еть|ти)/, /покончить с собой/, /самоубийств/, /не хочу (?:больше )?жить/, /убить себя/,
+    /死にたい/, /自殺/, /生きていたくない/, /消えたい/, /죽고 ?싶/, /자살/, /살고 ?싶지 ?않/, /想死/, /自杀/, /不想活/,
+    /أموت/, /انتحار/, /أقتل نفسي/, /لا أريد أن أعيش/];
   function isDistress(text) {
+    const raw = String(text == null ? "" : text).normalize("NFC").toLowerCase();
+    if (NON_LATIN.some((p) => p.test(raw))) return true;
     return distressClauses(text).some((c) => DISTRESS_PATTERNS.some((p) => p.test(c)));
   }
 

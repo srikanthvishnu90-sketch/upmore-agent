@@ -96,6 +96,7 @@ async function world() {
   const viaDouble = globalThis.fetch;
   globalThis.fetch = (async (input: any, init?: any) => {
     const req = input instanceof Request && !init ? input : new Request(input, init);
+    if (new URL(req.url).pathname === "/v1/moderations") return Response.json({ results: [{ flagged: false, categories: {} }] }); // #354: the crisis screen's moderation call, not a model call (architect OK 2026-11-02)
     if (new URL(req.url).host === "api.openai.com") return fakeOpenAI(await req.json());
     return viaDouble(req);
   }) as typeof fetch;

@@ -13,6 +13,7 @@
 // read. Taps at once are each judged against the list as it is when they run: an Apply that queued a row first changes the set
 // (the Apply to all then approves nothing and says so); an Apply to all that ran first leaves that Apply "Already in your
 // applications". Either way each posting is approved once.
+import { dayIn, FALLBACK_ZONE } from "../_shared/file_page.ts";
 import { FILE_TTL_MS, verifyFileToken, type FileClaims } from "../_shared/file_link.ts";
 import { checkSession, CLEAR_LOGIN, CLEAR_SESSION, codeOf, LOGIN_TTL_MS, loginCookie, MAX_CODE_SENDS, MAX_CODE_TRIES, normalizePhone, SESSION_ID, sessionCookie, startSession, type PhoneAuth, type SessionStore } from "../_shared/file_session.ts";
 import { verifyInitData } from "../_shared/telegram_webapp.ts";
@@ -72,6 +73,7 @@ const resumeOf = (p: PreparedRow | null): string | null => {
   return /^[a-f0-9]{64}$/.test(s) ? `resume ${s.slice(0, 12)}` : null;
 };
 const byHandOf = (url: string) => byHandUrl(url);
+const closedDay = (iso: string, tz: string | null) => { try { return dayIn(iso, tz || FALLBACK_ZONE); } catch { return dayIn(iso, FALLBACK_ZONE); } };
 
 // Key details: only what the posting (or the search result) states. A part from the stored posting is "From the posting"; if any part
 // came only from the search result the line says "Reported, not verified". Nothing unstated is shown.
@@ -148,6 +150,7 @@ async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: R
   // The account's stamp, once (apply_trust.ts): a payload prepared under another account state is not offered.
   const account = d.account ? await d.account(claims.u).catch(() => "unreadable" as const) : undefined;
   const tz = d.timeZone ? await d.timeZone(claims.u).catch(() => null) : null;
+  const closedOf = new Map<string, string | null>(); // Q558: a row's closed label, set as each row is read
   const rows: Row[] = await Promise.all(got.map(async ({ ref, c }) => {
     const job = { ...c!.job }, post = postings.find((p) => p.job_id === job.job_id) ?? null;
     job.company_domain = job.company_domain ?? post?.company_domain ?? null;
@@ -172,6 +175,8 @@ async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: R
       else if (!post) blocked = "I couldn't check this posting just now (it may have closed). Refresh in a minute.";
       else blocked = postingVerdict(job, post, facts, !!d.facts, d.now());
     }
+    // Q558/Q635/Q661: a closed posting keeps its row, labelled (the employer's closed date in the person's day, or its passed deadline).
+    closedOf.set(ref, post?.closed_at && Date.parse(post.closed_at) <= d.now() ? `Closed ${closedDay(post.closed_at, tz)}` : blocked && /^its deadline to apply \(.+\) has passed$/.test(blocked) ? "Closed: the deadline to apply has passed" : null);
     const tag = prep && !sd?.secret && !status && !byHand && !blocked && /^[0-9a-f]{16}$/.test(hashTag(prep.payload_hash)) ? hashTag(prep.payload_hash) : null;
     // The short description and the key details: the stored posting's own words; a search-only detail only in the labelled line.
     const stated = { ...job, location: post?.location ?? "", remote: post ? job.remote : null };
@@ -179,6 +184,7 @@ async function loadFeed(claims: FileClaims, token: string, d: FileDeps, notes: R
       status, inApps: !!app || away, tag, resume: app || away ? null : resumeOf(prep), byHand, blocked, note: notes[ref], ...metaOf(job, post), posted: postedLine({ posted_at: post?.posted_at ?? job.posted_at, first_seen_at: post?.first_seen_at ?? job.first_seen_at }, d.now(), tz), why: job.reasons.slice(0, 2),
       sends: sd && !sd.secret ? `Sends: ${[resumeOf(prep) ?? "no resume", sd.answers ? "your saved answers" : "", sd.cover ? "a cover note" : ""].filter(Boolean).join(" + ")}` : undefined, send: sd?.items };
   }));
+  for (const r of rows) r.closed = closedOf.get(r.ref) ?? null;
   // The same posting twice on one list (the same link under two ids): only the first row offers Apply.
   const seenUrl = new Set<string>();
   for (const r of rows) {

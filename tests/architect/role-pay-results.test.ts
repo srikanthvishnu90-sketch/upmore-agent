@@ -50,7 +50,7 @@ Deno.test("pay: read from the posting into numbers; one format; a floor keeps on
 Deno.test("reply: one or two plain sentences (found, how many meet the pay, the caveat), then the link alone on its own line", () => {
   const what = { one: "frontend internship", many: "frontend internships" }, floor = { amount: 30, period: "hour" as const }, url = `${BASE}?t=v1.abc.def`;
   const r = resultsReply({ what, floor, meets: 2, unlisted: 1, url });
-  eq(r, `I found 2 frontend internships that list pay of $30/hr or more, plus 1 that don't list pay, so I couldn't check it. Here they are by fit, with Apply on each:\n${url}`);
+  eq(r, `I found 2 frontend internships that list pay of $30/hr or more, plus 1 that doesn't list pay, so I couldn't check it. Here they are by fit, with Apply on each:\n${url}`);
   const lines = r.split("\n");
   eq(lines.length, 2); eq(lines[1], url);
   assert(!MARKDOWN.test(r), "no markdown on a texting channel");
@@ -68,7 +68,7 @@ Deno.test("results file: fit order, listed-and-meeting first, then 'pay not list
   const jobs = await Promise.all(refs.map(async (x) => (await w.store.recall(U, x))!.job));
   eq(jobs.map((j) => j.company), ["Acme Web", "Initech", "Globex"], "Hooli ($25/hr) is out; Globex (no pay) is last, in its own group");
   eq(jobs.map((j) => j.pay), ["$35-40/hr", "$30/hr", null], "pay only as the posting states it; none invented for Globex");
-  eq(await w.store.recallListMeta!(U, r.listId), { kind: "results", what: "frontend internships", floor: { amount: 30, period: "hour" }, at: NOW });
+  eq(await w.store.recallListMeta!(U, r.listId), { kind: "results", what: "frontend internships", floor: { amount: 30, period: "hour" }, at: NOW, name: null, source: null, read: null, sources: 2 });
   assert(r.url.startsWith(`${BASE}?t=v1.`), "a signed link");
 });
 
@@ -91,11 +91,13 @@ Deno.test("page: one card per role (title, company, pay with its source or 'Pay 
   assert(/<form method="post" id="sel">[\s\S]*Apply to selected/.test(html), "Apply to selected");
   assert(!/Hooli/.test(t), "below the floor: not on the page");
   // Filters (a GET form): pay listed and meeting the floor only; remote only; a place.
-  const only = plain(await (await req(w, { cookie: s, query: "pay=meets" })).text());
+  // The cards only (the quick read above them names the best matches whatever the filter).
+  const cards = (h: string) => plain(h.slice(h.indexOf('<main id="main">')));
+  const only = cards(await (await req(w, { cookie: s, query: "pay=meets" })).text());
   assert(/Acme Web/.test(only) && /Initech/.test(only) && !/Globex/.test(only), only);
-  const remote = plain(await (await req(w, { cookie: s, query: "where=remote" })).text());
+  const remote = cards(await (await req(w, { cookie: s, query: "where=remote" })).text());
   assert(!/Acme Web/.test(remote) && /Initech/.test(remote) && /Globex/.test(remote), remote);
-  const none = plain(await (await req(w, { cookie: s, query: "pay=meets&where=Boston" })).text());
+  const none = cards(await (await req(w, { cookie: s, query: "pay=meets&where=Boston" })).text());
   assert(/No roles match these filters\. Show all 3/.test(none), "an empty state that says how to widen it");
 });
 

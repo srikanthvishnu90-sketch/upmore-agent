@@ -27,6 +27,7 @@ export function whatOf(ask: { role: string; place: string | null; remote: boolea
 export interface Picked { hit: SearchHit; posting: SourcePosting | null }
 export async function resultsFile(o: {
   userId: string; now: number; what: What; floor: Floor | null; picked: Picked[]; store: JobStore;
+  name?: string | null; source?: "live" | "snapshot" | null; read?: string | null;
   links: (userId: string, listId: string) => Promise<{ url: string | null }>;
 }): Promise<{ reply: string; listId: string; url: string; meets: number; unlisted: number; unchecked: number; below: number } | null> {
   if (!o.store.rememberListMeta) return null;
@@ -42,7 +43,7 @@ export async function resultsFile(o: {
   }
   const ordered = [...meets, ...unchecked, ...unlisted].slice(0, RESULTS_MAX);
   if (!ordered.length) return null;
-  const refs: string[] = [];
+  const refs: string[] = [], boards = new Set<string>();
   for (const p of ordered) {
     // A live-board posting is a whole career_postings row (remote, level, provider, its own posted date); a snapshot one is not.
     const live = (p.posting ?? {}) as Partial<PostingRow>;
@@ -53,11 +54,13 @@ export async function resultsFile(o: {
     const view = { ...jobViewOf(p.hit, row), pay: pay ? payText(pay) : null, pay_parsed: pay };
     const ref = await refOf(o.userId, view.job_id);
     await o.store.remember(o.userId, ref, view, "text");
+    boards.add(String(view.source ?? row.provider ?? view.job_id.split(":")[0]).toLowerCase());
     refs.push(ref);
   }
   const listId = (await hex(`${o.userId}|results|${refs.join(",")}|${o.now}`)).slice(0, 10);
   await o.store.rememberList(o.userId, listId, refs);
-  const meta: ListMeta = { kind: "results", what: o.what.many, floor: o.floor, at: o.now };
+  const name = String(o.name ?? "").trim().split(/\s+/)[0]?.replace(/[^\p{L}'-]/gu, "").slice(0, 40) || null;
+  const meta: ListMeta = { kind: "results", what: o.what.many, floor: o.floor, at: o.now, name, source: o.source ?? null, read: o.read ?? null, sources: boards.size };
   await o.store.rememberListMeta(o.userId, listId, meta);
   const { url } = await o.links(o.userId, listId);
   if (!url) return null;

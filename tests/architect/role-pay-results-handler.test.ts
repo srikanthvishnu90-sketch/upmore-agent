@@ -77,7 +77,7 @@ Deno.test({ name: "results (handler): iMessage 'frontend internships that pay $3
   // The reply shape.
   const lines = t.reply.split("\n");
   eq(lines.length, 2, t.reply);
-  eq(lines[0], "I found 2 frontend internships that list pay of $30/hr or more, plus 1 that don't list pay, so I couldn't check it. Here they are by fit, with Apply on each:");
+  eq(lines[0], "I found 2 frontend internships that list pay of $30/hr or more, plus 1 that doesn't list pay, so I couldn't check it. Here they are by fit, with Apply on each:");
   assert(/^https:\/\/trainee\.example\/file\?t=v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(lines[1]), `the link alone on its own line: ${lines[1]}`);
   assert(!MARKDOWN.test(t.reply), "no markdown on iMessage");
   assert(!/TEST Pay/.test(t.reply), "no wall of postings in the chat");

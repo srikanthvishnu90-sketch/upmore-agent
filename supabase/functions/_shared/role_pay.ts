@@ -89,7 +89,7 @@ export function resultsReply(o: { what: What; floor: Floor | null; meets: number
   const n = (k: number) => `${k} ${k === 1 ? o.what.one : o.what.many}`;
   let first: string;
   if (!o.floor) first = `I found ${n(total)}.`;
-  else if (o.meets && o.unlisted) first = `I found ${n(o.meets)} that ${o.meets === 1 ? "lists" : "list"} pay of ${floorText(o.floor)} or more, plus ${o.unlisted} that don't list pay, so I couldn't check ${o.unlisted === 1 ? "it" : "those"}.`;
+  else if (o.meets && o.unlisted) first = `I found ${n(o.meets)} that ${o.meets === 1 ? "lists" : "list"} pay of ${floorText(o.floor)} or more, plus ${o.unlisted} that ${o.unlisted === 1 ? "doesn't" : "don't"} list pay, so I couldn't check ${o.unlisted === 1 ? "it" : "those"}.`;
   else if (o.meets) first = `I found ${n(o.meets)} that ${o.meets === 1 ? "lists" : "list"} pay of ${floorText(o.floor)} or more.`;
   else first = `I found ${n(o.unlisted)}, but ${o.unlisted === 1 ? "it doesn't" : "none of them"} list pay, so I couldn't check ${o.unlisted === 1 ? "it" : "them"} against ${floorText(o.floor)}.`;
   if (o.unchecked) first += ` ${o.unchecked} ${o.unchecked === 1 ? "lists" : "list"} pay in another currency.`;

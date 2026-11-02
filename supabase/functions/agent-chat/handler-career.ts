@@ -986,6 +986,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
               // texting reply is still the short one (the goal's long acknowledgment would be the wall of text this replaces).
               if (TEXTING.has(writerChannel((body as any)?.channel)) && f5Ask.limits?.pay && found.picked?.length) {
                 const made = await resultsFile({ userId: user.id, now: Date.now(), what: whatOf(f5Ask), floor: f5Ask.limits.pay, picked: found.picked, store: supabaseJobStore(admin),
+                  name: prof?.basics?.name ?? null, source: found.source === "none" ? null : found.source,
+                  read: found.source === "snapshot" ? found.picked.map((x) => String(x.posting?.fetched_on ?? "")).filter(Boolean).sort().at(-1) ?? null : null,
                   links: (u, l) => feedUrlsFor(Deno.env, u, l, Date.now()) }).catch((e) => { console.error("results page: the list stands:", (e as Error)?.message ?? e); return null; });
                 if (made) {
                   out = { ...out, reply: made.reply + resumeLine };

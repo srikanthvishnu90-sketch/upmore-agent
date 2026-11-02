@@ -91,9 +91,9 @@ export function world(o: { unprepared?: string[]; postings?: Posting[]; fields?:
   return { store, preps, queue, outbox, wants, A, deps, postings, clock, closed };
 }
 export type W = ReturnType<typeof world>;
-export async function made(w: W, user = U, said = "I want frontend internships that pay $30/hr") {
+export async function made(w: W, user = U, said = "I want frontend internships that pay $30/hr", extra: { name?: string | null; source?: "live" | "snapshot"; read?: string | null } = {}) {
   const ask = searchTextOf(said);
-  const r = await resultsFile({ userId: user, now: NOW, what: whatOf({ role: ask.role, place: ask.place, remote: ask.remote, limits: ask.limits }), floor: ask.limits.pay, picked: picked(w.postings), store: w.store,
+  const r = await resultsFile({ userId: user, now: NOW, what: whatOf({ role: ask.role, place: ask.place, remote: ask.remote, limits: ask.limits }), floor: ask.limits.pay, picked: picked(w.postings), store: w.store, ...extra,
     links: (u, l) => feedUrlsFor(env, u, l, NOW) });
   if (!r) throw new Error("the results page was not made");
   return r!;

@@ -76,7 +76,10 @@ export interface JobStore {
   rememberListMeta?(userId: string, listId: string, meta: ListMeta): Promise<void>;
   recallListMeta?(userId: string, listId: string): Promise<ListMeta | null>;
 }
-export interface ListMeta { kind: "results"; what: string; floor: { amount: number; period: "hour" | "year" } | null; at: number }
+// name: the person's first name as their profile states it (null: "you"); source: where the postings were read (the live board at
+// `at`, or the saved snapshot read on `read`); sources: how many boards the roles came from.
+export interface ListMeta { kind: "results"; what: string; floor: { amount: number; period: "hour" | "year" } | null; at: number;
+  name?: string | null; source?: "live" | "snapshot" | null; read?: string | null; sources?: number }
 
 export interface JobDeps {
   store: JobStore;

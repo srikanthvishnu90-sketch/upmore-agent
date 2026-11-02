@@ -62,7 +62,7 @@ Deno.test({
         const tok: Tokens = scheme === "light" ? LIGHT : DARK;
         await t.step(scheme, async () => {
           const w = world();
-          const r = await made(w);
+          const r = await made(w, U, undefined, { name: "Ada", source: "live" });
           const session = await w.A.tok(U, r.listId, NOW);
           const ac = new AbortController();
           const server = Deno.serve({ hostname: "127.0.0.1", port: 0, signal: ac.signal, onListen() {} }, (req) => handleFile(req, w.deps));
@@ -88,6 +88,13 @@ Deno.test({
             await pg.goto(`${origin}/file`);
             assert(/Frontend internships, \$30\/hr or more/.test(await pg.textContent("h1")));
             const list = await check("the list");
+            // The header, in reading order on screen: made for, title, what was read, the caveat, the quick read, then the cards.
+            const ys = await pg.evaluate(`[".made","h1",".prov",".caveat",".quick","li.card"].map((q) => { const e = document.querySelector(q); return e ? e.getBoundingClientRect().top : null; })`);
+            assert(ys.every((y: number | null) => y !== null), `every header part is on the page: ${ys}`);
+            assert(ys.every((y: number, i: number) => i === 0 || y > ys[i - 1]), `in order down the page: ${ys}`);
+            const sizes = await pg.evaluate(`[".made","h1",".prov",".caveat",".quick p"].map((q) => parseFloat(getComputedStyle(document.querySelector(q)).fontSize))`);
+            assert(sizes[1] >= 28 && sizes[0] < sizes[1] && sizes[2] < sizes[1], `a large title over small lines: ${sizes}`);
+            assert(/^Made for Ada · Nov 1, 2026$/.test((await pg.textContent(".made"))!.trim()));
             const cardApply = list.applies.filter((a: any) => /^button\.apply 'Apply'$/.test(a.el));
             eq(cardApply.length, 3, "an Apply on each card");
             assert(cardApply.every((a: any) => a.w >= 390 - 2 * 20 - 2 * 18 - 4), "Apply is full width on a phone (Q567)");

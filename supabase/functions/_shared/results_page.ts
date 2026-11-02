@@ -21,11 +21,20 @@ export interface ResultRow extends Row {
 export interface ResultsFeed {
   token: string; title: string; floor: string | null; rows: ResultRow[]; total: number;
   filters: { pay: PayFilter; where: string }; places: string[]; top?: string; notes?: Record<string, string>;
+  // The header: who and when, what was read and when, what is not confirmed, and a 2-3 line quick read.
+  madeFor?: string; provenance?: string; caveat?: string; quick?: string[];
 }
 
 const CSS = `
 :root{--card:#FFFFFF}@media (prefers-color-scheme:dark){:root{--card:var(--panel)}}
 .eyebrow{margin:0 0 6px;font-size:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
+.made{margin:0 0 10px;font-size:15px;color:var(--mute)}
+.results h1{font-size:32px;line-height:1.15;margin:0}
+.prov{margin:12px 0 0;font-size:15px;color:var(--mute)}
+.caveat{margin:14px 0 0;font-size:16px;line-height:1.55}
+.quick{margin:22px 0 4px;padding:16px 18px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.quick h2{margin:0 0 6px;font-size:15px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
+.quick p{margin:4px 0 0;font-size:16px;line-height:1.5}
 .lede{margin:8px 0 0;font-size:16px;color:var(--mute)}
 .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:18px 0 6px;padding:14px;border-radius:14px;background:var(--panel)}
 .filters label{display:flex;flex-direction:column;gap:4px;font-size:15px;font-weight:600;flex:1 1 140px;min-width:0}
@@ -106,7 +115,11 @@ export function renderResults(f: ResultsFeed): string {
     : `<div class="empty" role="status"><p>No roles match these filters.</p><p><a class="back" href="?">Show all ${f.total}</a></p></div>`;
   const shown = f.rows.length < f.total ? `<p class="lede">Showing ${f.rows.length} of ${f.total}. <a class="back" href="?">Show all</a></p>` : "";
   const top = f.top ? `<p class="top-note" role="alert">${esc(f.top)}</p>` : "";
-  const inner = `<div id="root"><header>${BRAND}<p class="eyebrow">Your results</p><h1>${esc(cap1(f.title))}</h1><p class="lede">Sorted by fit to what you've confirmed. Pay is only what each posting lists. Nothing is sent until you approve it.</p>${filters}${shown}${selbar}</header><main id="main">${top}${body}</main></div>`;
+  const head = f.madeFor
+    ? `<p class="made">${esc(f.madeFor)}</p><h1>${esc(cap1(f.title))}</h1>${f.provenance ? `<p class="prov">${esc(f.provenance)}</p>` : ""}${f.caveat ? `<p class="caveat">${esc(f.caveat)}</p>` : ""}`
+      + (f.quick?.length ? `<section class="quick" aria-label="Quick read"><h2>Quick read</h2>${f.quick.map((q) => `<p>${esc(q)}</p>`).join("")}</section>` : "")
+    : `<p class="eyebrow">Your results</p><h1>${esc(cap1(f.title))}</h1><p class="lede">Sorted by fit to what you've confirmed. Pay is only what each posting lists. Nothing is sent until you approve it.</p>`;
+  const inner = `<div id="root" class="results"><header>${BRAND}${head}${filters}${shown}${selbar}</header><main id="main">${top}${body}</main></div>`;
   return layout(`${cap1(f.title)} - Trainee`, inner, { css: CSS });
 }
 

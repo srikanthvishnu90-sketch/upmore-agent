@@ -597,5 +597,32 @@ async function handleResults(o: { meta: ListMeta; d: FileDeps; claims: FileClaim
     && (!filters.where ? true : filters.where === "remote" ? r.job.remote === "remote" || /\bremote\b/i.test(r.job.location) : r.job.location.toLowerCase().includes(filters.where.toLowerCase())));
   const places = [...new Set(all.map((r) => r.job.location.split(/[;|]/)[0].trim()).filter((p) => p && !/^remote$/i.test(p)))].slice(0, 8);
   const title = `${meta.what}${floor ? `, ${floorText(floor)} or more` : ""}`;
-  return o.html(renderResults({ token, title, floor: floor ? floorText(floor) : null, rows, total: all.length, filters, places, top, notes }));
+  // The file's header (Instinct-style, owner 2026-11-01): who it was made for and when, exactly what was read and when, what is not
+  // confirmed, and a quick read. Every number here is counted from the rows; the person's day and zone (else Chicago, said).
+  const tz = await (d.timeZone ? d.timeZone(u).catch(() => null) : Promise.resolve(null));
+  const zone = tz && (() => { try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; } })() ? tz : "America/Chicago";
+  const fmt = (ms: number, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-US", { timeZone: zone, ...o }).format(new Date(ms));
+  const day = fmt(meta.at, { month: "short", day: "numeric", year: "numeric" });
+  const clock = fmt(meta.at, { hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+  const nSources = meta.sources ?? new Set(all.map((r) => r.job.source).filter(Boolean)).size;
+  const srcWord = `${nSources} ${nSources === 1 ? "source" : "sources"}`;
+  const provenance = meta.source === "snapshot"
+    ? `From a saved snapshot of job boards${meta.read ? ` read ${fmt(Date.parse(meta.read), { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}` : ""}, not the live board; some may have closed · ${srcWord}`
+    : `Postings checked ${day}, ${clock} · ${srcWord}`;
+  const nMeets = all.filter((r) => r.payGroup === "meets").length, nUnlisted = all.filter((r) => r.payGroup === "unlisted").length;
+  const nOther = all.filter((r) => r.payGroup === "unchecked").length, nBelow = all.filter((r) => r.payGroup === "below").length;
+  const fl = floor ? floorText(floor) : null;
+  const caveat = [
+    `Pay is shown only where the posting lists it${nUnlisted ? `; ${nUnlisted} ${nUnlisted === 1 ? "role doesn't" : "roles don't"} list pay, so ${nUnlisted === 1 ? "it's" : "they're"} grouped separately` : ", and nothing is estimated"}.`,
+    nOther ? `${nOther} ${nOther === 1 ? "lists" : "list"} pay in another currency or without a period, so ${nOther === 1 ? "it wasn't" : "they weren't"} compared${fl ? ` with ${fl}` : ""}.` : "",
+    "Fit is judged only on what you've confirmed.",
+  ].filter(Boolean).join(" ");
+  const best = all.filter((r) => r.payGroup === "meets").slice(0, 2).map((r) => `${r.job.title} at ${r.job.company}`);
+  const quick = [
+    best.length ? `Best ${best.length === 1 ? "match" : "matches"}: ${best.join("; ")}.` : all.length ? `Closest by fit: ${all[0].job.title} at ${all[0].job.company}.` : "",
+    fl ? `${nMeets} of ${all.length} list ${fl} or more${nUnlisted ? `; ${nUnlisted} ${nUnlisted === 1 ? "doesn't" : "don't"} list pay` : ""}${nOther ? `; ${nOther} can't be compared` : ""}${nBelow ? `; ${nBelow} now list less` : ""}.` : `${all.length} ${all.length === 1 ? "role" : "roles"}, sorted by fit.`,
+    "Next: tap Apply to check a role's exact application, or tick several and use Apply to selected. Nothing is sent until you approve it with the code from your chat.",
+  ].filter(Boolean);
+  return o.html(renderResults({ token, title, floor: fl, rows, total: all.length, filters, places, top, notes,
+    madeFor: `Made for ${meta.name ?? "you"} · ${day}`, provenance, caveat, quick }));
 }

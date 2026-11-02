@@ -20,6 +20,10 @@ import { BOOT_SCRIPT, cut, FEED_SCRIPT, fullOf, hostOf, renderBootstrap, renderF
 import { dayOf, BRAND, esc, layout, postedLine } from "../_shared/file_page.ts";
 import { actOn, bodyHtml, COPY_SCRIPT, KIND_CSS, KIND_LABEL, textOf, type Effects, type FileRecord } from "../_shared/file_kinds.ts";
 import type { FileService } from "../_shared/file_service.ts";
+import { renderResults, renderReview, type PayFilter, type ResultRow, type ReviewItem } from "../_shared/results_page.ts";
+import { conversionNote, floorText, type Pay, payGroup, payText, startsBelow } from "../_shared/role_pay.ts";
+import type { ApprovalCodes } from "../_shared/approval_code.ts";
+import type { ListMeta } from "../_shared/telegram_jobs.ts";
 import { byHandUrl, FEED_ROWS, foreignFact, hashTag, isSecretField, NOT_YOURS, logoDomain, logoUrl, postingVerdict, secretFields, secretKey, tapJob, unsendable, type JobDeps, type JobSender, type JobStore, type JobView, type PostingRow, type PreparedRow } from "../_shared/telegram_jobs.ts";
 
 export type { AppRow } from "../_shared/file_page.ts";
@@ -40,6 +44,9 @@ export interface FileDeps extends Omit<JobDeps, "store"> {
   files?: FileService; // the other file kinds (introduction, proof, plan, comparison, draft, brief); an id not found there is a jobs list
   fileEffects?: Effects; // what Introduce really does (send); absent, an approved introduction says it was not sent
   timeZone?: (userId: string) => Promise<string | null>; // the person's own zone (dates on the page are their day); absent or unknown, Chicago, said
+  // The approval code sent to the person's own chat (approval_code.ts): a results list approves only with it. Absent: a results
+  // list shows the exact application and approves nothing.
+  codes?: ApprovalCodes;
 }
 export const MAX_ROWS = FEED_ROWS;
 
@@ -396,6 +403,14 @@ async function handleFileOnce(req: Request, d: FileDeps): Promise<Response> {
     const g = await d.files.get(u, claims.r).catch(() => null);
     if (g && g.state !== "missing") return handleKind({ g, d, claims, token, action, fields, req, html, text, state });
   }
+  // A results list (a role-and-pay ask from a texting channel, role_results.ts): Apply shows the exact application, and Approve
+  // needs the code from the person's chat.
+  // Unreadable is not "a plain list": the page then offers nothing (a results list must never fall back to one-tap approval).
+  let meta: ListMeta | null = null;
+  if (d.store.recallListMeta) {
+    try { meta = await d.store.recallListMeta(u, claims.r); } catch { return state("Couldn't open this just now", ["Nothing was opened and nothing was sent. Try again in a minute."], 503); }
+  }
+  if (meta) return handleResults({ meta, d, claims, token, idHash: s.idHash, action, fields, url, req, html, text, state });
   const notes: Record<string, string> = {};
   let top: string | undefined;
 
@@ -476,3 +491,138 @@ async function handleKind(o: { g: Exclude<Awaited<ReturnType<FileService["get"]>
   return o.html(layout(`${String(rec.data?.title ?? KIND_LABEL[rec.kind])} - Trainee`, inner, { script: KIND_SCRIPT, tg: true, css: KIND_CSS, og: { title: `${KIND_LABEL[rec.kind]} from Trainee`, description: "Open in Trainee.", image: ogImage(d.env) } }), 200, { "content-security-policy": csp });
 }
 export { FILE_TTL_MS, hostOf };
+
+// ---------------------------------------------------------------- a results list: review the exact application, approve with the chat code
+const PAY_FILTERS = new Set<PayFilter>(["any", "meets", "listed"]);
+const placeOf = (j: JobView) => {
+  const parts = [j.location, j.remote === "remote" ? "Remote" : j.remote === "hybrid" ? "Hybrid" : j.remote === "onsite" ? "On-site" : ""].filter(Boolean);
+  return parts.filter((w, i) => parts.findIndex((x) => x.toLowerCase() === w.toLowerCase()) === i).join(" · ");
+};
+const selHash = async (picks: { ref: string; tag: string }[]) => (await sha(`sel1|${picks.map((p) => `${p.ref}:${p.tag}`).sort().join(",")}`)).slice(0, 16);
+const CODE_WORDS: Record<string, string> = {
+  wrong: "That code didn't work, so nothing was sent. Check the latest code in your chat and try again.",
+  expired: "That code has expired, so nothing was sent. Get a new code and try again.",
+  locked: "Too many wrong codes, so nothing was sent. Get a new code and try again.",
+  used: "That code was already used, so nothing was sent. Get a new code and try again.",
+  none: "Get a code first: nothing was sent.",
+};
+
+async function handleResults(o: { meta: ListMeta; d: FileDeps; claims: FileClaims; token: string; idHash: string; action: string; fields: URLSearchParams; url: URL; req: Request;
+  html: (b: string, s?: number, e?: Record<string, string>) => Promise<Response>; text: (b: string, s?: number) => Promise<Response>; state: (t: string, p: string[], s: number) => Promise<Response> }): Promise<Response> {
+  const { meta, d, claims, token, action, fields } = o, u = claims.u;
+  const floor = meta.floor ? { amount: meta.floor.amount, period: meta.floor.period } : null;
+  const notes: Record<string, string> = {};
+  let top: string | undefined;
+  const reviewItem = (r: Row): ReviewItem => ({ ref: r.ref, tag: r.tag!, title: r.job.title, company: r.job.company, send: r.send ?? [] });
+  const review = async (rows: Row[], note?: string, codeSent?: boolean) =>
+    o.html(renderReview({ token, items: rows.map(reviewItem), set: rows.length > 1 ? await selHash(rows.map((r) => ({ ref: r.ref, tag: r.tag! }))) : null, note, codeSent, canApprove: !!d.codes }));
+  // One row, judged now against the page as it is (the same screen the list ran): the row, or why nothing goes for it. An
+  // unprepared row is queued to be prepared (nothing is sent by that), and says so.
+  const gate = async (feed: Feed | null, ref: string, tag: string): Promise<{ row: Row } | { note: string }> => {
+    const row = feed?.rows.find((r) => r.ref === ref);
+    if (!row) return { note: "This job isn't on this list any more. Nothing was sent." };
+    if (row.status) return { note: row.inApps ? `Already in your applications, so nothing more was sent. ${row.status.detail}` : `Nothing was approved: ${row.status.detail}` };
+    if (row.byHand) return { note: "Not applied for automatically on this site. Open it and apply there yourself." };
+    if (row.blocked) return { note: `Nothing was approved: ${row.blocked}` };
+    if (tag === "none" && !row.tag) {
+      const w = await d.store.want(u, row.job, d.now()).catch(() => ({ result: "refused" as const, reason: "I couldn't save that just now." }));
+      return { note: w.result === "refused" ? `Not queued: ${w.reason ?? "I can't open that posting's application form yet."}` : "Getting your application ready. Nothing is sent until you check it and approve it here. Refresh in a minute." };
+    }
+    if (!/^[0-9a-f]{16}$/.test(tag) || tag !== row.tag) return { note: "Changed since you opened this page, so nothing was sent." };
+    return { row };
+  };
+  const picks = () => [...new Set(fields.getAll("pick"))].slice(0, MAX_ROWS).map((p) => { const [ref = "", tag = ""] = p.split(":"); return { ref, tag }; });
+  const many = action === "review_sel" || action === "approve_sel" || (action === "code_send" && !fields.has("ref"));
+
+  if (action) {
+    const known = ["review", "review_sel", "code_send", "approve", "approve_sel", "refresh", "apply", "applyall"];
+    if (!known.includes(action)) return o.state("Not done", ["That is not something this page can do. Nothing was sent."], 400);
+    // The one-tap approvals of the plain jobs list do not exist here: every application is shown first and approved with the code.
+    if (action === "apply" || action === "applyall") top = "Apply opens the exact application first, and you approve it with a code from your chat. Nothing was sent.";
+    else if (action === "refresh") { /* a fresh read below */ }
+    else if (!many) {
+      const ref = fields.get("ref") ?? "", tag = fields.get("tag") ?? "";
+      const g = await gate(await loadFeed(claims, token, d), ref, tag);
+      if ("note" in g) notes[ref] = g.note;
+      else if (action === "review") return review([g.row]);
+      else if (!d.codes) return review([g.row]);
+      else if (action === "code_send") {
+        const sent = await d.codes.send(u, o.idHash, d.now()).catch(() => ({ ok: false as const, why: "not_sent" as const }));
+        return review([g.row], sent.ok ? undefined : sent.why === "too_many" ? "That's the most codes for now. Use the latest one, or open a new link later." : "The code couldn't be sent just now. Nothing was sent. Try again in a minute.", sent.ok);
+      } else {
+        const c = await d.codes.check(u, o.idHash, fields.get("code"), d.now()).catch(() => "none" as const);
+        if (c !== "ok") return review([g.row], CODE_WORDS[c], c === "wrong");
+        const n = await approveOne(u, ref, tag, d);
+        notes[ref] = n ?? "Approved. It's queued to be sent exactly as you checked it; the status here changes when the employer's site confirms it.";
+      }
+    } else {
+      const want = picks();
+      if (!want.length) top = "Tick at least one role first. Nothing was sent.";
+      else {
+        const feed = await loadFeed(claims, token, d);
+        const ok: Row[] = [];
+        for (const p of want) { const g = await gate(feed, p.ref, p.tag); if ("note" in g) notes[p.ref] = g.note; else ok.push(g.row); }
+        if (action === "review_sel") {
+          if (ok.length) return review(ok, ok.length < want.length ? `${want.length - ok.length} of the ${want.length} you ticked can't go from here; the list says why. Nothing was sent for them.` : undefined);
+          top = "None of the roles you ticked can be approved right now; each says why. Nothing was sent.";
+        } else if (ok.length !== want.length || (await selHash(ok.map((r) => ({ ref: r.ref, tag: r.tag! })))) !== (fields.get("set") ?? "")) {
+          top = "This selection changed since you checked it, so nothing was approved. Check it again.";
+        } else if (!d.codes) return review(ok);
+        else if (action === "code_send") {
+          const sent = await d.codes.send(u, o.idHash, d.now()).catch(() => ({ ok: false as const, why: "not_sent" as const }));
+          return review(ok, sent.ok ? undefined : sent.why === "too_many" ? "That's the most codes for now. Use the latest one, or open a new link later." : "The code couldn't be sent just now. Nothing was sent. Try again in a minute.", sent.ok);
+        } else {
+          const c = await d.codes.check(u, o.idHash, fields.get("code"), d.now()).catch(() => "none" as const);
+          if (c !== "ok") return review(ok, CODE_WORDS[c], c === "wrong");
+          let failed = 0;
+          for (const r of ok) { const n = await approveOne(u, r.ref, r.tag!, d); if (n) { notes[r.ref] = n; failed++; } else notes[r.ref] = "Approved. It's queued to be sent exactly as you checked it."; }
+          top = failed ? `${ok.length - failed} of ${ok.length} approved; each says what happened.` : `All ${ok.length} approved and queued, each exactly as you checked it.`;
+        }
+      }
+    }
+  }
+
+  const feed = await loadFeed(claims, token, d, notes);
+  if (!feed) return o.state("This list is gone", ["It is no longer available. " + NEW_LINK], 404);
+  if (o.req.method === "GET" && o.url.searchParams.get("format") === "text") return o.text(renderText(feed));
+  const pf = o.url.searchParams.get("pay") as PayFilter, filters = { pay: PAY_FILTERS.has(pf) ? pf : "any" as PayFilter, where: (o.url.searchParams.get("where") ?? "").trim().slice(0, 80) };
+  const all: ResultRow[] = feed.rows.map((r) => {
+    // The numbers stored with the role when the list was made; the display text is never read back (it is not the posting's words).
+    const pay = (r.job.pay_parsed ?? null) as Pay | null, g = payGroup(pay, floor);
+    const other = g === "unchecked" && pay ? (pay.currency !== "USD" ? `in ${pay.currency === "unknown" ? "a currency it doesn't name" : pay.currency}` : "no period stated") : null;
+    const payNote = other && floor ? `${other}, not compared with your ${floorText(floor)}` : other ?? (g === "meets" && startsBelow(pay, floor) && floor ? `the range starts below ${floorText(floor)}` : null);
+    return { ...r, payShown: pay ? payText(pay) : null, payGroup: g, payNote, payConv: conversionNote(pay, floor), place: placeOf(r.job) };
+  });
+  const rows = all.filter((r) => (filters.pay === "meets" ? r.payGroup === "meets" : filters.pay === "listed" ? !!r.payShown : true)
+    && (!filters.where ? true : filters.where === "remote" ? r.job.remote === "remote" || /\bremote\b/i.test(r.job.location) : r.job.location.toLowerCase().includes(filters.where.toLowerCase())));
+  const places = [...new Set(all.map((r) => r.job.location.split(/[;|]/)[0].trim()).filter((p) => p && !/^remote$/i.test(p)))].slice(0, 8);
+  const title = `${meta.what}${floor ? `, ${floorText(floor)} or more` : ""}`;
+  // The file's header (Instinct-style, owner 2026-11-01): who it was made for and when, exactly what was read and when, what is not
+  // confirmed, and a quick read. Every number here is counted from the rows; the person's day and zone (else Chicago, said).
+  const tz = await (d.timeZone ? d.timeZone(u).catch(() => null) : Promise.resolve(null));
+  const zone = tz && (() => { try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; } })() ? tz : "America/Chicago";
+  const fmt = (ms: number, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-US", { timeZone: zone, ...o }).format(new Date(ms));
+  const day = fmt(meta.at, { month: "short", day: "numeric", year: "numeric" });
+  const clock = fmt(meta.at, { hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+  const nSources = meta.sources ?? new Set(all.map((r) => r.job.source).filter(Boolean)).size;
+  const srcWord = `${nSources} ${nSources === 1 ? "source" : "sources"}`;
+  const provenance = meta.source === "snapshot"
+    ? `From a saved snapshot of job boards${meta.read ? ` read ${fmt(Date.parse(meta.read), { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}` : ""}, not the live board; some may have closed · ${srcWord}`
+    : `Postings checked ${day}, ${clock} · ${srcWord}`;
+  const nMeets = all.filter((r) => r.payGroup === "meets").length, nUnlisted = all.filter((r) => r.payGroup === "unlisted").length;
+  const nOther = all.filter((r) => r.payGroup === "unchecked").length, nBelow = all.filter((r) => r.payGroup === "below").length;
+  const fl = floor ? floorText(floor) : null;
+  const caveat = [
+    `Pay is shown only where the posting lists it${nUnlisted ? `; ${nUnlisted} ${nUnlisted === 1 ? "role doesn't" : "roles don't"} list pay, so ${nUnlisted === 1 ? "it's" : "they're"} grouped separately` : ", and nothing is estimated"}.`,
+    nOther ? `${nOther} ${nOther === 1 ? "lists" : "list"} pay in another currency or without a period, so ${nOther === 1 ? "it wasn't" : "they weren't"} compared${fl ? ` with ${fl}` : ""}.` : "",
+    "Fit is judged only on what you've confirmed.",
+  ].filter(Boolean).join(" ");
+  const best = all.filter((r) => r.payGroup === "meets").slice(0, 2).map((r) => `${r.job.title} at ${r.job.company}`);
+  const quick = [
+    best.length ? `Best ${best.length === 1 ? "match" : "matches"}: ${best.join("; ")}.` : all.length ? `Closest by fit: ${all[0].job.title} at ${all[0].job.company}.` : "",
+    fl ? `${nMeets} of ${all.length} list ${fl} or more${nUnlisted ? `; ${nUnlisted} ${nUnlisted === 1 ? "doesn't" : "don't"} list pay` : ""}${nOther ? `; ${nOther} can't be compared` : ""}${nBelow ? `; ${nBelow} now list less` : ""}.` : `${all.length} ${all.length === 1 ? "role" : "roles"}, sorted by fit.`,
+    "Next: tap Apply to check a role's exact application, or tick several and use Apply to selected. Nothing is sent until you approve it with the code from your chat.",
+  ].filter(Boolean);
+  return o.html(renderResults({ token, title, floor: fl, rows, total: all.length, filters, places, top, notes,
+    madeFor: `Made for ${meta.name ?? "you"} · ${day}`, provenance, caveat, quick }));
+}

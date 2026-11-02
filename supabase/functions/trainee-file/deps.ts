@@ -7,6 +7,7 @@ import { supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { supabaseAccountStamp, supabaseConfirmedFacts } from "../_shared/telegram_jobs.ts";
 import { supabaseFileStore, supabasePhoneAuth, supabaseSessionStore, supabaseTimeZone, supabaseUserOfTelegram } from "./store.ts";
 import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts";
+import { approvalCodes, supabaseChatSend, supabaseCodeStore } from "../_shared/approval_code.ts";
 import type { FileDeps } from "./handler.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -16,5 +17,7 @@ export function buildFileDeps(admin: any, env: FileDeps["env"], now: () => numbe
     // Who may open the page: server-side sessions and phone sign-in (Supabase Auth's SMS code to the account's confirmed phone).
     sessions: supabaseSessionStore(admin), phone: supabasePhoneAuth(admin, { url: env.get("SUPABASE_URL") ?? "", anon: env.get("SUPABASE_ANON_KEY") }),
     // The other file kinds. No fileEffects: until a sender is wired, an approved introduction honestly says it was not sent.
-    files: createFileService({ store: supabaseFileKindStore(admin), env, now }) };
+    files: createFileService({ store: supabaseFileKindStore(admin), env, now }),
+    // A results list's Approve: a one-time code queued to the person's own chat (career_outbox, delivered by trainee-deliver).
+    codes: approvalCodes(supabaseCodeStore(admin), supabaseChatSend(admin)) };
 }

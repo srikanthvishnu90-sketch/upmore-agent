@@ -110,6 +110,10 @@ import { applyHereTurn } from "../_shared/apply_here.ts"; // APPLY HERE: a paste
 import { supabaseFileStore } from "../trainee-file/store.ts";
 import { createFileService, supabaseFileKindStore } from "../_shared/file_service.ts"; // FILE KINDS
 import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
+import { resultsFile, whatOf } from "../_shared/role_results.ts"; // ROLE + PAY RESULTS PAGE
+import { TEXTING } from "../_shared/role_pay.ts";
+import { supabaseJobStore } from "../_shared/telegram_jobs.ts";
+import { feedUrlsFor } from "../_shared/file_link.ts";
 import { vaultRefreshWrite } from "../_shared/oauth_vault_refresh.ts";
 import { reminderTurn, supabaseReminderStore } from "../_shared/career_reminders.ts"; // REQS DOC 2: reminders
 import { overviewTurn } from "../_shared/career_overview.ts"; // REQS DOC 2: "any update?", "what's waiting on me?"
@@ -981,6 +985,21 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
                 : "\n\nAnd nothing is sent anywhere before your resume is confirmed: paste or attach it, confirm it, then ask again.";
               out = { ...out, reply: (f5Said?.append ? `${out.reply}\n\n${found.reply}` : found.reply) + resumeLine, resultStatus: found.status, handler: "search_judge" };
               (ctx as any).discovery = { ...((ctx as any).discovery ?? {}), lastShortlist: found.shortlist, lastSource: found.source };
+              // ROLE + PAY RESULTS PAGE (owner, 2026-11-01): "I want X roles that pay $Y" on SMS, iMessage or WhatsApp gets one or two
+              // plain sentences and the results page's link alone on its own line (role_results.ts); the list itself, with Apply on
+              // each role, is the hosted page. Without the page (links not configured, nothing kept), the list above stands.
+              // "I want X that pays $Y" is also recorded as the person's goal by the router (append): that record stands, and the
+              // texting reply is still the short one (the goal's long acknowledgment would be the wall of text this replaces).
+              if (TEXTING.has(writerChannel((body as any)?.channel)) && f5Ask.limits?.pay && found.picked?.length) {
+                const made = await resultsFile({ userId: user.id, now: Date.now(), what: whatOf(f5Ask), floor: f5Ask.limits.pay, picked: found.picked, store: supabaseJobStore(admin),
+                  name: prof?.basics?.name ?? null, source: found.source === "none" ? null : found.source,
+                  read: found.source === "snapshot" ? found.picked.map((x) => String(x.posting?.fetched_on ?? "")).filter(Boolean).sort().at(-1) ?? null : null,
+                  links: (u, l) => feedUrlsFor(Deno.env, u, l, Date.now()) }).catch((e) => { console.error("results page: the list stands:", (e as Error)?.message ?? e); return null; });
+                if (made) {
+                  out = { ...out, reply: made.reply + resumeLine };
+                  agentMeta = { ...(agentMeta || {}), results_file: made.listId };
+                }
+              }
             }
           } catch (e) { console.error("career search judge: the router's reply stands:", (e as Error)?.message ?? e); }
           await ledger.record(f5Meter);

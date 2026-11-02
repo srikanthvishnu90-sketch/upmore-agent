@@ -122,7 +122,7 @@ export type World = Awaited<ReturnType<typeof openWorld>>;
 
 export interface Seen { system: string; calls: { name: string; input: unknown }[]; results: { tool: string; content: string; is_error: boolean }[] }
 // One turn. The model (agent brain) is any ModelFn; what it was shown (system prompt, tool results) comes back in `seen`.
-export async function worldTurn(w: World, o: { brain: "agent" | "router"; threadId: string; message: string; now: number; model?: (p: any) => Promise<any> }) {
+export async function worldTurn(w: World, o: { brain: "agent" | "router"; threadId: string; message: string; now: number; model?: (p: any) => Promise<any>; channel?: string }) {
   const t = w.th(o.threadId), now = o.now;
   const situation = S ? await S.readSituation(w.admin, USER, now) : null;
   const input: any = (chatInput as any)(o.message, [], 4000, { codePending: S ? S.codePending(situation) : false });
@@ -156,7 +156,7 @@ export async function worldTurn(w: World, o: { brain: "agent" | "router"; thread
       jobs: w.jobs.filter((j: any) => Date.parse(j.updated_at) >= since || ["queued", "driving", "needs_user"].includes(j.state)) }, now);
     const r = await agentTurn({ message, history: t.history, stores: ctx, userId: USER, threadId: o.threadId, now, model, postings: (q: string) => w.postingsDb.search(searchWords(q), 150), alerts: w.alerts,
       known: { standing: await w.memory.standing(USER), alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline, situation } as any,
-      memory: w.memory, mail: w.mail as any, events: w.events, wants: w.wants, posting: (id: string) => w.postingsDb.get(id), outreach: { store: w.outreach, model: null } });
+      memory: w.memory, mail: w.mail as any, events: w.events, wants: w.wants, posting: (id: string) => w.postingsDb.get(id), outreach: { store: w.outreach, model: null }, channel: o.channel ?? null });
     seen = s;
     out = { reply: r.reply, intent: (r as any).show?.intent ?? "agent", handler: "agent" };
   } else {

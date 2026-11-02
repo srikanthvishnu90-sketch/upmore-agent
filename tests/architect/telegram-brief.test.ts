@@ -51,7 +51,7 @@ const DAY = 86400000;
 
 // ------------------------------------------------------------------------------------------------ shape checks (independent)
 const URL_ONLY = /^https:\/\/\S+$/;
-const MARKDOWN = /\*\*|__|~~|`|^\s{0,3}#{1,6}\s|^\s*[-*+]\s|\[[^\]\n]+\]\(https?:/m;
+const MARKDOWN = /\*\*|__|~~|`|^\s{0,3}#{1,6}\s|^\s*[-*+]\s|\[[^\]\n]+\]\(https?:|(?:^|\s)[*_][^*_\s][^*_\n]*[*_](?=[\s.,!?]|$)/m;
 // Sentences, counted without the code under test: URLs and decimals out, then each run of . ! ? that ends a sentence.
 const sentenceCount = (t: string) => t.replace(/https?:\/\/\S+/g, "URL").replace(/(\d)\.(\d)/g, "$1$2").replace(/\b(?:e\.g|i\.e|vs|etc)\./g, "x")
   .split(/[.!?]+(?=\s|$)/).map((x) => x.trim()).filter((x) => /[A-Za-z0-9]/.test(x)).length;
@@ -63,7 +63,7 @@ Deno.test("brief P1.2/P1.3/P2: bubbles of at most three sentences, one idea each
   const short = "Yes - submitted Oct 30, confirmation email in your inbox. No response from them yet.";
   eq(briefBubbles(short), [short], "a short complete answer is one bubble");
   const long = "**0.5% a day** compounded turns $1,000 into about $6,175 in a year. That is roughly 517% a year. It is not a sensible guaranteed return. " +
-    "Judge a model by returns after costs. Look at its losing streaks too.\n\n## My take\n- Freeze the rule before testing it.\n\nThe paper is here: https://example.test/paper.pdf";
+    "Judge a model by returns after costs. Look at its _losing streaks_ too.\n\n## My take\n- Freeze the rule before testing it.\n\nThe paper is here: https://example.test/paper.pdf\n\nAnd the *carry* study: [the BIS paper](https://example.test/carry.pdf)";
   const b = briefBubbles(long);
   for (const x of b) {
     assert(!MARKDOWN.test(x), `no visible markdown: ${JSON.stringify(x)}`);
@@ -73,6 +73,8 @@ Deno.test("brief P1.2/P1.3/P2: bubbles of at most three sentences, one idea each
   const at = b.indexOf("https://example.test/paper.pdf");
   assert(at > 0 && !URL_ONLY.test(b[at - 1]) && /paper is here/i.test(b[at - 1]), `the link alone, right after its line: ${JSON.stringify(b)}`);
   assert(/^0\.5% a day compounded/.test(b[0]), `the correction with its numbers leads: ${b[0]}`);
+  const at2 = b.indexOf("https://example.test/carry.pdf");
+  assert(at2 > 0 && /carry study/.test(b[at2 - 1]) && !/\[|\]\(/.test(b[at2 - 1]), `a markdown link becomes its words, then the link alone: ${JSON.stringify(b)}`);
   // brief P2 / P4: connect links, one per account, each right after the line that says which account it is for.
   const connect = "I can read your school inbox, but two need connecting.\nFor your personal inbox: https://connect.example.test/a?x=1\nFor your work inbox: https://connect.example.test/b?x=2";
   const c = briefBubbles(connect);

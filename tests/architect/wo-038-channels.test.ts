@@ -61,7 +61,9 @@ function harness(o: { env?: Record<string, string>; tgFail?: (body: any) => Resp
     TRAINEE_INBOUND_SECRET: SECRET, LOOPMESSAGE_API_KEY: "fake-loop-key", TRAINEE_SIGNUP: "open",
     TELEGRAM_BOT_TOKEN: TG_TOKEN, TELEGRAM_WEBHOOK_SECRET: TG_SECRET, TELEGRAM_BOT_USERNAME: "TraineeTestBot",
     WHATSAPP_TOKEN: WA_TOKEN, WHATSAPP_PHONE_NUMBER_ID: PNID, WHATSAPP_APP_SECRET: WA_APP, WHATSAPP_VERIFY_TOKEN: WA_VERIFY, WHATSAPP_TEMPLATE_UPDATES: "trainee_updates",
-    TRAINEE_DELIVER_SECRET: "d".repeat(40), ...o.env,
+    TRAINEE_DELIVER_SECRET: "d".repeat(40),
+    // D-036: the voice is on by default; this suite pins the plain (rollback) request shapes, so it runs with the voice off.
+    CAREER_TEXTING_NATIVE: "off", ...o.env,
   };
   const env = { get: (k: string) => vars[k] || undefined };
   const adapters = adaptersFromEnv(env, { fetch: net, clock: () => clock.t, sleep });

@@ -10,7 +10,7 @@ import type { Channel, ChannelAdapter } from "./channel_adapters.ts";
 import { loopMessageAdapter } from "./loopmessage_adapter.ts";
 import { telegramAdapter } from "./telegram.ts";
 import { DEFAULT_DAILY_TEMPLATES, whatsappAdapter } from "./whatsapp.ts";
-import { textingNativeOn } from "./channel_voice.ts"; // V1 TEXTING VOICE: CAREER_TEXTING_NATIVE=on splits and formats per channel
+import { textingNativeOn } from "./channel_voice.ts"; // V1 TEXTING VOICE: on by default (D-036); CAREER_TEXTING_NATIVE=off rolls it back
 
 export const DEFAULT_DAILY_CONTACTS = 300; // LoopMessage's smaller plan
 type Env = { get(k: string): string | undefined };

@@ -186,7 +186,7 @@ function world(o: { native?: boolean; env?: Record<string, string | undefined>; 
   const clock = { t: NOW };
   const B = bot({ clock, fail: o.fail });
   const vars: Record<string, string | undefined> = { TELEGRAM_BOT_TOKEN: TOKEN, TELEGRAM_WEBHOOK_SECRET: SECRET, TELEGRAM_BOT_USERNAME: "TraineeR2Bot", TRAINEE_SIGNUP: "open",
-    ...(o.native ? { CAREER_TEXTING_NATIVE: "on" } : {}), ...o.env };
+    CAREER_TEXTING_NATIVE: o.native ? "on" : "off", ...o.env };
   const env = { get: (k: string) => vars[k] || undefined };
   const sleep = async (ms: number) => { clock.t += ms; };
   const adapters = adaptersFromEnv(env, { fetch: B.fetch, clock: () => clock.t, sleep });

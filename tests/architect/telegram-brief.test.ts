@@ -62,6 +62,7 @@ const RECORDED = /\brecorded\b[^.]{0,40}\bgoal\b|\bgoal\b[^.]{0,30}\b(?:on your 
 Deno.test("brief P1.2/P1.3/P2: bubbles of at most three sentences, one idea each; no markdown; a link alone after its line; a short answer stays one bubble", () => {
   const short = "Yes - submitted Oct 30, confirmation email in your inbox. No response from them yet.";
   eq(briefBubbles(short), [short], "a short complete answer is one bubble");
+  eq(briefBubbles("Yes, it went through on Oct 30.\n\nNo reply from them yet."), ["Yes, it went through on Oct 30.\n\nNo reply from them yet."], "never split for the look of it");
   const long = "**0.5% a day** compounded turns $1,000 into about $6,175 in a year. That is roughly 517% a year. It is not a sensible guaranteed return. " +
     "Judge a model by returns after costs. Look at its _losing streaks_ too.\n\n## My take\n- Freeze the rule before testing it.\n\nThe paper is here: https://example.test/paper.pdf\n\nAnd the *carry* study: [the BIS paper](https://example.test/carry.pdf)";
   const b = briefBubbles(long);

@@ -17,6 +17,7 @@
 import { SCENARIOS, type Scenario, type State } from "./scenarios.ts";
 import { CHECKS, CHECK_WHAT, type Channel, type Check, grade, type Graded } from "./score.ts";
 import { EXTRA_POSTINGS } from "./postings.ts";
+import { FIX, STYLE_CHECKS, styleOf, type StyleRow, TARGETS } from "./style.ts";
 
 const here = new URL(".", import.meta.url);
 const WORLD = JSON.parse(Deno.readTextFileSync(new URL("../worlds/in-flight.json", here)));
@@ -40,6 +41,7 @@ export async function renderers(native: boolean) {
 export interface Row {
   id: string; feature: string; channel: Channel; state: State; msg: string; gold: string[];
   handler: string; reply: string; off: { bubbles: string[]; g: Graded }; on: { bubbles: string[]; g: Graded };
+  style: { gold: StyleRow; off: StyleRow; on: StyleRow };
   staged: { brain: boolean; reason: string; intent: string | null }; brainEcho: { bubbles: string[]; g: Graded } | null; promptRules: boolean | null;
 }
 
@@ -73,6 +75,7 @@ export async function runAll(list: Scenario[]): Promise<Row[]> {
     const bOff = off(s.channel, r.reply), bOn = on(s.channel, r.reply);
     rows.push({ id: s.id, feature: s.feature, channel: s.channel, state: s.state, msg: s.msg, gold: s.gold, handler: r.handler, reply: r.reply,
       off: { bubbles: bOff, g: grade(bOff, s.channel, s.r, s.msg) }, on: { bubbles: bOn, g: grade(bOn, s.channel, s.r, s.msg) },
+      style: { gold: styleOf(s.gold, s.channel), off: styleOf(bOff, s.channel), on: styleOf(bOn, s.channel) },
       staged: { brain: d.brain, reason: d.reason, intent: d.intent }, brainEcho, promptRules });
   }
   return rows;
@@ -85,6 +88,15 @@ export function tally(rows: Row[], key: "off" | "on") {
   const checksPassed = rows.reduce((n, r) => n + (CHECKS.length - r[key].g.failed.length), 0);
   for (const r of rows) for (const c of r[key].g.failed) by[c]++;
   return { pass: rows.filter((r) => r[key].g.pass).length, total: rows.length, checksPassed, checks: rows.length * CHECKS.length, by };
+}
+
+export function styleTally(rows: Row[], key: "gold" | "off" | "on") {
+  const st = rows.map((r) => r.style[key]);
+  const med = (a: number[]) => { const x = [...a].sort((p, q) => p - q), m = x.length >> 1; return x.length % 2 ? x[m] : (x[m - 1] + x[m]) / 2; };
+  const by: Record<string, number> = Object.fromEntries(STYLE_CHECKS.map((c) => [c, 0]));
+  for (const x of st) for (const c of x.failed) by[c]++;
+  return { meets: st.filter((x) => !x.failed.length).length, total: st.length, by,
+    median: { sentencesPerBubble: med(st.map((x) => x.sentencesPerBubble)), wordsPerSentence: med(st.map((x) => x.wordsPerSentenceMedian)), wordsPerSentenceMax: med(st.map((x) => x.wordsPerSentenceMax)), wordsPerBubble: med(st.map((x) => x.wordsPerBubble)), grade: med(st.map((x) => x.grade)), bubbles: med(st.map((x) => x.bubbles)) } };
 }
 
 // ---------------------------------------------------------------------------------------------------------- report
@@ -118,6 +130,20 @@ export function report(before: Row[], after: Row[], meta: { before: string; afte
   L.push(`| after (this branch), texting voice off (default) | ${ta.pass}/${ta.total} (${pct(ta.pass, ta.total)}) | ${ta.checksPassed}/${ta.checks} (${pct(ta.checksPassed, ta.checks)}) |`);
   L.push(`| after (this branch), texting voice on | ${tan.pass}/${tan.total} (${pct(tan.pass, tan.total)}) | ${tan.checksPassed}/${tan.checks} (${pct(tan.checksPassed, tan.checks)}) |`, "");
   L.push(`Staged brain (\`CAREER_BRAIN=staged\`, fake model, no spend): it would take ${staged.length}/120 of these turns (the rest stay with code and the router). With a model that answers with the gold text, the delivered reply still passes its rubric in ${echoPass}/${staged.length}. The ${echoFails.length} that do not (${echoFails.join(", ")}) lose a pay figure or a posting the fake model stated without calling a tool: the fact guard dropping an unsourced number, as it should (a real turn calls search_jobs first). On the ${textingStaged(after).length} of those turns that go out on a texting channel, the system prompt carries the texting rules (plain text, each link alone on its own line, short bubbles, one question) in ${rulesB}/${textingStaged(before).length} before and ${rulesA}/${textingStaged(after).length} after.`, "");
+  if (before[0]?.style && after[0]?.style) {
+    const sg = styleTally(after, "gold"), sb = styleTally(before, "off"), sbn = styleTally(before, "on"), sa = styleTally(after, "off"), san = styleTally(after, "on");
+    L.push("## Style: how simply it reads (targets in `style-targets.json`, derived from the owner's brief, observed; numbers only)", "");
+    L.push(`Targets per reply: at most ${TARGETS.max_sentences_per_bubble} sentences a bubble, ${TARGETS.max_words_per_sentence} words a sentence, ${TARGETS.max_words_per_bubble} words a bubble, reading grade (Flesch-Kincaid) at most ${TARGETS.max_reading_grade_fk}, ${TARGETS.max_text_bubbles_per_reply} text bubbles, each link alone, no markdown, no internal words, ${TARGETS.max_questions_per_reply} question. Observed median: ${TARGETS.median_words_per_sentence} words a sentence. Acknowledgements are sent separately while a turn runs (ackFor) and are not scored by a single-turn replay.`, "");
+    L.push("| | replies meeting every target | median sentences/bubble (max of reply) | median words/sentence | median longest sentence | median words/bubble (max of reply) | median grade | median text bubbles |", "|---|---|---|---|---|---|---|---|");
+    for (const [n, t] of [["gold", sg], [`before, voice off`, sb], [`before, voice on`, sbn], [`after, voice off`, sa], [`after, voice on`, san]] as const)
+      L.push(`| ${n} | ${t.meets}/${t.total} | ${t.median.sentencesPerBubble} | ${t.median.wordsPerSentence} | ${t.median.wordsPerSentenceMax} | ${t.median.wordsPerBubble} | ${t.median.grade} | ${t.median.bubbles} |`);
+    L.push("", "| style check | before, voice off | before, voice on | after, voice off | after, voice on | gold |", "|---|---|---|---|---|---|");
+    for (const c of STYLE_CHECKS) L.push(`| ${c} | ${sb.by[c]} | ${sbn.by[c]} | ${sa.by[c]} | ${san.by[c]} | ${sg.by[c]} |`);
+    const worst = [...after].sort((a, b) => b.style.on.failed.length - a.style.on.failed.length || b.style.on.wordsPerBubble - a.style.on.wordsPerBubble).slice(0, 15);
+    L.push("", "### The 15 replies furthest from the targets (after, voice on), and what to change", "", "| id | handler | words/bubble | longest sentence | grade | bubbles | misses | change |", "|---|---|---|---|---|---|---|---|");
+    for (const r of worst) L.push(`| ${r.id} | ${r.handler} | ${r.style.on.wordsPerBubble} | ${r.style.on.wordsPerSentenceMax} | ${r.style.on.grade} | ${r.style.on.bubbles} | ${r.style.on.failed.join(", ")} | ${r.style.on.failed.map((c) => FIX[c]).join("; ")} |`);
+    L.push("");
+  }
   L.push("## Failure categories, ranked (scenarios failing each check)", "");
   L.push("| check | what it means | before, voice off | before, voice on | after, voice off | after, voice on |", "|---|---|---|---|---|---|");
   for (const [c] of ranked(tb).concat(ranked(tbn).filter(([c]) => !tb.by[c]))) L.push(`| ${c} | ${CHECK_WHAT[c as Check]} | ${tb.by[c]} | ${tbn.by[c]} | ${ta.by[c]} | ${tan.by[c]} |`);
@@ -128,8 +154,9 @@ export function report(before: Row[], after: Row[], meta: { before: string; afte
   L.push("3. Bubble length: on iMessage and SMS a reply is split between paragraphs, lines and sentences into bubbles of at most 320 characters (a single sentence longer than that stays whole, in the 700-character bubbles as before) (`channel_voice.ts` imessageNativeRender).");
   L.push("4. Dates: texting channels show \"Oct 19, 2026\", never 2026-10-19; links and code untouched (`channel_voice.ts` humanDates).");
   L.push("5. Staged brain: on a texting channel the system prompt carries the texting rules (`prompt.ts` textingRulesFor), and the channel reaches it (`career_brain.ts` channel, one line in `handler-career.ts`, `world.ts`). Web and no-channel prompts are byte-identical to before.");
+  L.push("6. Style (owner brief, observed; `style-targets.json`): iMessage/SMS bubbles also carry at most 3 sentences (`channel_voice.ts` sentenceTexts), and the brain's texting rules give the numbers (3 sentences a bubble, 15-20 words a sentence, never over 25, 8th-9th grade words). WhatsApp and Telegram keep their message contract (#301: one answer in at most two messages; tables and headings whole), so there the sentence budget is the brain's rule, not a cut.");
   L.push("");
-  L.push("Fixes 1, 3 and 4 are in the texting voice, which ships only with `CAREER_TEXTING_NATIVE=on` (an owner secret; off keeps the delivery tests' \"unchanged\" contract). Fix 5 matters only with `CAREER_BRAIN=staged`. Fix 2 is live on every path. (A crisis-phrase change was taken out on review: #354 owns the shared detector; V120 is left to it.) No reply prose was added to make a check pass; the words stay the router's or the model's.", "");
+  L.push("Fixes 1, 3, 4 and 6 are in the texting voice, which ships only with `CAREER_TEXTING_NATIVE=on` (an owner secret; off keeps the delivery tests' \"unchanged\" contract). Fix 5 matters only with `CAREER_BRAIN=staged`. Fix 2 is live on every path. (A crisis-phrase change was taken out on review: #354 owns the shared detector; V120 is left to it.) No reply prose was added to make a check pass; the words stay the router's or the model's.", "");
   const groups: [string, RegExp, string][] = [
     ["router dead ends (career_catchall, unclaimed)", /router:(career_catchall|null)$/, "#350 (router dead ends) owns these; not touched here"],
     ["application status and follow-through (tracking_status, reminders)", /router:(tracking_status|tracking_log|conversation_recall)$/, "#355 (status and reminders by code) owns these"],
@@ -182,6 +209,7 @@ if (import.meta.main) {
     console.log(`gold failing its own rubric: ${gold.length}${gold.length ? " " + gold.map((g) => `${g.id}:${g.g.failed.join("+")}`).join(" ") : ""}`);
     console.log(`voice off: ${off.pass}/${off.total} scenarios, ${off.checksPassed}/${off.checks} checks; by check ${JSON.stringify(off.by)}`);
     console.log(`voice on:  ${on.pass}/${on.total} scenarios, ${on.checksPassed}/${on.checks} checks; by check ${JSON.stringify(on.by)}`);
+    for (const k of ["gold", "off", "on"] as const) { const t = styleTally(rows, k); console.log(`style ${k}: ${t.meets}/${t.total} meet; medians ${JSON.stringify(t.median)}; by ${JSON.stringify(t.by)}`); }
     const st = rows.filter((r) => r.staged.brain);
     console.log(`staged brain takes ${st.length}; echo passes ${st.filter((r) => r.brainEcho?.g.pass).length}; prompt rules ${st.filter((r) => r.promptRules).length}`);
   }

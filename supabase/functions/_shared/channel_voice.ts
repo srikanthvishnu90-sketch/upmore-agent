@@ -326,7 +326,8 @@ function cutAtSpaces(s: string, max: number): string[] {
 // What an adapter renders when CAREER_TEXTING_NATIVE is on: split on the reply's own words, then each message formatted
 // for its channel (formatting after splitting, so no bold or tag ever spans two messages).
 export function nativeRender(channel: VoiceChannel, max: number): (text: string) => string[] {
-  return (text: string) => splitNatural(linksOnOwnLine(String(text ?? "").replace(/<!--[\s\S]*?-->/g, "")), max).map((b) => formatForChannel(b, channel)).filter((b) => b.trim());
+  return (text: string) => splitNatural(linksOnOwnLine(String(text ?? "").replace(/<!--[\s\S]*?-->/g, "")), max)
+    .map((b) => formatForChannel(b, channel)).filter((b) => b.trim());
 }
 // iMessage (CHANNEL DELIVERY SCENARIOS, 2026-10-29): the texting voice applies there too (no markdown on SMS and iMessage),
 // and the bubbles stay the ones WO-013 shipped: texting-sized, each bare link alone in its bubble for its preview card.
@@ -337,24 +338,27 @@ export const IMESSAGE_BUBBLE_CHARS = 320;
 export function imessageNativeRender(text: string): string[] {
   return sentenceTexts(formatForChannel(String(text ?? ""), "imessage"), IMESSAGE_BUBBLE_CHARS).flatMap((t) => toBubbles(t));
 }
-function sentenceTexts(text: string, max: number): string[] {
+// Style targets (evals/career/one-v-one/style-targets.json, from the owner's brief, observed): a bubble also carries at most
+// TEXT_MAX_SENTENCES sentences. Units are paragraphs, lines and sentences (closed marks only); a unit longer than max stays whole.
+export const TEXT_MAX_SENTENCES = 3;
+const isSentence = (u: string) => /[\p{L}\p{N}]/u.test(u) && !/^https?:\/\/\S+$/.test(u.trim());
+function sentenceTexts(text: string, max: number, maxSentences = TEXT_MAX_SENTENCES): string[] {
   const clean = String(text ?? "").trim();
-  if (clean.length <= max) return clean ? [clean] : [];
-  const units: { s: string; sep: string }[] = [];
+  if (!clean) return [];
+  const units: { s: string; sep: string; n: number }[] = [];
   clean.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean).forEach((p, pi) => {
     const paraSep = pi === 0 ? "" : "\n\n";
-    if (p.length <= max) { units.push({ s: p, sep: paraSep }); return; }
     p.split("\n").map((l) => l.trim()).filter(Boolean).forEach((l, li) => {
       const lineSep = li === 0 ? paraSep : "\n";
-      if (l.length <= max) { units.push({ s: l, sep: lineSep }); return; }
-      sentences(l).forEach((x, si) => units.push({ s: x, sep: si === 0 ? lineSep : " " }));
+      closedSentences(l).forEach((x, si) => units.push({ s: x, sep: si === 0 ? lineSep : " ", n: isSentence(x) ? 1 : 0 }));
     });
   });
+  if (clean.length <= max && units.reduce((k, u) => k + u.n, 0) <= maxSentences) return [clean];
   const out: string[] = [];
-  let buf = "";
+  let buf = "", count = 0;
   for (const u of units) {
-    if (buf && buf.length + u.sep.length + u.s.length <= max) buf += u.sep + u.s;
-    else { if (buf) out.push(buf); buf = u.s; }
+    if (buf && buf.length + u.sep.length + u.s.length <= max && count + u.n <= maxSentences) { buf += u.sep + u.s; count += u.n; }
+    else { if (buf) out.push(buf); buf = u.s; count = u.n; }
   }
   if (buf) out.push(buf);
   return out;

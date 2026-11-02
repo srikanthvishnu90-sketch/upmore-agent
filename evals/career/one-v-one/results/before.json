@@ -31,6 +31,38 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 6.5,
+    "wordsPerBubble": 20,
+    "grade": 3.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -80,6 +112,38 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 19,
+    "grade": 5.2,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -104,7 +168,7 @@
   "state": "new",
   "msg": "what can you actually do",
   "gold": [
-   "I find jobs that fit you, watch for new ones, tailor your resume, prepare applications you approve one by one, draft outreach, and run interview practice.",
+   "I find jobs that fit you and watch for new ones. I tailor your resume, prepare applications you approve one by one, draft outreach, and run interview practice.",
    "I never submit or send anything without your yes. What role should I look for first?"
   ],
   "handler": "router:honest_unavailable",
@@ -145,6 +209,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 28,
+    "grade": 5.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 45,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 58,
+    "grade": 9.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 45,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 58,
+    "grade": 9.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -183,6 +285,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 18,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
    }
   },
   "staged": {
@@ -232,6 +366,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 20,
+    "grade": 2.5,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -291,6 +457,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 17,
+    "grade": 5.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -348,6 +546,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 21,
+    "grade": 5.2,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -403,6 +633,38 @@
     "why": {
      "facts": "missing /no\\b|not a (real )?person|automated/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 5.1,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -474,6 +736,45 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 25,
+    "grade": 7.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 68,
+    "grade": 7.2,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 68,
+    "grade": 7.2,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -530,6 +831,45 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 4.5,
+    "wordsPerBubble": 22,
+    "grade": 5.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 68,
+    "grade": 7.2,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 68,
+    "grade": 7.2,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -580,6 +920,38 @@
      "links_present": "0 links (need 1)",
      "facts": "missing /stripe/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 16,
+    "grade": 5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -649,6 +1021,47 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 16,
+    "grade": 7.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 26,
+    "wordsPerSentenceMedian": 23,
+    "wordsPerBubble": 82,
+    "grade": 9.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 26,
+    "wordsPerSentenceMedian": 23,
+    "wordsPerBubble": 82,
+    "grade": 9.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -699,6 +1112,42 @@
      "bubble_len": "a bubble of 395 chars (max 320)",
      "link_format": "a link with no line before it saying what it is"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 17,
+    "grade": 5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 27,
+    "grade": 5.8,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 26,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 68,
+    "grade": 8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
    }
   },
   "staged": {
@@ -753,6 +1202,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 17,
+    "grade": 6.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -803,6 +1284,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 13,
+    "grade": 8.6,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 12,
+    "grade": 4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 24,
+    "grade": 4.7,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -867,6 +1380,43 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 7.5,
+    "wordsPerBubble": 20,
+    "grade": 6.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 23,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 56,
+    "grade": 9.3,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 23,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 56,
+    "grade": 9.3,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -907,6 +1457,38 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 12,
+    "grade": 2.6,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 53,
+    "grade": 8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 53,
+    "grade": 8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -945,6 +1527,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 12.5,
+    "wordsPerBubble": 14,
+    "grade": 5.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1004,6 +1618,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 15,
+    "grade": 4.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 11.5,
+    "wordsPerBubble": 23,
+    "grade": 2.7,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 11.5,
+    "wordsPerBubble": 23,
+    "grade": 2.7,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1055,6 +1701,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 12,
+    "grade": 7.7,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 18,
+    "grade": 2.3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 18,
+    "grade": 2.3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1112,6 +1790,38 @@
     "why": {
      "facts": "missing /alert|watch/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 22,
+    "grade": 6.3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1179,6 +1889,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 6,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 8.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1234,6 +1976,38 @@
     "why": {
      "facts": "missing /stripe/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 13,
+    "grade": 5.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1307,6 +2081,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 11,
+    "grade": 3.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 62,
+    "grade": 10.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 62,
+    "grade": 10.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1364,6 +2178,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 14,
+    "grade": 6.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1419,6 +2265,38 @@
     "why": {
      "facts": "missing /not list|doesn'?t list|isn'?t listed|not listed/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 12,
+    "grade": 9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1487,6 +2365,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 9,
+    "grade": 6.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 21,
+    "wordsPerBubble": 122,
+    "grade": 7.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 21,
+    "wordsPerBubble": 122,
+    "grade": 7.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -1541,6 +2459,50 @@
      "length": "874 chars (max 480)",
      "voice": "matches /\\bcompany[- ]file\\b/i"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 8,
+    "grade": 1.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 73,
+    "wordsPerSentenceMedian": 18,
+    "wordsPerBubble": 148,
+    "grade": 14.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 73,
+    "wordsPerSentenceMedian": 18,
+    "wordsPerBubble": 148,
+    "grade": 14.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -1601,6 +2563,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 15,
+    "grade": 0.6,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 88,
+    "grade": 7.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 88,
+    "grade": 7.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1659,6 +2659,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 18,
+    "wordsPerBubble": 20,
+    "grade": 7.6,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1714,6 +2746,38 @@
     "why": {
      "facts": "missing /paste|send/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 21,
+    "grade": 6.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 7,
+    "wordsPerSentenceMedian": 6.5,
+    "wordsPerBubble": 13,
+    "grade": 2.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 7,
+    "wordsPerSentenceMedian": 6.5,
+    "wordsPerBubble": 13,
+    "grade": 2.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1781,6 +2845,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 20,
+    "grade": 3.7,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 30,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 93,
+    "grade": 8.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 30,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 93,
+    "grade": 8.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1842,6 +2946,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 14,
+    "grade": 2.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 121,
+    "grade": 6.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 121,
+    "grade": 6.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1899,6 +3041,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 21,
+    "grade": 7.1,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 24,
+    "grade": 5.3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 24,
+    "grade": 5.3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -1945,6 +3119,38 @@
     "why": {
      "facts": "missing /python/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 4,
+    "wordsPerBubble": 13,
+    "grade": 2.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2004,6 +3210,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 6,
+    "wordsPerSentenceMedian": 4,
+    "wordsPerBubble": 6,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -2051,6 +3289,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 17,
+    "grade": 3.8,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2108,6 +3378,46 @@
     "why": {
      "bubble_len": "a bubble of 431 chars (max 320)"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 5.5,
+    "wordsPerBubble": 14,
+    "grade": 4.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 32,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 78,
+    "grade": 8.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 32,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 78,
+    "grade": 8.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
    }
   },
   "staged": {
@@ -2172,6 +3482,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 14.5,
+    "wordsPerBubble": 17,
+    "grade": 7.2,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 84,
+    "grade": 10.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 84,
+    "grade": 10.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -2232,6 +3582,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 10.5,
+    "wordsPerBubble": 14,
+    "grade": 2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 28,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 108,
+    "grade": 10.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 28,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 108,
+    "grade": 10.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -2288,6 +3678,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 19,
+    "grade": 0.7,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 30,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 100,
+    "grade": 13.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 30,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 100,
+    "grade": 13.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -2339,6 +3771,44 @@
      "bubble_len": "a bubble of 439 chars (max 320)",
      "facts": "missing /\\[/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 33,
+    "grade": 5,
+    "bubbles": 3,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 25,
+    "wordsPerSentenceMedian": 21,
+    "wordsPerBubble": 80,
+    "grade": 8.9,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 25,
+    "wordsPerSentenceMedian": 21,
+    "wordsPerBubble": 80,
+    "grade": 8.9,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
    }
   },
   "staged": {
@@ -2403,6 +3873,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 12,
+    "grade": 0.7,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 84,
+    "grade": 10.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 84,
+    "grade": 10.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -2449,6 +3959,38 @@
     "why": {
      "facts": "missing /sql/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 24,
+    "grade": 5.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2518,6 +4060,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 20,
+    "grade": 0.7,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 83,
+    "grade": 9.4,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 83,
+    "grade": 9.4,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -2564,6 +4146,38 @@
     "why": {
      "facts": "missing /stripe/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 19,
+    "grade": 6,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2613,6 +4227,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 15,
+    "grade": 2.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2672,6 +4318,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 18,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 26,
+    "grade": 6.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -2727,6 +4405,38 @@
     "why": {
      "facts": "missing /figma/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 15,
+    "grade": 7.9,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2786,6 +4496,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 16,
+    "wordsPerBubble": 17,
+    "grade": 8.4,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 44,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 88,
+    "grade": 9.9,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 44,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 88,
+    "grade": 9.9,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -2832,6 +4582,38 @@
     "why": {
      "facts": "missing /phone/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 20,
+    "grade": 4.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2895,6 +4677,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 15,
+    "grade": 2.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 26,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 70,
+    "grade": 6.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 26,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 70,
+    "grade": 6.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -2946,6 +4768,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 16,
+    "grade": 6.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -3013,6 +4867,45 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 22,
+    "grade": 5.5,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 23,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 84,
+    "grade": 8.8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 23,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 84,
+    "grade": 8.8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -3067,6 +4960,46 @@
      "length": "586 chars (max 480)",
      "facts": "missing /10|ten|fewer|strongest/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 14,
+    "grade": 5.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 41,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 106,
+    "grade": 8.5,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 41,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 106,
+    "grade": 8.5,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
    }
   },
   "staged": {
@@ -3129,6 +5062,45 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 17,
+    "grade": 3.3,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 23,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 102,
+    "grade": 9.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 23,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 102,
+    "grade": 9.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -3179,6 +5151,42 @@
      "facts": "missing /notion/",
      "voice": "matches /\\b20\\d\\d-\\d\\d-\\d\\d\\b/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 5.5,
+    "wordsPerBubble": 26,
+    "grade": 3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -3253,6 +5261,49 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 17,
+    "grade": 5.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 99,
+    "grade": 12.2,
+    "bubbles": 7,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble",
+     "reading_grade",
+     "bubbles_per_reply",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 99,
+    "grade": 12.2,
+    "bubbles": 7,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble",
+     "reading_grade",
+     "bubbles_per_reply"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -3291,6 +5342,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 9.5,
+    "wordsPerBubble": 13,
+    "grade": 3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -3354,6 +5437,42 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 20,
+    "grade": 3.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -3409,6 +5528,48 @@
      "facts": "missing /lakeview/",
      "voice": "matches /\\bsized by what the sources yield\\b/i"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 43,
+    "grade": 4.5,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 75,
+    "grade": 12.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 75,
+    "grade": 12.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -3476,6 +5637,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 29,
+    "grade": 4.5,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 59,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 107,
+    "grade": 14,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 59,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 107,
+    "grade": 14,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "code_product",
@@ -3526,6 +5731,44 @@
      "bubble_len": "a bubble of 386 chars (max 320)",
      "facts": "missing /jordan/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 22,
+    "grade": 2.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 25,
+    "wordsPerSentenceMedian": 19.5,
+    "wordsPerBubble": 73,
+    "grade": 6.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 25,
+    "wordsPerSentenceMedian": 19.5,
+    "wordsPerBubble": 73,
+    "grade": 6.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
    }
   },
   "staged": {
@@ -3580,6 +5823,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 16,
+    "grade": 5.6,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 75,
+    "grade": 12.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 75,
+    "grade": 12.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -3627,6 +5912,38 @@
     "why": {
      "facts": "missing /datadog/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 31,
+    "grade": 4.1,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -3684,6 +6001,38 @@
     "why": {
      "facts": "missing /5|five|few/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 19,
+    "grade": 6.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -3751,6 +6100,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 26,
+    "grade": 4.7,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 56,
+    "wordsPerSentenceMedian": 29.5,
+    "wordsPerBubble": 194,
+    "grade": 14.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 56,
+    "wordsPerSentenceMedian": 29.5,
+    "wordsPerBubble": 194,
+    "grade": 14.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -3797,6 +6190,38 @@
     "why": {
      "facts": "missing /sarah/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 6.5,
+    "wordsPerBubble": 30,
+    "grade": 5.2,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -3857,6 +6282,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 29,
+    "grade": 5.6,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -3912,6 +6369,38 @@
     "why": {
      "facts": "missing /gmail/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 18,
+    "grade": 2.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -3987,6 +6476,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 13,
+    "grade": 6.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 51,
+    "wordsPerSentenceMedian": 28,
+    "wordsPerBubble": 124,
+    "grade": 12.4,
+    "bubbles": 3,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 51,
+    "wordsPerSentenceMedian": 28,
+    "wordsPerBubble": 124,
+    "grade": 12.4,
+    "bubbles": 3,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4047,6 +6578,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 25,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 56,
+    "wordsPerSentenceMedian": 29.5,
+    "wordsPerBubble": 194,
+    "grade": 14.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 56,
+    "wordsPerSentenceMedian": 29.5,
+    "wordsPerBubble": 194,
+    "grade": 14.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4097,6 +6672,38 @@
      "questions": "1 questions",
      "facts": "missing /tell me about/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 16,
+    "grade": 2.3,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -4160,6 +6767,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 28,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 38,
+    "wordsPerSentenceMedian": 20.5,
+    "wordsPerBubble": 118,
+    "grade": 9.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 38,
+    "wordsPerSentenceMedian": 20.5,
+    "wordsPerBubble": 118,
+    "grade": 9.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4212,6 +6859,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 11.5,
+    "wordsPerBubble": 16,
+    "grade": 4.3,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 67,
+    "grade": 6.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 67,
+    "grade": 6.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4250,6 +6935,42 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 22,
+    "grade": 6,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 55,
+    "grade": 5.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 55,
+    "grade": 5.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble"
+    ]
    }
   },
   "staged": {
@@ -4314,6 +7035,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 25,
+    "grade": 3.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 45,
+    "wordsPerSentenceMedian": 26,
+    "wordsPerBubble": 110,
+    "grade": 11.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 45,
+    "wordsPerSentenceMedian": 26,
+    "wordsPerBubble": 110,
+    "grade": 11.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4374,6 +7139,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 16,
+    "wordsPerBubble": 21,
+    "grade": 4.7,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 111,
+    "grade": 6.7,
+    "bubbles": 1,
+    "questions": 3,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon",
+     "questions"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 111,
+    "grade": 6.7,
+    "bubbles": 1,
+    "questions": 3,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon",
+     "questions"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4426,6 +7235,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 16,
+    "grade": 8.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 47,
+    "grade": 7.1,
+    "bubbles": 1,
+    "questions": 2,
+    "failed": [
+     "words_per_sentence",
+     "questions"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 47,
+    "grade": 7.1,
+    "bubbles": 1,
+    "questions": 2,
+    "failed": [
+     "words_per_sentence",
+     "questions"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4476,6 +7323,46 @@
      "bubble_len": "a bubble of 651 chars (max 320)",
      "length": "651 chars (max 480)"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 15,
+    "grade": 1.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 18,
+    "wordsPerBubble": 110,
+    "grade": 10.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 18,
+    "wordsPerBubble": 110,
+    "grade": 10.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
    }
   },
   "staged": {
@@ -4542,6 +7429,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 19,
+    "grade": 7,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 61,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 95,
+    "grade": 13.6,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 61,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 95,
+    "grade": 13.6,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4580,6 +7509,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 30,
+    "grade": 3.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -4651,6 +7612,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 24,
+    "grade": 4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 29,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 90,
+    "grade": 11.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 29,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 90,
+    "grade": 11.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -4720,6 +7725,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 17,
+    "grade": 3.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 17.5,
+    "wordsPerBubble": 118,
+    "grade": 10.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 17.5,
+    "wordsPerBubble": 118,
+    "grade": 10.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4766,6 +7813,38 @@
     "why": {
      "facts": "missing /yes|common|normal/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 20,
+    "grade": 3.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -4837,6 +7916,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 24,
+    "grade": 3.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 29,
+    "wordsPerBubble": 125,
+    "grade": 12.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 29,
+    "wordsPerBubble": 125,
+    "grade": 12.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -4904,6 +8027,50 @@
      "length": "543 chars (max 480)",
      "voice": "matches /\\bsource class\\b/i"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 16,
+    "grade": 3.8,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 29,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 90,
+    "grade": 11.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 29,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 90,
+    "grade": 11.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -4975,6 +8142,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 17,
+    "grade": 6.7,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 29,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 90,
+    "grade": 11.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 29,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 90,
+    "grade": 11.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -4999,7 +8210,7 @@
   "state": "new",
   "msg": "write my counter offer email, offer is 80k i want 90k",
   "gold": [
-   "Hi [name], thank you for the offer. I'm excited about the role. Based on [the posted range or my experience], I'd like to ask for $90,000. Is there flexibility there? [Your name]",
+   "Hi [name], thank you for the offer, I'm excited about the role. Based on [the posted range or my experience], I'd like to ask for $90,000. Is there room to get there? [Your name]",
    "Yours to send. Fill the bracket with your one reason."
   ],
   "handler": "router:negotiation_draft",
@@ -5038,6 +8249,48 @@
      "facts": "missing /90,?000|90k/",
      "voice": "matches /\\bheld for your approval\\b/i"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 34,
+    "grade": 2.6,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 28,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 67,
+    "grade": 7.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 28,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 67,
+    "grade": 7.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5094,6 +8347,48 @@
      "length": "798 chars (max 480)",
      "voice": "matches /\\bsource class\\b/i"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 20,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 145,
+    "grade": 8.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 145,
+    "grade": 8.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5153,6 +8448,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 16,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -5200,6 +8527,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 16,
+    "grade": 3.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -5267,6 +8626,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 15,
+    "grade": 1.7,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 101,
+    "grade": 8.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 101,
+    "grade": 8.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -5313,6 +8714,38 @@
     "why": {
      "facts": "missing /figma/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 7.5,
+    "wordsPerBubble": 17,
+    "grade": 4.9,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -5371,6 +8804,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 12.5,
+    "wordsPerBubble": 25,
+    "grade": 2,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -5420,6 +8885,38 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 18,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 18,
+    "grade": 5,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -5444,7 +8941,7 @@
   "state": "inflight",
   "msg": "whats happening with my applications",
   "gold": [
-   "Notion: sent and confirmed. Brex: queued for the extension. Figma: prepared, waiting on 2 answers. Plaid: waiting on the code they emailed you. Ramp: stopped, needs a phone number.",
+   "Your 5 applications:\n1. Notion: sent and confirmed\n2. Brex: queued for the extension\n3. Figma: waiting on 2 answers\n4. Plaid: waiting on the code they emailed you\n5. Ramp: stopped, needs a phone number",
    "Want to start with Figma?"
   ],
   "handler": "router:tracking_status",
@@ -5479,6 +8976,42 @@
      "facts": "missing /notion/",
      "voice": "matches /\\b20\\d\\d-\\d\\d-\\d\\d\\b/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 36,
+    "grade": 6.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5532,6 +9065,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 4.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 7.5,
+    "wordsPerBubble": 34,
+    "grade": 4.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 7.5,
+    "wordsPerBubble": 34,
+    "grade": 4.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -5578,6 +9149,42 @@
     "why": {
      "facts": "missing /plaid/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 14,
+    "grade": 3.8,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 32,
+    "grade": 4.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 32,
+    "grade": 4.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5636,6 +9243,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 17,
+    "grade": 8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 8,
+    "wordsPerSentenceMax": 41,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 179,
+    "grade": 10.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 8,
+    "wordsPerSentenceMax": 41,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 179,
+    "grade": 10.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -5682,6 +9331,42 @@
     "why": {
      "voice": "matches /\\b20\\d\\d-\\d\\d-\\d\\d\\b/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 24,
+    "grade": 4.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5736,6 +9421,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 11,
+    "grade": 5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 47,
+    "grade": 10.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 47,
+    "grade": 10.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -5774,6 +9491,42 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 5,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 6,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 31,
+    "grade": 2.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 31,
+    "grade": 2.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5816,6 +9569,44 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 4,
+    "wordsPerBubble": 15,
+    "grade": 5.6,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 58,
+    "grade": 6.1,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 58,
+    "grade": 6.1,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -5854,6 +9645,42 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 11,
+    "grade": 4.8,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 32,
+    "grade": 4.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 32,
+    "grade": 4.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5902,6 +9729,38 @@
     "why": {
      "questions": "1 questions"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 21,
+    "grade": 6.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -5968,6 +9827,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 16,
+    "grade": 6.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 27,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 75,
+    "grade": 9.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 27,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 75,
+    "grade": 9.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -6006,6 +9905,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 16,
+    "grade": 2.8,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -6068,6 +9999,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 20,
+    "grade": 3.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -6123,6 +10086,38 @@
     "why": {
      "facts": "missing /gmail/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 4,
+    "wordsPerBubble": 16,
+    "grade": 5.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -6182,6 +10177,42 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 14,
+    "grade": 1.8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 51,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 51,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -6231,6 +10262,38 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 17,
+    "grade": 4.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -6278,6 +10341,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 10,
+    "grade": 2.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -6336,6 +10431,42 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 6,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 12,
+    "grade": 1.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 40,
+    "grade": 4.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 40,
+    "grade": 4.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -6382,6 +10513,38 @@
     "why": {
      "facts": "missing /stripe/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 12.5,
+    "wordsPerBubble": 17,
+    "grade": 5.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -6448,6 +10611,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 1,
+    "wordsPerSentenceMedian": 1,
+    "wordsPerBubble": 1,
+    "grade": 20.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -6505,6 +10700,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 18,
+    "grade": 3.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 16,
+    "wordsPerBubble": 62,
+    "grade": 6.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 16,
+    "wordsPerBubble": 62,
+    "grade": 6.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -6551,6 +10784,38 @@
     "why": {
      "questions": "1 questions"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 21,
+    "grade": 4.4,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -6614,6 +10879,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 12.5,
+    "wordsPerBubble": 14,
+    "grade": 3.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 33,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 88,
+    "grade": 6.8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 33,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 88,
+    "grade": 6.8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -6672,6 +10977,46 @@
      "questions": "1 questions",
      "facts": "missing /988/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 9.5,
+    "wordsPerBubble": 21,
+    "grade": 1.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 26,
+    "wordsPerBubble": 166,
+    "grade": 10.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 26,
+    "wordsPerBubble": 166,
+    "grade": 10.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
    }
   },
   "staged": {

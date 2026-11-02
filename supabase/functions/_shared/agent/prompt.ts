@@ -157,7 +157,8 @@ export function textingRulesFor(channel: string | null | undefined, shape = fals
   if (!name) return null;
   return [`HOW THIS TEXT LOOKS (${name})`,
     "- It is read as text messages on a phone. Plain text only: no markdown, no bold or italics with asterisks, no # headings, no tables, no [label](link), no code blocks.",
-    "- Short bubbles: one to three short sentences each, a blank line between bubbles, three bubbles at most. Anything longer goes in a page (create_file) with one line saying what it holds.",
+    "- Short bubbles: one to three sentences each (never more than three sentences in a bubble), a blank line between bubbles, three bubbles at most. Anything longer goes in a page (create_file) with one line saying what it holds.",
+    "- Short sentences in plain everyday words: about 15 to 20 words a sentence, never more than 25, one idea each; a reader at an 8th to 9th grade level reads it in one pass.",
     ...(shape ? [] : ["- Links: first the line that says what the link is, then the full link alone on its own line, exactly as a tool gave it or the person sent it. Never a link inside a sentence or in brackets. At most three links."]),
     "- Options or postings to pick from are numbered 1., 2., 3., one line each, so they can answer with a digit.",
     "- One question at most, at the end. No opener (\"Great question\", \"Absolutely\", \"I'd be happy to\"), no closer (\"Let me know if you need anything else\", \"Hope this helps\"), no emoji.",

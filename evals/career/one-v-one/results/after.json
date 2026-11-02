@@ -31,6 +31,38 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 6.5,
+    "wordsPerBubble": 20,
+    "grade": 3.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -38,7 +70,8 @@
   },
   "brainEcho": {
    "bubbles": [
-    "Hey, I'm Trainee, your career agent. I find jobs, get applications ready for your yes, and prep you for interviews.\n\nWhat role are you after, and where? Or paste your resume."
+    "Hey, I'm Trainee, your career agent. I find jobs, get applications ready for your yes, and prep you for interviews.\n\nWhat role are you after, and where?",
+    "Or paste your resume."
    ],
    "g": {
     "pass": true,
@@ -80,6 +113,38 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 19,
+    "grade": 5.2,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -104,7 +169,7 @@
   "state": "new",
   "msg": "what can you actually do",
   "gold": [
-   "I find jobs that fit you, watch for new ones, tailor your resume, prepare applications you approve one by one, draft outreach, and run interview practice.",
+   "I find jobs that fit you and watch for new ones. I tailor your resume, prepare applications you approve one by one, draft outreach, and run interview practice.",
    "I never submit or send anything without your yes. What role should I look for first?"
   ],
   "handler": "router:honest_unavailable",
@@ -145,6 +210,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 28,
+    "grade": 5.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 45,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 58,
+    "grade": 9.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 45,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 58,
+    "grade": 9.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -183,6 +286,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 18,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
    }
   },
   "staged": {
@@ -232,6 +367,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 20,
+    "grade": 2.5,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -291,6 +458,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 17,
+    "grade": 5.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -346,6 +545,38 @@
     "why": {
      "facts": "missing /approve|yes/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 21,
+    "grade": 5.2,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 44,
+    "grade": 5.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
    }
   },
   "staged": {
@@ -405,6 +636,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 5.1,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -412,7 +675,8 @@
   },
   "brainEcho": {
    "bubbles": [
-    "No, I'm Trainee, an automated career agent. A real person never reads your chat to answer it.\n\nI can find roles, prep applications for your yes, and practice interviews. What are you looking for?"
+    "No, I'm Trainee, an automated career agent. A real person never reads your chat to answer it.\n\nI can find roles, prep applications for your yes, and practice interviews.",
+    "What are you looking for?"
    ],
    "g": {
     "pass": true,
@@ -474,6 +738,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 25,
+    "grade": 7.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 55,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 71,
+    "grade": 10.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 23,
+    "wordsPerSentenceMedian": 23,
+    "wordsPerBubble": 31,
+    "grade": 7.2,
+    "bubbles": 4,
+    "questions": 1,
+    "failed": [
+     "bubbles_per_reply"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -530,6 +832,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 4.5,
+    "wordsPerBubble": 22,
+    "grade": 5.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 55,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 71,
+    "grade": 10.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 23,
+    "wordsPerSentenceMedian": 23,
+    "wordsPerBubble": 31,
+    "grade": 7.2,
+    "bubbles": 4,
+    "questions": 1,
+    "failed": [
+     "bubbles_per_reply"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -580,6 +920,38 @@
      "links_present": "0 links (need 1)",
      "facts": "missing /stripe/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 16,
+    "grade": 5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -649,6 +1021,47 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 16,
+    "grade": 7.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 64,
+    "wordsPerSentenceMedian": 42,
+    "wordsPerBubble": 84,
+    "grade": 18.1,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 27,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 84,
+    "grade": 12.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -695,6 +1108,40 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 17,
+    "grade": 5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 27,
+    "grade": 5.8,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 27,
+    "wordsPerSentenceMedian": 17.5,
+    "wordsPerBubble": 35,
+    "grade": 8.1,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence"
+    ]
    }
   },
   "staged": {
@@ -749,6 +1196,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 17,
+    "grade": 6.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -800,6 +1279,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 13,
+    "grade": 8.6,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 12,
+    "grade": 4.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 16,
+    "grade": 5.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -869,6 +1380,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 7.5,
+    "wordsPerBubble": 20,
+    "grade": 6.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 48,
+    "wordsPerSentenceMedian": 48,
+    "wordsPerBubble": 59,
+    "grade": 17.2,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "reading_grade",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 39,
+    "grade": 9.2,
+    "bubbles": 6,
+    "questions": 0,
+    "failed": [
+     "bubbles_per_reply"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -909,6 +1458,38 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 12,
+    "grade": 2.6,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 53,
+    "grade": 8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 53,
+    "grade": 8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -947,6 +1528,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 12.5,
+    "wordsPerBubble": 14,
+    "grade": 5.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1006,6 +1619,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 15,
+    "grade": 4.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 11.5,
+    "wordsPerBubble": 23,
+    "grade": 2.7,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 11.5,
+    "wordsPerBubble": 23,
+    "grade": 2.7,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1059,6 +1704,38 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 12,
+    "grade": 7.7,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 18,
+    "grade": 2.3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 18,
+    "grade": 2.3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1066,7 +1743,8 @@
   },
   "brainEcho": {
    "bubbles": [
-    "What kind of role, and where?\n\nFor example:\ndata analyst in Chicago\nremote marketing\nSWE internship summer 2027"
+    "What kind of role, and where?\n\nFor example:\ndata analyst in Chicago",
+    "remote marketing\nSWE internship summer 2027"
    ],
    "g": {
     "pass": true,
@@ -1114,6 +1792,38 @@
     "why": {
      "facts": "missing /alert|watch/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 22,
+    "grade": 6.3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1181,6 +1891,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 6,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 8.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1188,12 +1930,22 @@
   },
   "brainEcho": {
    "bubbles": [
-    "3 data analyst roles in Chicago:\n1.\nhttps://job-boards.greenhouse.io/stripe/jobs/7001001\n2. Data Analyst, Brex\nhttps://job-boards.greenhouse.io/brex/jobs/7005005\n3. Data Analyst, Notion\nhttps://job-boards.greenhouse.io/notion/jobs/7007007\n\nWant alerts for new ones?"
+    "3 data analyst roles in Chicago:\n1.",
+    "https://job-boards.greenhouse.io/stripe/jobs/7001001",
+    "2. Data Analyst, Brex",
+    "https://job-boards.greenhouse.io/brex/jobs/7005005",
+    "3. Data Analyst, Notion",
+    "https://job-boards.greenhouse.io/notion/jobs/7007007",
+    "Want alerts for new ones?"
    ],
    "g": {
-    "pass": true,
-    "failed": [],
-    "why": {}
+    "pass": false,
+    "failed": [
+     "bubbles"
+    ],
+    "why": {
+     "bubbles": "4 text bubbles (max 3)"
+    }
    }
   },
   "promptRules": true
@@ -1236,6 +1988,38 @@
     "why": {
      "facts": "missing /stripe/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 13,
+    "grade": 5.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1306,6 +2090,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 11,
+    "grade": 3.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 62,
+    "grade": 10.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 53,
+    "grade": 10.1,
+    "bubbles": 3,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1361,6 +2183,38 @@
     "why": {
      "facts": "missing /remote/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 14,
+    "grade": 6.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1420,6 +2274,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 12,
+    "grade": 9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1469,20 +2355,62 @@
   },
   "on": {
    "bubbles": [
-    "Watch set: link figma.\nWatching: link figma at Figma — any location + remote. It's saved to your account, so it stays on in every chat. Remote postings for this role are included too, as long as they are open to where you are; say \"no remote\" to leave them out.",
-    "A remote posting limited to a country is held until I know where you are — tell me your city and country. That title is not a standard category, so the watch keys on your own words exactly as you stated them — postings whose titles carry those words are what it can match.",
-    "Alert delivery isn't on yet, so I won't text you matches until it is — the watch stays saved on your list.\nTo rank matches for you, send your resume and the city you want to work in — anything that needs them, like tailoring or applying, waits until then. Tell me what you'd like to do next."
+    "Watch set: link figma.\nWatching: link figma at Figma — any location + remote. It's saved to your account, so it stays on in every chat.",
+    "Remote postings for this role are included too, as long as they are open to where you are; say \"no remote\" to leave them out.\nA remote posting limited to a country is held until I know where you are — tell me your city and country.",
+    "That title is not a standard category, so the watch keys on your own words exactly as you stated them — postings whose titles carry those words are what it can match. Alert delivery isn't on yet, so I won't text you matches until it is — the watch stays saved on your list.",
+    "To rank matches for you, send your resume and the city you want to work in — anything that needs them, like tailoring or applying, waits until then. Tell me what you'd like to do next."
    ],
    "g": {
     "pass": false,
     "failed": [
+     "bubbles",
      "length",
      "links_present"
     ],
     "why": {
+     "bubbles": "4 text bubbles (max 3)",
      "length": "826 chars (max 480)",
      "links_present": "0 links (need 1)"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 9,
+    "grade": 6.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 21,
+    "wordsPerBubble": 122,
+    "grade": 7.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 21,
+    "wordsPerBubble": 52,
+    "grade": 7.1,
+    "bubbles": 4,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "bubbles_per_reply"
+    ]
    }
   },
   "staged": {
@@ -1541,6 +2469,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 8,
+    "grade": 1.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 73,
+    "wordsPerSentenceMedian": 18,
+    "wordsPerBubble": 148,
+    "grade": 14.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 73,
+    "wordsPerSentenceMedian": 18,
+    "wordsPerBubble": 148,
+    "grade": 14.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "code_product",
@@ -1596,6 +2568,41 @@
      "length": "718 chars (max 480)",
      "questions": "1 questions"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 15,
+    "grade": 0.6,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 88,
+    "grade": 7.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 48,
+    "grade": 7.3,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1656,6 +2663,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 18,
+    "wordsPerBubble": 20,
+    "grade": 7.6,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1663,7 +2702,8 @@
   },
   "brainEcho": {
    "bubbles": [
-    "Got it: data analyst at Acme Logistics since 2023, SQL, Tableau and Excel, B.S. in Statistics from UIC.\n\nTwo changes: add a number to each bullet (hours saved, reports a week), and name the decisions your dashboards drove.\n\nWant me to look for data analyst roles?"
+    "Got it: data analyst at Acme Logistics since 2023, SQL, Tableau and Excel, B.S. in Statistics from UIC.\n\nTwo changes: add a number to each bullet (hours saved, reports a week), and name the decisions your dashboards drove.",
+    "Want me to look for data analyst roles?"
    ],
    "g": {
     "pass": true,
@@ -1711,6 +2751,38 @@
     "why": {
      "facts": "missing /paste|send/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 21,
+    "grade": 6.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 7,
+    "wordsPerSentenceMedian": 6.5,
+    "wordsPerBubble": 13,
+    "grade": 2.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 7,
+    "wordsPerSentenceMedian": 6.5,
+    "wordsPerBubble": 13,
+    "grade": 2.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1778,6 +2850,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 20,
+    "grade": 3.7,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 30,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 93,
+    "grade": 8.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 30,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 93,
+    "grade": 8.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -1826,8 +2938,8 @@
   "on": {
    "bubbles": [
     "What makes a resume work.\nKeep it to one page unless you have many years of relevant work; readers skim, so the top third carries the most weight. Each bullet says what you did and the result, with a number where you have one: time saved, money, users, accuracy.",
-    "Tailor it to each posting: lead with the experience and skills that posting asks for, in its words where they are true for you.",
-    "Keep the format plain, with clear headings, one font, and no tables or graphics, so application systems can read it. List nothing you can't back up; I build tailored versions only from facts you have confirmed. Want to paste yours so I can tailor it to a role?"
+    "Tailor it to each posting: lead with the experience and skills that posting asks for, in its words where they are true for you.\nKeep the format plain, with clear headings, one font, and no tables or graphics, so application systems can read it.",
+    "List nothing you can't back up; I build tailored versions only from facts you have confirmed. Want to paste yours so I can tailor it to a role?"
    ],
    "g": {
     "pass": false,
@@ -1837,6 +2949,41 @@
     "why": {
      "length": "651 chars (max 480)"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 14,
+    "grade": 2.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 121,
+    "grade": 6.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 49,
+    "grade": 6.8,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -1896,6 +3043,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 21,
+    "grade": 7.1,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 24,
+    "grade": 5.3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 24,
+    "grade": 5.3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -1942,6 +3121,38 @@
     "why": {
      "facts": "missing /python/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 4,
+    "wordsPerBubble": 13,
+    "grade": 2.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2001,6 +3212,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 6,
+    "wordsPerSentenceMedian": 4,
+    "wordsPerBubble": 6,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -2048,6 +3291,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 17,
+    "grade": 3.8,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2107,6 +3382,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 5.5,
+    "wordsPerBubble": 14,
+    "grade": 4.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 32,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 78,
+    "grade": 8.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 32,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 78,
+    "grade": 8.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -2151,8 +3466,8 @@
   "on": {
    "bubbles": [
     "Your resume is tailored for Data Analyst, Growth at Figma.\nIt leads with your proven skills, and every line traces to a fact already on your profile. Skill gap, named plainly: Figma is required by the posting and not on your profile, so it was not added to the resume.",
-    "Eligibility verdict: this record meets the posting's hard requirements, but some required skills the posting names are not evidenced in the record — they are named in the gap list that travels with this packet.",
-    "Saved as PDF and DOCX files, attached for your review — parse check PASS. Picked first from the 3 roles that fit your profile in the current list — grounded in your profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the Figma application packet next."
+    "Eligibility verdict: this record meets the posting's hard requirements, but some required skills the posting names are not evidenced in the record — they are named in the gap list that travels with this packet.\nSaved as PDF and DOCX files, attached for your review — parse check PASS.",
+    "Picked first from the 3 roles that fit your profile in the current list — grounded in your profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the Figma application packet next."
    ],
    "g": {
     "pass": false,
@@ -2166,6 +3481,44 @@
      "facts": "missing /stripe/",
      "claims": "says /\\battached\\b/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 14.5,
+    "wordsPerBubble": 17,
+    "grade": 7.2,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 84,
+    "grade": 10.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 50,
+    "grade": 10.1,
+    "bubbles": 3,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence"
+    ]
    }
   },
   "staged": {
@@ -2210,9 +3563,9 @@
   },
   "on": {
    "bubbles": [
-    "Your resume is tailored for Analytics Analyst at Airtable.",
-    "It leads with your proven skills, and every line traces to a fact already on your profile. No skill gap: every skill the posting names is evidenced on your profile. Eligibility verdict: this record evidences every hard requirement and every required skill stated in the posting.",
-    "Saved as PDF and DOCX files, attached for your review — parse check PASS. Picked first from the 5 roles that fit your profile in the current list — grounded in your profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the Airtable application packet next."
+    "Your resume is tailored for Analytics Analyst at Airtable.\nIt leads with your proven skills, and every line traces to a fact already on your profile. No skill gap: every skill the posting names is evidenced on your profile.",
+    "Eligibility verdict: this record evidences every hard requirement and every required skill stated in the posting.\nSaved as PDF and DOCX files, attached for your review — parse check PASS.",
+    "Picked first from the 5 roles that fit your profile in the current list — grounded in your profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the Airtable application packet next."
    ],
    "g": {
     "pass": false,
@@ -2226,6 +3579,44 @@
      "questions": "0 questions (needs exactly one)",
      "claims": "says /\\btailored\\b(?! to)/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 10.5,
+    "wordsPerBubble": 14,
+    "grade": 2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 28,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 108,
+    "grade": 10.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 28,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 40,
+    "grade": 10.4,
+    "bubbles": 3,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence"
+    ]
    }
   },
   "staged": {
@@ -2284,6 +3675,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 19,
+    "grade": 0.7,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 30,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 100,
+    "grade": 13.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 30,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 100,
+    "grade": 13.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -2337,6 +3770,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 33,
+    "grade": 5,
+    "bubbles": 3,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 25,
+    "wordsPerSentenceMedian": 21,
+    "wordsPerBubble": 80,
+    "grade": 8.9,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 25,
+    "wordsPerSentenceMedian": 21,
+    "wordsPerBubble": 80,
+    "grade": 8.9,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -2381,8 +3852,8 @@
   "on": {
    "bubbles": [
     "Your resume is tailored for Data Analyst, Growth at Figma.\nIt leads with your proven skills, and every line traces to a fact already on your profile. Skill gap, named plainly: Figma is required by the posting and not on your profile, so it was not added to the resume.",
-    "Eligibility verdict: this record meets the posting's hard requirements, but some required skills the posting names are not evidenced in the record — they are named in the gap list that travels with this packet.",
-    "Saved as PDF and DOCX files, attached for your review — parse check PASS. Picked first from the 5 roles that fit your profile in the current list — grounded in your profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the Figma application packet next."
+    "Eligibility verdict: this record meets the posting's hard requirements, but some required skills the posting names are not evidenced in the record — they are named in the gap list that travels with this packet.\nSaved as PDF and DOCX files, attached for your review — parse check PASS.",
+    "Picked first from the 5 roles that fit your profile in the current list — grounded in your profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the Figma application packet next."
    ],
    "g": {
     "pass": false,
@@ -2396,6 +3867,44 @@
      "questions": "0 questions (needs exactly one)",
      "claims": "says /\\badded\\b/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 12,
+    "grade": 0.7,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 84,
+    "grade": 10.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 50,
+    "grade": 10.1,
+    "bubbles": 3,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence"
+    ]
    }
   },
   "staged": {
@@ -2444,6 +3953,38 @@
     "why": {
      "facts": "missing /sql/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 24,
+    "grade": 5.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2497,8 +4038,8 @@
   "on": {
    "bubbles": [
     "Your resume is tailored for Data Analyst at Ramp.\nIt leads with your proven skills, and every line traces to a fact already on your profile. Skill gap, named plainly: Python is required by the posting and not on your profile, so it was not added to the resume.",
-    "Eligibility verdict: this record meets the posting's hard requirements, but some required skills the posting names are not evidenced in the record — they are named in the gap list that travels with this packet.",
-    "Saved as PDF and DOCX files, attached for your review — parse check PASS. Grounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the Ramp application packet next."
+    "Eligibility verdict: this record meets the posting's hard requirements, but some required skills the posting names are not evidenced in the record — they are named in the gap list that travels with this packet.\nSaved as PDF and DOCX files, attached for your review — parse check PASS.",
+    "Grounded in your own profile record and the posting's own text, as of October 2026. Review the artifact, and I can prepare the Ramp application packet next."
    ],
    "g": {
     "pass": false,
@@ -2510,6 +4051,44 @@
      "length": "702 chars (max 480)",
      "questions": "0 questions (needs exactly one)"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 20,
+    "grade": 0.7,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 83,
+    "grade": 9.4,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 34,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 49,
+    "grade": 9.4,
+    "bubbles": 3,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence"
+    ]
    }
   },
   "staged": {
@@ -2560,6 +4139,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 19,
+    "grade": 6,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -2567,7 +4178,8 @@
   },
   "brainEcho": {
    "bubbles": [
-    "Preparing the Stripe Data Analyst application now. Nothing goes out until you approve its card in the Trainee extension.\n\nOne thing first: the form may ask for your salary expectation. What number should I use?"
+    "Preparing the Stripe Data Analyst application now. Nothing goes out until you approve its card in the Trainee extension.\n\nOne thing first: the form may ask for your salary expectation.",
+    "What number should I use?"
    ],
    "g": {
     "pass": true,
@@ -2607,6 +4219,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 15,
+    "grade": 2.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2666,6 +4310,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 18,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 26,
+    "grade": 6.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -2723,6 +4399,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 15,
+    "grade": 7.9,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -2777,6 +4485,44 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 16,
+    "wordsPerBubble": 17,
+    "grade": 8.4,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 44,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 88,
+    "grade": 9.9,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 44,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 48,
+    "grade": 9.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -2823,6 +4569,38 @@
     "why": {
      "facts": "missing /phone/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 20,
+    "grade": 4.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -2885,6 +4663,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 15,
+    "grade": 2.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 26,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 70,
+    "grade": 6.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 26,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 43,
+    "grade": 6.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -2892,8 +4708,8 @@
   },
   "brainEcho": {
    "bubbles": [
-    "(I removed the one-time code from your message and didn't keep it. Upmore never needs it here.) Never send passwords or codes in a message: you sign in yourself on the company's own page, and anything else sensitive goes on Upmore's secure link. Don't send codes here.",
-    "Type it on Plaid's own page, where the application is waiting.\n\nOnce you do, it continues."
+    "(I removed the one-time code from your message and didn't keep it. Upmore never needs it here.) Never send passwords or codes in a message: you sign in yourself on the company's own page, and anything else sensitive goes on Upmore's secure link.",
+    "Don't send codes here. Type it on Plaid's own page, where the application is waiting.\n\nOnce you do, it continues."
    ],
    "g": {
     "pass": true,
@@ -2933,6 +4749,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 16,
+    "grade": 6.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -3006,6 +4854,45 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 22,
+    "grade": 5.5,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 58,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 87,
+    "grade": 13.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 39,
+    "grade": 8.8,
+    "bubbles": 4,
+    "questions": 0,
+    "failed": [
+     "bubbles_per_reply"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -3060,6 +4947,46 @@
      "length": "586 chars (max 480)",
      "facts": "missing /10|ten|fewer|strongest/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 14,
+    "grade": 5.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 41,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 106,
+    "grade": 8.5,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 41,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 106,
+    "grade": 8.5,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
    }
   },
   "staged": {
@@ -3122,6 +5049,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 17,
+    "grade": 3.3,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 48,
+    "wordsPerSentenceMedian": 31.5,
+    "wordsPerBubble": 107,
+    "grade": 24.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 107,
+    "grade": 17.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_bubble",
+     "reading_grade"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -3170,6 +5137,40 @@
     "why": {
      "facts": "missing /notion/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 5.5,
+    "wordsPerBubble": 26,
+    "grade": 3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 21,
+    "grade": 4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
    }
   },
   "staged": {
@@ -3225,24 +5226,26 @@
     "- Brex — Data Analyst: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\n- Airtable — Analytics Analyst: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
     "- Notion — Data Analyst: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\n- Stripe — Software Engineer Intern, Summer 2027: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
     "- Datadog — Software Engineer, New Grad 2027: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\n- Evercore — Investment Banking Summer Analyst 2027: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
-    "- Notion — Marketing Coordinator: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nFound 11 data analyst roles.\n11 were eligible; I took the 11 you named.\nThe 11 selected:\n- Stripe — Data Analyst — (stopped (named below))",
+    "- Notion — Marketing Coordinator: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nFound 11 data analyst roles.\n11 were eligible; I took the 11 you named.",
+    "The 11 selected:\n- Stripe — Data Analyst — (stopped (named below))",
     "https://job-boards.greenhouse.io/stripe/jobs/7001001",
-    "- Ramp — Data Analyst — (stopped (named below))\nhttps://job-boards.greenhouse.io/ramp/jobs/7002002\n- Plaid — Business Analyst — (stopped (named below))\nhttps://job-boards.greenhouse.io/plaid/jobs/7003003\n- Figma — Data Analyst, Growth — (stopped (named below))\nhttps://job-boards.greenhouse.io/figma/jobs/7004004",
-    "- Brex — Data Analyst — (stopped (named below))\nhttps://job-boards.greenhouse.io/brex/jobs/7005005\n- Airtable — Analytics Analyst — (stopped (named below))\nhttps://job-boards.greenhouse.io/airtable/jobs/7006006\n- Notion — Data Analyst — (stopped (named below))\nhttps://job-boards.greenhouse.io/notion/jobs/7007007",
+    "- Ramp — Data Analyst — (stopped (named below))",
+    "https://job-boards.greenhouse.io/ramp/jobs/7002002",
+    "- Plaid — Business Analyst — (stopped (named below))\nhttps://job-boards.greenhouse.io/plaid/jobs/7003003\n- Figma — Data Analyst, Growth — (stopped (named below))\nhttps://job-boards.greenhouse.io/figma/jobs/7004004\n- Brex — Data Analyst — (stopped (named below))\nhttps://job-boards.greenhouse.io/brex/jobs/7005005",
+    "- Airtable — Analytics Analyst — (stopped (named below))",
+    "https://job-boards.greenhouse.io/airtable/jobs/7006006",
+    "- Notion — Data Analyst — (stopped (named below))",
+    "https://job-boards.greenhouse.io/notion/jobs/7007007",
     "- Stripe — Software Engineer Intern, Summer 2027 — (stopped (named below))",
-    "https://job-boards.greenhouse.io/stripe/jobs/7008008",
-    "- Datadog — Software Engineer, New Grad 2027 — (stopped (named below))",
-    "https://job-boards.greenhouse.io/datadog/jobs/7009009",
-    "- Evercore — Investment Banking Summer Analyst 2027 — (stopped (named below))",
-    "https://job-boards.greenhouse.io/evercore/jobs/7010010",
+    "https://job-boards.greenhouse.io/stripe/jobs/7008008\n- Datadog — Software Engineer, New Grad 2027 — (stopped (named below))\nhttps://job-boards.greenhouse.io/datadog/jobs/7009009\n- Evercore — Investment Banking Summer Analyst 2027 — (stopped (named below))\nhttps://job-boards.greenhouse.io/evercore/jobs/7010010",
     "- Notion — Marketing Coordinator — (stopped (named below))",
     "https://job-boards.greenhouse.io/notion/jobs/7011011",
-    "Stopped — Stripe: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nStopped — Ramp: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
-    "Stopped — Plaid: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nStopped — Figma: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
-    "Stopped — Brex: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nStopped — Airtable: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
-    "Stopped — Notion: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nStopped — Stripe: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
-    "Stopped — Datadog: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nStopped — Evercore: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
-    "Stopped — Notion: Trainee can't reach this employer's application site from here, so nothing was filled or sent. Tell me what you'd like to do next."
+    "Stopped — Stripe: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
+    "Stopped — Ramp: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nStopped — Plaid: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
+    "Stopped — Figma: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nStopped — Brex: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
+    "Stopped — Airtable: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nStopped — Notion: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
+    "Stopped — Stripe: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nStopped — Datadog: Trainee can't reach this employer's application site from here, so nothing was filled or sent.",
+    "Stopped — Evercore: Trainee can't reach this employer's application site from here, so nothing was filled or sent.\nStopped — Notion: Trainee can't reach this employer's application site from here, so nothing was filled or sent. Tell me what you'd like to do next."
    ],
    "g": {
     "pass": false,
@@ -3252,10 +5255,50 @@
      "link_format"
     ],
     "why": {
-     "bubbles": "18 text bubbles (max 3)",
+     "bubbles": "20 text bubbles (max 3)",
      "length": "3466 chars (max 480)",
      "link_format": "11 links (max 3)"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 17,
+    "grade": 5.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 99,
+    "grade": 12.2,
+    "bubbles": 7,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble",
+     "reading_grade",
+     "bubbles_per_reply",
+     "link_alone"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 42,
+    "grade": 9.9,
+    "bubbles": 20,
+    "questions": 0,
+    "failed": [
+     "bubbles_per_reply"
+    ]
    }
   },
   "staged": {
@@ -3296,6 +5339,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 9.5,
+    "wordsPerBubble": 13,
+    "grade": 3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -3357,6 +5432,40 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 20,
+    "grade": 3.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 21,
+    "grade": 4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -3411,6 +5520,47 @@
      "facts": "missing /lakeview/",
      "voice": "matches /\\bsized by what the sources yield\\b/i"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 43,
+    "grade": 4.5,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 75,
+    "grade": 12.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 51,
+    "grade": 12.4,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "reading_grade",
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -3481,6 +5631,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 29,
+    "grade": 4.5,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 59,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 107,
+    "grade": 14,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 66,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 66,
+    "grade": 15.4,
+    "bubbles": 4,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "bubbles_per_reply",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "code_product",
@@ -3531,6 +5725,44 @@
      "bubble_len": "a bubble of 386 chars (max 320)",
      "facts": "missing /jordan/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 22,
+    "grade": 2.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 25,
+    "wordsPerSentenceMedian": 19.5,
+    "wordsPerBubble": 73,
+    "grade": 6.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 25,
+    "wordsPerSentenceMedian": 19.5,
+    "wordsPerBubble": 73,
+    "grade": 6.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
    }
   },
   "staged": {
@@ -3585,6 +5817,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 16,
+    "grade": 5.6,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 75,
+    "grade": 12.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 24,
+    "wordsPerBubble": 75,
+    "grade": 12.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -3634,6 +5908,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 31,
+    "grade": 4.1,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -3641,7 +5947,9 @@
   },
   "brainEcho": {
    "bubbles": [
-    "Draft, under 300 characters for LinkedIn:\n\nHi [name], I'm applying to Datadog's New Grad SWE role. I build in [your languages]. Would you be open to a quick chat about the team before I apply? [Your name]\n\nAsking to chat first lands better than asking for a referral cold. You send it."
+    "Draft, under 300 characters for LinkedIn:\n\nHi [name], I'm applying to Datadog's New Grad SWE role. I build in [your languages].",
+    "Would you be open to a quick chat about the team before I apply? [Your name]\n\nAsking to chat first lands better than asking for a referral cold.",
+    "You send it."
    ],
    "g": {
     "pass": true,
@@ -3689,6 +5997,38 @@
     "why": {
      "facts": "missing /5|five|few/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 19,
+    "grade": 6.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -3756,6 +6096,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 26,
+    "grade": 4.7,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 56,
+    "wordsPerSentenceMedian": 29.5,
+    "wordsPerBubble": 194,
+    "grade": 14.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 56,
+    "wordsPerSentenceMedian": 29.5,
+    "wordsPerBubble": 194,
+    "grade": 14.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -3802,6 +6186,38 @@
     "why": {
      "facts": "missing /sarah/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 6.5,
+    "wordsPerBubble": 30,
+    "grade": 5.2,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -3862,6 +6278,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 29,
+    "grade": 5.6,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -3917,6 +6365,38 @@
     "why": {
      "facts": "missing /gmail/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 18,
+    "grade": 2.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -3994,6 +6474,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 13,
+    "grade": 6.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 51,
+    "wordsPerSentenceMedian": 28,
+    "wordsPerBubble": 124,
+    "grade": 12.4,
+    "bubbles": 3,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 56,
+    "wordsPerSentenceMedian": 29.5,
+    "wordsPerBubble": 56,
+    "grade": 14.2,
+    "bubbles": 5,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "reading_grade",
+     "bubbles_per_reply",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4054,6 +6576,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 25,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 56,
+    "wordsPerSentenceMedian": 29.5,
+    "wordsPerBubble": 194,
+    "grade": 14.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 56,
+    "wordsPerSentenceMedian": 29.5,
+    "wordsPerBubble": 194,
+    "grade": 14.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4106,6 +6672,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 16,
+    "grade": 2.3,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -4154,8 +6752,8 @@
   "on": {
    "bubbles": [
     "Your data interview brief.\nNo company is named, so no company's process or hiring bar is claimed; this is the general shape of data interviews. What they usually test: SQL, basic statistics, and turning a messy question into a clear analysis, often with a take-home.",
-    "Prepare first: SQL joins and aggregations written by hand, and one analysis of your own you can walk through from question to result.",
-    "Likely questions: Write a query for the top three products by revenue last month. · Explain how you would tell whether a change in a metric is real. · Walk me through an analysis you did and what it changed. Want to run it as a mock, one question at a time?"
+    "Prepare first: SQL joins and aggregations written by hand, and one analysis of your own you can walk through from question to result.\nLikely questions: Write a query for the top three products by revenue last month. · Explain how you would tell whether a change in a metric is real.",
+    "· Walk me through an analysis you did and what it changed. Want to run it as a mock, one question at a time?"
    ],
    "g": {
     "pass": false,
@@ -4165,6 +6763,44 @@
     "why": {
      "length": "658 chars (max 480)"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 28,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 38,
+    "wordsPerSentenceMedian": 20.5,
+    "wordsPerBubble": 118,
+    "grade": 9.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 27,
+    "wordsPerSentenceMedian": 20,
+    "wordsPerBubble": 50,
+    "grade": 8.3,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence"
+    ]
    }
   },
   "staged": {
@@ -4219,6 +6855,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 11.5,
+    "wordsPerBubble": 16,
+    "grade": 4.3,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 67,
+    "grade": 6.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 24,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 67,
+    "grade": 6.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4257,6 +6931,42 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 22,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 22,
+    "grade": 6,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 55,
+    "grade": 5.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 55,
+    "grade": 5.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble"
+    ]
    }
   },
   "staged": {
@@ -4324,6 +7034,49 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 25,
+    "grade": 3.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 45,
+    "wordsPerSentenceMedian": 26,
+    "wordsPerBubble": 110,
+    "grade": 11.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 45,
+    "wordsPerSentenceMedian": 26,
+    "wordsPerBubble": 48,
+    "grade": 11.8,
+    "bubbles": 5,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence",
+     "reading_grade",
+     "bubbles_per_reply",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4366,9 +7119,9 @@
   },
   "on": {
    "bubbles": [
-    "Your questions to ask — no panel is named yet, so these are the round's standard set.",
-    "What does this team's next term look like, and where does this seat plug into it? What would you want someone in this seat to have accomplished by the end of the first term? What separates the people who thrive here in the first six months from the people who stall?",
-    "No team or company file was supplied for this interviewer, so no team is invented — these are the round's standard questions, none written for a team or company that isn't named. Tell me the team or the panel, and the set re-orders to theirs."
+    "Your questions to ask — no panel is named yet, so these are the round's standard set.\nWhat does this team's next term look like, and where does this seat plug into it? What would you want someone in this seat to have accomplished by the end of the first term?",
+    "What separates the people who thrive here in the first six months from the people who stall?\nNo team or company file was supplied for this interviewer, so no team is invented — these are the round's standard questions, none written for a team or company that isn't named.",
+    "Tell me the team or the panel, and the set re-orders to theirs."
    ],
    "g": {
     "pass": false,
@@ -4382,6 +7135,48 @@
      "questions": "3 questions",
      "voice": "matches /\\bcompany[- ]file\\b/i"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 16,
+    "wordsPerBubble": 21,
+    "grade": 4.7,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 111,
+    "grade": 6.7,
+    "bubbles": 1,
+    "questions": 3,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon",
+     "questions"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 50,
+    "grade": 6.7,
+    "bubbles": 3,
+    "questions": 3,
+    "failed": [
+     "words_per_sentence",
+     "jargon",
+     "questions"
+    ]
    }
   },
   "staged": {
@@ -4436,6 +7231,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 8,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 16,
+    "grade": 8.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 47,
+    "grade": 7.1,
+    "bubbles": 1,
+    "questions": 2,
+    "failed": [
+     "words_per_sentence",
+     "questions"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 47,
+    "grade": 7.1,
+    "bubbles": 1,
+    "questions": 2,
+    "failed": [
+     "words_per_sentence",
+     "questions"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4488,6 +7321,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 15,
+    "grade": 1.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 18,
+    "wordsPerBubble": 110,
+    "grade": 10.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 18,
+    "wordsPerBubble": 110,
+    "grade": 10.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4535,7 +7408,8 @@
     "Your interview brief for Notion (Notion Labs, Inc.).\nExperienced roles are senior-leaning (8+ years on the sourced posting). The loop, from the company file: Application / recruiter screen · Technical screen · Practical / product-focused rounds (take-home or pairing rep · Onsite loop incl.",
     "culture/craft conversations · Offer.",
     "What they screen for: In-person company: the posting states employees come in on two Anchor Days (Mondays and Thursdays) - a real location/attendance screen for many roles · Writing and communication quality is an explicit screening capability ('empathetic communication', explaining technical decisions in writing) No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented.",
-    "Likely first questions: Tell me about yourself and why this role. · Tell me about a time you worked with a team under a deadline. · Tell me about a hard problem you solved and how you approached it. Want to run it as a mock, one question at a time?"
+    "Likely first questions: Tell me about yourself and why this role. · Tell me about a time you worked with a team under a deadline. · Tell me about a hard problem you solved and how you approached it.",
+    "Want to run it as a mock, one question at a time?"
    ],
    "g": {
     "pass": false,
@@ -4547,12 +7421,55 @@
      "voice"
     ],
     "why": {
-     "bubbles": "4 text bubbles (max 3)",
+     "bubbles": "5 text bubbles (max 3)",
      "bubble_len": "a bubble of 491 chars (max 320)",
      "length": "1068 chars (max 480)",
      "questions": "1 questions",
      "voice": "matches /\\bcompany[- ]file\\b/i"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 19,
+    "grade": 7,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 61,
+    "wordsPerSentenceMedian": 13,
+    "wordsPerBubble": 95,
+    "grade": 13.6,
+    "bubbles": 3,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 74,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 74,
+    "grade": 13.6,
+    "bubbles": 5,
+    "questions": 1,
+    "failed": [
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "bubbles_per_reply",
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -4593,6 +7510,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 30,
+    "grade": 3.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -4663,6 +7612,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 24,
+    "grade": 4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 29,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 90,
+    "grade": 11.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 52,
+    "grade": 11.7,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -4670,7 +7661,8 @@
   },
   "brainEcho": {
    "bubbles": [
-    "Counter once, in writing. If the posting's range or comparable postings sit above 75k, ask for the top of that range with one reason.\n\nWhat role and city is it? I'll check the postings and draft the counter."
+    "Counter once, in writing. If the posting's range or comparable postings sit above 75k, ask for the top of that range with one reason.\n\nWhat role and city is it?",
+    "I'll check the postings and draft the counter."
    ],
    "g": {
     "pass": true,
@@ -4732,6 +7724,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 17,
+    "grade": 3.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 6,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 17.5,
+    "wordsPerBubble": 118,
+    "grade": 10.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 17.5,
+    "wordsPerBubble": 43,
+    "grade": 10.1,
+    "bubbles": 3,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -4778,6 +7810,38 @@
     "why": {
      "facts": "missing /yes|common|normal/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 20,
+    "grade": 3.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -4849,6 +7913,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 24,
+    "grade": 3.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 29,
+    "wordsPerBubble": 125,
+    "grade": 12.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 29,
+    "wordsPerBubble": 127,
+    "grade": 12.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -4915,6 +8023,48 @@
      "length": "545 chars (max 480)",
      "voice": "matches /\\bsource class\\b/i"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 16,
+    "grade": 3.8,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 29,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 90,
+    "grade": 11.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 31,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 52,
+    "grade": 11.7,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "reading_grade",
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -4986,6 +8136,50 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 17,
+    "grade": 6.7,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 29,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 90,
+    "grade": 11.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 29,
+    "wordsPerSentenceMedian": 25,
+    "wordsPerBubble": 90,
+    "grade": 11.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "reading_grade",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -5010,7 +8204,7 @@
   "state": "new",
   "msg": "write my counter offer email, offer is 80k i want 90k",
   "gold": [
-   "Hi [name], thank you for the offer. I'm excited about the role. Based on [the posted range or my experience], I'd like to ask for $90,000. Is there flexibility there? [Your name]",
+   "Hi [name], thank you for the offer, I'm excited about the role. Based on [the posted range or my experience], I'd like to ask for $90,000. Is there room to get there? [Your name]",
    "Yours to send. Fill the bracket with your one reason."
   ],
   "handler": "router:negotiation_draft",
@@ -5035,8 +8229,8 @@
   },
   "on": {
    "bubbles": [
-    "The counter email, written out — the real words, held for your approval.",
-    "The figure it runs on is the one from your letter: $80,000 base. The actual email, verbatim — held on its card, nothing sent: Subject: Offer — your company Hi Recruiter name, Thank you — I'm genuinely excited about the role and the team. Approve it as written, or tell me the figure or the tone to change."
+    "The counter email, written out — the real words, held for your approval.\nThe figure it runs on is the one from your letter: $80,000 base. The actual email, verbatim — held on its card, nothing sent: Subject: Offer — your company Hi Recruiter name, Thank you — I'm genuinely excited about the role and the team.",
+    "Approve it as written, or tell me the figure or the tone to change."
    ],
    "g": {
     "pass": false,
@@ -5048,6 +8242,46 @@
      "facts": "missing /90,?000|90k/",
      "voice": "matches /\\bheld for your approval\\b/i"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 34,
+    "grade": 2.6,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 28,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 67,
+    "grade": 7.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 28,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 53,
+    "grade": 7.7,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence",
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5104,6 +8338,48 @@
      "length": "800 chars (max 480)",
      "voice": "matches /\\bsource class\\b/i"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 20,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 15,
+    "wordsPerBubble": 145,
+    "grade": 8.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 147,
+    "grade": 8.5,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5163,6 +8439,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 16,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -5210,6 +8518,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 16,
+    "grade": 3.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -5277,6 +8617,48 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 15,
+    "grade": 1.7,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 101,
+    "grade": 8.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 37,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 101,
+    "grade": 8.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -5323,6 +8705,38 @@
     "why": {
      "facts": "missing /figma/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 7.5,
+    "wordsPerBubble": 17,
+    "grade": 4.9,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -5381,6 +8795,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 12.5,
+    "wordsPerBubble": 25,
+    "grade": 2,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -5430,6 +8876,38 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 18,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 18,
+    "grade": 5,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 3,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -5454,7 +8932,7 @@
   "state": "inflight",
   "msg": "whats happening with my applications",
   "gold": [
-   "Notion: sent and confirmed. Brex: queued for the extension. Figma: prepared, waiting on 2 answers. Plaid: waiting on the code they emailed you. Ramp: stopped, needs a phone number.",
+   "Your 5 applications:\n1. Notion: sent and confirmed\n2. Brex: queued for the extension\n3. Figma: waiting on 2 answers\n4. Plaid: waiting on the code they emailed you\n5. Ramp: stopped, needs a phone number",
    "Want to start with Figma?"
   ],
   "handler": "router:tracking_status",
@@ -5487,6 +8965,40 @@
     "why": {
      "facts": "missing /notion/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 36,
+    "grade": 6.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 21,
+    "grade": 4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
    }
   },
   "staged": {
@@ -5526,7 +9038,8 @@
   },
   "on": {
    "bubbles": [
-    "Plaid: at the Submitted stage.\nApplied Oct 19, 2026 — Business Analyst, 1 day on record. Last event on the row: applied (Oct 19, 2026). Tell me if anything moved and I will update the row from your report."
+    "Plaid: at the Submitted stage.\nApplied Oct 19, 2026 — Business Analyst, 1 day on record. Last event on the row: applied (Oct 19, 2026).",
+    "Tell me if anything moved and I will update the row from your report."
    ],
    "g": {
     "pass": false,
@@ -5536,6 +9049,43 @@
     "why": {
      "facts": "missing /code/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 17,
+    "grade": 4.4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 7.5,
+    "wordsPerBubble": 34,
+    "grade": 4.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 9.5,
+    "wordsPerBubble": 24,
+    "grade": 4.6,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5584,6 +9134,42 @@
     "why": {
      "facts": "missing /plaid/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 12,
+    "wordsPerBubble": 14,
+    "grade": 3.8,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 32,
+    "grade": 4.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 32,
+    "grade": 4.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5640,6 +9226,47 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 17,
+    "grade": 8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 8,
+    "wordsPerSentenceMax": 41,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 179,
+    "grade": 10.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 8,
+    "wordsPerSentenceMax": 41,
+    "wordsPerSentenceMedian": 8.5,
+    "wordsPerBubble": 181,
+    "grade": 10.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -5682,6 +9309,40 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 24,
+    "grade": 4.5,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 19,
+    "grade": 4.3,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 21,
+    "grade": 4,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
    }
   },
   "staged": {
@@ -5736,6 +9397,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 11,
+    "grade": 5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 47,
+    "grade": 10.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 20,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 47,
+    "grade": 10.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -5768,12 +9461,49 @@
   },
   "on": {
    "bubbles": [
-    "Interview at Notion (Notion Labs, Inc.) — on the record, and prep is queued.\nThis came from your message just now, not from an email. Want the prep pack for it now?"
+    "Interview at Notion (Notion Labs, Inc.) — on the record, and prep is queued.\nThis came from your message just now, not from an email.",
+    "Want the prep pack for it now?"
    ],
    "g": {
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 5,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 6,
+    "grade": 4.1,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 31,
+    "grade": 2.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 24,
+    "grade": 2.9,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": [
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5816,6 +9546,44 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 4,
+    "wordsPerBubble": 15,
+    "grade": 5.6,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 58,
+    "grade": 6.1,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 14,
+    "wordsPerBubble": 58,
+    "grade": 6.1,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "jargon"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -5854,6 +9622,42 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 11,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 11,
+    "grade": 4.8,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 32,
+    "grade": 4.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 32,
+    "grade": 4.1,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -5902,6 +9706,38 @@
     "why": {
      "questions": "1 questions"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 13,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 21,
+    "grade": 6.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -5967,6 +9803,44 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 16,
+    "grade": 6.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 27,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 75,
+    "grade": 9.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 27,
+    "wordsPerSentenceMedian": 19,
+    "wordsPerBubble": 38,
+    "grade": 9.2,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": [
+     "words_per_sentence"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -6005,6 +9879,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 16,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 16,
+    "grade": 2.8,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -6067,6 +9973,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 10,
+    "wordsPerBubble": 20,
+    "grade": 3.7,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -6122,6 +10060,38 @@
     "why": {
      "facts": "missing /gmail/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 12,
+    "wordsPerSentenceMedian": 4,
+    "wordsPerBubble": 16,
+    "grade": 5.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -6181,6 +10151,42 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 5,
+    "wordsPerBubble": 14,
+    "grade": 1.8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 51,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 51,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -6230,6 +10236,38 @@
     "why": {}
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 15,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 17,
+    "grade": 4.3,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -6237,7 +10275,8 @@
   },
   "brainEcho": {
    "bubbles": [
-    "What do you need help with?\n\nFor example:\nfind data analyst jobs in Chicago\nlook at my resume\nprep me for an interview"
+    "What do you need help with?\n\nFor example:\nfind data analyst jobs in Chicago",
+    "look at my resume\nprep me for an interview"
    ],
    "g": {
     "pass": true,
@@ -6277,6 +10316,38 @@
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 10,
+    "wordsPerSentenceMedian": 7,
+    "wordsPerBubble": 10,
+    "grade": 2.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -6335,6 +10406,42 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 6,
+    "wordsPerSentenceMedian": 6,
+    "wordsPerBubble": 12,
+    "grade": 1.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 40,
+    "grade": 4.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 8,
+    "wordsPerBubble": 40,
+    "grade": 4.8,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -6381,6 +10488,38 @@
     "why": {
      "facts": "missing /stripe/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 17,
+    "wordsPerSentenceMedian": 12.5,
+    "wordsPerBubble": 17,
+    "grade": 5.8,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 13.5,
+    "wordsPerBubble": 27,
+    "grade": 4.5,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -6447,6 +10586,38 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 1,
+    "wordsPerSentenceMedian": 1,
+    "wordsPerBubble": 1,
+    "grade": 20.2,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 16.5,
+    "wordsPerBubble": 33,
+    "grade": 6.6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   }
+  },
   "staged": {
    "brain": true,
    "reason": "question",
@@ -6492,13 +10663,50 @@
   },
   "on": {
    "bubbles": [
-    "Rejection on the record for Plaid — the row now shows Rejected.",
-    "Recorded from your report just now — your words are the evidence on the row: \"i got rejected again, im so done\". One rejection is a data point, not a verdict — the pattern note builds only when the record holds more than one. Want the status of the rest of the tracker?"
+    "Rejection on the record for Plaid — the row now shows Rejected.\nRecorded from your report just now — your words are the evidence on the row: \"i got rejected again, im so done\". One rejection is a data point, not a verdict — the pattern note builds only when the record holds more than one.",
+    "Want the status of the rest of the tracker?"
    ],
    "g": {
     "pass": true,
     "failed": [],
     "why": {}
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 9,
+    "wordsPerSentenceMedian": 9,
+    "wordsPerBubble": 18,
+    "grade": 3.2,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 4,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 16,
+    "wordsPerBubble": 62,
+    "grade": 6.4,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "jargon"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 3,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 16,
+    "wordsPerBubble": 53,
+    "grade": 6.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": [
+     "jargon"
+    ]
    }
   },
   "staged": {
@@ -6547,6 +10755,38 @@
     "why": {
      "questions": "1 questions"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 19,
+    "wordsPerSentenceMedian": 11,
+    "wordsPerBubble": 21,
+    "grade": 4.4,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
+   },
+   "on": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 21,
+    "wordsPerSentenceMedian": 18.5,
+    "wordsPerBubble": 37,
+    "grade": 6,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": []
    }
   },
   "staged": {
@@ -6610,6 +10850,46 @@
     }
    }
   },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 1,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 12.5,
+    "wordsPerBubble": 14,
+    "grade": 3.4,
+    "bubbles": 2,
+    "questions": 1,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 33,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 88,
+    "grade": 6.8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 5,
+    "wordsPerSentenceMax": 33,
+    "wordsPerSentenceMedian": 17,
+    "wordsPerBubble": 88,
+    "grade": 6.8,
+    "bubbles": 1,
+    "questions": 0,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   }
+  },
   "staged": {
    "brain": false,
    "reason": "action",
@@ -6668,6 +10948,46 @@
      "questions": "1 questions",
      "facts": "missing /988/"
     }
+   }
+  },
+  "style": {
+   "gold": {
+    "sentencesPerBubble": 2,
+    "wordsPerSentenceMax": 14,
+    "wordsPerSentenceMedian": 9.5,
+    "wordsPerBubble": 21,
+    "grade": 1.9,
+    "bubbles": 2,
+    "questions": 0,
+    "failed": []
+   },
+   "off": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 26,
+    "wordsPerBubble": 166,
+    "grade": 10.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
+   },
+   "on": {
+    "sentencesPerBubble": 7,
+    "wordsPerSentenceMax": 35,
+    "wordsPerSentenceMedian": 26,
+    "wordsPerBubble": 166,
+    "grade": 10.9,
+    "bubbles": 1,
+    "questions": 1,
+    "failed": [
+     "sentences_per_bubble",
+     "words_per_sentence",
+     "words_per_bubble"
+    ]
    }
   },
   "staged": {

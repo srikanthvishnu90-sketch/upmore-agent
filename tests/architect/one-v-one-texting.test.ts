@@ -122,3 +122,23 @@ Deno.test("grammar at the source: one role found reads 'Here is 1 role that matc
   const r = await worldTurn(w, { brain: "router", threadId: "A", message: "marketing jobs remote", now: w.now });
   assert(/Here is 1 role that matches your search\./.test(r.reply) && !/role that match your/.test(r.reply), r.reply);
 });
+
+// Style targets (evals/career/one-v-one/style-targets.json, derived from the owner's brief, observed): at most 3 sentences a
+// bubble on every texting channel, split only between sentences, nothing lost or reordered.
+// WhatsApp and Telegram keep their message contract (a Telegram answer in at most two messages, #301; tables and headings
+// whole): there the sentence budget is the brain's rule (below), not a cut.
+Deno.test("style: no iMessage or SMS bubble carries more than 3 sentences; splits fall between sentences, nothing lost", async () => {
+  const { styleOf } = await import("../../evals/career/one-v-one/style.ts");
+  const five = "Notion is confirmed. Brex is queued. Figma waits on two answers. Plaid waits on your code. Ramp stopped on a phone number.";
+  for (const ch of ["imessage", "sms"] as const) {
+    const b = imessageNativeRender(five);
+    assert(styleOf(b, ch).sentencesPerBubble <= 3, `${ch}: ${JSON.stringify(b)}`);
+    eq(b.join(" "), five, `${ch}: every sentence, in order`);
+  }
+  eq(imessageNativeRender("One. Two. Three."), ["One. Two. Three."], "three short sentences stay one bubble");
+});
+
+Deno.test("style: the texting rules give the brain the numbers (3 sentences a bubble, short sentences, plain words)", () => {
+  const p = careerSystemPrompt("2026-11-01", { channel: "imessage" });
+  assert(/three sentences/i.test(p) && /20 words/i.test(p) && /grade/i.test(p), p.slice(-900));
+});

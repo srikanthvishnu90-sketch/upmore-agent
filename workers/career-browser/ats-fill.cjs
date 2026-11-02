@@ -185,20 +185,16 @@ function answerFor(label, answers) {
   return undefined;
 }
 const DECLINE = /decline|prefer not|do(?: not|n t) wish|choose not|not to (?:answer|disclose|say|identify|specify)|i do(?: not|n t) want/;
-const YES = /^(yes|y|true)$/, NO = /^(no|n|false)$/;
+const YES = /^(yes|y|true)$/; // an agreement checkbox only
 const blank = (v) => v === undefined || v === null || String(v).trim() === "";
 
-// Pick the option an answer means. One clear match or an error: no_matching_option / ambiguous_option. Never "closest".
+// Pick the option an answer means: the ONE option whose words are exactly the approved answer (case, spacing and
+// punctuation aside), or an error: no_matching_option / ambiguous_option. Never a prefix, a substring, a yes-like word or
+// "closest" (#340: "Yes" took "Yes, with sponsorship", "Male" took "Female"), so what is posted is what was approved.
 function matchOption(labels, value) {
-  const v = norm(value), ns = labels.map(norm);
-  const one = (pred) => { const ix = ns.map((l, i) => (pred(l) ? i : -1)).filter((i) => i >= 0); return ix.length === 1 ? { index: ix[0] } : ix.length > 1 ? { error: "ambiguous_option" } : null; };
-  const exact = ns.map((l, i) => (l === v ? i : -1)).filter((i) => i >= 0);
+  const v = norm(value);
+  const exact = labels.map(norm).map((l, i) => (l === v ? i : -1)).filter((i) => i >= 0);
   if (exact.length === 1) return { index: exact[0] };
-  if (YES.test(v)) { const r = one((l) => /^yes\b/.test(l)); if (r) return r; }
-  if (NO.test(v)) { const r = one((l) => /^no\b/.test(l)); if (r) return r; }
-  // A prefix counts only at a word boundary ("No" for "No, I do not need it"; never "Not applicable" for "No").
-  if (v.length >= 2) { const r = one((l) => l.startsWith(v + " ") || (l.length >= 2 && v.startsWith(l + " "))); if (r) return r; }
-  if (v.length >= 4) { const r = one((l) => l.includes(v)); if (r) return r; }
   return { error: exact.length > 1 ? "ambiguous_option" : "no_matching_option" };
 }
 
@@ -339,11 +335,15 @@ async function fillForm(page, ctx0) {
         }
         continue;
       }
-      entry.status = d.required ? "needs_user" : "failed";
+      // #340: an approved answer or fact that is not exactly one of the page's options is handed back even when the question is
+      // optional: leaving it out, or picking another option, would post something other than what was approved.
+      const notOffered = (r.reason === "no_matching_option" || r.reason === "ambiguous_option");
+      const ask = d.required || notOffered;
+      entry.status = ask ? "needs_user" : "failed";
       entry.reason = r.reason;
       if (r.detail) entry.detail = r.detail;
       // A required question we could not set is handed back with the reason; the person is asked, nothing is guessed.
-      (d.required ? needsUser : failed).push({ label: d.label, reason: r.reason, ...(r.options ? { options: r.options } : {}) });
+      (ask ? needsUser : failed).push({ label: d.label, reason: r.reason, ...(r.options ? { options: r.options } : {}) });
     }
   }
   // Sweep: a required question still empty that we did not already account for is handed back, not ignored.

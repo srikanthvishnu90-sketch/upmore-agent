@@ -37,6 +37,11 @@ ${opt(r, "Race", ["Hispanic or Latino", "White", "Black or African American", "A
 ${opt(v, "Veteran Status", ["I am a veteran", "I am not a veteran", "I don't wish to answer"])}
 ${opt(d, "Disability Status", ["Yes, I have a disability", "No, I do not have a disability", "I do not want to answer"])}</fieldset>`;
 const CLOSED = (p: Posting) => new Response(page("Not found", `<h1>This job is no longer accepting applications</h1><p>${esc(p.company)}</p>`), { status: 404, headers: { "content-type": "text/html" } });
+// Lever loads hCaptcha on every form; a low score shows its visible challenge at Submit and nothing is posted (the
+// loopback stand-in provider the engine knows, as the Ashby form's reCAPTCHA challenge).
+const LEVER_CHALLENGE = `<script>document.getElementById("application-form").addEventListener("submit", (e) => { e.preventDefault();
+  if (!document.querySelector("iframe[data-test-challenge]")) { const f = document.createElement("iframe"); f.setAttribute("data-test-challenge", "1");
+  f.src = "/captcha-provider/hcaptcha/hcaptcha.html#frame=challenge"; f.style.width = "400px"; f.style.height = "580px"; document.body.appendChild(f); } });</script>`;
 const RECAPTCHA = '<div class="g-recaptcha" data-sitekey="TEST-NEVER-SOLVED"></div>';
 
 function ghForm(p: Posting, base: string) {
@@ -83,7 +88,7 @@ function lvForm(p: Posting, base: string) {
 <label for="urls_linkedin">LinkedIn URL</label><input id="urls_linkedin" name="urls[LinkedIn]" type="text">
 ${select("cards_auth", `cards[${LV_CARD}][field0]`, AUTH_Q, ["Yes", "No"])}
 ${EEO("eeo[gender]", "eeo[race]", "eeo[veteran]", "eeo[disability]")}
-${extra}${p.captcha ? RECAPTCHA : ""}<button type="submit" id="btn-submit">Submit application</button></form>`);
+${extra}<button type="submit" id="btn-submit">Submit application</button></form>${p.captcha ? LEVER_CHALLENGE : ""}`);
 }
 
 // Ashby: the reconstructed form, its job id and organization replaced per posting; Submit as Ashby's script sends it.
@@ -180,6 +185,7 @@ export function atsWorld(postings: Posting[], o: { latencyMs?: number } = {}) {
     return new Response("method not allowed", { status: 405 });
   });
   serve("lever", async (req, u, base) => {
+    if (u.pathname.startsWith("/captcha-provider/")) return new Response("<p>Select all images with a boat</p>", { headers: { "content-type": "text/html" } });
     const m = /^\/([\w-]+)\/([0-9a-f-]{36})(\/apply)?$/.exec(u.pathname);
     const p = m ? find("lever", m[1], m[2]) : undefined;
     if (!m || !p) return new Response("not found", { status: 404 });

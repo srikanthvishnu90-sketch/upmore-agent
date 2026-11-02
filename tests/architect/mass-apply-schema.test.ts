@@ -38,3 +38,35 @@ Deno.test("Greenhouse: every question from the board API, once per TTL; Lever/As
     console.log(`MEASURED: Greenhouse form schema from the board API in ${ms.toFixed(1)} ms (browser dry run: 11.6 s per posting)`);
   } finally { await w.close(); }
 });
+
+// Wired (prepare-ahead.ts prepareOne): with the board's published form, the shared facts it needs and the person has not
+// given are asked with NO browser pass (fact:* questions only); once they are known, the browser reads the form as before.
+import { prepareOne } from "../../workers/career-browser/prepare-ahead.ts";
+Deno.test("prepareOne: missing shared facts asked from the schema with no browser; known facts: the browser runs", async () => {
+  const schema = { fields: [
+    { name: "first_name", label: "First Name", required: true, type: "input_text", options: [] },
+    { name: "email", label: "Email", required: true, type: "input_text", options: [] },
+    { name: "resume", label: "Resume/CV", required: true, type: "input_file", options: [] },
+    { name: "question_9", label: "Why do you want to work here?", required: true, type: "textarea", options: [] },
+  ] };
+  const run = async (answers: any[]) => {
+    const calls: { name: string; args: any }[] = [];
+    let engineRuns = 0;
+    const db = { rpc: async (name: string, args: any) => {
+      calls.push({ name, args });
+      if (name === "career_apply_answers_for") return { data: answers, error: null };
+      if (name === "career_apply_prepare_ask_for") return { data: args.p_questions.length, error: null };
+      return { data: null, error: null };
+    } };
+    const out = await prepareOne({ db, runEngine: async () => { engineRuns++; return null; }, resumeFor: async () => ({ path: "/dev/null", sha256: "a".repeat(64), tag: null }),
+      schemaFor: async () => schema } as any, { user_id: "u", job_id: "greenhouse:acme:1", company: "Acme", url: "https://boards.greenhouse.io/acme/jobs/1", epoch: 0, version: 0 } as any);
+    return { out, calls, engineRuns };
+  };
+  const a = await run([]);
+  eq([a.out.outcome, a.engineRuns], ["asked", 0]);
+  const asked = a.calls.find((c) => c.name === "career_apply_prepare_ask_for")!.args.p_questions.map((q: any) => q.key).sort();
+  eq(asked, ["fact:email", "fact:first_name"], "only shared facts; the essay is left to the browser's read");
+  const b = await run([{ id: "1", key: "fact:first_name", kind: "fact", answer: "Alex" }, { id: "2", key: "fact:email", kind: "fact", answer: "a@example.test" }]);
+  eq(b.engineRuns, 1, "facts known: the browser reads the form");
+  assert(!b.calls.some((c) => c.name === "career_apply_prepare_ask_for" && c.args.p_questions.some((q: any) => /^fact:/.test(q.key))), "nothing asked twice");
+});

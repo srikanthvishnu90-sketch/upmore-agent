@@ -163,7 +163,11 @@ Deno.test({
       // UPMORE_SCRIPT_SUBMIT_LIVE, as in production; here the local origin is named as Ashby's with --script-submit).
       const isAshby = (args: string[]) => { const i = args.indexOf("--url"); return i >= 0 && String(args[i + 1]).startsWith(O.ashby); };
       const prepBase = engineRunner({ root: ROOT, extra: ["--state-dir", `${work}/engine-state`] });
-      const prepEngine: typeof prepBase = (args, env, c) => prepBase(isAshby(args) ? [...args, "--script-submit", "ashby"] : args, env, c);
+      let prepRuns = 0;
+      const prepEngine: typeof prepBase = (args, env, c) => { prepRuns++; return prepBase(isAshby(args) ? [...args, "--script-submit", "ashby"] : args, env, c); };
+      // MASS APPLY: Greenhouse forms read from the board API (the fixture's), shared facts asked with no browser pass.
+      // MASS_NO_SCHEMA=1 measures the browser-only path for the before/after.
+      const schemaOpt = Deno.env.get("MASS_NO_SCHEMA") ? false as const : { greenhouseApi: world.origin("greenhouse") };
       await Deno.mkdir(`${work}/evidence`, { mode: 0o700 });
       const cloudEngine = cloudEngineRunner({ root: ROOT, evidenceRoot: `${work}/evidence` });
       let engineStarts = 0, inFlight = 0, maxInFlight = 0;
@@ -181,7 +185,7 @@ Deno.test({
         run: async (sandbox, env, script) => {
           if (script === "workers/career-cloud/prepare-runner.ts") {
             runs.push(timed("prepare", runPrepareRequest({ bridge: prepareBridge({ url: env.CLOUD_BRIDGE_URL, id: env.CLOUD_PREPARE_ID, sandbox, token: env.CLOUD_JOB_TOKEN }),
-              runEngine: prepEngine, tmpRoot: work, log: () => {} })));
+              runEngine: prepEngine, tmpRoot: work, log: () => {}, schema: schemaOpt })));
           } else if ((script ?? "workers/career-cloud/sandbox-runner.ts") === "workers/career-cloud/sandbox-runner.ts") {
             runs.push(timed("send", runSandboxJob({ bridge: bridgeQueue({ url: env.CLOUD_BRIDGE_URL, id: env.CLOUD_JOB_ID, sandbox, token: env.CLOUD_JOB_TOKEN }),
               runEngine: sendEngine, tmpRoot: work, log: () => {} })).then((r) => { sendResults.push(r); }));
@@ -474,6 +478,9 @@ Deno.test({
         assert(receipts.includes(captcha.company) && /verification check/.test(receipts), `the captcha's receipt says what to do: ${receipts.slice(0, 600)}`);
         assert(receipts.includes(`Not sent to ${closed.company}: this posting closed before it could be submitted. Nothing reached the employer.`), `the closed posting's receipt in words: ${receipts.slice(0, 1600)}`);
         assert(!/POSTING_CLOSED|FINAL_REVIEW|DRIVER_ERROR|[A-Z]{4,}_[A-Z_]{3,}/.test(receipts), `no engine code reaches the person: ${receipts.slice(0, 1600)}`);
+        // The question the form gained after the approval: said plainly, nothing sent (asking it and a fresh card: the
+        // re-preparation PR stacked on this one).
+        assert(receipts.includes(`Not sent to ${extra.company}: the form has questions you have not answered yet. Nothing reached the employer.`), `the added question's receipt: ${receipts.slice(0, 1600)}`);
         await deliverAll();
         const all = await text("where are my applications");
         const { countsLine } = await import("../../supabase/functions/_shared/career_apply_status.ts");
@@ -491,7 +498,7 @@ Deno.test({
       const sum = (xs: number[]) => Math.round(xs.reduce((a, b) => a + b, 0));
       const measured = { N, ...timings, engine_starts: engineStarts, max_in_flight: maxInFlight, sandboxes: created.length,
         prepare_sandboxes: sbx.prepare.length, prepare_sandbox_ms: sum(sbx.prepare), send_sandboxes: sbx.send.length, send_sandbox_ms: sum(sbx.send),
-        model_calls: modelCalls };
+        model_calls: modelCalls, prepare_browser_runs: prepRuns, schema_from_api: schemaOpt !== false };
       console.log(`MEASURED mass apply: ${JSON.stringify(measured)}`);
       if (TIMING) await Deno.writeTextFile(Deno.env.get("MASS_TIMING")!, JSON.stringify(measured));
       eq(outbound, [], "no real host was asked");

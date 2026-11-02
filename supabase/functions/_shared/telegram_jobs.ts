@@ -50,6 +50,7 @@ export interface PostingRow {
   job_id: string; provider?: string | null; company?: string; title?: string; location?: string | null; url?: string; description?: string | null;
   remote?: string | null; seniority_band?: string | null; posted_at?: string | null; first_seen_at?: string | null; pay?: string | null; closed_at?: string | null;
   deadline?: string | null; company_domain?: string | null;
+  last_seen_at?: string | null; // when the ingest last saw the posting live on its board: the File's "Postings checked" stamp
 }
 export interface PreparedRow { id: string; job_id: string; company: string; url: string; payload: Record<string, unknown>; payload_hash: string; card_lines: string[]; state: string }
 
@@ -713,7 +714,7 @@ export function supabaseJobStore(admin: any): JobStore {
     async recallList(userId, listId) { const v = await get(userId, `tg:list:${listId}`); return Array.isArray(v) ? v.map(String) : null; },
     async postings(ids) {
       if (!ids.length) return [];
-      return must(await admin.from("career_postings").select("job_id,provider,company,title,location,url,description,remote,seniority_band,posted_at,first_seen_at,pay,closed_at").in("job_id", ids), "read postings") ?? [];
+      return must(await admin.from("career_postings").select("job_id,provider,company,title,location,url,description,remote,seniority_band,posted_at,first_seen_at,last_seen_at,pay,closed_at").in("job_id", ids), "read postings") ?? [];
     },
     async save(userId, ref, job, at) {
       if (await get(userId, `tg:saved:${ref}`)) return "already";

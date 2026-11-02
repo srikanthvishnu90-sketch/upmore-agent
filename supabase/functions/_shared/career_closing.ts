@@ -9,7 +9,7 @@
 //   - Who: career_apply_wanted rows still waiting (on the list, not sent), with no career_apply_jobs row for that posting.
 //     What it is waiting on is said: its open questions (career_apply_questions), or that it has not been prepared yet.
 //   - When: the day before the closing day on the person's own clock, from their report hour, never in quiet hours. Once per
-//     posting ever (career_outbox key status:closing:<posting> / status:closed:<posting>, unique per person).
+//     posting ever (career_outbox key status:closing:<closing day>:<posting> / status:closed:<posting>, unique per person).
 // The scheduled run (career-proactive) calls runClosing over the people who are not paused (its `awake` filter); delivery
 // checks the account again before a text goes out (channel.ts deliverDue). Nothing is applied, approved or sent by this.
 import { DEFAULT_PREFS, quietAt, zoneOr } from "./career_alerts.ts";
@@ -26,12 +26,23 @@ export interface ClosingRow {
 const MONTHS: Record<string, number> = { jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4, may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8,
   sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12 };
 const MON = "(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\.?";
-// What makes a date a closing date: the sentence says applications close, are due, or must be in by it.
-const CUE = "(?:apply by|apply before|applications? (?:will )?(?:close|closes|closing|are due|is due|due|deadline|must be (?:received|submitted) by)|application deadline|deadline (?:to apply|for applications)|deadline|closing date|(?:this )?(?:posting|position|role|job) (?:will )?(?:close|closes|expires)|accepting applications (?:until|through)|submit (?:your |an )?applications? (?:by|before|no later than)|no later than)";
-const GAP = "[^.!?\\n]{0,40}?";
-const NAMED_MD = new RegExp(`\\b${CUE}${GAP}\\b${MON}\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?\\b`, "i");
-const NAMED_DM = new RegExp(`\\b${CUE}${GAP}\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?${MON}(?:,?\\s+(\\d{4}))?\\b`, "i");
-const ISO = new RegExp(`\\b${CUE}${GAP}\\b(\\d{4})-(\\d{2})-(\\d{2})\\b`, "i");
+// What makes a date a closing date: the sentence says APPLICATIONS close, are due, or must be in by it. A bare "deadline" or
+// "no later than" is never enough ("thrive under deadlines", "start no later than June 1" are not closing dates).
+const CUE = new RegExp("\\b(?:apply by|apply before|apply no later than|applications? (?:will )?(?:close|closes|closing|are due|is due|due|must be (?:received|submitted)(?: by| before| no later than)?)" +
+  "|applications? (?:will be )?(?:accepted|reviewed|taken) (?:until|through|till)|application deadline|deadline (?:to apply|for applications|to submit (?:your |an )?application)" +
+  "|closing date for applications|(?:this )?(?:posting|position|role|job|requisition) (?:will )?(?:close|closes|expires)(?: on)?|accepting applications (?:until|through|till)" +
+  "|submit (?:your |an )?applications? (?:by|before|no later than))\\b", "gi");
+// The dates read after a cue: a month's name with the day (either order), or YYYY-MM-DD. Never d/m or m/d numbers.
+const MD = new RegExp(`\\b${MON}\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?\\b`, "i");
+const DM = new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?${MON}(?:,?\\s+(\\d{4}))?\\b`, "i");
+const ISO = /\b(\d{4})-(\d{2})-(\d{2})\b/;
+// The clause a cue governs: up to 50 characters after it, ended by a sentence stop or a comma that starts new words
+// ("Applications close 4 November, interviews on Nov 10": only "4 November" is the cue's).
+function clauseAfter(text: string, from: number): string {
+  const rest = text.slice(from, from + 50);
+  const stop = rest.search(/[!?;\n]|\.(?=\s+[A-Z]|\s*$)|,(?=\s*[A-Za-z])/);
+  return stop < 0 ? rest : rest.slice(0, stop);
+}
 const valid = (y: number, m: number, d: number) => m >= 1 && m <= 12 && d >= 1 && d <= 31 && new Date(Date.UTC(y, m - 1, d)).getUTCDate() === d;
 const ymd = (y: number, m: number, d: number) => `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
@@ -43,13 +54,21 @@ export function closingDateOf(description: string, firstSeenIso: string): { day:
   if (!Number.isFinite(seen)) return null;
   const seenDay = new Date(seen).toISOString().slice(0, 10);
   let y: number | null = null, m = 0, d = 0, at = -1, len = 0;
-  const md = NAMED_MD.exec(text), dm = NAMED_DM.exec(text), iso = ISO.exec(text);
-  const first = [md, dm, iso].filter((x): x is RegExpExecArray => !!x).sort((a, b) => a.index - b.index)[0];
-  if (!first) return null;
-  at = first.index; len = first[0].length;
-  if (first === iso) { y = Number(iso[1]); m = Number(iso[2]); d = Number(iso[3]); }
-  else if (first === md) { m = MONTHS[md[1].toLowerCase().replace(/\.$/, "")]; d = Number(md[2]); y = md[3] ? Number(md[3]) : null; }
-  else { d = Number(dm![1]); m = MONTHS[dm![2].toLowerCase().replace(/\.$/, "")]; y = dm![3] ? Number(dm![3]) : null; }
+  CUE.lastIndex = 0;
+  for (let c = CUE.exec(text); c; c = CUE.exec(text)) {
+    const from = c.index + c[0].length, clause = clauseAfter(text, from);
+    // The date nearest after the cue in its clause.
+    const hit = [MD.exec(clause), DM.exec(clause), ISO.exec(clause)].map((x, k) => x ? { x, k } : null).filter((v): v is { x: RegExpExecArray; k: number } => !!v)
+      .sort((p, q) => p.x.index - q.x.index)[0];
+    if (!hit) continue;
+    const x = hit.x;
+    if (hit.k === 2) { y = Number(x[1]); m = Number(x[2]); d = Number(x[3]); }
+    else if (hit.k === 0) { m = MONTHS[x[1].toLowerCase().replace(/\.$/, "")]; d = Number(x[2]); y = x[3] ? Number(x[3]) : null; }
+    else { d = Number(x[1]); m = MONTHS[x[2].toLowerCase().replace(/\.$/, "")]; y = x[3] ? Number(x[3]) : null; }
+    at = c.index; len = from - c.index + x.index + x[0].length;
+    break;
+  }
+  if (at < 0) return null;
   if (!m) return null;
   if (y === null) {
     // No year written: the first such day on or after the day the posting was first seen.
@@ -82,13 +101,22 @@ const one = (s: unknown, n: number) => String(s ?? "").replace(/\s+/g, " ").trim
 const nameOf = (r: ClosingRow) => `${one(r.title, 120) || "A role"} at ${one(r.company, 120) || "an employer"}`;
 
 export const CLOSING_PREFIX = "status:closing:", CLOSED_PREFIX = "status:closed:", CLOSED_NEWS_MS = 7 * 86400000;
+// Review of #378: a closing text held past its day (WhatsApp's 24-hour window holds a text until the person writes) is
+// never sent after the role closed. Its key carries the closing day (status:closing:<YYYY-MM-DD>:<posting>); delivery
+// (channel.ts) drops it from the start of that day in UTC, which is before the day ends anywhere in the Americas.
+export function closingExpired(key: string, now: number): boolean {
+  const m = /^status:closing:(\d{4}-\d{2}-\d{2}):/.exec(String(key ?? ""));
+  if (!m) return false;
+  const start = Date.parse(`${m[1]}T00:00:00Z`);
+  return !Number.isFinite(start) || now >= start;
+}
 
 export function closingText(r: ClosingRow, close: { day: string; said: string }): string {
   const qs = (r.open_questions ?? []).map((q) => one(q, 140)).filter(Boolean);
   const waiting = qs.length
     ? `It's waiting on your answer to ${qs.length === 1 ? "one question" : `${qs.length} questions`}: ${qs.slice(0, 3).map((q) => `"${q}"`).join("; ")}${qs.length > 3 ? ` and ${qs.length - 3} more` : ""}.`
     : "It hasn't been prepared for your approval yet.";
-  return `${nameOf(r)} closes tomorrow, ${label(close.day)} (the posting says: "${close.said}"). It's on your apply list and nothing has been sent. ${waiting} ` +
+  return `${nameOf(r)} closes ${label(close.day)} (the posting says: "${close.said}"). It's on your apply list and nothing has been sent. ${waiting} ` +
     `Say "don't apply to ${one(r.company, 120)}" to drop it. This is the only reminder about it.`;
 }
 export function closedText(r: ClosingRow): string {
@@ -115,7 +143,7 @@ export function planClosing(rows: ClosingRow[], now: number): { userId: string; 
     if (c.day !== dayBefore(close.day)) continue;
     if (c.hour < (r.report_hour ?? DEFAULT_PREFS.report_hour)) continue;
     if (quietAt(now, tz, { quiet_start: r.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: r.quiet_end ?? DEFAULT_PREFS.quiet_end })) continue;
-    out.push({ userId: r.user_id, key: `${CLOSING_PREFIX}${r.posting_key}`, text: closingText(r, close), at: now });
+    out.push({ userId: r.user_id, key: `${CLOSING_PREFIX}${close.day}:${r.posting_key}`, text: closingText(r, close), at: now });
   }
   return out;
 }

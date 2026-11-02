@@ -9,7 +9,9 @@ import assertNode from "node:assert/strict";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
 import { careerHandler, SERVICE_KEY, SUPABASE_URL, supabaseParity } from "../flow/handler.ts";
-import { closingDateOf, type ClosingRow, planClosing, supabaseClosingRows } from "../../supabase/functions/_shared/career_closing.ts";
+import { closingDateOf, closingExpired, type ClosingRow, planClosing, supabaseClosingRows } from "../../supabase/functions/_shared/career_closing.ts";
+import { deliverDue } from "../../supabase/functions/_shared/channel.ts";
+import { supabaseChannelStore } from "../../supabase/functions/_shared/channel_store.ts";
 import { supabaseAlertStore } from "../../supabase/functions/_shared/career_alert_store.ts";
 import { supabasePostingsDb } from "../../supabase/functions/_shared/career_ingest.ts";
 import { handleProactive } from "../../supabase/functions/career-proactive/handler.ts";
@@ -30,8 +32,19 @@ Deno.test("CLOSING/1 the date reader: only a stated closing date, from the posti
   eq(at("Applications are due 4 November 2026.")?.day, "2026-11-04");
   eq(at("This posting will close January 15")?.day, "2027-01-15", "a January date first seen in October is next year's");
   eq(at("We are accepting applications until December 1st, 2026.")?.day, "2026-12-01");
-  for (const t of ["Deadline 11/04/2026", "Founded on November 4, 2010.", "Start date: November 4, 2026.", "Applications close Feb 30, 2027.", "", "Deadline: November 4, 2029."])
+  for (const t of ["Deadline 11/04/2026", "Founded on November 4, 2010.", "Start date: November 4, 2026.", "Applications close Feb 30, 2027.", "", "Applications close November 4, 2029."])
     eq(at(t), null, t);
+  // Review of #378: only an application cue makes a closing date; a bare "deadline" or "no later than" never does.
+  for (const t of ["You thrive under deadlines, starting March 3, 2027.", "We thrive under deadlines. Starting March 3, 2027.", "You must be able to start no later than June 1, 2027.",
+    "Deadline: November 4, 2026.", "Project deadline December 1, 2026 for the launch.", "Applications close soon, interviews on Nov 10."]) eq(at(t), null, t);
+  // The date nearest after the cue, in its clause.
+  eq(at("Applications close 4 November, interviews on Nov 10.")?.day, "2026-11-04");
+  eq(at("Applications close on November 4, 2026, and interviews run through December 1, 2026.")?.day, "2026-11-04");
+  eq(at("Interviews start Nov 20. Applications are due by the deadline of Nov 4.")?.day, "2026-11-04", "a date before the cue is never the cue's");
+  eq(at("Submit your application no later than November 4, 2026.")?.day, "2026-11-04");
+  eq(at("Applications are due Nov 4 and final interviews Nov 12.")?.day, "2026-11-04", "two dates in the clause: the nearest after the cue");
+  eq(at("Applications close 4 November or 2026-11-20 for late ones.")?.day, "2026-11-04", "written two ways: still the nearest after the cue");
+  eq(at("We will be accepting applications until Nov. 4")?.day, "2026-11-04");
 });
 
 const row = (o: Partial<ClosingRow> = {}): ClosingRow => ({ user_id: "U", posting_key: "greenhouse:acme:1", company: "Acme", title: "Data Analyst", url: "https://job-boards.greenhouse.io/acme/jobs/1",
@@ -40,8 +53,8 @@ const row = (o: Partial<ClosingRow> = {}): ClosingRow => ({ user_id: "U", postin
 Deno.test("CLOSING/2 the plan: the day before from the report hour, awake; closed once and only recent; nothing otherwise", () => {
   const p = planClosing([row({ open_questions: ["Are you authorized to work in the US?"] })], T0);
   eq(p.length, 1);
-  eq([p[0].userId, p[0].key, p[0].at], ["U", "status:closing:greenhouse:acme:1", T0]);
-  eq(p[0].text, `Data Analyst at Acme closes tomorrow, Wed, Nov 4 (the posting says: "Applications close on November 4, 2026."). It's on your apply list and nothing has been sent. ` +
+  eq([p[0].userId, p[0].key, p[0].at], ["U", "status:closing:2026-11-04:greenhouse:acme:1", T0]);
+  eq(p[0].text, `Data Analyst at Acme closes Wed, Nov 4 (the posting says: "Applications close on November 4, 2026."). It's on your apply list and nothing has been sent. ` +
     `It's waiting on your answer to one question: "Are you authorized to work in the US?". Say "don't apply to Acme" to drop it. This is the only reminder about it.`);
   assert(/hasn't been prepared for your approval yet/.test(planClosing([row()], T0)[0].text));
   eq(planClosing([row()], T0 - 2 * HOUR), [], "7 AM is before the 8 AM report hour");
@@ -54,6 +67,12 @@ Deno.test("CLOSING/2 the plan: the day before from the report hour, awake; close
   assert(/^Data Analyst at Acme is no longer posted: the employer took it down \(Trainee saw it gone on Nov 3\)\. Nothing was sent for it/.test(gone[0].text), gone[0].text);
   eq(planClosing([row({ closed_at: new Date(T0 - 8 * DAY).toISOString() })], T0), [], "closed more than a week ago is not news");
   eq(planClosing([row({ tz: "America/Los_Angeles" })], T0).length, 0, "7 AM in Los Angeles: before the report hour on their own clock");
+  assert(!/tomorrow|today/.test(p[0].text), "no relative day in a text that may be held");
+  // A closing text is never delivered from the start of its closing day (UTC); other keys are untouched.
+  eq(closingExpired("status:closing:2026-11-04:greenhouse:acme:1", Date.UTC(2026, 10, 3, 23, 59)), false);
+  eq(closingExpired("status:closing:2026-11-04:greenhouse:acme:1", Date.UTC(2026, 10, 4, 0, 0)), true);
+  eq(closingExpired("status:closed:greenhouse:acme:1", Date.UTC(2027, 0, 1)), false);
+  eq(closingExpired("alert:x", Date.UTC(2027, 0, 1)), false);
 });
 
 const PEOPLE: Record<string, string> = { "tok-c1": "7b0f8f8e-6a43-4a49-9d2c-0000000c1c01", "tok-c2": "7b0f8f8e-6a43-4a49-9d2c-0000000c1c02", "tok-c3": "7b0f8f8e-6a43-4a49-9d2c-0000000c1c03" };
@@ -85,9 +104,11 @@ Deno.test({ name: "CLOSING/3 the scheduled run on real Postgres: one text the da
     const payload = JSON.stringify({ version: "1", user_id: C3, job_id: job, company: "Hooli", url, fields: [], title: "Data Analyst" });
     await pg.sql(`insert into public.career_apply_wanted (user_id, posting_key, url, company, title, state, queued_at) values
         ${want(C1, "acme", "Acme")}, ${want(C1, "globex", "Globex")}, ${want(C1, "initech", "Initech")}, ${want(C2, "acme", "Acme")}, ${want(C3, "hooli", "Hooli")},
-        ${want(C1, "umbrella", "Umbrella").replace("'waiting'", "'taken'")};
+        ${want(C1, "umbrella", "Umbrella").replace("'waiting'", "'taken'")}, ${want(C1, "hooli", "Hooli")};
       insert into public.career_apply_questions (user_id, key, kind, label, type, job_ids, company) values ('${C1}', 'fact:work_authorization', 'fact', 'Are you authorized to work in the US?', 'select', array['greenhouse:acme:1'], 'Acme'),
-        ('${C1}', 'fact:start_date', 'fact', 'When can you start?', 'text', array['greenhouse:globex:1'], 'Globex');
+        ('${C1}', 'fact:start_date', 'fact', 'When can you start?', 'text', array['greenhouse:globex:1'], 'Globex'),
+        ('${C3}', 'fact:salary', 'fact', 'Another person asked: expected salary?', 'text', array['greenhouse:acme:1'], 'Acme');
+      insert into public.channel_contacts (contact, user_id) values ('+15550310001', '${C1}');
       set session_replication_role = replica;
       insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, created_at, updated_at) values
         ('${C3}', '${job}', 'Hooli', '${url}', '${payload}'::jsonb, '${"b".repeat(64)}', '${"b".repeat(64)}', 'submitted_unconfirmed', '${SEEN}', '${SEEN}');
@@ -130,18 +151,20 @@ Deno.test({ name: "CLOSING/3 the scheduled run on real Postgres: one text the da
 
     await t.step("the day before at 9 AM: one text for Acme to the person whose list it is on, saying what it waits on", async () => {
       const r = await run(T0);
-      eq(r.closing, 1);
+      eq(r.closing, 2);
       const box = await outbox(pg);
-      eq(box.map((b: any) => [b.user, b.key]), [[C1, "status:closed:greenhouse:globex:1"], [C1, "status:closing:greenhouse:acme:1"]].sort((a, b) => a[1] < b[1] ? -1 : 1));
-      const acme = box.find((b: any) => b.key === "status:closing:greenhouse:acme:1");
+      eq(box.map((b: any) => [b.user, b.key]), [[C1, "status:closed:greenhouse:globex:1"], [C1, "status:closing:2026-11-04:greenhouse:acme:1"], [C1, "status:closing:2026-11-04:greenhouse:hooli:1"]].sort((a, b) => a[1] < b[1] ? -1 : 1));
+      const acme = box.find((b: any) => b.key === "status:closing:2026-11-04:greenhouse:acme:1");
       eq(Number(acme.at), T0);
-      assert(acme.text.startsWith(`Data Analyst at Acme closes tomorrow, Wed, Nov 4 (the posting says: "Applications close on November 4, 2026."). It's on your apply list and nothing has been sent.`), acme.text);
+      assert(acme.text.startsWith(`Data Analyst at Acme closes Wed, Nov 4 (the posting says: "Applications close on November 4, 2026."). It's on your apply list and nothing has been sent.`), acme.text);
       assert(/waiting on your answer to one question: "Are you authorized to work in the US\?"/.test(acme.text), acme.text);
       assert(!box.some((b: any) => b.user === C2), "the paused person gets nothing");
       assert(!box.some((b: any) => b.user === C3), "the role already applied to gets nothing");
       assert(!box.some((b: any) => /initech/.test(b.key)), "no stated date: nothing");
       assert(!box.some((b: any) => /umbrella/.test(b.key)), "a role already taken off the list to apply: nothing");
       assert(!/When can you start/.test(acme.text), "only this posting's own questions");
+      assert(!/Another person asked/.test(acme.text), "only this person's own questions");
+      assert(box.some((b: any) => b.user === C1 && /hooli/.test(b.key)), "another person's application to Hooli does not count as this person's");
     });
 
     await t.step("again later that day and on the closing day: nothing more (once, no loop)", async () => {
@@ -149,6 +172,15 @@ Deno.test({ name: "CLOSING/3 the scheduled run on real Postgres: one text the da
       eq((await run(T0 + HOUR)).closing, 0);
       eq((await run(T0 + DAY)).closing, 0);
       eq(await outbox(pg), before);
+    });
+    await t.step("delivery: a closing text still held when its closing day starts is dropped, never sent late; the closed line goes", async () => {
+      const store: any = supabaseChannelStore(admin), sent: string[] = [];
+      await deliverDue({ store, now: Date.UTC(2026, 10, 4, 0, 30), send: async (_c, bubbles) => { sent.push(bubbles.join("\n")); return { ok: true, id: `p${sent.length}` }; } });
+      await store.release();
+      eq(sent.length, 1, JSON.stringify(sent));
+      assert(/^Data Analyst at Globex is no longer posted/.test(sent[0]), sent[0]);
+      const st = JSON.parse(await pg.sql(`select jsonb_object_agg(key, status) from public.career_outbox where user_id = '${C1}'`));
+      eq([st["status:closing:2026-11-04:greenhouse:acme:1"], st["status:closing:2026-11-04:greenhouse:hooli:1"], st["status:closed:greenhouse:globex:1"]], ["skipped_opt_out", "skipped_opt_out", "delivered"]);
     });
   } finally {
     handler?.restore();

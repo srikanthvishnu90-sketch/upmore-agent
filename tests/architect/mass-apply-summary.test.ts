@@ -31,3 +31,13 @@ Deno.test("a closed posting is said in words, never its code", () => {
   const r = statusReply("where are my applications", [row(1, "not_submitted", "POSTING_CLOSED"), row(2, "submitted_unconfirmed")] as any, NOW)!;
   assert(/TEST Co 1[^\n]*this posting closed before it could be submitted; nothing was sent/.test(r.reply) && !/POSTING_CLOSED/.test(r.reply), r.reply);
 });
+
+Deno.test("(B) a needs_answers row superseded by a newer row of the same posting is not said; alone, it is", async () => {
+  const { liveRows } = await import("../../supabase/functions/_shared/career_apply_status.ts");
+  const old = { ...row(1, "not_submitted", "needs_answers"), created_at: new Date(NOW - 7200000).toISOString() };
+  const fresh = { ...row(1, "queued"), id: "j1b", created_at: new Date(NOW - 600000).toISOString() };
+  eq(liveRows([old, fresh] as any).map((r: any) => r.id), ["j1b"]);
+  eq(liveRows([old] as any).map((r: any) => r.id), ["j1"]);
+  const r = statusReply("where are my applications", [old, fresh, row(2, "submitted_unconfirmed")] as any, NOW)!;
+  assert(r.reply.startsWith("2 applications:"), r.reply);
+});

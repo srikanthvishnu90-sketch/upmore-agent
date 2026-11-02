@@ -158,10 +158,17 @@ export function statusLine(a: AppRow): string {
 }
 
 // The reply to a status question, from the rows (null: they could not be read). Null when the text is not one.
+// (B) 20261101130000: an application stopped for a question the form added after the approval (not_submitted,
+// needs_answers) is history once the same posting has a newer row (re-prepared, approved again): only the newer is said.
+export function liveRows(rows: AppRow[]): AppRow[] {
+  const history = (a: AppRow) => a.state === "not_submitted" && a.reason === "needs_answers";
+  return rows.filter((a) => !(history(a) && rows.some((b) => b !== a && b.url === a.url && Date.parse(b.created_at) > Date.parse(a.created_at))));
+}
 export function statusReply(message: string, rows: AppRow[] | null, now: number): { reply: string; status: string; intent: string } | null {
   const ask = statusAsk(message);
   if (!ask) return null;
   if (!rows) return { reply: "I couldn't read your applications just now, so I can't say whether any were sent. Ask me again in a minute.", status: "unreadable", intent: STATUS_INTENT };
+  rows = liveRows(rows);
   if (ask.latest) {
     const last = [...rows].sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))[0];
     if (!last) return { reply: "I have no application on record for you, so nothing was sent through Trainee.", status: "none", intent: STATUS_INTENT };

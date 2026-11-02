@@ -21,3 +21,13 @@ Deno.test("one application: no counts line, as before", () => {
   const r = statusReply("where are my applications", [row(1, "submitted_unconfirmed")] as any, NOW)!;
   assert(r.reply.startsWith("Your applications, newest first:\n- TEST Co 1"), r.reply);
 });
+
+Deno.test("every row is counted once: failed and any other state counted, the counts add up to the total", () => {
+  const rows = [row(1, "submitted_unconfirmed"), row(2, "failed", "Invalid phone"), row(3, "unknown_outcome"), row(4, "confirmed"), row(5, "some_new_state")];
+  eq(countsLine(rows as any), "5 applications: 1 confirmed by the employer, 1 submitted, 1 may have gone (unknown), 1 turned down by the employer's form, 1 other.");
+});
+
+Deno.test("a closed posting is said in words, never its code", () => {
+  const r = statusReply("where are my applications", [row(1, "not_submitted", "POSTING_CLOSED"), row(2, "submitted_unconfirmed")] as any, NOW)!;
+  assert(/TEST Co 1[^\n]*this posting closed before it could be submitted; nothing was sent/.test(r.reply) && !/POSTING_CLOSED/.test(r.reply), r.reply);
+});

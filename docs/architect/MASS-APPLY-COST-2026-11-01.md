@@ -37,7 +37,7 @@ Source: `tests/architect/flow-mass-apply-telegram.test.ts`, run with `MASS_TIMIN
 - sending: 50 × 11.4 s / 2, about 4.8 min;
 - total: about **10 min wall**, plus the person's answers.
 
-## Cost per application
+## Cost per application (an ESTIMATE: single-run sandbox times × Vercel's published rates, not a bill)
 
 Rates: Vercel Sandbox, Pro, iad1, from https://vercel.com/docs/sandbox/pricing (fetched 2026-11-01):
 - Active CPU: $0.128 per hour.
@@ -52,7 +52,7 @@ The sandbox is 2 vCPU and 4 GB, as `supabase/functions/_shared/cloud_runner.ts` 
 | Memory: preparation 4 GB × 11.6 s, plus the send billed at the 1-minute minimum (4 GB × 60 s) | $0.0017 |
 | Sandbox creations (about 1.2 per application) | ≈ $0.000001 |
 | Model tokens | $0 |
-| **Total, upper bound** | **≈ $0.0033** |
+| **Total, estimated upper bound** | **≈ $0.0033** |
 
 **For 120 applications in one hour:**
 - Cost: about **$0.40**.
@@ -90,3 +90,13 @@ The sandbox is 2 vCPU and 4 GB, as `supabase/functions/_shared/cloud_runner.ts` 
 | Tailoring per role cluster | Per posting (`career_tailor.ts`) | Not built |
 | One batch card, one yes | Built (one tap approved 12, bound to each hash) | The early 1-item card (gap 4 above) |
 | Tiers: extension, then cloud, then needs_user | Cloud built and measured here; needs_user for captcha proven; extension person-submits proven on captured forms | Extension submit for Ashby untested (RAMP-APPLY-TRACE) |
+
+## Follow-up (feat/mass-apply-throughput-20261101): the gaps, measured
+
+| Gap | Before | After |
+|---|---|---|
+| 1. One closed posting paused a whole ATS | A 404 posting was recorded `error`. The throttle paused the ATS for 6 h after one error in a small window. Measured: 2 of 12 held. | The engine reports `POSTING_CLOSED` at open, before anything is filled. The worker records it as `not_sent`. The failure-rate rule now needs ≥ 20 attempts (migration 20261101120000). The bot-check rules are unchanged. Measured: the closed posting held nothing. |
+| 2. Waiver max 5 | — | Kept: the owner's D-010 safety cap, the first test batch per portal until 3 confirmed applications open the gate. Not a scale limit once a portal's gate is open. |
+| 3. 2 sends per tick | `LIMIT_DEFAULTS` are infrastructure sizing for the first rollout wave (2 starts per tick, 2 at once, 1 per portal) | Unchanged defaults. Mass settings come from env: `CLOUD_MAX_STARTS_PER_TICK`, `CLOUD_MAX_CONCURRENT`, `CLOUD_MAX_PER_PORTAL`. The e2e runs at 4/4/2. Throughput at the 1-minute production tick: starts per tick × 60 per hour. 120 per hour needs ≥ 2 per tick, with at most `CLOUD_MAX_PER_PORTAL` on one ATS at once. |
+| 4. Early 1-item card | Measured: 2 distinct cards per batch. Cause: the card push caps text at 4,000 characters, so a 12-item ready set fitted 1. | The push is held while a question is open or another posting is still waiting to be prepared. A ready set that does not fit one message gets "All N are ready, say show my applications" instead. Measured: 1 distinct card. |
+| 5. Browser per posting for the schema | 11.6 s of sandbox time per posting | `posting_schema.ts` reads Greenhouse's boards-API questions, cached, in 33 ms on the fixture. Lever and Ashby publish no application questions, so they fall back to the browser. **Not yet wired into preparation**: the engine's question keys must match. |

@@ -28,6 +28,14 @@ const LV_CARD = "8d3c3b0e-0001-4000-8000-00000000c001";
 const page = (title: string, body: string) => `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title></head><body>${body}</body></html>`;
 const select = (id: string, name: string, label: string, opts: string[]) =>
   `<label for="${id}">${esc(label)} <span>*</span></label><select id="${id}" name="${name}" required><option value="">Please select</option>${opts.map((o) => `<option value="${o}">${o}</option>`).join("")}</select>`;
+// The voluntary self-identification section both ATSs append (optional; Trainee never answers it for the person).
+const opt = (id: string, label: string, opts: string[]) =>
+  `<label for="${id.replace(/\W/g, "_")}">${esc(label)}</label><select id="${id.replace(/\W/g, "_")}" name="${id}"><option value="">Please select</option>${opts.map((o) => `<option value="${esc(o)}">${esc(o)}</option>`).join("")}</select>`;
+const EEO = (g: string, r: string, v: string, d: string) => `<fieldset class="eeoc"><legend>Voluntary Self-Identification</legend>
+${opt(g, "Gender", ["Male", "Female", "Decline To Self Identify"])}
+${opt(r, "Race", ["Hispanic or Latino", "White", "Black or African American", "Asian", "Two or More Races", "Decline To Self Identify"])}
+${opt(v, "Veteran Status", ["I am a veteran", "I am not a veteran", "I don't wish to answer"])}
+${opt(d, "Disability Status", ["Yes, I have a disability", "No, I do not have a disability", "I do not want to answer"])}</fieldset>`;
 const CLOSED = (p: Posting) => new Response(page("Not found", `<h1>This job is no longer accepting applications</h1><p>${esc(p.company)}</p>`), { status: 404, headers: { "content-type": "text/html" } });
 const RECAPTCHA = '<div class="g-recaptcha" data-sitekey="TEST-NEVER-SOLVED"></div>';
 
@@ -42,6 +50,8 @@ function ghForm(p: Posting, base: string) {
 <label for="resume">Resume/CV <span>*</span></label><input id="resume" name="resume" type="file" required>
 ${select(`question_${GH_AUTH}`, `question_${GH_AUTH}`, AUTH_Q, ["Yes", "No"])}
 ${select(`question_${GH_SPONSOR}`, `question_${GH_SPONSOR}`, SPONSOR_Q, ["Yes", "No"])}
+<label for="question_4100010">How did you hear about us?</label><textarea id="question_4100010" name="question_4100010"></textarea>
+${EEO("gender", "race", "veteran_status", "disability_status")}
 ${extra}${p.captcha ? RECAPTCHA : ""}<button type="submit" id="submit_app">Submit Application</button></form>`);
 }
 // The boards API's description of the same form (questions=true), the shape capture-greenhouse-questions.cjs saves.
@@ -72,6 +82,7 @@ function lvForm(p: Posting, base: string) {
 <label for="org">Current company</label><input id="org" name="org" type="text">
 <label for="urls_linkedin">LinkedIn URL</label><input id="urls_linkedin" name="urls[LinkedIn]" type="text">
 ${select("cards_auth", `cards[${LV_CARD}][field0]`, AUTH_Q, ["Yes", "No"])}
+${EEO("eeo[gender]", "eeo[race]", "eeo[veteran]", "eeo[disability]")}
 ${extra}${p.captcha ? RECAPTCHA : ""}<button type="submit" id="btn-submit">Submit application</button></form>`);
 }
 

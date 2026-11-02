@@ -91,6 +91,7 @@ const CODE_WORDS: [RegExp, string][] = [
   [/^FACTS_ERASED$/, `your Trainee data was erased; ${NOTHING_SENT}`],
   [/^(FACT_OWNER_MISMATCH|CONFIRMED_FACT_OWNER_REQUIRED)$/, `an answer was not one of your own confirmed facts, so it was not sent; ${NOTHING_SENT}`],
   [/^(duplicate_job|duplicate_posting)$/, `you already applied to this exact posting; ${NOTHING_SENT}`],
+  [/^POSTING_CLOSED$/, `this posting closed before it could be submitted; ${NOTHING_SENT}`],
   [/^(daily_cap|daily_limit)$/, `you had reached the daily pace you set; ${NOTHING_SENT}`],
   [/^IDENTITY_NUMBER_REQUESTED$/, `the form asks for an identity number, which only you type; ${NOTHING_SENT}`],
   [/^(UNCONFIRMED_HIDDEN_FIELD|UNSUPPORTED_FILE_ARTIFACT|SUBMIT_DESTINATION_NOT_BOUND|SUBMIT_DESTINATION_UNEXPECTED|SUBMIT_DESTINATION_CHANGED|SCRIPT_SUBMIT_FAMILY_MISMATCH|HOST_REDIRECT_REFUSED|portal_not_cloud|person_submits)$/, `the employer's form works in a way Trainee does not submit for you; finish it at the link. ${NOTHING_SENT[0].toUpperCase()}${NOTHING_SENT.slice(1)}`],
@@ -194,7 +195,11 @@ export function countsLine(rows: AppRow[]): string {
     [n((a) => a.state === "needs_user"), "waiting on you"],
     [n((a) => a.state === "not_submitted"), "not sent"],
     [n((a) => a.state === "queued" || a.state === "driving"), "approved and not sent yet"],
+    [n((a) => a.state === "failed"), "turned down by the employer's form"],
   ];
+  // Every row is counted once: a state not named above is said as "other", so the counts always add up to the total.
+  const named = parts.reduce((k, [x]) => k + x, 0);
+  if (named < rows.length) parts.push([rows.length - named, "other"]);
   const said = parts.filter(([k]) => k > 0).map(([k, w]) => `${k} ${w}`);
   return `${rows.length} applications: ${said.join(", ")}.`;
 }

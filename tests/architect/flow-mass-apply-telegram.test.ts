@@ -60,7 +60,7 @@ const RUNNER = "http://runner.test/functions/v1/career-cloud-runner";
 const TOKEN = "123456:TEST-mass-bot-token-not-real";
 const TG_SECRET = "TEST_mass_webhook_secret_0123456789_abcdef";
 const CHAT = 700000417;
-const CAP = 5; // the per-person daily cap for the cap step
+const CAP = 3; // the per-person daily cap for the cap step (below any one ATS's share, so the cap, not a waiver, is what holds)
 const RESUME = Deno.readTextFileSync(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
 const FILE = new TextEncoder().encode("%PDF-1.4\n% TEST synthetic resume file for the mass-apply flow, not a real person\n%%EOF\n");
 const FILE_NAME = "Alex_Testcase_Resume.pdf";
@@ -109,10 +109,10 @@ Deno.test({
     const postings = postingsOf(N);
     // Four special postings: a captcha at Submit (Ashby), a required question added after the approval (Greenhouse), a
     // posting closed after the approval (Lever), and the rest ordinary.
-    const captcha = postings.find((p) => p.family === "ashby")!;
+    const captcha = postings.find((p) => p.family === "lever" && p !== postings[1])!;
     const extra = postings.find((p) => p.family === "greenhouse" && p !== postings[0])!;
-    const closed = postings.find((p) => p.family === "lever" && p !== postings[1])!;
-    captcha.captcha = true; // a challenge at Submit only: the preparation's dry run never presses Submit
+    const closed = postings.find((p) => p.family === "lever" && p !== postings[1] && p !== captcha)!;
+    // The captcha appears after the approval (a low reCAPTCHA score on the send), as it does live.
     const world = atsWorld(postings);
     const work = await Deno.makeTempDir({ prefix: "trainee-mass-" });
     const bot = botApi();
@@ -194,7 +194,9 @@ Deno.test({
         SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY, CLOUD_RUNNER_SECRET: SECRET, CLOUD_DISPATCH_SECRET: DISPATCH,
         CAREER_PREPARE_AHEAD_TOKEN: KICK, CLOUD_PREPARE_ENABLED: "on", CLOUD_RUNNER_ENABLED: "on", CLOUD_BRIDGE_URL: RUNNER,
         CLOUD_PREPARE_MAX_CONCURRENT: "6", CLOUD_PREPARE_PER_PERSON_DAY: String(10 * N), CLOUD_PREPARE_PER_SITE_MINUTE: String(10 * N),
-        CLOUD_MAX_CONCURRENT: "8", CLOUD_MAX_PER_PORTAL: "4", CLOUD_MAX_PER_PERSON_DAY: String(CAP), CLOUD_MAX_PER_SITE_MINUTE: String(10 * N),
+        // Mass settings (docs/architect/MASS-APPLY-COST-2026-11-01.md): 8 sandboxes at once, at most 3 on one ATS host, up to 8
+        // started per tick. The defaults stay wave 1 (2, 1, 2: cloud_runner_http.ts LIMIT_DEFAULTS).
+        CLOUD_MAX_STARTS_PER_TICK: Deno.env.get("MASS_PER_TICK") || "4", CLOUD_MAX_CONCURRENT: Deno.env.get("MASS_CONCURRENT") || "4", CLOUD_MAX_PER_PORTAL: Deno.env.get("MASS_PER_PORTAL") || "2", CLOUD_MAX_PER_PERSON_DAY: String(CAP), CLOUD_MAX_PER_SITE_MINUTE: String(10 * N),
       };
       let modelCalls = 0;
       let runner: (req: Request) => Promise<Response> = async () => new Response("not yet", { status: 503 });
@@ -316,6 +318,7 @@ Deno.test({
         // prepared (each newer card closes the older) may have gone out before; their buttons approve nothing (step 5).
         const withButtons = bot.calls.filter((c) => c.method === "sendMessage" && c.body.chat_id === CHAT && c.body.reply_markup?.inline_keyboard?.flat().some((b: any) => /^tca:/.test(b.callback_data)));
         console.log(`MEASURED: ${withButtons.length} card message(s) with Approve buttons in the chat: ${withButtons.map((c) => c.body.reply_markup.inline_keyboard.flat()[0].text).join(" | ")}`);
+        if (Deno.env.get("MASS_DEBUG")) for (const c of withButtons) console.log(`CARD MSG #${bot.calls.indexOf(c)}: ${String(c.body.text).slice(0, 160).replace(/\n/g, " / ")} || before: ${bot.calls.slice(Math.max(0, bot.calls.indexOf(c) - 2), bot.calls.indexOf(c)).map((x) => x.method + ":" + String(x.body.text ?? "").slice(0, 80).replace(/\n/g, " / ")).join(" ;; ")}`);
         buttons = withButtons.at(-1)!.body.reply_markup.inline_keyboard.flat();
         eq(buttons[0].text, `Approve all ${N}`);
         assert(buttons[0].callback_data.startsWith(`tca:${card.id}:`), "the last card's buttons are the open card's");
@@ -323,6 +326,7 @@ Deno.test({
         staleButtons = withButtons.slice(0, -1).map((c) => c.body.reply_markup.inline_keyboard.flat()[0].callback_data).filter((d: string) => !d.startsWith(`tca:${card.id}:`));
         const cardIds = new Set(withButtons.map((c) => c.body.reply_markup.inline_keyboard.flat()[0].callback_data.split(":")[1]));
         console.log(`MEASURED: ${cardIds.size} distinct card(s) reached the chat for one batch (${withButtons.length} messages)`);
+        eq(cardIds.size, 1, "exactly one batch card reached the person (none for part of the batch while questions were open)");
         eq(await q1(`select count(*) from public.career_apply_cards where user_id = '${person}' and state = 'open'`), "1", "exactly one open card");
         assert(/^tca:/.test(buttons[0].callback_data) && new TextEncoder().encode(buttons[0].callback_data).length <= 64, buttons[0].callback_data);
         cardMsg = 1;
@@ -358,6 +362,7 @@ Deno.test({
 
       // After the approval, the world moves: one posting closes, one form gains a required question.
       closed.closed = true;
+      captcha.captcha = true;
       extra.extraQuestion = true;
       const dispatch = async () => {
         const d = await runner(new Request(`${RUNNER}/dispatch`, { method: "POST", headers: { "x-cloud-dispatch-secret": DISPATCH } }));
@@ -386,7 +391,10 @@ Deno.test({
         // The cap counts what went, or may have gone, or was handed back today; one stopped with nothing sent (not_submitted:
         // a closed posting, a question the card never showed) does not use a place.
         const counted = j.filter((r: any) => !["queued", "not_submitted"].includes(r.state)).length;
-        eq(counted, CAP, `exactly the cap went today (${j.map((r: any) => `${r.state}/${r.attempts}`).join(",")})`);
+        eq(counted, CAP, `exactly the cap went today (${j.map((r: any) => `${r.state}/${r.attempts}/${r.reason}`).join(",")})`);
+        // What holds the rest is the daily cap itself, by name (not a waiver, not a pause).
+        const why = await json(`select public.career_apply_cloud_text_refusal(j, clock_timestamp(), 'claim', ${CAP}, ${10 * N}) as why from public.career_apply_jobs j where user_id = '${person}' and state = 'queued'`);
+        eq([...new Set(why.map((x: any) => x.why))], ["daily_limit"], "the queued ones wait on the daily cap");
         assert(world.submissions.length <= CAP, `no more than the cap reached employers: ${world.submissions.length}`);
         assert(left > 0, "the rest stay approved and queued");
       });
@@ -403,6 +411,7 @@ Deno.test({
         if (stuck.length) console.log(`STILL QUEUED: ${JSON.stringify(stuck)}`);
         const confirmations: Record<string, number> = {};
         let held = 0;
+        const heldOn: Posting[] = [];
         const j = await jobs();
         const stateOf = (p: Posting) => { const r = j.find((x: any) => x.company === p.company); assert(r, `${p.company} has its queue row: ${j.map((x: any) => x.company + "=" + x.job_id).join(", ")}`); return r; };
         for (const p of postings) {
@@ -415,17 +424,17 @@ Deno.test({
             eq([row.state, row.reason], ["not_submitted", "needs_answers"], `${p.company}: a required question the card never showed stops it`);
             eq(got.length, 0, "nothing sent with an unapproved field");
           } else if (p === closed) {
-            assert(!["submitted_unconfirmed", "confirmed", "queued", "driving"].includes(row.state), `${p.company}: a closed posting is not recorded sent: ${row.state} ${row.reason}`);
+            eq([row.state, row.reason], ["not_submitted", "POSTING_CLOSED"], `${p.company}: a closed posting ends alone, nothing sent`);
             eq(got.length, 0);
           } else if (row.state === "not_submitted" && row.reason === "CARD_CLOUD_AUTH_REFUSED") {
             // Claimed, then refused by the authorization before the engine or Submit (the portal paused meanwhile): nothing sent.
             eq(got.length, 0, `${p.company}: refused before Submit, nothing sent`);
-            held++;
+            held++; heldOn.push(p);
           } else if (row.state === "queued") {
             // The cloud throttle pauses a portal after a failure on it (career_apply_cloud_events): still approved, held, nothing sent.
             const why = stuck.find((x: any) => x.company === p.company)?.why;
             eq([why, got.length], ["portal_paused", 0], `${p.company}: held by the portal pause, nothing sent`);
-            held++;
+            held++; heldOn.push(p);
           } else {
             eq(row.state, "submitted_unconfirmed", `${p.company}: submitted (${row.reason})`);
             // Confirmation evidence: the employer's page said received (its screenshot hash kept), with its reference when it gave one.
@@ -448,9 +457,11 @@ Deno.test({
         }
         console.log(`MEASURED: confirmation ids read per ATS: ${JSON.stringify(confirmations)}; held by a portal pause: ${held}`);
         timings.held_by_portal_pause = held;
-        assert(held <= 3, `most ordinary applications went: ${held} held`);
+        // A posting closed after approval ends alone (POSTING_CLOSED) and pauses no ATS. A verification check is a real signal
+        // from the site: the owner's throttle may pause THAT ATS (career_apply_cloud_throttle), never another one.
+        for (const p of heldOn) eq(p.family, captcha.family, `${p.company} held: only the ATS that showed a verification check is paused`);
         eq(world.submissions.filter((s) => s.status !== 200).length, 0, "no duplicate submission reached any employer");
-        assert(maxInFlight > 1, `sends ran in parallel: at most ${maxInFlight} at once`);
+        assert(maxInFlight > 2, `sends ran in parallel past wave 1: at most ${maxInFlight} at once`);
         eq(stopped.sort(), [...created].sort(), "every sandbox stopped");
       });
 
@@ -461,9 +472,15 @@ Deno.test({
         await deliverAll();
         const receipts = sent(mark).map((c) => String(c.body.text)).join("\n");
         assert(receipts.includes(captcha.company) && /verification check/.test(receipts), `the captcha's receipt says what to do: ${receipts.slice(0, 600)}`);
+        assert(receipts.includes(`Not sent to ${closed.company}: this posting closed before it could be submitted. Nothing reached the employer.`), `the closed posting's receipt in words: ${receipts.slice(0, 1600)}`);
+        assert(!/POSTING_CLOSED|FINAL_REVIEW|DRIVER_ERROR|[A-Z]{4,}_[A-Z_]{3,}/.test(receipts), `no engine code reaches the person: ${receipts.slice(0, 1600)}`);
         await deliverAll();
         const all = await text("where are my applications");
-        assert(new RegExp(`^${N} applications: \\d+ submitted, 1 waiting on you, `).test(all), `one honest summary, counted: ${all.slice(0, 300)}`);
+        const { countsLine } = await import("../../supabase/functions/_shared/career_apply_status.ts");
+        const rowsNow = await json(`select state from public.career_apply_jobs where user_id = '${person}'`);
+        eq(all.split("\n")[0], countsLine(rowsNow as any), "the summary's counts are the database's, row for row");
+        const nums = [...all.split("\n")[0].matchAll(/(\d+) [a-z]/g)].map((m) => Number(m[1]));
+        eq(nums.slice(1).reduce((a, b) => a + b, 0), N, "the counts add up to every application");
         assert(new RegExp(`first, then newest first:\\n- ${captcha.company}:`).test(all), `the one waiting on them first: ${all.slice(0, 400)}`);
 
         assert(!new RegExp(`${captcha.company}[^\\n]*(submitted|sent to)`, "i").test(all), `the captcha one is never said sent: ${all}`);

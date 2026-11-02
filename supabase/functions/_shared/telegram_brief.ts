@@ -49,13 +49,11 @@ const isStructured = (lines: string[]) => {
   return rows >= 2 && rows >= Math.ceil(lines.length / 2);
 };
 
-// Plain text: markdown links become "label url", emphasis and header marks go, list dashes become bullets (formatForChannel's
-// iMessage reading, the one every channel shares).
+// Plain text: formatForChannel's iMessage reading (the one every channel shares: markdown links become "label url", emphasis
+// and header marks go), and list dashes become bullets.
 export function plainText(text: string): string {
   return formatForChannel(String(text ?? ""), "imessage")
-    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
     .replace(/^(\s*)[-*+]\s+(?=\S)/gm, "$1• ")
-    .replace(/\*\*|__|~~|`/g, "")
     .replace(/\n{3,}/g, "\n\n").trim();
 }
 

@@ -82,6 +82,9 @@ Deno.test("brief P1.2/P1.3/P2: bubbles of at most three sentences, one idea each
   for (const [i, x] of c.entries()) if (URL_ONLY.test(x)) assert(i > 0 && /For your (personal|work) inbox/.test(c[i - 1]), `each link labeled by the line before it: ${JSON.stringify(c)}`);
   // An application card's exact rows stay together (one payload is never spread across messages).
   const card = "Ready to send. Reply yes to approve.\n\n1. Name: TEST Person\n2. Email: test@example.test\n3. Work authorization: Yes\n4. Start date: June 2027";
+  const list = briefBubbles("Three things to check first.\n\nNext steps:\n- Freeze the rule.\n- Paper trade it.\n- Check the drawdown.");
+  for (const x of list) assert(!MARKDOWN.test(x), `a list reads as plain bullets, no markdown dashes: ${JSON.stringify(list)}`);
+  assert(list.some((x) => /Freeze the rule\.\n.*Paper trade it/.test(x)), `a list stays one bubble: ${JSON.stringify(list)}`);
   const cb = briefBubbles(card);
   assert(cb.some((x) => x.includes("1. Name: TEST Person") && x.includes("4. Start date: June 2027")), `the card's rows in one bubble: ${JSON.stringify(cb)}`);
 });

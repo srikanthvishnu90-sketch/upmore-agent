@@ -65,6 +65,7 @@ async function world() {
   const dbl = globalThis.fetch;
   globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.startsWith("https://api.openai.com/v1/moderations")) return Response.json({ results: [{ flagged: false, categories: {} }] }); // #354: the crisis screen's moderation call, not a model call (architect OK 2026-11-02)
     if (url.startsWith("https://api.openai.com/")) {
       const raw = init?.body ?? (input instanceof Request ? await input.text() : "{}");
       return fakeOpenAI(JSON.parse(String(raw)));

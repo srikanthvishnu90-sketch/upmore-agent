@@ -33,6 +33,7 @@ let mode: "answer" | "fail" = "answer";
 const fakeOpenAI = async (input: Request | URL | string, init?: RequestInit): Promise<Response> => {
   const req = input instanceof Request && !init ? input : new Request(input as any, init);
   const url = new URL(req.url);
+  if (url.pathname === "/v1/moderations") return Response.json({ results: [{ flagged: false, categories: {} }] }); // #354: the crisis screen's moderation call, not a model call (architect OK 2026-11-02)
   if (url.hostname !== "api.openai.com") return new Response("not reachable in this test", { status: 404 });
   const body = await req.json();
   const msgs: any[] = body.messages ?? [];

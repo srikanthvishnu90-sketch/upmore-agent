@@ -12687,9 +12687,21 @@ const CareerRouter = (() => {
       reply: `You don't have a batch in flight right now — no application batch has been queued on this account that I can read back. Say "apply to N <role> roles" and I'll start one.` };
   }
 
+  // #354 SAFETY (2026-11-01): the router's crisis check is its FIRST check, on the person's own words (before detypo
+  // can rewrite one), through the one shared detector (139 CareerSafety.isDistress, which the trust turn and 125's
+  // screen also read). Before, it sat in handleAppendixSafety behind dozens of routes and its own short list, so "kms"
+  // or "i took too many pills" reached the fallback. The reply is 125's crisis answer, word for word.
+  function distressFirst(rawText) {
+    if (!(Safety && Safety.isDistress && Safety.isDistress(s(rawText)))) return null;
+    const r = Intel && Intel.respondToRequest ? Intel.respondToRequest(s(rawText)) : null;
+    let support = null;
+    try { support = Safety.distressResponse ? Safety.distressResponse({ text: s(rawText), profileFacts: [] }) : null; } catch { support = null; }
+    return { intent: "safety_support", reply: r && r.action === "support" ? r.text : support.text, resultStatus: "completed", sends: 0, support };
+  }
   function dispatchChat(text, ctx) {
     const c = ctx || {};
     const rawText = text;
+    { const d = distressFirst(rawText); if (d) return d; }
     text = expandShorthand(detypo(text)); // routing copy only — records keep the original (ROUTER DEAD ENDS 2026-10-31: shorthand too)
     const t = lc(text);
     if (!t) return null;
@@ -16482,6 +16494,8 @@ const CareerRouter = (() => {
   }
   function handleChat(text, ctx) {
     const c = ctx || {};
+    // #354 SAFETY: distress is answered before anything else reads the message (no part queued, no nudge appended).
+    { const d = distressFirst(text); if (d) return d; }
     // COMPLEXITY WAVE (BUG-179): multi-intent accounting wraps the
     // dispatch — the parts are detected from the ORIGINAL text, the
     // dispatch serves what it serves, and whatever it did not serve

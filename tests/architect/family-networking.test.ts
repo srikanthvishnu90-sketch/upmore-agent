@@ -83,6 +83,7 @@ Deno.test({ name: "FAMILY networking and outreach: a new person, end to end, on 
     globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
       const req = input instanceof Request && !init ? input : new Request(input as any, init);
       const host = new URL(req.url).host;
+      if (new URL(req.url).pathname === "/v1/moderations") return Response.json({ results: [{ flagged: false, categories: {} }] }); // #354: the crisis screen's moderation call, not a model call (architect OK 2026-11-02)
       if (host === "api.openai.com") return fakeOpenAI(await req.json());
       if (/(^|\.)google(apis)?\.com$/.test(host)) { outside.google++; return new Response("{}", { status: 500 }); }
       if (/(^|\.)linkedin\.com$/.test(host)) { outside.linkedin++; return new Response("{}", { status: 500 }); }

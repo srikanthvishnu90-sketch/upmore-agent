@@ -99,6 +99,7 @@ Deno.test({
         if (u.origin === new URL(SUPABASE_URL).origin && u.pathname === "/functions/v1/agent-chat") return await handleChat(req);
         if (u.origin === new URL(SUPABASE_URL).origin) return await viaDouble(req);
         if (u.host === "api.telegram.org") return await bot.fetch(req);
+        if (u.pathname === "/v1/moderations") return Response.json({ results: [{ flagged: false, categories: {} }] }); // #354: the crisis screen's moderation call, not a model call (architect OK 2026-11-02)
         if (u.host === "api.openai.com") return await fakeOpenAI(req);
         outbound.push(`${req.method} ${u.host}`);
         throw new TypeError(`network refused: ${u.host}`);

@@ -102,6 +102,7 @@ Deno.test({
       globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
         const req = input instanceof Request && !init ? input : new Request(input as any, init);
         const u = new URL(req.url);
+        if (u.pathname === "/v1/moderations") return Response.json({ results: [{ flagged: false, categories: {} }] }); // #354: the crisis screen's moderation call, not a model call (architect OK 2026-11-02)
         if (u.host === "api.openai.com") {
           const body = await req.json().catch(() => ({}));
           if (/\/responses$/.test(u.pathname)) {

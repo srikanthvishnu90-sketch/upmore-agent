@@ -14,7 +14,8 @@
 // (the Apply to all then approves nothing and says so); an Apply to all that ran first leaves that Apply "Already in your
 // applications". Either way each posting is approved once.
 import { FILE_TTL_MS, verifyFileToken, type FileClaims } from "../_shared/file_link.ts";
-import { checkSession, CLEAR_LOGIN, CLEAR_SESSION, codeOf, LOGIN_TTL_MS, loginCookie, MAX_CODE_SENDS, MAX_CODE_TRIES, normalizePhone, SESSION_ID, sessionCookie, startSession, type PhoneAuth, type SessionStore } from "../_shared/file_session.ts";
+import { checkSession, CLEAR_LOGIN, CLEAR_SESSION, codeOf, LOGIN_TTL_MS, loginCookie, MAX_CODE_SENDS, MAX_CODE_TRIES, normalizePhone, SESSION_ID, sessionCookie, sha256 as sessionHashOf, startSession, type PhoneAuth, type SessionStore } from "../_shared/file_session.ts";
+import { noticeSignin, type NoticeQueue } from "../_shared/signin_notice.ts";
 import { verifyInitData } from "../_shared/telegram_webapp.ts";
 import { BOOT_SCRIPT, cut, FEED_SCRIPT, fullOf, hostOf, renderBootstrap, renderFeed, renderLinkState, renderPhoneLogin, renderPreview, renderText, signOutFoot, snippetOf, statusOf, type AppRow, type Feed, type Row } from "../_shared/file_page.ts";
 import { dayOf, BRAND, esc, layout, postedLine } from "../_shared/file_page.ts";
@@ -36,6 +37,8 @@ export interface FileDeps extends Omit<JobDeps, "store"> {
   store: FileStore;
   userOfTelegram?: (telegramId: string) => Promise<string | null>; // channel_contacts: 'tg:<id>' -> the linked account
   sessions?: SessionStore; // server-side, revocable sessions and the phone sign-ins links open (file_session.ts); absent, nothing opens
+  // Q509/Q717: every sign-in by a texted code queues one notice into the person's own chat (signin_notice.ts). Absent: none.
+  signinNotices?: NoticeQueue;
   phone?: PhoneAuth; // the account's confirmed phone and the texted code; absent, phone sign-in is off
   files?: FileService; // the other file kinds (introduction, proof, plan, comparison, draft, brief); an id not found there is a jobs list
   fileEffects?: Effects; // what Introduce really does (send); absent, an approved introduction says it was not sent
@@ -338,6 +341,9 @@ async function handleFileOnce(req: Request, d: FileDeps): Promise<Response> {
     if (!finished) return state("This link was already used", ["A link opens a sign-in once. " + NEW_LINK], 410);
     const id = await startSession(sessions!, { userId: row.user_id, via: "phone", phone: row.phone, telegramId: null, list: row.list, now: d.now() }).catch(() => "");
     if (!id) return state("Couldn't open this just now", ["Nothing was opened. This link is used up, so " + NEW_LINK.charAt(0).toLowerCase() + NEW_LINK.slice(1)], 503);
+    // Q509/Q717: the person's own chat hears of this sign-in once (when, how, and "sign out everywhere"); a notice that can't be
+    // queued is logged and never undoes the sign-in.
+    await noticeSignin(d.signinNotices, { userId: row.user_id, sessionHash: await sessionHashOf(id), at: d.now(), tz: d.timeZone ? await d.timeZone(row.user_id).catch(() => null) : null, phone: row.phone });
     return new Response("", { status: 303, headers: [...Object.entries(await headers("text/html; charset=utf-8", d.env)), ["location", here], ["set-cookie", sessionCookie(id)], ["set-cookie", CLEAR_LOGIN]] });
   }
 

@@ -241,7 +241,7 @@ Deno.test("link states: an expired session, an invalid one and an unconfigured p
   eq(late.status, 401);
   const h = await late.text();
   assert(/signed out/i.test(plain(h)) && !h.includes("Acme") && !/<form/.test(h) && /href="https:\/\/t\.me\/TraineeBot"[^>]*>Get a new link</.test(h));
-  eq((await get(deps(m), t.slice(0, -3) + "aaa")).status, 403);
+  eq((await get(deps(m), t.slice(0, -1) + (t.endsWith("a") ? "b" : "a"))).status, 403);
   eq((await get(deps(m, { env: { TRAINEE_FILE_LINK_SECRET: undefined } }), t)).status, 200, "a signed-in session does not need the link secret");
   eq((await handleFile(new Request("https://x.example/f"), deps(m))).status, 403);
   eq((await post(deps(m, { now: NOW + SESSION_MS + 5 }), { t, action: "apply", ref: await ref(1), tag: hashTag(H) })).status, 401);

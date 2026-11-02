@@ -81,8 +81,8 @@ const ROLE_ALIASES: Record<string, string[]> = {
 // Each is a pattern on the location; "dc" is the city (Washington, DC / D.C.), never Washington state (review of #366).
 const DC = /\bwashington,?\s*d\.?\s?c\.?(?![a-z])|(?:^|[\s,(])d\.?\s?c\.?(?![a-z])/i;
 const PLACE_ALIASES: Record<string, RegExp> = {
-  nyc: /\bnew york\b|\bnyc\b/i, "new york": /\bnew york\b|\bnyc\b/i, sf: /\bsan francisco\b|\bbay area\b/i, "san francisco": /\bsan francisco\b|\bbay area\b/i,
-  "bay area": /\bbay area\b|\bsan francisco\b/i, la: /\blos angeles\b/i, "los angeles": /\blos angeles\b/i, dc: DC, "washington dc": DC, "washington d.c.": DC, "d.c.": DC,
+  nyc: /\bnew york\b|\bnyc\b/i, "new york": /\bnew york\b|\bnyc\b/i, "new york city": /\bnew york\b|\bnyc\b/i, sf: /\bsan francisco\b|\bbay area\b/i, "san francisco": /\bsan francisco\b|\bbay area\b/i,
+  "bay area": /\bbay area\b|\bsan francisco\b/i, la: /\blos angeles\b/i, "los angeles": /\blos angeles\b/i, dc: DC, "washington dc": DC, "washington d.c.": DC, "d.c.": DC, "washington d c": DC, "d c": DC,
 };
 // US states, by name and postal code, as places (review of #366): a state matches its name in the location (never "Washington,
 // DC" for Washington) or its code after a comma ("Seattle, WA").
@@ -94,7 +94,20 @@ const STATES: Record<string, string> = { alabama: "AL", alaska: "AK", arizona: "
   tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT", virginia: "VA", washington: "WA", "west virginia": "WV", wisconsin: "WI", wyoming: "WY" };
 // Codes that are also common words or city short forms are read as states only spelled out ("in", "or", "me", "la" is Los Angeles).
 const STATE_CODES = new Map(Object.entries(STATES).filter(([, c]) => !["IN", "OR", "ME", "LA", "OK", "HI", "DE", "ID", "MA", "PA", "OH", "AL"].includes(c)).map(([n, c]) => [c.toLowerCase(), n]));
-function placePattern(place: string): RegExp | null {
+const employerKey = (s: unknown) => lower(s).replace(/\b(?:inc|llc|ltd|corp|corporation|co|company|plc|gmbh)\b/g, "").replace(/\s+/g, " ").trim();
+// The spelled-out names a place is searched by.
+const PLACE_TERMS: Record<string, string[]> = { nyc: ["new york", "nyc"], "new york": ["new york", "nyc"], "new york city": ["new york", "nyc"], sf: ["san francisco", "bay area"],
+  "san francisco": ["san francisco", "bay area"], "bay area": ["bay area", "san francisco"], la: ["los angeles"], "los angeles": ["los angeles"],
+  dc: ["washington dc", "washington d.c."], "washington dc": ["washington dc", "washington d.c."], "washington d.c.": ["washington dc", "washington d.c."], "d.c.": ["washington dc", "washington d.c."] };
+function placeTermsOf(raw: string): string[] {
+  const place = placeKey(raw);
+  if (PLACE_TERMS[place]) return PLACE_TERMS[place];
+  const name = STATES[place] ? place : STATE_CODES.get(place) ?? null;
+  return name ? [name.replace(/ state$/, ""), STATES[name].toLowerCase()] : [raw];
+}
+const placeKey = (p: string) => p.replace(/\./g, "").replace(/,/g, " ").replace(/\s+/g, " ").trim();
+function placePattern(raw: string): RegExp | null {
+  const place = placeKey(raw);
   if (PLACE_ALIASES[place]) return PLACE_ALIASES[place];
   const name = STATES[place] ? place : STATE_CODES.get(place) ?? null;
   if (!name) return null;
@@ -130,7 +143,7 @@ const WHAT_NOISE = new Set([...FILTER_NOISE, "for", "me", "please", "now", "open
   "fit", "fits", "match", "matches", "matching", "this", "best", "good", "right", "you", "found", "showed", "show", "then", "too", "also", "here"]);
 // The role and place of "top N <role> in <place>", or null when the words after the count name no role ("of them", "").
 export function manyWhatOf(rest: string): ManyWhat | null {
-  const r = String(rest ?? "").toLowerCase().replace(/[.!?]+$/, "").trim();
+  const r = String(rest ?? "").toLowerCase().replace(/[!?]+$/, "").replace(/(?<![a-z]\.[a-z])\.$/, "").trim();
   if (!r || /^(?:of\s+)?(?:them|these|those|ones?|on the list|from the list|you (?:found|listed|showed))\b/.test(r)) return null;
   // A search names what it is for: a role noun ("internships", "jobs", "roles", ...) must be in it.
   // Any word left after the count that is not filler is a search (review of #366): "top 5 swe in la" searches; a count with
@@ -141,7 +154,13 @@ export function manyWhatOf(rest: string): ManyWhat | null {
   if (cm) { company = cm[1].trim(); rr = ` ${rr}`.replace(cm[0], "").trim(); }
   // The place: after in/near/around (or the whole ask: "top 5 in washington state"); "area", "metro", "region", "state" dropped
   // ("dc area" is dc; "washington state" is the state), never read as role words.
-  const pm = /^(?:(.*?)\s+)?(?:in|near|around|based in|within)\s+(?:the\s+)?([a-z][a-z .'-]{1,40})$/.exec(rr);
+  // "<City>, <ST>" keeps its comma; "in or near <place>" / "in or around <place>" are one preposition (review of #366).
+  rr = rr.replace(/(?:^|\s+)(?:(?:please|asap|now|today|quickly|thanks|thank you)\s*)+$/, "").trim();
+  if (!rr && !company) return null;
+  // A prepositional phrase anywhere: first, after the role, or alone ("in or near chicago").
+  const PREP = "(?:in\\s+or\\s+near|in\\s+or\\s+around|based\\s+in|in|near|around|within)";
+  const pm = new RegExp(`^${PREP}\\s+(?:the\\s+)?([a-z][a-z .,'-]{1,40})$`).exec(rr)?.slice(0, 2).reduce((m: any, x: string, i: number) => (i === 1 ? [m[0], "", x] : [x]), [] as any) as RegExpExecArray | null
+    ?? new RegExp(`^(.*?)\\s+${PREP}\\s+(?:the\\s+)?([a-z][a-z .,'-]{1,40})$`).exec(rr);
   const role = (pm ? pm[1] ?? "" : rr).trim();
   let place = pm ? pm[2].trim().replace(/\s+(?:area|metro(?:politan)?(?:\s+area)?|region)$/, "") : null;
   if (place === "bay") place = "bay area";
@@ -168,14 +187,24 @@ async function postingsFor(o: ApplyChatDeps, what: ManyWhat): Promise<{ list: Sh
   // A short form ("swe", "nyc") is never a search word (titles and places spell it out); it is read through its aliases below.
   const roleWords = what.words.filter((w) => !ROLE_ALIASES[w]);
   const placeMatch = place && place !== "remote" ? placePattern(place) : null;
-  const words = searchWords([...roleWords, ...(place && place !== "remote" && !placePattern(place) ? [place] : []), ...(place === "remote" ? ["remote"] : []),
-    ...(what.company ? [what.company] : [])].join(" "));
-  const hits = await o.postings.search(words, 500);
+  // The place goes into the search itself, by every spelled-out name it has (review of #366): one search per name, merged,
+  // so a named place is never cut by newer postings elsewhere ("nyc" searches "new york" and "nyc"; "texas" "texas" and "tx").
+  const placeTerms = !place ? [""] : place === "remote" ? ["remote"] : placeTermsOf(place);
+  const base = [...roleWords, ...(what.company ? [employerKey(what.company)] : [])];
+  const seenIds = new Set<string>(), hits: any[] = [];
+  for (const term of placeTerms) {
+    for (const p of await o.postings.search(searchWords([...base, term].join(" ")), 1000)) {
+      const id = String(p?.job_id ?? "");
+      if (!seenIds.has(id)) { seenIds.add(id); hits.push(p); }
+    }
+  }
+  hits.sort((a, b) => String(b?.first_seen_at ?? "").localeCompare(String(a?.first_seen_at ?? "")));
   const seen = new Set<string>();
   const matched = hits
     .filter((p) => p && !p.closed_at && what.words.every((w) => titleHas(String(p?.title ?? ""), w)))
     .filter((p) => !place || (place === "remote" ? /\bremote\b/i.test(`${p?.location ?? ""} ${p?.title ?? ""}`) : (placeMatch ? placeMatch.test(String(p?.location ?? "")) : lower(p?.location).includes(place))))
-    .filter((p) => !what.company || sameCompany(p?.company, what.company))
+    // Exactly that employer: the name, cased and suffixed any way ("Google", "Google LLC"), never a longer name ("Google DeepMind").
+    .filter((p) => !what.company || employerKey(p?.company) === employerKey(what.company))
     // The same role at the same company and place, posted twice, is one application (review of #366).
     .filter((p) => { const k = `${lower(p?.company)}|${lower(p?.title)}|${lower(p?.location)}`; if (seen.has(k)) return false; seen.add(k); return true; });
   let rankedBy: "fit" | "newest" = "newest";

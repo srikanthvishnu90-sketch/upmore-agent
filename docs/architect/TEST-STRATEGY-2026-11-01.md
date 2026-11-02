@@ -100,28 +100,35 @@ or this run's sandbox posting. Anything else is refused before it is sent, and a
 
 **Steps**, each asserted on DB rows:
 1. `preflight-synthetic-only`
-2. `new-account-from-hi`
-3. `resume-confirm-one-record`
-4. `search-lists-sandbox-posting`, with the posting's own link
-5. `fit-confirmed-facts-only`
-6. `fit-question-answered`: a KNOWN_GAP, shared with S4 and shrink-only
-7. `approval-card-exact-payload`: the card is bound to the payload hash
-8. `approve-tap-queues-sandbox-job`: the real `tca:` button tap, one queued job, 0 attempts, no receipt, no cloud
+2. `preflight-stale-postings-swept`: a killed run never reaches its clean-up, so every earlier run's sandbox posting
+   (board `trainee-sandbox-*`, link on the `.invalid` host) is deleted here. Anything the synthetic account held that
+   pointed at one goes with that account in step 1.
+3. `new-account-from-hi`
+4. `resume-confirm-one-record`
+5. `search-lists-sandbox-posting`, with the posting's own link
+6. `fit-confirmed-facts-only`
+7. `fit-question-answered`: a KNOWN_GAP, shared with S4 and shrink-only
+8. `approval-card-exact-payload`: the card is bound to the payload hash
+9. `approve-tap-queues-sandbox-job`: the real `tca:` button tap, one queued job, 0 attempts, no receipt, no cloud
    opt-in, and a second tap adds nothing
-9. `status-matches-db`
-10. `outreach-draft-not-sent`: a draft only to the person's own imported contact, never approved, send rail empty
-11. `reminder-scheduled`: `career:outreach:followups.next_due_at` about 3 days out
-12. `alerts-watch-saved`: `career_alert_prefs` on, with the person's words
-13. `stop-opts-out`: `channel_contacts.opted_out`
-14. `sandbox-posting-private`: no other account has any row, outbox text included, pointing at the sandbox posting
-15. `replies-delivered`
-16. `cleanup-erases-everything`
+10. `status-matches-db`
+11. `outreach-draft-not-sent`: a draft only to the person's own imported contact, never approved, send rail empty
+12. `reminder-scheduled`: `career:outreach:followups.next_due_at` about 3 days out
+13. `alerts-watch-saved`: `career_alert_prefs` on, with the person's words
+14. `stop-opts-out`: `channel_contacts.opted_out`
+15. `sandbox-posting-private`: no other account has any row, outbox text included, pointing at the sandbox posting
+16. `replies-delivered`
+17. `cleanup-erases-everything`
 
 **Dry mode** (`--dry`, and `tests/architect/live-journeys.test.ts` in `gate (architect)`) runs the same code over real
 HTTP. The target is the real `handleTelegram`, composed as `index.ts` composes it, on loopback, with real `agent-chat`
 on a throwaway Postgres, the fake Bot API and the scripted model. A wrong secret header must get a 403. Measured locally:
-all 15 journey steps pass (`fit-question-answered` is the expected KNOWN_GAP), 0 outbound requests, 0 Bot API
-violations, about 17 s warm.
+all 16 journey steps pass (`fit-question-answered` is the expected KNOWN_GAP), 0 outbound requests, 0 Bot API
+violations, about 17 s warm. The dry test first runs a journey that is killed just after its prepared application is
+written, so its clean-up never runs. The next run's preflight removes that run's account and posting, and nothing
+anywhere still points at the posting. A second dry test gives another account a row pointing at the posting, and the
+run fails on `sandbox-posting-private`. The posting's privacy is asserted on the stored row and its search vector, not
+on the script's text.
 
 The dry run also puts two real-looking people in the same database: a Telegram user made by the product (hi, resume,
 yes) and a seeded web sign-up with a Gmail address and a phone. While the sandbox posting is live, the Telegram one

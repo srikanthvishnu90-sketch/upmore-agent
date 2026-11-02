@@ -40,9 +40,16 @@ export const DECOY = { job: "greenhouse:northwindtest:7001", company: "Northwind
 export interface DryReport extends JourneyReport {
   outbound: string[]; botViolations: string[]; botMessages: number; webhookRequests: number; badSecretStatus: number;
   bystander: { searched: number; sawSandbox: string[]; sawDecoy: number; rowsChanged: string[]; messagesAfterSearch: number; contactsIntact: boolean };
+  // The sandbox posting as it is stored while live (what search reads), not as the script spells it.
+  postingRow: { title: string; company: string; location: string; description: string; lexemes: string[] } | null;
+  // With crashedRunFirst: what a killed earlier run left, and what was left of it after this run's preflight.
+  crash: { leftPosting: number; leftAccount: boolean; postingAfter: number; accountRowsAfter: string; pointingAfter: string } | null;
 }
 
-export async function runDry(o: { resume: string; runId: string; log?: (l: string) => void }, core: Core): Promise<DryReport> {
+// crashedRunFirst: a first run on the same chat is killed right after its prepared application is written (every later
+// database call and webhook post fails, so its clean-up never runs), as a cancelled deploy job would leave it.
+// leakToBystander: while the posting is live, a row of the web bystander's is made to point at it; the run must FAIL.
+export async function runDry(o: { resume: string; runId: string; log?: (l: string) => void; crashedRunFirst?: boolean; leakToBystander?: boolean }, core: Core): Promise<DryReport> {
   const { runJourneys, webhookPoster, SYNTHETIC_CHAT } = core;
   const pg = await startPg();
   const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, Deno.env.get(k)]));
@@ -85,8 +92,27 @@ export async function runDry(o: { resume: string; runId: string; log?: (l: strin
     const url = `http://127.0.0.1:${(server.addr as Deno.NetAddr).port}/functions/v1/trainee-telegram`;
     // The door: a wrong secret is refused before anything is read.
     const bad = await webhookPoster(url, "wrong-secret-0000000000000000")({ update_id: 1, message: { message_id: 1, chat: { id: SYNTHETIC_CHAT, type: "private" }, from: { id: SYNTHETIC_CHAT }, date: 1, text: "hi" } });
-    // ---- the bystanders, before the run
     const poster = webhookPoster(url, SECRET);
+    const allUserTables = `from information_schema.columns c join information_schema.tables tb on tb.table_schema = c.table_schema and tb.table_name = c.table_name
+        where c.table_schema = 'public' and c.column_name = 'user_id' and tb.table_type = 'BASE TABLE'`;
+    const countWhere = async (where: string) => (await pg.sql(`select coalesce(string_agg(x, ', '), '') from (select c.table_name || ':' || (xpath('/row/n/text()', query_to_xml(format('select count(*) as n from public.%I t where ${where.replace(/'/g, "''").replace(/%/g, "%%")}', c.table_name), false, true, '')))[1]::text as x ${allUserTables}) s where x !~ ':0$'`)).trim();
+
+    // ---- a killed earlier run
+    let crash: DryReport["crash"] = null, crashUid = "", crashBoard = "";
+    if (o.crashedRunFirst) {
+      let killed = false;
+      const crashRun = `${o.runId}-crash`.slice(0, 40);
+      crashBoard = `trainee-sandbox-${crashRun}`;
+      await runJourneys({
+        post: async (u) => { if (killed) throw new Error("KILLED"); return await poster(u); },
+        db: { sql: async (t) => { if (killed) throw new Error("KILLED"); const r = await pg.sql(t); if (/insert into public\.career_apply_prepared/.test(t)) killed = true; return r; } },
+        chat: SYNTHETIC_CHAT, delivery: "verified", runId: crashRun, resume: o.resume, log: (l) => (o.log ?? console.log)(`(killed run) ${l}`), replyTimeoutMs: 15_000, tapWaitMs: 300,
+      });
+      crashUid = (await pg.sql(`select coalesce((select user_id::text from public.channel_contacts where contact = 'tg:${SYNTHETIC_CHAT}'), '')`)).trim();
+      crash = { leftPosting: Number(await pg.sql(`select count(*) from public.career_postings where board = '${crashBoard}'`)), leftAccount: !!crashUid, postingAfter: -1, accountRowsAfter: "?", pointingAfter: "?" };
+    }
+
+    // ---- the bystanders, before the run
     let bu = 50_000, bm = 0;
     const bsay = async (text: string) => {
       const r = await poster({ update_id: ++bu, message: { message_id: ++bm, chat: { id: BYSTANDER_CHAT, type: "private" }, from: { id: BYSTANDER_CHAT, is_bot: false, first_name: "Jordan" }, date: 1, text } });
@@ -119,7 +145,12 @@ export async function runDry(o: { resume: string; runId: string; log?: (l: strin
     };
     const bystander = { searched: 0, sawSandbox: [] as string[], sawDecoy: 0, rowsChanged: [] as string[], messagesAfterSearch: 0, contactsIntact: false };
     let before = new Map<string, string>(), botAfter = 0;
+    let postingRow: DryReport["postingRow"] = null;
     const whilePostingLive = async (p: { company: string; title: string; board: string }) => {
+      const row = JSON.parse((await pg.sql(`select coalesce((select json_build_object('title', title, 'company', company, 'location', location, 'description', description,
+        'lexemes', (select coalesce(json_agg(lexeme order by lexeme), '[]') from unnest(search))) from public.career_postings where board = '${p.board}'), 'null')`)).trim());
+      postingRow = row;
+      if (o.leakToBystander) await pg.sql(`insert into public.career_watch_kv (user_id, key, value) values ('${W.id}', 'tg:job:leak', ${"'"}${JSON.stringify({ job: `greenhouse:${p.board}:1` })}${"'"}::jsonb)`);
       for (const words of BYSTANDER_SEARCHES) {
         const from = bot.to(BYSTANDER_CHAT).length;
         await bsay(words);
@@ -138,7 +169,14 @@ export async function runDry(o: { resume: string; runId: string; log?: (l: strin
     for (const k of after.keys()) if (!before.has(k)) bystander.rowsChanged.push(k);
     bystander.messagesAfterSearch = bot.to(BYSTANDER_CHAT).length - botAfter;
     bystander.contactsIntact = (await pg.sql(`select count(*) from public.channel_contacts where (contact = 'tg:${BYSTANDER_CHAT}' and user_id = '${tgUser}') or (contact = '${W.phone}' and user_id = '${W.id}')`)).trim() === "2";
-    const out: DryReport = { ...report, outbound, botViolations: bot.violations.slice(0, 5), botMessages: bot.to(SYNTHETIC_CHAT).length, webhookRequests, badSecretStatus: bad.status, bystander };
+    if (crash) {
+      crash.postingAfter = Number(await pg.sql(`select count(*) from public.career_postings where board = '${crashBoard}'`));
+      crash.accountRowsAfter = crashUid ? await countWhere(`t.user_id = '${crashUid}'`) : "";
+      crash.pointingAfter = await countWhere(`t::text like '%${crashBoard}%'`);
+      (o.log ?? console.log)(`LIVE_JOURNEY dry killed run: left posting=${crash.leftPosting} account=${crash.leftAccount}; after: posting=${crash.postingAfter} account_rows=${crash.accountRowsAfter || 0} pointing=${crash.pointingAfter || 0}`);
+      if (!crash.leftPosting || !crash.leftAccount || crash.postingAfter || crash.accountRowsAfter || crash.pointingAfter) report.pass = false;
+    }
+    const out: DryReport = { ...report, outbound, botViolations: bot.violations.slice(0, 5), botMessages: bot.to(SYNTHETIC_CHAT).length, webhookRequests, badSecretStatus: bad.status, bystander, postingRow, crash };
     (o.log ?? console.log)(`LIVE_JOURNEY dry bystanders: searched=${bystander.searched} saw_sandbox=${bystander.sawSandbox.length} saw_decoy=${bystander.sawDecoy} rows_changed=${bystander.rowsChanged.join(",") || 0} messages_after=${bystander.messagesAfterSearch} contacts_intact=${bystander.contactsIntact}`);
     if (bystander.searched < BYSTANDER_SEARCHES.length || bystander.sawSandbox.length || bystander.sawDecoy < 2 || bystander.rowsChanged.length || bystander.messagesAfterSearch || !bystander.contactsIntact || before.size === 0) out.pass = false;
     (o.log ?? console.log)(`LIVE_JOURNEY dry: webhook_requests=${webhookRequests} bot_messages=${out.botMessages} bot_violations=${bot.violations.length} outbound=${outbound.length} bad_secret_status=${bad.status}`);

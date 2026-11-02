@@ -45,10 +45,7 @@ Deno.test("live journeys: the sandbox posting's searchable words are private non
   for (const t of [a.company, a.title, a.place]) ok(/^Zq[a-z]{8}$/.test(t), t);
   eq(privateTokens("gh123"), a, "deterministic");
   ok(a.company !== a.title && a.company !== b.company && a.title !== b.title, "distinct per word and per run");
-  const src = Deno.readTextFileSync(new URL("scripts/launch/live-journeys.ts", ROOT));
-  const insert = /insert into public\.career_postings[\s\S]*?on conflict/.exec(src)?.[0] ?? "";
-  ok(/\$\{q\(SANDBOX\.title\)\}, \$\{q\(SANDBOX\.location\)\}/.test(insert) && /\$\{q\(SANDBOX\.description\)\}/.test(insert), "title, company, place and description are the tokens");
-  ok(!/Chicago|intern|Python/i.test(insert), `no real word in the posting: ${insert}`);
+  // What is actually stored (and so searched) is asserted on the row itself, in the dry run below.
 });
 
 Deno.test("live journeys: missing live inputs are NOT RUN; the owner's chat makes delivery VERIFIED, none makes it UNVERIFIED on SYNTHETIC_CHAT", () => {
@@ -115,7 +112,17 @@ Deno.test({
     if (Deno.uid?.() === 0 && !CI) { console.log("NOT_RUN locally as root: run it as an unprivileged user (initdb)"); return; }
     const resume = await Deno.readTextFile(new URL("packages/career-data/fixtures/test-resume.txt", ROOT));
     const lines: string[] = [];
-    const r = await runDry({ resume, runId: "drytest1", log: (l) => { lines.push(l); console.log(l); } }, { runJourneys, webhookPoster, SYNTHETIC_CHAT });
+    const r = await runDry({ resume, runId: "drytest1", crashedRunFirst: true, log: (l) => { lines.push(l); console.log(l); } }, { runJourneys, webhookPoster, SYNTHETIC_CHAT });
+    // A killed earlier run left its account and its sandbox posting; this run's preflight erased both, and nothing anywhere
+    // still points at that posting.
+    ok(r.crash, "the killed run ran");
+    eq([r.crash!.leftPosting, r.crash!.leftAccount], [1, true], "the killed run left its posting and its account behind");
+    eq([r.crash!.postingAfter, r.crash!.accountRowsAfter, r.crash!.pointingAfter], [0, "", ""], "the next run swept them, and everything that pointed at the posting");
+    eq(r.results.find((x) => x.id === "preflight-stale-postings-swept")?.outcome, "PASS");
+    // The posting as stored while it was live: every searchable field and every lexeme of its search vector is a token.
+    ok(r.postingRow, "the posting was read while live");
+    for (const f of ["title", "company", "location", "description"] as const) ok(/^Zq[a-z]{8}$/.test(r.postingRow![f]), `${f} is a private token: ${JSON.stringify(r.postingRow![f])}`);
+    ok(r.postingRow!.lexemes.length >= 1 && r.postingRow!.lexemes.every((l) => /^zq[a-z]{8}$/.test(l)), `only private tokens are searchable: ${r.postingRow!.lexemes.join(" ")}`);
     for (const s of STEPS) ok(r.results.some((x) => x.id === s), `step ${s} ran`);
     const bad = r.results.filter((x) => !(x.outcome === "PASS" || x.outcome === "KNOWN_GAP still fails"));
     eq(bad, [], "every step passes (a KNOWN_GAP that now passes must be removed)");
@@ -137,5 +144,23 @@ Deno.test({
     ok(r.pass && r.cleanedUp);
     ok(lines.some((l) => /^LIVE_JOURNEY PASS delivery=VERIFIED/.test(l)), "the summary line");
     ok(!lines.join("\n").includes(MARKER_KEY + "\"") , "no raw marker JSON in the log");
+  },
+});
+
+Deno.test({
+  name: "live journeys (dry): when another account holds a row pointing at the sandbox posting, sandbox-posting-private FAILS the run",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn() {
+    if (!pgBinDir()) { if (CI) throw new Error("the live journeys' dry mode needs Postgres 16 binaries in CI"); console.log("NOT_RUN locally: no Postgres binaries"); return; }
+    if (Deno.uid?.() === 0 && !CI) { console.log("NOT_RUN locally as root: run it as an unprivileged user (initdb)"); return; }
+    const resume = await Deno.readTextFile(new URL("packages/career-data/fixtures/test-resume.txt", ROOT));
+    const r = await runDry({ resume, runId: "drytest2", leakToBystander: true, log: () => {} }, { runJourneys, webhookPoster, SYNTHETIC_CHAT });
+    const priv = r.results.find((x) => x.id === "sandbox-posting-private");
+    eq(priv?.outcome, "FAIL", `the leak is caught: ${JSON.stringify(priv)}`);
+    ok(/career_watch_kv:1/.test(priv?.why ?? ""), `it names where: ${priv?.why}`);
+    eq(r.pass, false, "and the run fails (so the deploy would roll back)");
+    eq(r.results.filter((x) => x.outcome === "FAIL").map((x) => x.id), ["sandbox-posting-private"], "nothing else failed");
+    ok(r.cleanedUp, "the clean-up still ran");
   },
 });

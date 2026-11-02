@@ -46,6 +46,7 @@ export const EMPLOYER_HOSTS = /(^|\.)(greenhouse\.io|lever\.co|ashbyhq\.com|mywo
 
 export const STEPS = [
   "preflight-synthetic-only",
+  "preflight-stale-postings-swept",
   "new-account-from-hi",
   "resume-confirm-one-record",
   "search-lists-sandbox-posting",
@@ -259,6 +260,15 @@ export async function runJourneys(o: JourneyOpts): Promise<JourneyReport> {
     await erase(marked!); // a previous run's leftovers
     userId = null;
     eq(await db.read(`select count(*) from public.channel_contacts where contact = ${q(contact)}`), "0", "the leftover synthetic account is gone");
+  });
+  // A run that was killed (a cancelled job, a timeout) never reached its clean-up: its sandbox posting is still there. Every
+  // earlier run's posting goes now (this script's own: board trainee-sandbox-*, link on the .invalid host); what the
+  // synthetic account held that pointed at one went with its account above.
+  if (alive) alive = await step("preflight-stale-postings-swept", async () => {
+    const stale = `board like 'trainee-sandbox-%' and board <> ${q(SANDBOX.board)} and url like ${q(`https://${SANDBOX_HOST}/%`)}`;
+    const n = await db.write(`with gone as (delete from public.career_postings where ${stale} returning 1) select count(*) from gone`);
+    if (Number(n)) log(`LIVE_JOURNEY swept ${n} stale sandbox posting(s) from killed runs`);
+    eq(await db.read(`select count(*) from public.career_postings where ${stale}`), "0", "no earlier run's sandbox posting is left");
   });
 
   try {

@@ -30,6 +30,7 @@ import { CAREER_READ_SCOPE, careerTokenFor } from "./career_mail_gmail.ts";
 import { connectUrl } from "./agent/integrations.ts";
 import { chatAsk, cleanCell, companyKey, parseCsv, parseExport, type ParsedExport, peopleFileText, type PersonRow, sha256Hex } from "./career_people_import.ts";
 import { domainLabelOf, type GmailRead, heardFrom, isCompanyLabel, registrable } from "./career_people_gmail.ts";
+import { firmDomains } from "./career_outreach_personalize.ts";
 import { memorySweepStore, type SweepOutcome, type SweepSink, type SweepStore, supabaseSweepStore, sweepTurn } from "./career_people_sweep.ts";
 import { checkUrl, formerTitle, type PageGet, pinnedGet, readPage, type Resolver } from "./career_people_page.ts";
 import { findTargets, makeProvider, parseTargetAsk, providerConfig, supabaseProviderStore, type TargetAsk, type TargetDeps } from "./career_people_provider.ts";
@@ -706,22 +707,29 @@ async function pageTurn(o: PeopleTurnIn, d: PeopleDeps, a: Extract<Ask, { kind: 
   people = a.owner ? people.map((p) => (!p.name && p.email ? { ...p, name: a.owner } : p)) : people.filter((p) => p.name);
   // NETWORKING R2 (2026-10-30): on a company's page, an address on another domain is not that person's work address: a
   // look-alike (str1pe.com, stripe.com.evil.io) or a personal mailbox. Before, it was saved as their address and drafted
-  // to ("email Dana at Stripe" wrote to dana@str1pe.com). Only an address at the page's own domain or the company's name
-  // is kept; the person is kept without it. Someone the page says has left is not filed under the company.
+  // to ("email Dana at Stripe" wrote to dana@str1pe.com). Someone the page says has left is not filed under the company.
+  // #361 re-review (2026-11-01): a name-shaped domain is not proof either (stripe.xyz/team filed "maya@stripe.xyz" under
+  // Stripe). An address filed under a company is kept only at that company's VERIFIED domain, one a person the user gave
+  // (their export or list, never a page or a Gmail correspondent) has an address at; with none, the person is kept without
+  // an address. An address filed under no company is the person's own.
   let offDomain = 0, left = 0;
-  if (!a.owner) {
-    const labels = new Set([registrable(new URL(r.url).hostname).label, domainLabelOf(company)].filter((x) => x && x.length >= 2));
+  if (company) {
+    const given = (await d.store.atCompany(o.userId, companyKey(company)).catch(() => [] as PersonRec[]))
+      .filter((p) => p.source === "linkedin_export" || p.source === "thread_list").map((p) => p.email);
+    const verified = firmDomains(given);
     people = people.map((p) => {
-      if (!p.email || labels.has(registrable(p.email.split("@")[1] ?? "").label)) return p;
+      if (!p.email || verified.includes(registrable(p.email.split("@")[1] ?? "").full)) return p;
       offDomain++;
       return { ...p, email: null };
     });
+  }
+  if (!a.owner) {
     const before = people.length;
     people = people.filter((p) => !(p.former || formerTitle(p.title)));
     left = before - people.length;
   }
   const notes = [
-    ...(offDomain ? [`${plural(offDomain, "address")} on ${r.url} ${offDomain === 1 ? "is" : "are"} not at ${company || "the page's"} domain (a look-alike or a personal mailbox), so I didn't save ${offDomain === 1 ? "it" : "them"} as anyone's work address.`] : []),
+    ...(offDomain ? [`${plural(offDomain, "address")} on ${r.url} ${offDomain === 1 ? "is" : "are"} not at ${company}'s verified domain (one of your own contacts there has an address at; a look-alike or a personal mailbox otherwise), so I didn't save ${offDomain === 1 ? "it" : "them"} as anyone's work address.`] : []),
     ...(left ? [`${plural(left, "person")} the page lists as no longer there (former or ex-, or an end date) ${left === 1 ? "was" : "were"} not saved.`] : []),
   ];
   if (!people.length) return { reply: [`${r.url} doesn't mark anyone up as a current person there or publish an email link for one, so I took no names from it (I don't guess names from page text). Nothing was saved.`, ...notes].join(" "), intent: PAGE_INTENT, status: "no_people" };

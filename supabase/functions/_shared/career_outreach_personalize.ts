@@ -22,7 +22,6 @@
 import PLAYBOOKS from "./outreach_playbooks.ts";
 import { sameFirm } from "./career_contacts.ts";
 import { registrable } from "./career_people_gmail.ts";
-import { readsAsInstruction } from "./career_people_import.ts";
 import { confirmed, type DraftLang, factText, LANG_NAME, type LockSources, type ModelFn, outreachLock, type Recipient, type Shared, sharedFacts } from "./career_outreach.ts";
 
 // ------------------------------------------------------------------------------------------------ types
@@ -85,28 +84,56 @@ const sentencesOf = (t: string) => t.split(/(?<=[.!?])\s+|\n+/).map((s) => s.tri
 const BLOCKED_HOSTS = ["linkedin.com", "indeed.com", "joinhandshake.com", "glassdoor.com", "ziprecruiter.com"];
 const hostOf = (u: string) => { try { return new URL(u).hostname.toLowerCase().replace(/\.$/, ""); } catch { return ""; } };
 const blockedUrl = (u: string) => { const h = hostOf(u); return !!h && BLOCKED_HOSTS.some((b) => h === b || h.endsWith(`.${b}`)); };
-// Text in a bio or a page that speaks to an assistant is an instruction, never a fact: the sentence is dropped.
-const INSTRUCTION = new RegExp([
-  String.raw`\b(?:ignore|disregard|forget|override)\b[^.!?\n]{0,40}\b(?:instruction|instructions|prompt|rules?|above|previous|prior|earlier|everything|guidance|context)\b`,
-  String.raw`\bsystem prompt\b`, String.raw`\byou are (?:now )?(?:an? )?(?:ai|assistant|language model|chatbot|gpt)\b`,
-  String.raw`\b(?:ai|assistant|model|chatgpt|claude|gpt|llm|bot)s?\b[^.!?\n]{0,30}\b(?:must|should|shall|always|never|will)\b`,
-  String.raw`^\s*(?:please\s+)?(?:write|say|tell|include|mention|add|respond|reply|claim|state|insert|append)\b`,
-  String.raw`\b(?:when|if)\s+(?:you|anyone)\s+(?:write|writes|email|emails|draft|drafts|contact)\b`, String.raw`<\|[^|]*\|>`, String.raw`\[\[?(?:system|inst)\]?\]`,
-  // #361 re-review (2026-11-01): a sentence addressed to whoever drafts the email, or one that directs what the email
-  // says, is an instruction however it is phrased ("Note to the assistant: ...", "Whoever drafts this email must ...",
-  // "The email should state ...", "disregard all earlier guidance").
-  String.raw`\b(?:note|message|memo|instructions?|reminder|attention|attn|dear|hey|psst)\b[\s,:-]*(?:(?:to|for)\s+)?(?:the\s+|any\s+|this\s+|an?\s+)?(?:assistant|ai|model|bot|llm|chatgpt|gpt|claude|writer|drafter|copywriter|agent)\b`,
-  String.raw`\bwhoever\s+(?:drafts?|writes?|reads?|sends?|composes?|is\s+(?:writing|drafting))\b`,
-  String.raw`\b(?:the|this|that|your|any|each|every|an?)\s+(?:e-?mails?|message|note|draft|reply|letter|response|intro(?:duction)?|outreach|writer|drafter)\b(?:\s+to\s+\S+)?\s+(?:must|should|shall|needs?\s+to|has\s+to|ought\s+to|is\s+to)\b`,
-  String.raw`\b(?:must|should|shall|needs?\s+to|has\s+to|have\s+to|ought\s+to)\s+(?:also\s+)?(?:state|say|mention|include|claim|add|insert|tell|request|open|begin|thank|congratulate|praise|sign|reference)\b`,
-  String.raw`\b(?:disregard|ignore|override|bypass)\b`,
-  String.raw`\binstructions?\b`, String.raw`\b(?:system|previous|prior|earlier|original|your|this)\s+prompts?\b`,
-  String.raw`^\s*(?:you|u)\s+(?:must|should|shall|need\s+to|have\s+to|will|are\s+to|are\s+required\s+to)\b`,
-  String.raw`\b(?:make|be)\s+sure\s+(?:to|that|you)\b`, String.raw`\b(?:do\s+not|don'?t|never)\s+(?:mention|say|include|state|write|tell|reveal|disclose)\b`,
-  String.raw`\bfrom\s+now\s+on\b`, String.raw`\bnew\s+(?:instructions?|rules|task|directives?)\b`, String.raw`\bpretend\b`, String.raw`\brole-?\s?play\b`,
-  String.raw`\bwhen\s+(?:writing|drafting|composing)\b`,
-].join("|"), "iu");
-export const isInstruction = (s: string) => INSTRUCTION.test(s) || readsAsInstruction(s);
+// Text in a bio, a page or a paste that speaks to whoever writes the email is an instruction, never a fact: the sentence
+// is dropped. #361 re-review (2026-11-01): decided by the sentence's STRUCTURE, not by keywords, so a bio's "built a
+// bypass for the billing queue" or "ran role-play workshops" is kept and "Assistant, say ..." is not. A sentence (or a
+// clause after a leading "When writing," / "From now on," / "Attention model:") is an instruction when it is:
+//   1. addressed to the drafter: a vocative or a note to the assistant/AI/model/writer ("Note to AI:", "Dear assistant,",
+//      "Claude:"), or about "whoever drafts/writes/reads this";
+//   2. in the imperative, directed at the writer: it opens with a writer's verb in its base form followed by what is to
+//      be said or done ("Say the sender ...", "Ignore all ...", "Thank her ...", "Never mention ...", "Make sure ...");
+//   3. a directive about the email or its writer: the email/message/draft/writer/assistant/sender (or "you") with
+//      must/should/needs to/has to/is to, or "should be mentioned/stated";
+//   4. meta-talk about the instructions themselves: "your/previous/new instructions", "system prompt", "new task",
+//      "from now on", role markers and chat-template tokens, "you are now ...".
+// Everything else, descriptive sentences about the person ("She leads ...", "Previously at Square", "Writes a newsletter
+// ..."), is kept.
+const DRAFTER = String.raw`(?:assistants?|ai|a\.i\.|models?|llms?|language\s+models?|bots?|chatbots?|chatgpt|gpt(?:-?\d)?|claude|gemini|copilot|writers?|drafters?|copywriters?|agents?|ghostwriters?)`;
+const DET = String.raw`(?:the|this|that|any|an?|your|our|my|each|every|dear)`;
+const MODAL = String.raw`(?:must|should|shall|needs?\s+to|has\s+to|have\s+to|ought\s+to|is\s+to|are\s+to|is\s+required\s+to|will\s+need\s+to|had\s+better)`;
+const WRITER_VERBS = String.raw`say|write|tell|mention|include|state|claim|add|insert|append|ask|request|open|begin|start|end|close|thank|congratulate|praise|compliment|flatter|sign|ignore|disregard|forget|override|bypass|pretend|act|role-?\s?play|use|make|do|list|describe|refer|call|address|treat|assume|respond|reply|omit|remove|drop|skip|avoid|keep|stop|emphasi[sz]e|highlight|remember|reveal|share|send|attach|put|frame|present|promise|offer|lie|invent|fabricate|imply|note|follow|obey|output|print|summari[sz]e|copy|let|be|sound|reference|cite|lead|position|introduce|describe|portray|tag|cc|bcc|reach|email|message|text|pitch|push|insist|demand|exaggerate|embellish|word|phrase|rewrite|translate|answer`;
+// What follows an imperative verb: an object, a clause or a person ("Say the ...", "Tell her", "Thank Maya", "Be warm").
+const OBJ = String.raw`(?:the|a|an|her|him|them|his|their|that|this|these|those|every|each|all|any|your|my|our|it|its|in|about|to|as|with|by|on|up|out|off|nothing|everything|something|anything|only|me|us|you|first|instead|sure|clear|warm|brief|short|polite|friendly|sender|recipient|reader|we|i|how|what|why|where|who|whether|no|not|more|less|some|both|either|one|two|three|\p{Lu}[\p{L}'’-]+)`;
+// Each alternative with its first letter in either case: "Say" or "say".
+const cap = (alts: string) => alts.split("|").map((v) => /^[a-z]/.test(v) ? `[${v[0].toUpperCase()}${v[0]}]${v.slice(1)}` : v).join("|");
+const INSTRUCTION_RULES: RegExp[] = [
+  // 1. addressed to the drafter
+  new RegExp(String.raw`^\s*(?:(?:p\.?s\.?|fyi|note|notes?|message|memo|reminder|instructions?|attention|attn|dear|hey|hi|hello|psst|to|for|ok(?:ay)?|listen)\b[\s,:.\-–—]*(?:(?:to|for)\s+)?(?:${DET}\s+|whoever\s+)?(?:\w+\s+)?${DRAFTER}\b|${DRAFTER}\s*[,:])`, "iu"),
+  new RegExp(String.raw`\b(?:note|message|memo|reminder|instructions?|directions?|guidance|a\s+word)\s+(?:to|for)\s+(?:${DET}\s+)?(?:\w+\s+)?${DRAFTER}\b`, "iu"),
+  /\bwhoever\s+(?:drafts?|writes?|reads?|sends?|composes?|prepares?|generates?|is\s+(?:writing|drafting|reading|composing)|gets\s+this)\b/iu,
+  new RegExp(String.raw`\b(?:if|when)\s+(?:you|an?\s+${DRAFTER}|the\s+${DRAFTER}|anyone)\s+(?:are\s+)?(?:write|writes|writing|email|emails|draft|drafts|drafting|contact|reads?|reading)\b`, "iu"),
+  // 2. imperative at the start of the sentence or of a clause after a leading phrase. Case-sensitive, so a capitalized word
+  // after the verb is a name ("Thank Maya"), never a noun phrase ("Open source maintainer").
+  new RegExp(String.raw`(?:^|[,:;—–]\s*|\b(?:then|also|now|just|please|simply|kindly)\s+)(?:(?:${cap("please|also|now|just|simply|kindly|then")})\s+)?(?:${cap(WRITER_VERBS)})\s+${OBJ}(?![\p{L}'’-])`, "u"),
+  new RegExp(String.raw`(?:^|[,:;—–]\s*)(?:please\s+)?(?:do\s+not|don'?t|never|always|be\s+sure\s+to|make\s+sure(?:\s+to|\s+that|\s+you)?|remember\s+to|try\s+to|feel\s+free\s+to)\s+(?:${WRITER_VERBS}|use|add|bring\s+up)\b`, "iu"),
+  // 3. a directive about the email or its writer
+  new RegExp(String.raw`(?:^|[,:;—–]\s*|\b${DET}\s+)(?:e-?mails?|messages?|notes?|drafts?|replies|reply|letters?|responses?|intros?|introductions?|outreach|pitch|subject\s+line|opening|closing|${DRAFTER}|senders?|you)\b(?:\s+(?:to|for)\s+\S+)?\s+${MODAL}\b`, "iu"),
+  /\b(?:it\s+)?(?:must|should|shall|needs?\s+to)\s+be\s+(?:mentioned|stated|said|claimed|included|added|noted|written|emphasi[sz]ed|highlighted|implied)\b/iu,
+  /\byou\s+(?:must|should|shall|need\s+to|have\s+to|are\s+to|are\s+required\s+to|will\s+(?:now\s+)?(?:say|write|tell|mention|include|state|claim|open|begin|start|sign|ask|act|pretend|use))\b/iu,
+  // 4. meta-talk about instructions, prompts and roles
+  /\b(?:your|my|the|these|those|previous|prior|earlier|above|new|following|original|real|actual|updated|hidden|secret|system|developer|initial)\s+(?:\w+\s+)?(?:instructions?|directives?|prompts?)(?!\s+(?:engineering|engineer|design|library|tuning|injection|optimization|caching))\b/iu,
+  /\b(?:system|developer)\s*(?:prompt|message|instructions?)\b/iu,
+  /\bnew\s+(?:task|role|persona|objective|goal|rules?)\s*[:.]/iu,
+  /\bfrom\s+now\s+on\b|\bgoing\s+forward,?\s+(?:you|always|never)\b/iu,
+  /\b(?:ignore|disregard|forget|override)\s+(?:all|any|every|the|your|my|previous|prior|above|earlier|everything|what|that|those|these)\b[^.!?\n]{0,40}\b(?:instructions?|rules?|guidance|context|prompts?|directions?|text|above|said|told|before|previous|earlier|guidelines?)\b/iu,
+  /^\s*you\s+are\s+now\b/iu,
+  /\byou\s+are\s+(?:now\s+)?(?:an?\s+)?(?:ai|assistant|language\s+model|chatbot|gpt|bot|writer|copywriter|her|his|their|the)\b/iu,
+  /^\s*(?:system|assistant|user|developer)\s*[:>]|<\|?(?:im_start|im_end|system|endoftext)|<\|[^|]*\|>|\[\[?(?:system|inst)\]?\]|\[\/?inst\]/iu,
+];
+export const isInstruction = (s: string) => {
+  const t = String(s ?? "").replace(/[’`]/g, "'").replace(/\s+/g, " ").trim();
+  return !!t && INSTRUCTION_RULES.some((rx) => rx.test(t));
+};
 const clean = (s: unknown, max = 400) => String(s ?? "").replace(/[\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 
 export function rowFacts(r: Recipient): RecipientFact[] {

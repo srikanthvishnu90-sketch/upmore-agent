@@ -203,6 +203,8 @@ const rowKey = (r: ContactRow) => `${r.file}#${r.row}`;
 // Who a row is: the address, else the name at the firm. The forgotten list remembers this, so another list's row of the
 // same person can't bring them back either.
 export const personKey = (r: ContactRow) => (r.email ? `e:${r.email.trim().toLowerCase()}` : `n:${plain(r.name)}@${plain(r.firm)}`);
+// The address that may make a domain the firm's verified one: only one the person gave (#361 re-review, 2026-11-01).
+const givenEmail = (r: ContactRow): string | null => (r.discovered || r.unverified ? null : r.email ?? null);
 // A row with the keys the account table indexes: what any writer (this turn, people finding) hands putContacts.
 export const keyedContact = (r: ContactRow): KeyedContact => ({ row_key: rowKey(r), person_key: personKey(r), file: r.file, name_key: plain(r.name),
   email: r.email ? r.email.trim().toLowerCase() : null, firm_key: firmKey(r.firm), firm_raw_key: firmKey(r.firm_raw), data: r });
@@ -446,7 +448,13 @@ async function factIntakeTurn(o: NetworkingDeps): Promise<NetworkingResult | nul
   const answering = !!pending && (await o.store.lastAssistantIntent(o.threadId).catch(() => null)) === FACTS_INTENT;
   if (answering) {
     // Any other ask (an approval, an intro, a status, another email) is that ask: the question closes unanswered.
-    if (parseNetworkingAsk(typedAddress(msg).text) || forgetAsk(msg) || parsePeopleAsk(msg) || parseOutreachReply(msg) || parseBatchYes(msg) || trackAsk(msg) || siteAsk(msg)) { await setFactAsk(o, null); return null; }
+    // #361 re-review (2026-11-01): a link on its own (or "her team page: <link>") while the question is open is the answer,
+    // read under the firm-site check below, never handed to the people-page reader (which would file whoever that page
+    // names under the firm). "People at Ramp on <link>" names a firm, and is that ask.
+    const pa = parsePeopleAsk(msg);
+    const nameWords0 = plain(pending!.name).split(" ").filter((w) => w.length > 1);
+    const linkAnswer = URL_RX.test(msg) && (!pa || (pa.kind === "page" && !pa.firm && (!pa.owner || nameWords0.some((w) => plain(pa.owner!).split(" ").includes(w)))));
+    if (parseNetworkingAsk(typedAddress(msg).text) || forgetAsk(msg) || (pa && !linkAnswer) || parseOutreachReply(msg) || parseBatchYes(msg) || trackAsk(msg) || (siteAsk(msg) && !linkAnswer)) { await setFactAsk(o, null); return null; }
     // Only something about them is an answer: a pronoun, their name, a link, or a sentence about what they did. Anything
     // else ("find me internships in Chicago") is another ask: the question closes and that ask runs.
     const nameWords = plain(pending!.name).split(" ").filter((w) => w.length > 1);
@@ -457,7 +465,10 @@ async function factIntakeTurn(o: NetworkingDeps): Promise<NetworkingResult | nul
       await setFactAsk(o, null);
       return { reply: `Then I'll hold off on writing to ${pending!.name}: an email that could go to anyone rarely gets a reply, and I won't make something up. When you learn one thing about their work, tell me ("${pending!.name.split(" ")[0]} spoke at ...") and I'll write it.`, intent: FACTS_INTENT, status: "declined" };
     }
-    return await saveFacts(o, { key: pending!.key, name: pending!.name, firm: pending!.firm }, msg, pending);
+    // The contact asked about, looked up again: its address counts only if the person gave it (never pending.email, which
+    // may be one a page published).
+    const me = (await namedOnce(o, pending!.name).catch(() => [])).find((r) => personKey(r) === pending!.key);
+    return await saveFacts(o, { key: pending!.key, name: pending!.name, firm: pending!.firm, email: me ? givenEmail(me) : null }, msg, pending);
   }
   const m = ABOUT_RX.exec(msg) ?? POSS_RX.exec(msg), said = m ? null : SAID_RX.exec(msg);
   const hit = m ?? said;
@@ -466,7 +477,7 @@ async function factIntakeTurn(o: NetworkingDeps): Promise<NetworkingResult | nul
   if (!who.length) return null; // not someone in their contacts (a firm's page, a name they haven't sent): another turn's
   if (who.length > 1) return { reply: `More than one ${hit[1]} is in your contacts (${who.slice(0, 5).map((r) => `${r.name}${r.firm ? ` at ${r.firm}` : ""}`).join("; ")}). Say it again with the full name.`, intent: FACTS_INTENT, status: "which" };
   const r = who[0];
-  return await saveFacts(o, { key: personKey(r), name: r.name, firm: r.firm, email: r.email }, said ? `${r.name.split(" ")[0]} ${hit[2]}` : hit[2], pending && pending.key === personKey(r) ? pending : null);
+  return await saveFacts(o, { key: personKey(r), name: r.name, firm: r.firm, email: givenEmail(r) }, said ? `${r.name.split(" ")[0]} ${hit[2]}` : hit[2], pending && pending.key === personKey(r) ? pending : null);
 }
 async function saveFacts(o: NetworkingDeps, who: { key: string; name: string; firm: string; email?: string | null }, text: string, pending: FactAsk | null): Promise<NetworkingResult> {
   const at = new Date(o.now).toISOString(), ref = `${o.now.toString(36)}`, first = who.name.split(" ")[0];
@@ -574,6 +585,7 @@ async function savedPeople(o: NetworkingDeps, want: { firm?: string | null; name
       name: r.name!, email: usable ? r.email : null,
       firm: normalizeFirm(r.company), firm_raw: r.company, company: normalizeFirm(r.company), title: r.position, school: r.school, connected_on: r.connected_on,
       ...(found ? { discovered: true as const } : {}),
+      ...(!found && r.source !== "linkedin_export" && r.source !== "thread_list" ? { unverified: true as const } : {}),
       ...(found && usable ? { address: r.email_status === "inferred" ? "inferred" as const : "published" as const } : {}),
     };
   });

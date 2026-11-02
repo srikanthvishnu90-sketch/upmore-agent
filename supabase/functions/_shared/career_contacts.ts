@@ -41,6 +41,9 @@ export interface ContactRow {
   // them, or inferred from the company's email format. The draft card says which (2026-10-29).
   address?: "published" | "inferred";
   discovered?: true; // found by web discovery: someone a draft may reach, never someone the person "knows"
+  // #361 re-review (2026-11-01): a row Trainee read from somewhere (a public page, a Gmail correspondent) rather than one the
+  // person gave (their LinkedIn export, a CSV or a pasted list). Its address never makes a domain the firm's verified one.
+  unverified?: true;
 }
 export type SourceResult =
   | { status: "ok"; source: string; kind: "own_export" | "vendor"; vendor: string | null; rows: ContactRow[]; duplicates: number; skipped: { row: number; why: string }[]; cost_usd: number }

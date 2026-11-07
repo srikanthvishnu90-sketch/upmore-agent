@@ -13,7 +13,8 @@
 //      confirmed entry came from (fileUploadFor below), under the same rules: shown word for word, and in the upload.
 // A file that cannot be downloaded, is not a PDF or DOCX, or has no readable text is said so, plainly; nothing is stored.
 import { CareerProfile, CareerRender } from "./router_core.career.js";
-import { redactIdentity } from "./identity_redact.ts";
+import { normalizeChatText, redactIdentity } from "./identity_redact.ts";
+import { fileCodeLines, fileText as codeCheckText } from "./career_code_in_chat.ts";
 import type { Upload } from "./career_router_evidence.ts";
 
 export const MAX_RESUME_BYTES = 10 * 1024 * 1024;
@@ -29,6 +30,15 @@ export const FILE_DAMAGED_REPLY = "I couldn't open that file: it looks damaged o
 export const FILE_EMPTY_REPLY = "That file is empty (0 bytes), so there was nothing to read and nothing was saved. Send the resume file again, or paste its text here.";
 export const FILE_LOCKED_REPLY = "That PDF is locked with a password (or protected against copying), so I couldn't read its text and nothing was saved. Save an unlocked copy and send that, or paste your resume here. Never send me the password.";
 export const fileSecretReply = (kinds: string[]) => `Your file has ${kinds.join(" and ")} in it, so I didn't keep the file or read anything from it. Remove ${kinds.length > 1 ? "them" : "it"} from the file and send it again, or paste your resume here without ${kinds.length > 1 ? "them" : "it"}.`;
+// A suspected one-time code in a file: its line number in the text read from the file and its kind only, never the line, so the
+// person can find it, remove or reword it, and send the file again.
+export function fileCodeReply(lines: number[], otherKinds: string[] = []): string {
+  const ls = lines.slice(0, 5), where = ls.length === 1 ? `line ${ls[0]}` : `lines ${ls.slice(0, -1).join(", ")} and ${ls[ls.length - 1]}`;
+  const more = lines.length > 5 ? ` (and ${lines.length - 5} more)` : "";
+  const also = otherKinds.length ? ` It also has ${otherKinds.join(" and ")} in it.` : "";
+  return `Your file has what looks like a one-time code (a sign-in or verification code) on ${where}${more} of the text I read from it, so I didn't keep the file or read anything from it, and I won't repeat ${ls.length > 1 ? "those lines" : "that line"}.${also} ` +
+    `Remove the code and send the file again. If ${ls.length > 1 ? "a line" : "it"} isn't a code (an exam, ticket or part number), reword it, for example by writing what the number is for, and send the file again.`;
+}
 // ONBOARDING ROUND 2: a file whose text is not a resume (a cover letter, a transcript, a page with no sections) was
 // stored as the person's resume upload, and then the chat said "nothing from it was saved". It is checked first by the
 // chat's own proof for a framed resume (142 resumePasteDraftsOf: two entries, work or education among them) and not kept.
@@ -102,6 +112,126 @@ export async function fileText(kind: FileKind, bytes: Uint8Array): Promise<strin
   const lines: string[] = kind === "pdf" ? pdfLayoutLines(r.extractPdfRuns(buf)) : docxResumeLines(r.docxPart(buf, "word/document.xml")?.toString("utf8") ?? "");
   return (Array.isArray(lines) ? lines : []).map((l) => String(l).replace(/\s+$/, "")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
+
+// Word parts the reader does not show as resume text, which the stored file carries. Text is taken only where Word keeps text: the
+// text runs of headers, footers, notes, comments, glossary and text boxes (w:t, a:t, VML), the body's tracked deletions and field
+// instructions, alt text and tooltips, the title, subject, description and keywords of the document properties and custom string
+// properties, the query part of link targets, HTML or text "altChunk" parts, and an embedded Word file one level down. Structural
+// parts (styles, settings, fonts, numbering, theme, app properties) carry no resume text, but every listed part must still be
+// readable: a part the reader cannot read (bad checksum, past the size cap) throws, and the upload fails closed.
+const ENTITY: Record<string, string> = { lt: "<", gt: ">", quot: "\"", apos: "'", amp: "&", nbsp: " " };
+const decodeXml = (s: string) => s.replace(/&(#x[0-9a-f]+|#\d+|lt|gt|quot|apos|amp|nbsp);/gi, (_m, e: string) =>
+  e[0] === "#" ? String.fromCodePoint(e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)) : ENTITY[e.toLowerCase()] ?? _m);
+const lines = (s: string) => decodeXml(s).split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+// Text runs, one paragraph per line; a break or tab keeps its place. Any namespace prefix ("w:", "a:", or one a writer chose).
+const P = String.raw`(?:[\w.-]+:)?`;
+function runText(xml: string, tags = "t|delText|instrText"): string[] {
+  const out: string[] = [];
+  for (const para of xml.split(new RegExp(String.raw`</${P}p>`))) {
+    let t = "";
+    for (const m of para.matchAll(new RegExp(String.raw`<${P}(?:${tags})(?:\s[^>]*)?>([^<]*)</${P}(?:${tags})>|<${P}(?:br|cr)\b[^>]*/?>|<${P}tab\b[^>]*/?>`, "g"))) {
+      t += m[1] !== undefined ? m[1] : /tab/.test(m[0]) ? " " : "\n";
+    }
+    out.push(...lines(t));
+  }
+  return out;
+}
+// All character data of a part, a paragraph, break or closing block per line: text a writer put under any tag name.
+const allText = (xml: string) => lines(xml.replace(new RegExp(String.raw`</${P}(?:p|tc|tr|txbxContent|div|li)>|<${P}(?:br|cr)\b[^>]*/?>`, "g"), "\n").replace(/<[^>]*>/g, " "));
+// A part's text in its declared encoding: a byte-order mark, UTF-16 without one, or the XML declaration's encoding; UTF-8 otherwise.
+// Fail closed: a part that does not then read as XML (starts with "<", no NUL character) throws, so the upload is refused.
+function decodePart(part: Uint8Array, xml = true): string {
+  const b = part, dec = (label: string, at = 0) => { try { return new TextDecoder(label, { fatal: false }).decode(b.subarray(at)); } catch { throw new Error(`unknown encoding ${label}`); } };
+  let s: string;
+  if (b[0] === 0xff && b[1] === 0xfe && b[2] === 0 && b[3] === 0) throw new Error("UTF-32 part");
+  if (b[0] === 0 && b[1] === 0 && b[2] === 0xfe && b[3] === 0xff) throw new Error("UTF-32 part");
+  if (b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf) s = dec("utf-8", 3);
+  else if (b[0] === 0xff && b[1] === 0xfe) s = dec("utf-16le", 2);
+  else if (b[0] === 0xfe && b[1] === 0xff) s = dec("utf-16be", 2);
+  else if (b[1] === 0x00 && b[0] !== 0x00) s = dec("utf-16le");
+  else if (b[0] === 0x00 && b[1] !== 0x00) s = dec("utf-16be");
+  else {
+    const head = new TextDecoder("latin1").decode(b.subarray(0, 200)), enc = /^\s*<\?xml\b[^?>]*?\bencoding\s*=\s*["']([\w.:-]+)["']/i.exec(head)?.[1]; // the declaration only
+    s = enc && !/^utf-?8$/i.test(enc) ? dec(enc) : dec("utf-8");
+  }
+  if (s.includes("\u0000") || (xml && !/^\s*</.test(s))) throw new Error("part does not read as XML");
+  if (!xml) return s; // a plain-text or MHTML part (altChunk) is text, not XML
+  // CDATA is text: escaped and kept, so the tag-stripping readers see it ("<w:t><![CDATA[OTP 482913]]></w:t>").
+  return s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, (_m, c: string) => c.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+}
+// Attribute values by their XML meaning: either quote, any prefix, spaces around "=".
+const attr = (names: string) => new RegExp(String.raw`\s${P}(?:${names})\s*=\s*(?:"([^"]*)"|'([^']*)')`, "g");
+const attrVals = (xml: string, names: string) => [...xml.matchAll(attr(names))].map((m) => m[1] ?? m[2] ?? "");
+const attrText = (xml: string) => [...attrVals(xml, "descr|title|tooltip"),
+  ...[...xml.matchAll(new RegExp(String.raw`<${P}textpath\b(?:[^>"']|"[^"]*"|'[^']*')*>`, "g"))].flatMap((m) => attrVals(m[0], "string"))].flatMap((v) => lines(v));
+// Leaf elements of a properties part, one line each, under any prefix. Core: every text property except the numeric and date
+// metadata Word writes (revision, version, dates, language). Custom: the string values.
+const leaves = (xml: string, keep: (name: string) => boolean) => [...xml.matchAll(new RegExp(String.raw`<${P}([\w.-]+)(?:\s[^>]*)?>([^<]*)</${P}\1>`, "g"))]
+  .filter((m) => keep(m[1])).flatMap((m) => lines(m[2]));
+const CORE_META = /^(?:revision|version|created|modified|lastPrinted|language)$/i;
+// An MHTML part: each MIME body decoded by its transfer encoding (an encoding it cannot read throws: the file is refused),
+// HTML bodies read as text, MIME headers and boundaries left out.
+function mimeText(s: string): string[] {
+  const html = (t: string) => lines(t.replace(/<(?:br|\/p|\/div|\/li|\/tr|\/h\d)[^>]*>/gi, "\n").replace(/<[^>]*>/g, " "));
+  if (/^\s*</.test(s)) return html(s);
+  const bound = /boundary\s*=\s*(?:"([^"]+)"|([^\s;]+))/i.exec(s);
+  const parts = bound ? s.split("--" + (bound[1] ?? bound[2])).slice(1) : [s];
+  const out: string[] = [];
+  for (const part of parts) {
+    const at = part.search(/\r?\n\r?\n/);
+    if (at < 0) { if (part.trim() && part.trim() !== "--") out.push(...lines(part)); continue; }
+    const head = part.slice(0, at), body = part.slice(at).replace(/^\r?\n\r?\n/, "");
+    const enc = (/content-transfer-encoding\s*:\s*([\w-]+)/i.exec(head)?.[1] ?? "7bit").toLowerCase();
+    let text: string;
+    if (enc === "base64") { const raw = atob(body.replace(/\s+/g, "")); text = new TextDecoder("utf-8").decode(Uint8Array.from(raw, (c) => c.charCodeAt(0))); }
+    else if (enc === "quoted-printable") { const b = body.replace(/=\r?\n/g, ""); const bytes: number[] = []; for (let i = 0; i < b.length; i++) { const h = b[i] === "=" && /^[0-9a-f]{2}$/i.test(b.slice(i + 1, i + 3)); bytes.push(h ? parseInt(b.slice(i + 1, i + 3), 16) : b.charCodeAt(i)); if (h) i += 2; } text = new TextDecoder("utf-8").decode(new Uint8Array(bytes)); }
+    else if (/^(?:7bit|8bit|binary)$/.test(enc)) text = body;
+    else throw new Error(`unknown transfer encoding ${enc}`);
+    out.push(...(/content-type\s*:\s*text\/plain/i.test(head) ? lines(text) : html(text)));
+  }
+  return out;
+}
+const queryOf = (url: string) => { const q = decodeXml(url).replace(/^[^?#]*/, ""); try { return decodeURIComponent(q); } catch { return q; } };
+const STRUCTURAL = /^(?:word\/(?:styles|stylesWithEffects|settings|webSettings|fontTable|numbering|people|commentsIds|commentsExtensible|commentsExtended)\.xml|word\/theme\/[^/]+\.xml|docProps\/app\.xml|\[Content_Types\]\.xml|customXml\/[^/]+\.xml|word\/(?:glossary\/)?(?:styles|settings|webSettings|fontTable|numbering)\.xml)$/i;
+async function hiddenOf(r: any, buf: any, depth: number): Promise<string[]> {
+  const names: string[] = r.docxPartNames(buf) ?? [];
+  if (!names.includes("word/document.xml")) throw new Error("no document part");
+  const out: string[] = [];
+  for (const n of names) {
+    const text = /\.(?:xml|rels|vml|html?|txt|mht|docx)$/i.test(n), part = text ? r.docxPart(buf, n) : null;
+    if (text && !part) throw new Error(`part not readable: ${n}`);
+    if (!part || STRUCTURAL.test(n)) continue;
+    if (/\.docx$/i.test(n)) { if (depth > 0) throw new Error(`nested file too deep: ${n}`); out.push(...(r.extractDocxLines?.(part) ?? []).map(String), ...(await hiddenOf(r, part, depth + 1))); continue; }
+    const s = decodePart(new Uint8Array(part), !/\.(?:txt|mht)$/i.test(n));
+    if (n === "word/document.xml") {
+      const fallbacks = [...s.matchAll(new RegExp(String.raw`<${P}Fallback\b[\s\S]*?</${P}Fallback>`, "g"))].flatMap((m) => allText(m[0]));
+      // DrawingML and other non-w text, its runs joined per paragraph ("O" "T" "P" ": " "4" ... reads "OTP: 4...").
+      const nonW = [...s.matchAll(/<((?!w:)[\w.-]+):p\b[\s\S]*?<\/\1:p>/g)].flatMap((m) => runText(m[0])).concat(
+        [...s.matchAll(/<((?!w:)[\w.-]+):t(?:\s[^>]*)?>([^<]*)<\/\1:t>/g)].map((m) => m[2]).join("").trim() ? lines([...s.matchAll(/<((?!w:)[\w.-]+):t(?:\s[^>]*)?>([^<]*)<\/\1:t>/g)].map((m) => m[2]).join("")) : []);
+      // Text runs outside any paragraph (the visible reader reads paragraphs only).
+      const loose = runText(s.replace(new RegExp(String.raw`<${P}p\b[\s\S]*?</${P}p>`, "g"), "\n"));
+      out.push(...runText(s, "delText|instrText"), ...attrText(s), ...fallbacks, ...nonW, ...loose); continue;
+    }
+    if (/\.rels$/i.test(n)) { out.push(...attrVals(s, "Target").map(queryOf).filter((q) => q.length > 1)); continue; }
+    // Document properties under any prefix, one property per line (numeric and date metadata left out).
+    if (/^docProps\/core\.xml$/i.test(n)) { out.push(...leaves(s, (k) => !CORE_META.test(k)), ...attrText(s)); continue; }
+    if (/^docProps\/custom\.xml$/i.test(n)) { out.push(...leaves(s, (k) => /^(?:lpw?str|bstr)$/i.test(k)), ...attrText(s)); continue; }
+    if (/\.txt$/i.test(n)) { out.push(...s.split(/\r?\n|\r/).map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean)); continue; } // literal text
+    if (/\.mht$/i.test(n)) { out.push(...mimeText(s)); continue; }
+    if (/\.html?$/i.test(n)) { out.push(...lines(s.replace(/<(?:br|\/p|\/div|\/li|\/tr|\/h\d)[^>]*>/gi, "\n").replace(/<[^>]*>/g, " "))); continue; }
+    if (/\.vml$/i.test(n)) { out.push(...lines(s.replace(/<\/(?:div|p)>|<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, " ")), ...attrText(s)); continue; }
+    out.push(...runText(s), ...allText(s), ...attrText(s));
+  }
+  return out;
+}
+export async function docxHiddenText(bytes: Uint8Array): Promise<string> {
+  reader ??= Promise.all([import("node:zlib"), import("node:crypto"), import("node:buffer")])
+    // deno-lint-ignore no-explicit-any
+    .then(([zlib, crypto, b]) => ({ r: (CareerRender as any).withRuntime({ zlib, crypto, Buffer: b.Buffer }), Buffer: b.Buffer }));
+  const { r, Buffer } = await reader;
+  return (await hiddenOf(r, Buffer.from(bytes), 0)).join("\n");
+}
+export const FILE_HIDDEN_CODE_REPLY = "Your file has what looks like a one-time code or another private number in a header, footer, note, comment or tracked change, so I didn't keep the file or read anything from it, and I won't repeat it. Remove it (and accept or reject tracked changes) and send the file again, or paste your resume here.";
 
 // ONBOARDING ROUND 2 (2026-10-30, tests/architect/scenarios-onboarding-r2.test.ts): a resume file's lines as the person
 // laid them out. Before this each PDF text run was its own line and each Word paragraph was read with its tabs, line
@@ -211,7 +341,8 @@ export function docxResumeLines(xml: string): string[] {
 // The message the chat receives for a file's text: framed as a pasted resume, trimmed and with identity digits removed as
 // agent-chat's input step removes them (chat_input.ts), so its sha256 is the sha256 of the message the thread stores.
 export function resumeMessage(text: string): string {
-  let body = String(text ?? "").trim();
+  // normalised exactly as chat_input.ts normalises a message, so this message's sha256 matches the stored text (Greptile on #567)
+  let body = normalizeChatText(String(text ?? "")).trim();
   const head = "here is my resume:\n";
   if (head.length + body.length > MAX_MESSAGE) {
     body = body.slice(0, MAX_MESSAGE - head.length);
@@ -226,7 +357,7 @@ export function resumeMessage(text: string): string {
 // the cut, confirmed them as "your resume", and never learned the rest of their jobs and skills were not read. A pasted
 // message cut the same way is told (channel_inbound.ts longCutNote); a file now is too, with where the reading stopped.
 export function resumeMessageCut(text: string): boolean {
-  return "here is my resume:\n".length + String(text ?? "").trim().length > MAX_MESSAGE;
+  return "here is my resume:\n".length + normalizeChatText(String(text ?? "")).trim().length > MAX_MESSAGE;
 }
 export function fileCutNote(message: string): string {
   const last = String(message ?? "").trim().split("\n").map((l) => l.trim()).filter(Boolean).pop() ?? "";
@@ -249,7 +380,7 @@ export function storedFilename(name: string, kind: FileKind): string {
 }
 export const KIND_MIME: Record<FileKind, string> = { pdf: "application/pdf", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
 
-export type ResumeFileResult = { ok: true; message: string; uploadId: string; sha256: string; note?: string } | { ok: false; reply: string; why: string };
+export type ResumeFileResult = { ok: true; message: string; uploadId: string; sha256: string; note?: string } | { ok: false; reply: string; why: string; lines?: number[] };
 export async function ingestResumeFile(o: {
   userId: string; channel: "telegram"; doc: { fileId: string; uniqueId: string; name: string; mime: string; size: number | null };
   fetchFile: (fileId: string, maxBytes: number) => Promise<{ ok: true; bytes: Uint8Array } | { ok: false; error: string }>;
@@ -273,10 +404,26 @@ export async function ingestResumeFile(o: {
   // ONBOARDING ROUND 2: an identity number, a card number or a password in the file. The text the chat reads had it
   // removed, but the file itself was stored as the person's upload (and is the file an application attaches), with the
   // number in it. Now the file is not kept and nothing is read from it; the person is told what to remove.
-  const found = redactIdentity(text).removed;
+  // The identity check also reads the text as the code check does (any script's digits, look-alike letters, no zero-width
+  // characters), so a disguised number is not missed by one check and passed by the other.
+  const found = [...new Set([...redactIdentity(text).removed, ...redactIdentity(codeCheckText(text)).removed])];
+  // A plausible one-time code refuses the file (owner decision on 2de155f0): the reply names only the line and the kind, never
+  // the line itself, and nothing from the file is kept or read.
+  const codeLines = fileCodeLines(text);
+  if (codeLines.length && !found.includes("code")) found.push("code");
   if (found.length) {
     const name: Record<string, string> = { ssn: "a Social Security number", card: "a card number", account: "an account number", password: "a password", code: "a one-time code", key: "a key or token" };
-    return { ok: false, reply: fileSecretReply([...new Set(found.map((k) => name[k] ?? "a private number"))]), why: "secret" };
+    const kinds = [...new Set(found.map((k) => name[k] ?? "a private number"))];
+    return { ok: false, reply: codeLines.length ? fileCodeReply(codeLines, kinds.filter((k) => k !== name.code)) : fileSecretReply(kinds), why: "secret", lines: codeLines };
+  }
+  // The parts of a Word file the reader does not show are read by the same checks before the file is kept.
+  if (kind === "docx") {
+    let hidden = "";
+    // Fail closed: a part that cannot be read may hold anything, so the file is not kept.
+    try { hidden = await docxHiddenText(got.bytes); } catch (e) { console.error("resume file: hidden parts not read:", (e as Error)?.message ?? e); return { ok: false, reply: FILE_DAMAGED_REPLY, why: "damaged" }; }
+    if (hidden.trim() && (fileCodeLines(hidden).length || redactIdentity(hidden).removed.length || redactIdentity(codeCheckText(hidden)).removed.length)) {
+      return { ok: false, reply: FILE_HIDDEN_CODE_REPLY, why: "secret", lines: [] };
+    }
   }
   const message = resumeMessage(text);
   if (!readsAsResume(message)) return { ok: false, reply: fileNotResumeReply(text), why: "not_resume" };
@@ -311,6 +458,21 @@ export function supabaseUploadRecorder(admin: any) {
 // The evidence step's upload, when the person's message that carried the entries was a file's text: the file itself (the
 // person's original upload, by its provider reference and the sha256 of its bytes). Otherwise the message, unchanged.
 // deno-lint-ignore no-explicit-any
+// Whether a chat message is the text of a resume file this person uploaded: its sha256 is the message_sha256 the upload stored
+// (resumeMessage, above). Such a message skips code-in-chat's code-word pass: a resume line like "Built a customer portal
+// serving 120000 customers" is not a one-time code, and removing it changed the stored text so the confirmation lost the
+// file (Greptile on #568). Typed text that only starts like a file message has no matching upload, so it is checked as usual.
+// The file itself was refused at upload if it carried an identity number or a labeled code (ingestResumeFile, above).
+export async function isUploadedResumeText(admin: any, userId: string | null | undefined, text: string): Promise<boolean> {
+  if (!userId || !String(text ?? "").startsWith("here is my resume:\n")) return false;
+  try {
+    const r = await admin.from("career_resume_uploads").select("id").eq("user_id", userId).eq("message_sha256", await sha256Text(text)).limit(1);
+    return !r.error && Array.isArray(r.data) && r.data.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export async function fileUploadFor(admin: any, userId: string, upload: Upload | null): Promise<Upload | null> {
   if (!upload || upload.kind !== "message") return upload;
   try {
